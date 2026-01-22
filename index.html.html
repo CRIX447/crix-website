@@ -443,7 +443,7 @@
             opacity: 0.8;
         }
         
-        /* TIME DISPLAY */
+        /* TIME DISPLAY (Now only for system status) */
         .time-display {
             text-align: center;
             padding: 25px;
@@ -497,11 +497,7 @@
     </header>
     
     <div class="cyber-container">
-        <!-- REAL-TIME DISPLAY -->
-        <div class="time-display">
-            <div class="time-title">SYSTEM TIME</div>
-            <div class="time-value" id="currentTime">00:00:00</div>
-        </div>
+        <!-- REMOVED: Real-time display section -->
         
         <!-- CURRENCY CONTROLS -->
         <div class="currency-controls">
@@ -642,7 +638,7 @@
             AUD: { symbol: "A$", name: "Australian Dollar", flag: "🇦🇺", rate: 1.52 },
             CAD: { symbol: "C$", name: "Canadian Dollar", flag: "🇨🇦", rate: 1.35 },
             JPY: { symbol: "¥", name: "Japanese Yen", flag: "🇯🇵", rate: 110 },
-            VND: { symbol: "₫", name: "Vietnamese Dong", flag: "🇻🇳", rate: 24750 }, // Added VND
+            VND: { symbol: "₫", name: "Vietnamese Dong", flag: "🇻🇳", rate: 24750 },
             CNY: { symbol: "¥", name: "Chinese Yuan", flag: "🇨🇳", rate: 7.20 },
             INR: { symbol: "₹", name: "Indian Rupee", flag: "🇮🇳", rate: 83 },
             KRW: { symbol: "₩", name: "South Korean Won", flag: "🇰🇷", rate: 1300 }
@@ -674,25 +670,24 @@
         const productGrid = document.getElementById('productGrid');
         const currencyGrid = document.getElementById('currencyGrid');
         const linksMatrix = document.querySelector('.links-matrix');
-        const currentTimeElement = document.getElementById('currentTime');
         const lastUpdateElement = document.getElementById('lastUpdate');
 
         // ========== INITIALIZATION ==========
         async function initialize() {
             console.log('🚀 CRIXVERSE SYSTEM INITIALIZING...');
             
-            // 1. Initialize time display
-            updateTime();
-            setInterval(updateTime, 1000);
-            
-            // 2. Generate currency selector
+            // 1. Generate currency selector
             generateCurrencyGrid();
             
-            // 3. Generate products
+            // 2. Generate products
             generateProducts();
             
-            // 4. Generate links
+            // 3. Generate links
             generateLinks();
+            
+            // 4. Update last sync time
+            updateLastSyncTime();
+            setInterval(updateLastSyncTime, 30000);
             
             // 5. Start YouTube stats updates
             startStatsUpdates();
@@ -783,7 +778,7 @@
                 // Get other currencies to show as secondary (excluding current currency)
                 const otherCurrencies = Object.keys(currencies)
                     .filter(c => c !== currentCurrency)
-                    .slice(0, 4); // Show top 4 other currencies
+                    .slice(0, 4);
                 
                 productElement.innerHTML = `
                     <div class="product-image-container">
@@ -836,19 +831,13 @@
         }
 
         // ========== TIME FUNCTIONS ==========
-        function updateTime() {
+        function updateLastSyncTime() {
             const now = new Date();
-            // 24-hour format with leading zeros
             const hours = now.getHours().toString().padStart(2, '0');
             const minutes = now.getMinutes().toString().padStart(2, '0');
             const seconds = now.getSeconds().toString().padStart(2, '0');
             
-            currentTimeElement.textContent = `${hours}:${minutes}:${seconds}`;
-            
-            // Update last sync time every 30 seconds
-            if (now.getSeconds() % 30 === 0) {
-                lastUpdateElement.textContent = `${hours}:${minutes}:${seconds}`;
-            }
+            lastUpdateElement.textContent = `${hours}:${minutes}:${seconds}`;
         }
 
         // ========== YOUTUBE STATS FUNCTIONS ==========
