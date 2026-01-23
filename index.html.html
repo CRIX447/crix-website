@@ -46,22 +46,7 @@
             box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(255, 70, 85, 0.3);
         }
         
-        .scan-line {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: linear-gradient(to bottom, transparent, var(--matrix-green), transparent);
-            opacity: 0.3;
-            z-index: 1000;
-            animation: scan 3s linear infinite;
-        }
-        
-        @keyframes scan {
-            0% { top: 0; }
-            100% { top: 100vh; }
-        }
+        /* REMOVED: Scan line CSS */
         
         /* HEADER */
         .cyber-header {
@@ -487,8 +472,7 @@
     </style>
 </head>
 <body>
-    <!-- SCAN LINE EFFECT -->
-    <div class="scan-line"></div>
+    <!-- REMOVED: Scan line element -->
     
     <!-- HEADER -->
     <header class="cyber-header">
@@ -497,8 +481,6 @@
     </header>
     
     <div class="cyber-container">
-        <!-- REMOVED: Real-time display section -->
-        
         <!-- CURRENCY CONTROLS -->
         <div class="currency-controls">
             <div class="currency-title">SELECT CURRENCY</div>
