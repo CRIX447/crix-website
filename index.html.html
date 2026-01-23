@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CRIXVERSE • FUTURISTIC HUB</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/favicon.png">
+    
     <style>
-        /* FUTURISTIC THEME - RED/ORANGE/BLACK */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -36,7 +39,6 @@
             overflow-x: hidden;
         }
         
-        /* CYBER GLOW EFFECTS */
         .cyber-glow {
             text-shadow: var(--text-glow);
         }
@@ -46,9 +48,6 @@
             box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(255, 70, 85, 0.3);
         }
         
-        /* REMOVED: Scan line CSS */
-        
-        /* HEADER */
         .cyber-header {
             text-align: center;
             padding: 40px 20px;
@@ -98,7 +97,6 @@
             letter-spacing: 3px;
         }
         
-        /* CONTAINER */
         .cyber-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -106,7 +104,6 @@
             position: relative;
         }
         
-        /* STATS GRID - FUTURISTIC */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -161,7 +158,6 @@
             letter-spacing: 2px;
         }
         
-        /* CURRENCY CONTROLS */
         .currency-controls {
             background: rgba(10, 10, 15, 0.9);
             border: 2px solid var(--neon-red);
@@ -220,7 +216,6 @@
             margin-top: 5px;
         }
         
-        /* MERCH SECTION - FUTURISTIC */
         .cyber-merch {
             background: rgba(5, 5, 8, 0.9);
             padding: 60px 40px;
@@ -301,6 +296,11 @@
             max-height: 100%;
             object-fit: contain;
             padding: 20px;
+            transition: transform 0.3s;
+        }
+        
+        .hologram-product:hover .product-image {
+            transform: scale(1.1);
         }
         
         .product-info {
@@ -380,7 +380,6 @@
             box-shadow: 0 10px 20px rgba(255, 70, 85, 0.4);
         }
         
-        /* LINKS MATRIX */
         .links-matrix {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -428,7 +427,6 @@
             opacity: 0.8;
         }
         
-        /* TIME DISPLAY (Now only for system status) */
         .time-display {
             text-align: center;
             padding: 25px;
@@ -453,7 +451,6 @@
             text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
         }
         
-        /* RESPONSIVE */
         @media (max-width: 768px) {
             .hologram-logo { font-size: 48px; }
             .section-title { font-size: 32px; }
@@ -472,8 +469,6 @@
     </style>
 </head>
 <body>
-    <!-- REMOVED: Scan line element -->
-    
     <!-- HEADER -->
     <header class="cyber-header">
         <div class="hologram-logo">CRIXVERSE</div>
@@ -538,76 +533,76 @@
     
     <!-- JAVASCRIPT -->
     <script>
-        // ========== PRODUCT DATA ==========
+        // ========== PRODUCT DATA WITH YOUR AVIF IMAGES ==========
         const products = [
             {
                 name: "CRIXGAMING VR BUCKET HAT",
                 description: "Official bucket hat with futuristic CRIX design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat",
-                image: "🧢",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif",
                 priceUSD: 29.99
             },
             {
                 name: "CRIX ARMY TANK TOP",
                 description: "Military-style tank top for hardcore fans",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-army-tank-top",
-                image: "🎽",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif",
                 priceUSD: 24.99
             },
             {
                 name: "CRIXGAMING VR PHONE CASE",
                 description: "Protective phone case with cyber design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-phone-case",
-                image: "📱",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/phone-case.avif",
                 priceUSD: 19.99
             },
             {
                 name: "CRIXGAMING VR DESK MAT",
                 description: "Large desk mat with RGB-style design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-desk-mat",
-                image: "🖱️",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/desk-mat.avif",
                 priceUSD: 34.99
             },
             {
                 name: "CRIX STICKERS",
                 description: "Set of vinyl stickers for customization",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-stickers",
-                image: "🏷️",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/stickers.avif",
                 priceUSD: 9.99
             },
             {
                 name: "CRIXGAMING VR MUG",
                 description: "Ceramic mug for your gaming sessions",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug",
-                image: "☕",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/mug.avif",
                 priceUSD: 14.99
             },
             {
                 name: "CRIX POSTER",
                 description: "High-quality poster for your gaming room",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-poster",
-                image: "🖼️",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/poster.avif",
                 priceUSD: 12.99
             },
             {
                 name: "CRIXGAMING VR FACE MASK",
                 description: "Comfortable face mask with logo",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask",
-                image: "😷",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/face-mask.avif",
                 priceUSD: 8.99
             },
             {
                 name: "CRIXGAMING VR MENS HOODIE",
                 description: "Premium hoodie with holographic details",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie",
-                image: "👕",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/hoodie.avif",
                 priceUSD: 59.99
             },
             {
                 name: "CRIXGAMING VR T-SHIRT",
                 description: "Classic t-shirt with circuit board design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt",
-                image: "👔",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/t-shirt.avif",
                 priceUSD: 24.99
             }
         ];
@@ -646,7 +641,6 @@
 
         // ========== STATE VARIABLES ==========
         let currentCurrency = 'USD';
-        let exchangeRates = {};
 
         // ========== DOM ELEMENTS ==========
         const productGrid = document.getElementById('productGrid');
@@ -706,7 +700,6 @@
             
             const converted = priceUSD * currency.rate;
             
-            // Format based on currency
             if (targetCurrency === 'JPY' || targetCurrency === 'KRW' || targetCurrency === 'VND') {
                 return Math.round(converted);
             }
@@ -717,21 +710,17 @@
             const currency = currencies[currencyCode];
             if (!currency) return `$${amount}`;
             
-            // Special formatting for different currencies
             if (currencyCode === 'VND') {
-                // Format VND with thousand separators and no decimals
                 const formatted = Math.round(amount).toLocaleString('vi-VN');
                 return `${currency.symbol}${formatted}`;
             }
             
             if (currencyCode === 'JPY' || currencyCode === 'KRW') {
-                // Format JPY/KRW with thousand separators
                 const formatted = Math.round(amount).toLocaleString();
                 return `${currency.symbol}${formatted}`;
             }
             
             if (currencyCode === 'INR') {
-                // Format INR with Indian numbering
                 const formatted = parseFloat(amount).toLocaleString('en-IN', {
                     minimumFractionDigits: 0,
                     maximumFractionDigits: 2
@@ -739,7 +728,6 @@
                 return `${currency.symbol}${formatted}`;
             }
             
-            // Default formatting for other currencies
             return `${currency.symbol}${parseFloat(amount).toLocaleString(undefined, {
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
@@ -754,17 +742,15 @@
                 const productElement = document.createElement('div');
                 productElement.className = 'hologram-product';
                 
-                // Get primary price (selected currency)
                 const primaryPrice = convertPrice(product.priceUSD, currentCurrency);
                 
-                // Get other currencies to show as secondary (excluding current currency)
                 const otherCurrencies = Object.keys(currencies)
                     .filter(c => c !== currentCurrency)
                     .slice(0, 4);
                 
                 productElement.innerHTML = `
                     <div class="product-image-container">
-                        <div class="product-image" style="font-size: 72px;">${product.image}</div>
+                        <img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">
                     </div>
                     <div class="product-info">
                         <h3 class="product-name">${product.name}</h3>
@@ -846,13 +832,9 @@
         }
 
         function startStatsUpdates() {
-            // Initial update
             updateYouTubeStats();
-            
-            // Update every 30 seconds
             setInterval(updateYouTubeStats, 30000);
             
-            // Also update when tab becomes visible
             document.addEventListener('visibilitychange', () => {
                 if (!document.hidden) {
                     updateYouTubeStats();
@@ -863,12 +845,11 @@
         // ========== START EVERYTHING ==========
         window.addEventListener('DOMContentLoaded', initialize);
         
-        // Console welcome message
         console.log(`
         ╔══════════════════════════════════════════════╗
         ║            CRIXVERSE SYSTEM ONLINE           ║
         ║         FUTURISTIC MERCHANDISE HUB           ║
-        ║       NOW WITH VIETNAMESE DONG (VND)         ║
+        ║       WITH REAL FOURTHWALL PRODUCT IMAGES    ║
         ╚══════════════════════════════════════════════╝
         `);
     </script>
