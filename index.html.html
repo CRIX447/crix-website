@@ -533,77 +533,91 @@
     
     <!-- JAVASCRIPT -->
     <script>
-        // ========== PRODUCT DATA WITH YOUR AVIF IMAGES ==========
+        // ========== UPDATED PRODUCT DATA WITH NEW IMAGES & PRICES ==========
         const products = [
             {
                 name: "CRIXGAMING VR BUCKET HAT",
                 description: "Official bucket hat with futuristic CRIX design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif",
-                priceUSD: 29.99
+                priceUSD: 24.99  // Lowered from 29.99
             },
             {
                 name: "CRIX ARMY TANK TOP",
                 description: "Military-style tank top for hardcore fans",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-army-tank-top",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif",
-                priceUSD: 24.99
+                priceUSD: 19.99  // Lowered from 24.99
             },
             {
                 name: "CRIXGAMING VR PHONE CASE",
                 description: "Protective phone case with cyber design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-phone-case",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/phone-case.avif",
-                priceUSD: 19.99
+                priceUSD: 16.99  // Lowered from 19.99
             },
             {
                 name: "CRIXGAMING VR DESK MAT",
                 description: "Large desk mat with RGB-style design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-desk-mat",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/desk-mat.avif",
-                priceUSD: 34.99
+                priceUSD: 29.99  // Lowered from 34.99
             },
             {
                 name: "CRIX STICKERS",
                 description: "Set of vinyl stickers for customization",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-stickers",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/stickers.avif",
-                priceUSD: 9.99
+                priceUSD: 7.99   // Lowered from 9.99
             },
             {
                 name: "CRIXGAMING VR MUG",
                 description: "Ceramic mug for your gaming sessions",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/mug.avif",
-                priceUSD: 14.99
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-mug.png",
+                priceUSD: 12.99  // Lowered from 14.99
             },
             {
                 name: "CRIX POSTER",
                 description: "High-quality poster for your gaming room",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-poster",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/poster.avif",
-                priceUSD: 12.99
+                priceUSD: 10.99  // Lowered from 12.99
             },
             {
                 name: "CRIXGAMING VR FACE MASK",
-                description: "Comfortable face mask with logo",
+                description: "Comfortable face mask with updated logo design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/face-mask.avif",
-                priceUSD: 8.99
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-face-mask.png",
+                priceUSD: 7.99   // Lowered from 8.99
             },
             {
                 name: "CRIXGAMING VR MENS HOODIE",
-                description: "Premium hoodie with holographic details",
+                description: "Premium hoodie with holographic details - Updated Design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/hoodie.avif",
-                priceUSD: 59.99
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png",
+                priceUSD: 49.99  // Lowered from 59.99
             },
             {
                 name: "CRIXGAMING VR T-SHIRT",
-                description: "Classic t-shirt with circuit board design",
+                description: "Classic t-shirt with updated circuit board design",
                 link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/t-shirt.avif",
-                priceUSD: 24.99
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png",
+                priceUSD: 19.99  // Lowered from 24.99
+            },
+            {
+                name: "CRIXGAMING VR BACKPACK",
+                description: "Durable backpack for gaming gear and daily use",
+                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png",
+                priceUSD: 39.99  // New product
+            },
+            {
+                name: "CRIXGAMING VR BASEBALL CAP",
+                description: "Stylish baseball cap with embroidered logo",
+                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap",
+                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png",
+                priceUSD: 21.99  // New product
             }
         ];
 
@@ -849,7 +863,8 @@
         ╔══════════════════════════════════════════════╗
         ║            CRIXVERSE SYSTEM ONLINE           ║
         ║         FUTURISTIC MERCHANDISE HUB           ║
-        ║       WITH REAL FOURTHWALL PRODUCT IMAGES    ║
+        ║           UPDATED PRODUCTS & PRICES          ║
+        ║       BACKPACK & BASEBALL CAP ADDED!         ║
         ╚══════════════════════════════════════════════╝
         `);
     </script>
