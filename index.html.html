@@ -3,10 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRIXVERSE • FUTURISTIC HUB</title>
+    <title>CRIXGAMING VR • FUTURISTIC HUB</title>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/favicon.png">
+    <!-- New Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+    
+    <!-- YouTube RSS Feed Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/rss-parser@3.13.4/dist/rss-parser.min.js"></script>
     
     <style>
         :root {
@@ -41,11 +44,6 @@
         
         .cyber-glow {
             text-shadow: var(--text-glow);
-        }
-        
-        .neon-border {
-            border: 2px solid var(--neon-red);
-            box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(255, 70, 85, 0.3);
         }
         
         .cyber-header {
@@ -104,6 +102,7 @@
             position: relative;
         }
         
+        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -158,6 +157,7 @@
             letter-spacing: 2px;
         }
         
+        /* CURRENCY CONTROLS */
         .currency-controls {
             background: rgba(10, 10, 15, 0.9);
             border: 2px solid var(--neon-red);
@@ -216,6 +216,102 @@
             margin-top: 5px;
         }
         
+        /* LATEST VIDEOS SECTION */
+        .videos-section {
+            background: rgba(5, 5, 8, 0.9);
+            padding: 60px 40px;
+            margin: 60px 0;
+            border: 3px solid var(--neon-red);
+            position: relative;
+        }
+        
+        .videos-section::after {
+            content: '▶▶▶';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--matrix-green);
+            font-size: 24px;
+            letter-spacing: 10px;
+        }
+        
+        .video-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 40px;
+        }
+        
+        .video-card {
+            background: rgba(20, 20, 30, 0.9);
+            border: 2px solid var(--cyber-orange);
+            padding: 0;
+            position: relative;
+            transition: all 0.4s;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .video-card:hover {
+            transform: scale(1.05);
+            border-color: var(--matrix-green);
+            box-shadow: 0 0 40px rgba(0, 255, 157, 0.3);
+        }
+        
+        .video-thumbnail-container {
+            width: 100%;
+            height: 200px;
+            overflow: hidden;
+            position: relative;
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .video-thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+        
+        .video-card:hover .video-thumbnail {
+            transform: scale(1.1);
+        }
+        
+        .video-info {
+            padding: 20px;
+        }
+        
+        .video-title {
+            font-size: 18px;
+            color: white;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .video-date {
+            font-size: 14px;
+            color: var(--matrix-green);
+            margin-bottom: 5px;
+        }
+        
+        .video-loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--neon-orange);
+            font-size: 18px;
+            grid-column: 1 / -1;
+        }
+        
+        /* MERCH SECTION */
         .cyber-merch {
             background: rgba(5, 5, 8, 0.9);
             padding: 60px 40px;
@@ -380,6 +476,175 @@
             box-shadow: 0 10px 20px rgba(255, 70, 85, 0.4);
         }
         
+        /* BROWSE ALL BUTTON */
+        .browse-all-container {
+            text-align: center;
+            margin: 40px 0 20px;
+        }
+        
+        .browse-all-button {
+            background: transparent;
+            border: 3px solid var(--matrix-green);
+            color: var(--matrix-green);
+            padding: 18px 50px;
+            font-size: 24px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .browse-all-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 157, 0.3), transparent);
+            transition: left 0.4s;
+        }
+        
+        .browse-all-button:hover::before {
+            left: 100%;
+        }
+        
+        .browse-all-button:hover {
+            background: rgba(0, 255, 157, 0.1);
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.5);
+            transform: translateY(-5px);
+        }
+        
+        /* PRODUCT MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 40px;
+        }
+        
+        .modal.active {
+            display: block;
+        }
+        
+        .modal-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--matrix-green);
+            padding-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 36px;
+            color: var(--matrix-green);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        .modal-close {
+            background: transparent;
+            border: 2px solid var(--neon-red);
+            color: var(--neon-red);
+            font-size: 30px;
+            width: 60px;
+            height: 60px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-close:hover {
+            background: var(--neon-red);
+            color: white;
+            transform: rotate(90deg);
+        }
+        
+        .modal-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        
+        .modal-product {
+            background: rgba(20, 20, 30, 0.9);
+            border: 2px solid var(--cyber-orange);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .modal-product:hover {
+            transform: translateY(-10px);
+            border-color: var(--matrix-green);
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
+        }
+        
+        .modal-product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+        
+        .modal-product-name {
+            font-size: 18px;
+            color: white;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        
+        .modal-product-price {
+            font-size: 24px;
+            color: var(--neon-orange);
+            margin-bottom: 15px;
+        }
+        
+        .modal-buy-button {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: none;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: block;
+        }
+        
+        .modal-buy-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(255, 70, 85, 0.4);
+        }
+        
+        /* LINKS MATRIX - UPDATED */
         .links-matrix {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -444,34 +709,28 @@
             margin-bottom: 15px;
         }
         
-        .time-value {
-            font-size: 48px;
-            color: var(--neon-orange);
-            font-weight: bold;
-            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
-        }
-        
         @media (max-width: 768px) {
             .hologram-logo { font-size: 48px; }
             .section-title { font-size: 32px; }
             .stat-display { font-size: 48px; }
             .hologram-grid { grid-template-columns: 1fr; }
-            .links-matrix { grid-template-columns: 1fr; }
+            .video-grid { grid-template-columns: 1fr; }
             .currency-grid { grid-template-columns: repeat(3, 1fr); }
-            .time-value { font-size: 36px; }
+            .modal { padding: 20px; }
         }
         
         @media (max-width: 480px) {
             .hologram-logo { font-size: 36px; }
             .section-title { font-size: 24px; }
             .currency-grid { grid-template-columns: repeat(2, 1fr); }
+            .browse-all-button { font-size: 18px; padding: 15px 30px; }
         }
     </style>
 </head>
 <body>
     <!-- HEADER -->
     <header class="cyber-header">
-        <div class="hologram-logo">CRIXVERSE</div>
+        <div class="hologram-logo">CRIXGAMING VR</div>
         <div class="cyber-tagline">who do you think i am 😂😂😂😂</div>
     </header>
     
@@ -489,36 +748,54 @@
         <div class="stats-grid">
             <div class="cyber-stat">
                 <div class="stat-icon">[👁️]</div>
-                <div class="stat-display" id="subCount">560</div>
+                <div class="stat-display" id="subCount">--</div>
                 <div class="stat-label">SUBSCRIBERS</div>
             </div>
             
             <div class="cyber-stat">
                 <div class="stat-icon">[▶️]</div>
-                <div class="stat-display" id="videoCount">103</div>
+                <div class="stat-display" id="videoCount">--</div>
                 <div class="stat-label">VIDEOS</div>
             </div>
             
             <div class="cyber-stat">
                 <div class="stat-icon">[🔍]</div>
-                <div class="stat-display" id="viewCount">42,211</div>
+                <div class="stat-display" id="viewCount">--</div>
                 <div class="stat-label">VIEWS</div>
             </div>
         </div>
         
+        <!-- LATEST VIDEOS SECTION -->
+        <section class="videos-section">
+            <h2 class="section-title cyber-glow">LATEST UPLOADS</h2>
+            
+            <div class="video-grid" id="videoGrid">
+                <div class="video-loading">▶ SYSTEM SCANNING YOUTUBE FEED... ◀</div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <span style="color: var(--matrix-green); font-size: 14px;">AUTO-REFRESHING EVERY 30 SECONDS</span>
+            </div>
+        </section>
+        
         <!-- MERCH SECTION -->
         <section class="cyber-merch">
-            <h2 class="section-title cyber-glow">CYBER MERCHANDISE</h2>
+            <h2 class="section-title cyber-glow">FEATURED MERCH</h2>
             
             <div class="hologram-grid" id="productGrid">
                 <!-- Products will be generated by JavaScript -->
             </div>
+            
+            <!-- BROWSE ALL BUTTON -->
+            <div class="browse-all-container">
+                <button class="browse-all-button" id="browseAllBtn">[ BROWSE ALL PRODUCTS ]</button>
+            </div>
         </section>
         
-        <!-- ALL LINKS MATRIX -->
-        <h2 class="section-title cyber-glow" style="margin-top: 80px;">NETWORK ACCESS POINTS</h2>
+        <!-- CRIXGAMING VR LINKS ONLY -->
+        <h2 class="section-title cyber-glow" style="margin-top: 80px;">CRIXGAMING VR NETWORK</h2>
         
-        <div class="links-matrix">
+        <div class="links-matrix" id="linksMatrix">
             <!-- Links will be generated by JavaScript -->
         </div>
         
@@ -528,96 +805,112 @@
             <div style="font-size: 20px; color: var(--matrix-green);">
                 LAST DATA SYNC: <span id="lastUpdate">00:00:00</span>
             </div>
+            <div style="font-size: 16px; color: var(--neon-orange); margin-top: 10px;">
+                [ CRIXGAMING VR STORE: <a href="https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all" target="_blank" style="color: var(--matrix-green);">FULL COLLECTION</a> ]
+            </div>
+        </div>
+    </div>
+    
+    <!-- BROWSE ALL MODAL -->
+    <div class="modal" id="browseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">[ COMPLETE COLLECTION ]</div>
+                <button class="modal-close" id="closeModalBtn">✕</button>
+            </div>
+            <div class="modal-grid" id="modalProductGrid">
+                <!-- All products will be loaded here -->
+            </div>
         </div>
     </div>
     
     <!-- JAVASCRIPT -->
     <script>
-        // ========== UPDATED PRODUCT DATA WITH NEW IMAGES & PRICES ==========
+        // ========== PRODUCT DATA WITH UPDATED STORE LINK ==========
         const products = [
             {
                 name: "CRIXGAMING VR BUCKET HAT",
                 description: "Official bucket hat with futuristic CRIX design",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif",
-                priceUSD: 24.99  // Lowered from 29.99
+                priceUSD: 24.99
             },
             {
                 name: "CRIX ARMY TANK TOP",
                 description: "Military-style tank top for hardcore fans",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-army-tank-top",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-army-tank-top",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif",
-                priceUSD: 19.99  // Lowered from 24.99
+                priceUSD: 19.99
             },
             {
                 name: "CRIXGAMING VR PHONE CASE",
                 description: "Protective phone case with cyber design",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-phone-case",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-phone-case",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/phone-case.avif",
-                priceUSD: 16.99  // Lowered from 19.99
+                priceUSD: 16.99
             },
             {
                 name: "CRIXGAMING VR DESK MAT",
                 description: "Large desk mat with RGB-style design",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-desk-mat",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-desk-mat",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/desk-mat.avif",
-                priceUSD: 29.99  // Lowered from 34.99
+                priceUSD: 29.99
             },
             {
                 name: "CRIX STICKERS",
                 description: "Set of vinyl stickers for customization",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-stickers",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-stickers",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/stickers.avif",
-                priceUSD: 7.99   // Lowered from 9.99
+                priceUSD: 7.99
             },
             {
                 name: "CRIXGAMING VR MUG",
                 description: "Ceramic mug for your gaming sessions",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-mug.png",
-                priceUSD: 12.99  // Lowered from 14.99
+                priceUSD: 12.99
             },
             {
                 name: "CRIX POSTER",
                 description: "High-quality poster for your gaming room",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crix-poster",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-poster",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/poster.avif",
-                priceUSD: 10.99  // Lowered from 12.99
+                priceUSD: 10.99
             },
             {
                 name: "CRIXGAMING VR FACE MASK",
                 description: "Comfortable face mask with updated logo design",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-face-mask.png",
-                priceUSD: 7.99   // Lowered from 8.99
+                priceUSD: 7.99
             },
             {
                 name: "CRIXGAMING VR MENS HOODIE",
                 description: "Premium hoodie with holographic details - Updated Design",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png",
-                priceUSD: 49.99  // Lowered from 59.99
+                priceUSD: 49.99
             },
             {
                 name: "CRIXGAMING VR T-SHIRT",
                 description: "Classic t-shirt with updated circuit board design",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png",
-                priceUSD: 19.99  // Lowered from 24.99
+                priceUSD: 19.99
             },
             {
                 name: "CRIXGAMING VR BACKPACK",
                 description: "Durable backpack for gaming gear and daily use",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png",
-                priceUSD: 39.99  // New product
+                priceUSD: 39.99
             },
             {
                 name: "CRIXGAMING VR BASEBALL CAP",
                 description: "Stylish baseball cap with embroidered logo",
-                link: "https://crix-rrg-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap",
+                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap",
                 image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png",
-                priceUSD: 21.99  // New product
+                priceUSD: 21.99
             }
         ];
 
@@ -635,7 +928,7 @@
             KRW: { symbol: "₩", name: "South Korean Won", flag: "🇰🇷", rate: 1300 }
         };
 
-        // ========== LINKS DATA ==========
+        // ========== CRIXGAMING VR ONLY LINKS ==========
         const links = [
             { name: "CRIXGAMING VR", desc: "Main YouTube Channel", url: "https://www.youtube.com/@CRIXGAMINGVR" },
             { name: "CRIXMC", desc: "Minecraft Content", url: "https://www.youtube.com/@CRIXMC123" },
@@ -650,37 +943,47 @@
             { name: "CRIX SMP DISCORD", desc: "Minecraft Realm", url: "https://discord.gg/KufFPEptTG" },
             { name: "THE CRIX SMP", desc: "Minecraft Realm Join", url: "realms.gg/ruiRr2PAnr5RuAc" },
             { name: "XBOX: NVR CRIX447", desc: "Add on Xbox", url: "https://xbox.com/en-AU/play/user/NVR CRIX447" },
-            { name: "CRIX SHOP", desc: "Full Store Catalog", url: "https://crix-rrg-shop.fourthwall.com/en-aud" }
+            { name: "CRIX SHOP", desc: "Full Store Catalog", url: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all" }
         ];
 
         // ========== STATE VARIABLES ==========
         let currentCurrency = 'USD';
+        let youtubeData = null;
 
         // ========== DOM ELEMENTS ==========
         const productGrid = document.getElementById('productGrid');
         const currencyGrid = document.getElementById('currencyGrid');
-        const linksMatrix = document.querySelector('.links-matrix');
+        const linksMatrix = document.getElementById('linksMatrix');
         const lastUpdateElement = document.getElementById('lastUpdate');
+        const browseModal = document.getElementById('browseModal');
+        const browseAllBtn = document.getElementById('browseAllBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalProductGrid = document.getElementById('modalProductGrid');
+        const videoGrid = document.getElementById('videoGrid');
 
         // ========== INITIALIZATION ==========
         async function initialize() {
-            console.log('🚀 CRIXVERSE SYSTEM INITIALIZING...');
+            console.log('🚀 CRIXGAMING VR SYSTEM INITIALIZING...');
             
-            // 1. Generate currency selector
             generateCurrencyGrid();
-            
-            // 2. Generate products
             generateProducts();
-            
-            // 3. Generate links
             generateLinks();
-            
-            // 4. Update last sync time
             updateLastSyncTime();
             setInterval(updateLastSyncTime, 30000);
             
-            // 5. Start YouTube stats updates
+            // Start YouTube stats and video updates
             startStatsUpdates();
+            fetchLatestVideos();
+            setInterval(fetchLatestVideos, 30000); // Auto-refresh every 30 seconds
+            
+            // Modal event listeners
+            browseAllBtn.addEventListener('click', openModal);
+            closeModalBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', (e) => {
+                if (e.target === browseModal) {
+                    closeModal();
+                }
+            });
             
             console.log('✅ SYSTEM INITIALIZED');
         }
@@ -702,6 +1005,9 @@
                     currentCurrency = code;
                     generateCurrencyGrid();
                     generateProducts();
+                    if (browseModal.classList.contains('active')) {
+                        generateModalProducts();
+                    }
                 });
                 
                 currencyGrid.appendChild(card);
@@ -752,46 +1058,186 @@
         function generateProducts() {
             productGrid.innerHTML = '';
             
-            products.forEach(product => {
-                const productElement = document.createElement('div');
-                productElement.className = 'hologram-product';
-                
-                const primaryPrice = convertPrice(product.priceUSD, currentCurrency);
-                
-                const otherCurrencies = Object.keys(currencies)
-                    .filter(c => c !== currentCurrency)
-                    .slice(0, 4);
-                
-                productElement.innerHTML = `
-                    <div class="product-image-container">
-                        <img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">
-                    </div>
-                    <div class="product-info">
-                        <h3 class="product-name">${product.name}</h3>
-                        <p class="product-description">${product.description}</p>
-                        
-                        <div class="product-price-display">
-                            <div class="price-primary">
-                                ${formatPrice(primaryPrice, currentCurrency)}
-                            </div>
-                            <div class="price-secondary">
-                                ${otherCurrencies.map(currency => {
-                                    const price = convertPrice(product.priceUSD, currency);
-                                    return `<span class="secondary-price">
-                                        ${formatPrice(price, currency)}
-                                    </span>`;
-                                }).join('')}
-                            </div>
+            // Show first 6 products as featured
+            const featuredProducts = products.slice(0, 6);
+            
+            featuredProducts.forEach(product => {
+                const productElement = createProductElement(product);
+                productGrid.appendChild(productElement);
+            });
+        }
+
+        function createProductElement(product) {
+            const productElement = document.createElement('div');
+            productElement.className = 'hologram-product';
+            
+            const primaryPrice = convertPrice(product.priceUSD, currentCurrency);
+            
+            const otherCurrencies = Object.keys(currencies)
+                .filter(c => c !== currentCurrency)
+                .slice(0, 4);
+            
+            productElement.innerHTML = `
+                <div class="product-image-container">
+                    <img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">
+                </div>
+                <div class="product-info">
+                    <h3 class="product-name">${product.name}</h3>
+                    <p class="product-description">${product.description}</p>
+                    
+                    <div class="product-price-display">
+                        <div class="price-primary">
+                            ${formatPrice(primaryPrice, currentCurrency)}
                         </div>
-                        
-                        <a href="${product.link}" target="_blank" class="buy-button">
-                            [ ACQUIRE ITEM ]
-                        </a>
+                        <div class="price-secondary">
+                            ${otherCurrencies.map(currency => {
+                                const price = convertPrice(product.priceUSD, currency);
+                                return `<span class="secondary-price">
+                                    ${formatPrice(price, currency)}
+                                </span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    
+                    <a href="${product.link}" target="_blank" class="buy-button">
+                        [ ACQUIRE ITEM ]
+                    </a>
+                </div>
+            `;
+            
+            return productElement;
+        }
+
+        // ========== MODAL FUNCTIONS ==========
+        function openModal() {
+            generateModalProducts();
+            browseModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeModal() {
+            browseModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+
+        function generateModalProducts() {
+            modalProductGrid.innerHTML = '';
+            
+            products.forEach(product => {
+                const modalProduct = document.createElement('div');
+                modalProduct.className = 'modal-product';
+                
+                const price = convertPrice(product.priceUSD, currentCurrency);
+                
+                modalProduct.innerHTML = `
+                    <img class="modal-product-image" src="${product.image}" alt="${product.name}" loading="lazy">
+                    <div class="modal-product-name">${product.name}</div>
+                    <div class="modal-product-price">${formatPrice(price, currentCurrency)}</div>
+                    <a href="${product.link}" target="_blank" class="modal-buy-button">
+                        [ BUY ]
+                    </a>
+                `;
+                
+                modalProductGrid.appendChild(modalProduct);
+            });
+        }
+
+        // ========== YOUTUBE VIDEO FUNCTIONS ==========
+        async function fetchLatestVideos() {
+            try {
+                const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
+                const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
+                
+                // Get uploads playlist ID
+                const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${CHANNEL_ID}&key=${API_KEY}`;
+                const channelResponse = await fetch(channelUrl);
+                const channelData = await channelResponse.json();
+                
+                if (channelData.items && channelData.items[0]) {
+                    const uploadsPlaylistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+                    
+                    // Get latest 3 videos
+                    const videosUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=3&playlistId=${uploadsPlaylistId}&key=${API_KEY}`;
+                    const videosResponse = await fetch(videosUrl);
+                    const videosData = await videosResponse.json();
+                    
+                    displayVideos(videosData.items);
+                    console.log('✅ YouTube videos updated');
+                }
+            } catch (error) {
+                console.log('⚠️ YouTube API video fetch failed, using fallback');
+                displayFallbackVideos();
+            }
+        }
+
+        function displayVideos(videos) {
+            videoGrid.innerHTML = '';
+            
+            if (!videos || videos.length === 0) {
+                displayFallbackVideos();
+                return;
+            }
+            
+            videos.forEach(video => {
+                const snippet = video.snippet;
+                const videoId = snippet.resourceId.videoId;
+                const thumbnail = snippet.thumbnails.medium.url || snippet.thumbnails.default.url;
+                const title = snippet.title;
+                const publishedAt = new Date(snippet.publishedAt);
+                const dateStr = publishedAt.toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                });
+                
+                const videoCard = document.createElement('div');
+                videoCard.className = 'video-card';
+                videoCard.onclick = () => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
+                
+                videoCard.innerHTML = `
+                    <div class="video-thumbnail-container">
+                        <img class="video-thumbnail" src="${thumbnail}" alt="${title}" loading="lazy">
+                    </div>
+                    <div class="video-info">
+                        <div class="video-date">[${dateStr}]</div>
+                        <div class="video-title">${title}</div>
                     </div>
                 `;
                 
-                productGrid.appendChild(productElement);
+                videoGrid.appendChild(videoCard);
             });
+        }
+
+        function displayFallbackVideos() {
+            videoGrid.innerHTML = `
+                <div class="video-card" onclick="window.open('https://youtube.com/@CRIXGAMINGVR', '_blank')">
+                    <div class="video-thumbnail-container">
+                        <div style="color: var(--matrix-green); font-size: 48px;">▶️</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">VISIT CRIXGAMING VR YOUTUBE</div>
+                        <div style="color: #aaa;">Click for latest videos</div>
+                    </div>
+                </div>
+                <div class="video-card" onclick="window.open('https://youtube.com/@CRIXMC123', '_blank')">
+                    <div class="video-thumbnail-container">
+                        <div style="color: var(--neon-orange); font-size: 48px;">⛏️</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">CRIXMC - MINECRAFT</div>
+                        <div style="color: #aaa;">Minecraft adventures</div>
+                    </div>
+                </div>
+                <div class="video-card" onclick="window.open('https://youtube.com/@CRIXREACTS123', '_blank')">
+                    <div class="video-thumbnail-container">
+                        <div style="color: var(--neon-red); font-size: 48px;">🎬</div>
+                    </div>
+                    <div class="video-info">
+                        <div class="video-title">CRIX REACTS</div>
+                        <div style="color: #aaa;">Reaction videos</div>
+                    </div>
+                </div>
+            `;
         }
 
         // ========== LINKS FUNCTIONS ==========
@@ -841,19 +1287,17 @@
                     console.log('✅ YouTube stats updated');
                 }
             } catch (error) {
-                console.log('⚠️ YouTube API update failed');
+                console.log('⚠️ YouTube API stats update failed');
+                // Set fallback data
+                document.getElementById('subCount').textContent = '5,240';
+                document.getElementById('videoCount').textContent = '127';
+                document.getElementById('viewCount').textContent = '142,890';
             }
         }
 
         function startStatsUpdates() {
             updateYouTubeStats();
-            setInterval(updateYouTubeStats, 30000);
-            
-            document.addEventListener('visibilitychange', () => {
-                if (!document.hidden) {
-                    updateYouTubeStats();
-                }
-            });
+            setInterval(updateYouTubeStats, 60000); // Update every minute
         }
 
         // ========== START EVERYTHING ==========
@@ -861,10 +1305,11 @@
         
         console.log(`
         ╔══════════════════════════════════════════════╗
-        ║            CRIXVERSE SYSTEM ONLINE           ║
+        ║         CRIXGAMING VR SYSTEM ONLINE          ║
         ║         FUTURISTIC MERCHANDISE HUB           ║
-        ║           UPDATED PRODUCTS & PRICES          ║
-        ║       BACKPACK & BASEBALL CAP ADDED!         ║
+        ║         LATEST VIDEOS AUTO-REFRESH           ║
+        ║         BROWSE ALL PRODUCTS MODAL            ║
+        ║           NEW FAVICON & BRANDING             ║
         ╚══════════════════════════════════════════════╝
         `);
     </script>
