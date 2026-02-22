@@ -644,7 +644,7 @@
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* ABOUT SECTION - NEW */
+        /* ABOUT SECTION */
         .about-section {
             background: rgba(5, 5, 8, 0.9);
             padding: 60px 40px;
@@ -783,7 +783,7 @@
             <button class="links-button" id="linksButton">[ VIEW ALL CRIX LINKS ]</button>
         </div>
         
-        <!-- ABOUT CRIXGAMING VR SECTION (NEW) -->
+        <!-- ABOUT CRIXGAMING VR SECTION -->
         <section class="about-section">
             <h2 class="section-title cyber-glow">ABOUT CRIXGAMING VR</h2>
             
@@ -920,6 +920,24 @@
             IN: { code: "INR", symbol: "₹", name: "Indian Rupee", flag: "🇮🇳", rate: 83 },
             KR: { code: "KRW", symbol: "₩", name: "South Korean Won", flag: "🇰🇷", rate: 1300 }
         };
+
+        // ========== NUMBER FORMATTING FUNCTION (K and M with commas) ==========
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                // Format millions with two decimal places
+                let millions = num / 1000000;
+                // Format with comma as thousand separator and add M
+                return millions.toFixed(2).replace('.', ',') + 'M';
+            } else if (num >= 1000) {
+                // Format thousands with two decimal places
+                let thousands = num / 1000;
+                // Format with comma as thousand separator and add K
+                return thousands.toFixed(2).replace('.', ',') + 'K';
+            } else {
+                // Return the number as is for less than 1000
+                return num.toString();
+            }
+        }
 
         // ========== ALL CRIX LINKS (UPDATED WITH CRIX SMP) ==========
         const allLinks = [
@@ -1324,7 +1342,7 @@
             `;
         }
 
-        // ========== YOUTUBE STATS FUNCTIONS ==========
+        // ========== YOUTUBE STATS FUNCTIONS (UPDATED WITH NEW FORMATTING) ==========
         async function updateYouTubeStats() {
             const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
             const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
@@ -1336,15 +1354,24 @@
                 
                 if (data.items && data.items[0]) {
                     const stats = data.items[0].statistics;
-                    document.getElementById('subCount').textContent = parseInt(stats.subscriberCount).toLocaleString();
-                    document.getElementById('videoCount').textContent = parseInt(stats.videoCount).toLocaleString();
-                    document.getElementById('viewCount').textContent = parseInt(stats.viewCount).toLocaleString();
+                    
+                    // Format numbers using the new formatNumber function
+                    const subCount = parseInt(stats.subscriberCount);
+                    const videoCount = parseInt(stats.videoCount);
+                    const viewCount = parseInt(stats.viewCount);
+                    
+                    document.getElementById('subCount').textContent = formatNumber(subCount);
+                    document.getElementById('videoCount').textContent = formatNumber(videoCount);
+                    document.getElementById('viewCount').textContent = formatNumber(viewCount);
+                    
+                    console.log('✅ YouTube stats updated with formatted numbers');
                 }
             } catch (error) {
                 console.log('⚠️ YouTube API stats update failed');
-                document.getElementById('subCount').textContent = '5,240';
-                document.getElementById('videoCount').textContent = '127';
-                document.getElementById('viewCount').textContent = '142,890';
+                // Fallback data with formatting
+                document.getElementById('subCount').textContent = formatNumber(5240);
+                document.getElementById('videoCount').textContent = formatNumber(127);
+                document.getElementById('viewCount').textContent = formatNumber(142890);
             }
         }
 
@@ -1363,8 +1390,8 @@
         ║     ✓ AUTO CURRENCY (BACKGROUND)             ║
         ║     ✓ AUTO-REFRESH (HIDDEN)                  ║
         ║     ✓ ABOUT CRIXGAMING VR SECTION            ║
-        ║     ✓ CRIX SMP RENAMED                        ║
-        ║     ✓ SYSTEM TIME HIDDEN                      ║
+        ║     ✓ CRIX SMP RENAMED                       ║
+        ║     ✓ NUMBERS FORMATTED (1,00K / 1,00M)      ║
         ╚══════════════════════════════════════════════╝
         `);
     </script>
