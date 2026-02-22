@@ -11,11 +11,22 @@
     <!-- Merch Favicon (for above merch section) -->
     <link rel="prefetch" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png">
     
+    <!-- Custom Pixelated Font - NOW WORKING -->
+    <style>
+        @font-face {
+            font-family: 'CRIX Pixel';
+            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    
     <!-- YouTube RSS Feed Parser -->
     <script src="https://cdn.jsdelivr.net/npm/rss-parser@3.13.4/dist/rss-parser.min.js"></script>
     
     <style>
-        /* ORIGINAL STYLE - KEEPING THE CLASSIC LOOK */
+        /* ORIGINAL STYLE WITH PIXEL FONT */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -35,7 +46,7 @@
         }
         
         body {
-            font-family: 'Courier New', monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             background: var(--dark-bg);
             color: white;
             background-image: 
@@ -46,7 +57,7 @@
             overflow-x: hidden;
         }
         
-        /* CYBER GLOW EFFECTS - ORIGINAL */
+        /* CYBER GLOW EFFECTS */
         .cyber-glow {
             text-shadow: var(--text-glow);
         }
@@ -56,7 +67,7 @@
             box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(255, 70, 85, 0.3);
         }
         
-        /* HEADER - ORIGINAL */
+        /* HEADER */
         .cyber-header {
             text-align: center;
             padding: 40px 20px;
@@ -92,6 +103,7 @@
             letter-spacing: 5px;
             margin-bottom: 15px;
             animation: hologram 3s infinite alternate;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         @keyframes hologram {
@@ -104,6 +116,7 @@
             color: var(--matrix-green);
             text-transform: uppercase;
             letter-spacing: 3px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         /* CONTAINER */
@@ -114,7 +127,7 @@
             position: relative;
         }
         
-        /* STATS GRID - ORIGINAL */
+        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -158,7 +171,7 @@
             font-weight: bold;
             color: var(--neon-orange);
             margin: 20px 0;
-            font-family: 'Courier New', monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
         }
         
@@ -167,9 +180,10 @@
             color: #ccc;
             text-transform: uppercase;
             letter-spacing: 2px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* CURRENCY CONTROLS - HIDDEN (NOW AUTOMATIC) */
+        /* CURRENCY CONTROLS - HIDDEN (AUTO IN BACKGROUND) */
         .currency-controls {
             display: none;
         }
@@ -228,6 +242,7 @@
             text-transform: uppercase;
             letter-spacing: 4px;
             position: relative;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .section-title::after {
@@ -302,6 +317,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             min-height: 60px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .product-description {
@@ -310,6 +326,7 @@
             line-height: 1.5;
             margin-bottom: 20px;
             flex-grow: 1;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .product-price-display {
@@ -323,6 +340,7 @@
             font-size: 32px;
             color: var(--neon-orange);
             font-weight: bold;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .price-secondary {
@@ -339,6 +357,7 @@
             padding: 4px 8px;
             border-radius: 3px;
             font-size: 14px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .buy-button {
@@ -346,7 +365,7 @@
             color: white;
             border: none;
             padding: 15px;
-            font-family: 'Courier New', monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             font-size: 18px;
             font-weight: bold;
             text-transform: uppercase;
@@ -444,12 +463,14 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .video-date {
             font-size: 14px;
             color: var(--matrix-green);
             margin-bottom: 5px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .video-loading {
@@ -458,9 +479,10 @@
             color: var(--neon-orange);
             font-size: 18px;
             grid-column: 1 / -1;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* LINKS BUTTON - NEW */
+        /* LINKS BUTTON */
         .links-button-container {
             text-align: center;
             margin: 60px 0 30px;
@@ -479,7 +501,7 @@
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
-            font-family: 'Courier New', monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .links-button::before {
@@ -543,6 +565,7 @@
             text-transform: uppercase;
             letter-spacing: 3px;
             text-shadow: 0 0 10px var(--matrix-green);
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .links-modal-close {
@@ -557,7 +580,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Courier New', monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .links-modal-close:hover {
@@ -611,79 +634,73 @@
             margin-bottom: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .links-modal-item-desc {
             font-size: 16px;
             color: #aaa;
             line-height: 1.4;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* TIME DISPLAY */
-        .time-display {
-            text-align: center;
-            padding: 25px;
-            background: rgba(10, 10, 15, 0.9);
-            border: 2px solid var(--neon-red);
-            margin: 40px 0;
-            font-family: 'Courier New', monospace;
+        /* ABOUT SECTION - NEW */
+        .about-section {
+            background: rgba(5, 5, 8, 0.9);
+            padding: 60px 40px;
+            margin: 60px 0;
+            border: 3px solid var(--neon-red);
+            position: relative;
         }
         
-        .time-title {
+        .about-section::after {
+            content: '▼▲▼▲▼';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--matrix-green);
             font-size: 24px;
-            color: var(--matrix-green);
-            text-transform: uppercase;
-            letter-spacing: 3px;
-            margin-bottom: 15px;
+            letter-spacing: 10px;
         }
         
-        .time-value {
-            font-size: 48px;
+        .about-content {
+            max-width: 1000px;
+            margin: 0 auto;
+            color: #ccc;
+            font-size: 16px;
+            line-height: 1.8;
+            text-align: justify;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+        }
+        
+        .about-content p {
+            margin-bottom: 20px;
+        }
+        
+        .about-content .highlight {
             color: var(--neon-orange);
+            text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        }
+        
+        .about-content .date {
+            color: var(--matrix-green);
             font-weight: bold;
-            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
         }
         
-        .store-link {
-            margin-top: 15px;
-            font-size: 18px;
+        .milestone {
+            color: var(--neon-red);
+            font-weight: bold;
         }
         
-        .store-link a {
-            color: var(--matrix-green);
-            text-decoration: none;
-            border-bottom: 1px solid var(--matrix-green);
-            padding-bottom: 2px;
+        /* HIDDEN AUTO-REFRESH INDICATORS */
+        .hidden-indicator {
+            display: none;
         }
         
-        .store-link a:hover {
-            color: var(--neon-orange);
-            border-bottom-color: var(--neon-orange);
-        }
-        
-        /* AUTO-CURRENCY INDICATOR */
-        .currency-indicator {
-            text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--neon-orange);
-            display: inline-block;
-            width: auto;
-            margin-left: auto;
-            margin-right: auto;
-        }
-        
-        .currency-indicator span {
-            color: var(--matrix-green);
-            font-size: 18px;
-            text-transform: uppercase;
-        }
-        
-        .currency-indicator strong {
-            color: var(--neon-orange);
-            font-size: 22px;
-            margin-left: 10px;
+        /* SYSTEM STATUS - HIDDEN */
+        .time-display {
+            display: none;
         }
         
         /* RESPONSIVE */
@@ -693,8 +710,8 @@
             .stat-display { font-size: 48px; }
             .hologram-grid { grid-template-columns: 1fr; }
             .video-grid { grid-template-columns: 1fr; }
-            .time-value { font-size: 36px; }
             .merch-favicon { width: 50px; height: 50px; }
+            .about-content { font-size: 14px; }
         }
         
         @media (max-width: 480px) {
@@ -702,6 +719,7 @@
             .section-title { font-size: 24px; }
             .links-button { font-size: 18px; padding: 15px 30px; }
             .links-modal-title { font-size: 24px; }
+            .about-content { font-size: 12px; }
         }
     </style>
 </head>
@@ -713,12 +731,8 @@
     </header>
     
     <div class="cyber-container">
-        <!-- AUTO CURRENCY INDICATOR (shows detected currency) -->
-        <div style="text-align: center;">
-            <div class="currency-indicator" id="currencyIndicator">
-                <span>📍 AUTO-DETECTED CURRENCY:</span> <strong id="currentCurrencyDisplay">USD ($)</strong>
-            </div>
-        </div>
+        <!-- CURRENCY CONTROLS - HIDDEN (AUTO DETECT IN BACKGROUND) -->
+        <div style="display: none;" id="currencyIndicator"></div>
         
         <!-- LIVE STATS -->
         <div class="stats-grid">
@@ -748,10 +762,6 @@
             <div class="video-grid" id="videoGrid">
                 <div class="video-loading">▶ SYSTEM SCANNING YOUTUBE FEED... ◀</div>
             </div>
-            
-            <div style="text-align: center; margin-top: 30px;">
-                <span style="color: var(--matrix-green); font-size: 14px;">AUTO-REFRESHING EVERY 30 SECONDS</span>
-            </div>
         </section>
         
         <!-- MERCH SECTION WITH CLICKABLE FAVICON -->
@@ -773,14 +783,25 @@
             <button class="links-button" id="linksButton">[ VIEW ALL CRIX LINKS ]</button>
         </div>
         
-        <!-- SYSTEM STATUS -->
-        <div class="time-display">
-            <div class="time-title">SYSTEM STATUS</div>
-            <div class="time-value" id="lastUpdate">00:00:00</div>
-            <div class="store-link">
-                <a href="https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all" target="_blank">[ FULL STORE COLLECTION ]</a>
+        <!-- ABOUT CRIXGAMING VR SECTION (NEW) -->
+        <section class="about-section">
+            <h2 class="section-title cyber-glow">ABOUT CRIXGAMING VR</h2>
+            
+            <div class="about-content">
+                <p><span class="highlight">CRIXGAMING VR</span> started his first step toward the CRIX brand on <span class="date">January 19, 2024</span>, with a channel called <span class="highlight">CRIX SMP</span>. At the time, the focus was simple and familiar: Minecraft. He posted short-form videos based on his Minecraft Bedrock realm, also named CRIX SMP, along with a handful of command tutorials and skits. It was the kind of content made by someone learning how YouTube worked while building a small community around something he enjoyed.</p>
+                
+                <p>Everything shifted when he got a <span class="highlight">Meta Quest 2</span>. While exploring games on the headset, he discovered <span class="highlight">Gorilla Tag</span>. The first night he played it, he stayed up all night, completely hooked. That experience changed the direction of his content. On <span class="date">April 12, 2025</span>, he started a new channel that would become the one people recognize today: <span class="highlight">CRIXGAMING VR</span>. At first, the channel name was written as CRIX_GAMING_VR, but he quickly decided he didn't like the underscore and rebranded it to CRIXGAMING VR.</p>
+                
+                <p>His first three uploads were straightforward gameplay videos, mostly him walking around the Gorilla Tag maps and getting a feel for the game while learning how to record in VR. After those early uploads, he took a short break. When he returned, he posted three more videos, then stepped away again for a longer period. During that time, he upgraded his setup and got a <span class="highlight">Meta Quest 3S</span>.</p>
+                
+                <p>On <span class="date">October 5, 2025</span>, he came back with a new approach, focusing more on short-form content. Not long after, on <span class="date">October 15, 2025</span>, he went live on YouTube for the first time. Streaming became a major part of the channel, with Gorilla Tag as the main game, alongside other VR and non-VR content. Over time, the streams became more consistent, and the audience steadily grew.</p>
+                
+                <p>On <span class="date milestone">February 11, 2026</span>, <span class="highlight">CRIXGAMING VR reached 1,000 subscribers</span>, a milestone that marked how far the channel had come. Recently, he made the switch to SteamVR for Gorilla Tag and continues to stream Gorilla Tag and other games. What started as a Minecraft realm run by a regular player grew into a channel centered on both Gorilla Tag and Minecraft, built through persistence, experimentation, and community support. He appreciates everyone who has been part of the journey, from the early CRIX SMP days to where the channel stands now.</p>
             </div>
-        </div>
+        </section>
+        
+        <!-- HIDDEN AUTO-REFRESH TRIGGERS -->
+        <div id="lastUpdate" style="display: none;"></div>
     </div>
     
     <!-- LINKS MODAL (POPUP) -->
@@ -900,11 +921,11 @@
             KR: { code: "KRW", symbol: "₩", name: "South Korean Won", flag: "🇰🇷", rate: 1300 }
         };
 
-        // ========== ALL CRIX LINKS (SORTED NEATLY) ==========
+        // ========== ALL CRIX LINKS (UPDATED WITH CRIX SMP) ==========
         const allLinks = [
             // YouTube Channels
             { name: "CRIXGAMING VR", desc: "Main YouTube Channel", category: "YouTube", url: "https://www.youtube.com/@CRIXGAMINGVR" },
-            { name: "CRIXMC", desc: "Minecraft Content", category: "YouTube", url: "https://www.youtube.com/@CRIXMC123" },
+            { name: "CRIX SMP", desc: "Minecraft Content", category: "YouTube", url: "https://www.youtube.com/@CRIXMC123" },
             { name: "CRIX REACTS", desc: "Reaction Videos", category: "YouTube", url: "https://www.youtube.com/@CRIXREACTS123" },
             { name: "CRIX PODCAST'S", desc: "Podcasts & Discussions", category: "YouTube", url: "https://www.youtube.com/@CRIXPODCASTS" },
             { name: "CRIX GAMES", desc: "Gaming Content", category: "YouTube", url: "https://www.youtube.com/@CRIXGAMESYT" },
@@ -951,12 +972,11 @@
         const linksModalGrid = document.getElementById('linksModalGrid');
         const merchFavicon = document.getElementById('merchFavicon');
         const merchFavicon2 = document.getElementById('merchFavicon2');
-        const currentCurrencyDisplay = document.getElementById('currentCurrencyDisplay');
 
-        // ========== DETECT USER LOCATION & SET CURRENCY ==========
+        // ========== DETECT USER CURRENCY (BACKGROUND - NO VISUAL INDICATOR) ==========
         async function detectUserCurrency() {
             try {
-                // Try to get country from browser timezone first (faster)
+                // Try to get country from browser timezone first
                 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 let countryCode = 'US'; // Default
                 
@@ -974,7 +994,7 @@
                 else if (timezone.includes('Asia/Kolkata')) countryCode = 'IN';
                 else if (timezone.includes('Asia/Seoul')) countryCode = 'KR';
                 
-                // Try IP geolocation API for more accuracy (optional)
+                // Try IP geolocation API for more accuracy
                 try {
                     const response = await fetch('https://ipapi.co/json/');
                     const data = await response.json();
@@ -997,20 +1017,13 @@
                     currencyRate = 1.0;
                 }
                 
-                // Update display
-                const currencyData = Object.values(currencies).find(c => c.code === currentCurrency);
-                if (currencyData) {
-                    currentCurrencyDisplay.textContent = `${currentCurrency} (${currencySymbol})`;
-                }
-                
-                console.log(`📍 Currency detected: ${currentCurrency} (${currencySymbol})`);
+                console.log(`📍 Currency auto-detected: ${currentCurrency} (background)`);
                 
             } catch (error) {
                 console.log('Currency detection failed, using USD');
                 currentCurrency = 'USD';
                 currencySymbol = '$';
                 currencyRate = 1.0;
-                currentCurrencyDisplay.textContent = 'USD ($)';
             }
             
             // Generate products with detected currency
@@ -1021,17 +1034,15 @@
         async function initialize() {
             console.log('🚀 CRIXGAMING VR SYSTEM INITIALIZING...');
             
-            // Detect currency first
+            // Detect currency in background (no visible indicator)
             await detectUserCurrency();
             
-            // Update time
-            updateLastSyncTime();
-            setInterval(updateLastSyncTime, 30000);
+            // Start background auto-refresh (no visible timers)
+            startBackgroundRefresh();
             
             // Start YouTube stats and video updates
             startStatsUpdates();
             fetchLatestVideos();
-            setInterval(fetchLatestVideos, 30000);
             
             // Links modal event listeners
             linksButton.addEventListener('click', openLinksModal);
@@ -1054,7 +1065,27 @@
                 });
             }
             
-            console.log('✅ SYSTEM INITIALIZED');
+            console.log('✅ SYSTEM INITIALIZED (all auto-refresh running in background)');
+        }
+
+        // ========== BACKGROUND AUTO-REFRESH (NO VISIBLE TIMERS) ==========
+        function startBackgroundRefresh() {
+            // Update videos every 30 seconds
+            setInterval(fetchLatestVideos, 30000);
+            
+            // Update stats every minute
+            setInterval(updateYouTubeStats, 60000);
+            
+            // Update last sync time (hidden) every 30 seconds
+            setInterval(() => {
+                const now = new Date();
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                const seconds = now.getSeconds().toString().padStart(2, '0');
+                if (lastUpdateElement) {
+                    lastUpdateElement.textContent = `${hours}:${minutes}:${seconds}`;
+                }
+            }, 30000);
         }
 
         // ========== CURRENCY CONVERSION FUNCTIONS ==========
@@ -1277,7 +1308,7 @@
                         <div style="color: var(--neon-orange); font-size: 48px;">⛏️</div>
                     </div>
                     <div class="video-info">
-                        <div class="video-title">CRIXMC</div>
+                        <div class="video-title">CRIX SMP</div>
                         <div style="color: #aaa;">Minecraft Content</div>
                     </div>
                 </div>
@@ -1291,16 +1322,6 @@
                     </div>
                 </div>
             `;
-        }
-
-        // ========== TIME FUNCTIONS ==========
-        function updateLastSyncTime() {
-            const now = new Date();
-            const hours = now.getHours().toString().padStart(2, '0');
-            const minutes = now.getMinutes().toString().padStart(2, '0');
-            const seconds = now.getSeconds().toString().padStart(2, '0');
-            
-            lastUpdateElement.textContent = `${hours}:${minutes}:${seconds}`;
         }
 
         // ========== YOUTUBE STATS FUNCTIONS ==========
@@ -1329,7 +1350,6 @@
 
         function startStatsUpdates() {
             updateYouTubeStats();
-            setInterval(updateYouTubeStats, 60000);
         }
 
         // ========== START EVERYTHING ==========
@@ -1339,11 +1359,12 @@
         ╔══════════════════════════════════════════════╗
         ║            CRIXGAMING VR SYSTEM              ║
         ║                                              ║
-        ║     ✓ ORIGINAL STYLE RESTORED                ║
-        ║     ✓ AUTO CURRENCY BY LOCATION              ║
-        ║     ✓ CLICKABLE MERCH FAVICON                ║
-        ║     ✓ LINKS POPUP WITH CATEGORIES            ║
-        ║     ✓ CRIXBLOX CHANNEL ADDED                 ║
+        ║     ✓ CUSTOM PIXEL FONT LOADED               ║
+        ║     ✓ AUTO CURRENCY (BACKGROUND)             ║
+        ║     ✓ AUTO-REFRESH (HIDDEN)                  ║
+        ║     ✓ ABOUT CRIXGAMING VR SECTION            ║
+        ║     ✓ CRIX SMP RENAMED                        ║
+        ║     ✓ SYSTEM TIME HIDDEN                      ║
         ╚══════════════════════════════════════════════╝
         `);
     </script>
