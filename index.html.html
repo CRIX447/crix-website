@@ -183,42 +183,6 @@
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* AUDIO/VIDEO CONTROLS - FLOATING */
-        .media-controls {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            z-index: 9999;
-            display: flex;
-            gap: 15px;
-        }
-        
-        .media-button {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
-            border: 2px solid var(--matrix-green);
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 0 15px var(--neon-red);
-            transition: all 0.3s;
-        }
-        
-        .media-button:hover {
-            transform: scale(1.1);
-            box-shadow: 0 0 25px var(--matrix-green);
-        }
-        
-        .media-button.muted {
-            background: linear-gradient(45deg, #444, #222);
-            opacity: 0.7;
-        }
-        
         /* VIDEO PLAYER - AT BOTTOM */
         .video-player-container {
             margin: 40px 0 20px;
@@ -257,7 +221,7 @@
             border: 2px solid var(--neon-orange);
         }
         
-        /* CIRCLE BUTTON STYLE */
+        /* CIRCLE BUTTON STYLE - UPDATED with perfect circles */
         .circle-button {
             width: 70px;
             height: 70px;
@@ -271,6 +235,7 @@
             justify-content: center;
             overflow: hidden;
             box-shadow: 0 0 20px var(--neon-orange);
+            padding: 0;
         }
         
         .circle-button:hover {
@@ -280,18 +245,19 @@
         }
         
         .circle-button img {
-            width: 70%;
-            height: 70%;
-            object-fit: contain;
-            filter: drop-shadow(0 0 5px white);
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
         }
         
-        /* SOCIAL BUTTONS (slightly smaller) */
+        /* SOCIAL BUTTONS - UPDATED with perfect circles */
         .social-button {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(145deg, var(--matrix-green), var(--neon-blue, #00F0FF));
+            background: linear-gradient(145deg, var(--matrix-green), #00F0FF);
             border: 3px solid var(--neon-red);
             cursor: pointer;
             transition: all 0.3s;
@@ -302,6 +268,7 @@
             box-shadow: 0 0 20px var(--matrix-green);
             font-size: 24px;
             color: white;
+            padding: 0;
         }
         
         .social-button:hover {
@@ -311,10 +278,21 @@
         }
         
         .social-button img {
-            width: 60%;
-            height: 60%;
-            object-fit: contain;
-            filter: drop-shadow(0 0 5px white);
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+        }
+        
+        /* Fallback for when images don't load */
+        .circle-button:not(:has(img)) {
+            font-size: 30px;
+            color: white;
+        }
+        
+        .social-button:not(:has(img)) {
+            font-size: 26px;
         }
         
         /* VIDEOS SECTION */
@@ -438,6 +416,8 @@
             border: 2px solid var(--neon-orange);
             padding: 5px;
             background: rgba(10, 10, 15, 0.8);
+            border-radius: 50%;
+            object-fit: cover;
         }
         
         .merch-favicon:hover {
@@ -637,22 +617,15 @@
             .hologram-logo { font-size: 36px; }
             .section-title { font-size: 24px; }
             .circle-button { width: 50px; height: 50px; }
-            .media-controls { bottom: 10px; right: 10px; }
-            .media-button { width: 45px; height: 45px; font-size: 20px; }
         }
     </style>
 </head>
 <body>
-    <!-- AUDIO PLAYER (hidden) -->
-    <audio id="bgMusic" loop>
+    <!-- AUDIO PLAYER (hidden) - with autoplay and error handling -->
+    <audio id="bgMusic" loop autoplay muted playsinline>
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/music.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
     </audio>
-    
-    <!-- FLOATING MEDIA CONTROLS -->
-    <div class="media-controls">
-        <button class="media-button" id="musicToggleBtn" title="Toggle Music">🔊</button>
-        <button class="media-button" id="videoToggleBtn" title="Toggle Video Sound">🎬🔊</button>
-    </div>
     
     <!-- HEADER -->
     <header class="cyber-header">
@@ -731,7 +704,7 @@
             </div>
         </section>
         
-        <!-- VIDEO PLAYER - MOVED TO BOTTOM -->
+        <!-- VIDEO PLAYER - AT BOTTOM -->
         <div class="video-player-container">
             <video id="crixVideo" class="crix-video" controls loop>
                 <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/video.mp4" type="video/mp4">
@@ -863,8 +836,6 @@
         let currentCurrency = 'USD';
         let currencySymbol = '$';
         let currencyRate = 1.0;
-        let musicMuted = false;
-        let videoMuted = false;
 
         // ========== DOM ELEMENTS ==========
         const productGrid = document.getElementById('productGrid');
@@ -874,9 +845,31 @@
         const merchFavicon = document.getElementById('merchFavicon');
         const merchFavicon2 = document.getElementById('merchFavicon2');
         const bgMusic = document.getElementById('bgMusic');
-        const crixVideo = document.getElementById('crixVideo');
-        const musicToggle = document.getElementById('musicToggleBtn');
-        const videoToggle = document.getElementById('videoToggleBtn');
+
+        // ========== FIX MUSIC PLAYBACK ==========
+        function setupMusic() {
+            // Set volume to 30%
+            bgMusic.volume = 0.3;
+            
+            // Browsers block autoplay - this tries multiple methods
+            const playPromise = bgMusic.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    console.log('✅ Music playing automatically');
+                    // Unmute after successful play
+                    bgMusic.muted = false;
+                }).catch(error => {
+                    console.log('⚠️ Autoplay blocked, waiting for user interaction');
+                    // Wait for first click anywhere on page
+                    document.addEventListener('click', function playMusic() {
+                        bgMusic.muted = false;
+                        bgMusic.play().catch(e => console.log('Still blocked:', e));
+                        document.removeEventListener('click', playMusic);
+                    }, { once: true });
+                });
+            }
+        }
 
         // ========== INIT ==========
         async function initialize() {
@@ -886,6 +879,7 @@
             generateAllProducts();
             createChannelButtons();
             createSocialButtons();
+            setupMusic(); // Initialize music
             
             // Start background refresh
             startBackgroundRefresh();
@@ -895,49 +889,6 @@
             // Merch click
             if (merchFavicon) merchFavicon.addEventListener('click', () => window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'));
             if (merchFavicon2) merchFavicon2.addEventListener('click', () => window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'));
-            
-            // Audio/Video controls
-            setupMedia();
-        }
-
-        // ========== MEDIA SETUP ==========
-        function setupMedia() {
-            // Set volumes
-            bgMusic.volume = 0.3; // 30% volume
-            
-            // Music toggle
-            musicToggle.addEventListener('click', () => {
-                if (musicMuted) {
-                    bgMusic.play().catch(() => {});
-                    musicToggle.innerHTML = '🔊';
-                    musicToggle.classList.remove('muted');
-                } else {
-                    bgMusic.pause();
-                    musicToggle.innerHTML = '🔇';
-                    musicToggle.classList.add('muted');
-                }
-                musicMuted = !musicMuted;
-            });
-            
-            // Video sound toggle
-            videoToggle.addEventListener('click', () => {
-                if (videoMuted) {
-                    crixVideo.muted = false;
-                    videoToggle.innerHTML = '🎬🔊';
-                    videoToggle.classList.remove('muted');
-                } else {
-                    crixVideo.muted = true;
-                    videoToggle.innerHTML = '🎬🔇';
-                    videoToggle.classList.add('muted');
-                }
-                videoMuted = !videoMuted;
-            });
-            
-            // Auto-play music after user interaction
-            document.addEventListener('click', function initAudio() {
-                bgMusic.play().catch(() => {});
-                document.removeEventListener('click', initAudio);
-            }, { once: true });
         }
 
         // ========== CREATE CHANNEL BUTTONS ==========
@@ -952,7 +903,11 @@
                 const img = document.createElement('img');
                 img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${channel.file}`;
                 img.alt = channel.name;
-                img.onerror = () => { img.style.display = 'none'; btn.innerHTML = '🎬'; };
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    btn.innerHTML = '🎬';
+                    btn.style.fontSize = '30px';
+                };
                 
                 btn.appendChild(img);
                 channelButtons.appendChild(btn);
@@ -971,7 +926,11 @@
                 const img = document.createElement('img');
                 img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${social.file}`;
                 img.alt = social.name;
-                img.onerror = () => { img.style.display = 'none'; btn.innerHTML = social.icon; };
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    btn.innerHTML = social.icon;
+                    btn.style.fontSize = '26px';
+                };
                 
                 btn.appendChild(img);
                 socialButtons.appendChild(btn);
