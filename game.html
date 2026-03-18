@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLAPPY CRIX • CRIXGAMING VR</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+    
+    <!-- Custom Pixel Font (matching main site) -->
+    <style>
+        @font-face {
+            font-family: 'CRIX Pixel';
+            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.ttf') format('truetype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+    </style>
+    
+    <style>
+        /* EXACT SAME STYLE AS YOUR MAIN SITE - NO CARTOON */
+        :root {
+            --neon-red: #FF4655;
+            --neon-orange: #FF6B35;
+            --cyber-red: #FF0040;
+            --cyber-orange: #FF8C00;
+            --matrix-green: #00FF9D;
+            --dark-bg: #0A0A0F;
+            --darker-bg: #050508;
+            --grid-color: rgba(255, 70, 85, 0.1);
+            --text-glow: 0 0 10px rgba(255, 107, 53, 0.7);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            background: var(--dark-bg);
+            color: white;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        /* CYBER GLOW EFFECTS */
+        .cyber-glow {
+            text-shadow: var(--text-glow);
+        }
+        
+        /* GAME CONTAINER - MATCHING MAIN SITE STYLE */
+        .game-container {
+            max-width: 600px;
+            width: 100%;
+            background: rgba(5, 5, 8, 0.95);
+            border: 3px solid var(--neon-red);
+            padding: 30px 20px;
+            position: relative;
+        }
+        
+        .game-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, 
+                transparent, 
+                var(--neon-red), 
+                var(--neon-orange), 
+                var(--neon-red), 
+                transparent);
+        }
+        
+        /* HEADER - MATCHING MAIN SITE */
+        .game-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid var(--neon-red);
+        }
+        
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange), #FF0040);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 10px;
+            animation: hologram 3s infinite alternate;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+        }
+        
+        @keyframes hologram {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        .game-subtitle {
+            font-size: 18px;
+            color: var(--matrix-green);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 8px 20px;
+            display: inline-block;
+            border: 2px solid var(--neon-orange);
+        }
+        
+        /* CANVAS - MATCHING SITE BORDERS */
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--neon-orange);
+        }
+        
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border: 2px solid var(--neon-orange);
+            background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
+        }
+        
+        /* SCORE BOX - MATCHING STATS STYLE */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 25px 0;
+        }
+        
+        .cyber-stat {
+            background: rgba(10, 10, 15, 0.8);
+            border: 2px solid var(--neon-orange);
+            padding: 20px 15px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cyber-stat::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.2), transparent);
+            transition: left 0.6s;
+        }
+        
+        .cyber-stat:hover::before {
+            left: 100%;
+        }
+        
+        .stat-label {
+            font-size: 16px;
+            color: #ccc;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: var(--neon-orange);
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+        }
+        
+        /* BUTTONS - MATCHING MAIN SITE */
+        .controls-box {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        
+        .game-btn {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 2px solid var(--matrix-green);
+            padding: 12px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+        }
+        
+        .game-btn:hover {
+            background: linear-gradient(45deg, var(--cyber-red), var(--cyber-orange));
+            transform: translateY(-3px);
+        }
+        
+        .game-btn.secondary {
+            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
+        }
+        
+        /* INSTRUCTIONS */
+        .instructions {
+            text-align: center;
+            margin: 25px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 2px solid var(--neon-orange);
+        }
+        
+        .instructions p {
+            color: #ccc;
+            font-size: 16px;
+            margin: 5px 0;
+        }
+        
+        .instructions .highlight {
+            color: var(--neon-orange);
+        }
+        
+        /* BACK LINK */
+        .back-link {
+            text-align: center;
+            margin-top: 25px;
+        }
+        
+        .back-link a {
+            color: var(--matrix-green);
+            text-decoration: none;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            padding: 8px 20px;
+            border: 2px solid var(--neon-red);
+            display: inline-block;
+            transition: all 0.3s;
+        }
+        
+        .back-link a:hover {
+            border-color: var(--matrix-green);
+            color: var(--neon-orange);
+        }
+        
+        /* RESPONSIVE */
+        @media (max-width: 500px) {
+            .game-title { font-size: 36px; }
+            .game-subtitle { font-size: 14px; }
+            .game-btn { font-size: 16px; padding: 10px 20px; }
+            .stats-grid { gap: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- AUDIO PLAYER (hidden) -->
+    <audio id="jumpSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="deathSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="selectSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="bgMusic" loop>
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
+    </audio>
+    
+    <div class="game-container">
+        <div class="game-header">
+            <div class="game-title">FLAPPY CRIX</div>
+            <div class="game-subtitle">who do you think i am 😂😂😂😂</div>
+        </div>
+        
+        <div class="canvas-wrapper">
+            <canvas id="gameCanvas" width="400" height="600"></canvas>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="cyber-stat">
+                <div class="stat-label">SCORE</div>
+                <div class="stat-value" id="gameScore">0</div>
+            </div>
+            <div class="cyber-stat">
+                <div class="stat-label">HIGH SCORE</div>
+                <div class="stat-value" id="highScore">0</div>
+            </div>
+        </div>
+        
+        <div class="controls-box">
+            <button class="game-btn" id="startGameBtn">▶ START</button>
+            <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
+        </div>
+        
+        <div class="instructions">
+            <p><span class="highlight">⬆️ PRESS SPACE</span> or <span class="highlight">🖱️ CLICK</span> to jump</p>
+            <p>⚡ Don't hit the pipes! ⚡</p>
+        </div>
+        
+        <div class="back-link">
+            <a href="https://crixgamingvr.vercel.app" target="_blank">← BACK TO MAIN SITE</a>
+        </div>
+    </div>
+    
+    <script>
+        // ========== GAME VARIABLES ==========
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameScore = document.getElementById('gameScore');
+        const highScoreEl = document.getElementById('highScore');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const musicToggle = document.getElementById('musicToggleBtn');
+        
+        // Sounds
+        const jumpSound = document.getElementById('jumpSound');
+        const deathSound = document.getElementById('deathSound');
+        const selectSound = document.getElementById('selectSound');
+        const bgMusic = document.getElementById('bgMusic');
+        
+        // Game state
+        let gameRunning = false;
+        let gameAnimationFrame;
+        let highScore = localStorage.getItem('flappyCrixHighScore') || 0;
+        let musicMuted = true;
+        
+        highScoreEl.textContent = highScore;
+        
+        // ========== GAME CLASS ==========
+        class FlappyBird {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                // FIXED: Better spawn position - not touching pipes
+                this.bird = {
+                    x: 100,
+                    y: 300,  // Safe middle position
+                    width: 30,
+                    height: 30,
+                    velocity: 0,
+                    gravity: 0.25,  // Slightly reduced gravity
+                    jump: -6.5       // Adjusted jump force
+                };
+                
+                this.pipes = [];
+                this.pipeWidth = 50;
+                this.pipeGap = 170;  // Slightly larger gap
+                this.pipeSpacing = 300;
+                this.frameCount = 0;
+                this.score = 0;
+                this.gameOver = false;
+                
+                // Load bird image
+                this.birdImage = new Image();
+                this.birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
+            }
+            
+            draw() {
+                // Clear canvas
+                ctx.fillStyle = '#0A0A0F';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Draw grid (matching main site)
+                ctx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < canvas.width; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(i, 0);
+                    ctx.lineTo(i, canvas.height);
+                    ctx.stroke();
+                }
+                for (let i = 0; i < canvas.height; i += 50) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, i);
+                    ctx.lineTo(canvas.width, i);
+                    ctx.stroke();
+                }
+                
+                // Draw pipes
+                ctx.fillStyle = '#00FF9D';
+                ctx.shadowColor = '#00FF9D';
+                ctx.shadowBlur = 10;
+                this.pipes.forEach(pipe => {
+                    ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.top);
+                    ctx.fillRect(pipe.x, pipe.bottom, this.pipeWidth, canvas.height - pipe.bottom);
+                });
+                ctx.shadowBlur = 0;
+                
+                // Draw bird
+                if (this.birdImage.complete) {
+                    ctx.drawImage(this.birdImage, this.bird.x - 15, this.bird.y - 15, 30, 30);
+                } else {
+                    // Fallback circle
+                    ctx.fillStyle = '#FF6B35';
+                    ctx.shadowColor = '#FF6B35';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(this.bird.x, this.bird.y, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+                
+                // Draw score
+                if (!this.gameOver && gameRunning) {
+                    ctx.fillStyle = '#FF6B35';
+                    ctx.font = '20px "CRIX Pixel", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(`SCORE: ${this.score}`, canvas.width / 2, 50);
+                }
+                
+                if (this.gameOver) {
+                    ctx.fillStyle = '#FF4655';
+                    ctx.font = '24px "CRIX Pixel", monospace';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                    ctx.font = '16px "CRIX Pixel", monospace';
+                    ctx.fillText('Press START', canvas.width / 2, canvas.height / 2 + 40);
+                }
+            }
+            
+            update() {
+                if (this.gameOver) return;
+                
+                // Bird physics
+                this.bird.velocity += this.bird.gravity;
+                this.bird.y += this.bird.velocity;
+                
+                // Check boundaries (with small buffer)
+                if (this.bird.y < 10 || this.bird.y > canvas.height - 10) {
+                    this.gameOver = true;
+                    playDeathSound();
+                    this.updateHighScore();
+                }
+                
+                // Generate pipes
+                if (this.frameCount % 120 === 0) {
+                    const topHeight = Math.random() * (canvas.height - this.pipeGap - 150) + 70;
+                    this.pipes.push({
+                        x: canvas.width,
+                        top: topHeight,
+                        bottom: topHeight + this.pipeGap,
+                        scored: false
+                    });
+                }
+                
+                // Update pipes
+                for (let i = this.pipes.length - 1; i >= 0; i--) {
+                    this.pipes[i].x -= 2.5;  // Slightly slower pipes
+                    
+                    // Check collision
+                    if (this.bird.x + 15 > this.pipes[i].x && 
+                        this.bird.x - 15 < this.pipes[i].x + this.pipeWidth) {
+                        if (this.bird.y - 15 < this.pipes[i].top || 
+                            this.bird.y + 15 > this.pipes[i].bottom) {
+                            this.gameOver = true;
+                            playDeathSound();
+                            this.updateHighScore();
+                        }
+                    }
+                    
+                    // Score
+                    if (this.pipes[i].x + this.pipeWidth < this.bird.x && !this.pipes[i].scored) {
+                        this.score++;
+                        this.pipes[i].scored = true;
+                        gameScore.textContent = this.score;
+                    }
+                    
+                    // Remove off-screen pipes
+                    if (this.pipes[i].x + this.pipeWidth < 0) {
+                        this.pipes.splice(i, 1);
+                    }
+                }
+                
+                this.frameCount++;
+            }
+            
+            updateHighScore() {
+                if (this.score > highScore) {
+                    highScore = this.score;
+                    localStorage.setItem('flappyCrixHighScore', highScore);
+                    highScoreEl.textContent = highScore;
+                }
+            }
+            
+            jump() {
+                if (this.gameOver || !gameRunning) return;
+                this.bird.velocity = this.bird.jump;
+                playJumpSound();
+            }
+        }
+
+        let game = new FlappyBird();
+
+        // ========== SOUND FUNCTIONS ==========
+        function playJumpSound() {
+            jumpSound.currentTime = 0;
+            jumpSound.volume = 0.3;
+            jumpSound.play().catch(e => console.log('Jump sound blocked'));
+        }
+        
+        function playDeathSound() {
+            deathSound.currentTime = 0;
+            deathSound.volume = 0.4;
+            deathSound.play().catch(e => console.log('Death sound blocked'));
+        }
+        
+        function playSelectSound() {
+            selectSound.currentTime = 0;
+            selectSound.volume = 0.3;
+            selectSound.play().catch(e => console.log('Select sound blocked'));
+        }
+
+        // ========== MUSIC CONTROL ==========
+        bgMusic.volume = 0.3;
+        musicMuted = true;
+        musicToggle.innerHTML = '🔇 MUSIC';
+        
+        musicToggle.addEventListener('click', () => {
+            if (musicMuted) {
+                bgMusic.play();
+                musicToggle.innerHTML = '🔊 MUSIC';
+            } else {
+                bgMusic.pause();
+                musicToggle.innerHTML = '🔇 MUSIC';
+            }
+            musicMuted = !musicMuted;
+            playSelectSound();
+        });
+
+        // ========== GAME LOOP ==========
+        function gameLoop() {
+            if (gameRunning) {
+                game.update();
+                game.draw();
+                gameAnimationFrame = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function startGame() {
+            playSelectSound();
+            game.reset();
+            gameRunning = true;
+            gameScore.textContent = '0';
+            if (gameAnimationFrame) cancelAnimationFrame(gameAnimationFrame);
+            gameLoop();
+        }
+
+        // ========== EVENT LISTENERS ==========
+        startGameBtn.addEventListener('click', startGame);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'Space') {
+                e.preventDefault();
+                game.jump();
+            }
+        });
+
+        canvas.addEventListener('click', () => {
+            game.jump();
+        });
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            game.jump();
+        });
+
+        // Draw initial screen
+        game.draw();
+    </script>
+</body>
+</html>
