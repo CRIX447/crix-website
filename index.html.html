@@ -379,6 +379,70 @@
             margin-bottom: 5px;
         }
         
+        /* SUBSCRIBER SECTION - NEW */
+        .subscriber-section {
+            background: rgba(5, 5, 8, 0.9);
+            padding: 50px 40px;
+            margin: 60px 0;
+            border: 3px solid var(--neon-orange);
+            position: relative;
+            text-align: center;
+        }
+        
+        .subscriber-section::after {
+            content: '⭐⭐⭐';
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--neon-orange);
+            font-size: 24px;
+            letter-spacing: 10px;
+        }
+        
+        .subscriber-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 30px;
+            min-height: 80px;
+        }
+        
+        .subscriber-badge {
+            background: rgba(255, 107, 53, 0.2);
+            border: 2px solid var(--matrix-green);
+            color: white;
+            padding: 10px 25px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            animation: glowPulse 2s infinite;
+            border-radius: 40px;
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
+        }
+        
+        @keyframes glowPulse {
+            0% { box-shadow: 0 0 5px var(--matrix-green); }
+            50% { box-shadow: 0 0 20px var(--matrix-green); }
+            100% { box-shadow: 0 0 5px var(--matrix-green); }
+        }
+        
+        .subscriber-count {
+            font-size: 22px;
+            color: var(--neon-orange);
+            margin-top: 20px;
+            text-shadow: 0 0 10px var(--neon-orange);
+        }
+        
+        .loading-text {
+            color: var(--neon-orange);
+            font-size: 18px;
+            text-align: center;
+            width: 100%;
+            padding: 20px;
+        }
+        
         /* MERCH SECTION */
         .cyber-merch {
             background: rgba(5, 5, 8, 0.9);
@@ -611,20 +675,21 @@
             .circle-buttons-top, .circle-buttons-bottom { gap: 15px; }
             .circle-button { width: 60px; height: 60px; }
             .social-button { width: 50px; height: 50px; }
+            .subscriber-badge { font-size: 14px; padding: 8px 15px; }
         }
         
         @media (max-width: 480px) {
             .hologram-logo { font-size: 36px; }
             .section-title { font-size: 24px; }
             .circle-button { width: 50px; height: 50px; }
+            .subscriber-badge { font-size: 12px; padding: 6px 12px; }
         }
     </style>
 </head>
 <body>
-    <!-- AUDIO PLAYER (hidden) - with autoplay and error handling -->
+    <!-- AUDIO PLAYER (hidden) - with autoplay -->
     <audio id="bgMusic" loop autoplay muted playsinline>
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/music.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
     </audio>
     
     <!-- HEADER -->
@@ -660,6 +725,19 @@
             </div>
         </div>
         
+        <!-- SUBSCRIBER SECTION - NEW -->
+        <section class="subscriber-section">
+            <h2 class="section-title cyber-glow">🎉 RECENT SUBSCRIBERS</h2>
+            
+            <div id="recentSubscriberList" class="subscriber-grid">
+                <div class="loading-text">▶ CONNECTING TO SUBSCRIBER FEED... ◀</div>
+            </div>
+            
+            <div class="subscriber-count" id="totalSubCount">
+                TOTAL: <span id="totalSubNumber">5,240</span>
+            </div>
+        </section>
+        
         <!-- LATEST VIDEOS SECTION -->
         <section class="videos-section">
             <h2 class="section-title cyber-glow">LATEST UPLOADS</h2>
@@ -692,22 +770,16 @@
             <h2 class="section-title cyber-glow">ABOUT CRIXGAMING VR</h2>
             
             <div class="about-content">
-                <p><span class="highlight">CRIXGAMING VR</span> started his first step toward the CRIX brand on <span class="date">January 19, 2024</span>, with a channel called <span class="highlight">CRIX SMP</span>. At the time, the focus was simple and familiar: Minecraft. He posted short-form videos based on his Minecraft Bedrock realm, also named CRIX SMP, along with a handful of command tutorials and skits. It was the kind of content made by someone learning how YouTube worked while building a small community around something he enjoyed.</p>
+                <p><span class="highlight">CRIXGAMING VR</span> started on <span class="date">January 19, 2024</span> with <span class="highlight">CRIX SMP</span>. After getting a Meta Quest 2 and discovering Gorilla Tag, everything changed!</p>
                 
-                <p>Everything shifted when he got a <span class="highlight">Meta Quest 2</span>. While exploring games on the headset, he discovered <span class="highlight">Gorilla Tag</span>. The first night he played it, he stayed up all night, completely hooked. That experience changed the direction of his content. On <span class="date">April 12, 2025</span>, he started a new channel that would become the one people recognize today: <span class="highlight">CRIXGAMING VR</span>. At first, the channel name was written as CRIX_GAMING_VR, but he quickly decided he didn't like the underscore and rebranded it to CRIXGAMING VR.</p>
-                
-                <p>His first three uploads were straightforward gameplay videos, mostly him walking around the Gorilla Tag maps and getting a feel for the game while learning how to record in VR. After those early uploads, he took a short break. When he returned, he posted three more videos, then stepped away again for a longer period. During that time, he upgraded his setup and got a <span class="highlight">Meta Quest 3S</span>.</p>
-                
-                <p>On <span class="date">October 5, 2025</span>, he came back with a new approach, focusing more on short-form content. Not long after, on <span class="date">October 15, 2025</span>, he went live on YouTube for the first time. Streaming became a major part of the channel, with Gorilla Tag as the main game, alongside other VR and non-VR content. Over time, the streams became more consistent, and the audience steadily grew.</p>
-                
-                <p>On <span class="date milestone">February 11, 2026</span>, <span class="highlight">CRIXGAMING VR reached 1,000 subscribers</span>, a milestone that marked how far the channel had come. Recently, he made the switch to SteamVR for Gorilla Tag and continues to stream Gorilla Tag and other games. What started as a Minecraft realm run by a regular player grew into a channel centered on both Gorilla Tag and Minecraft, built through persistence, experimentation, and community support. He appreciates everyone who has been part of the journey, from the early CRIX SMP days to where the channel stands now.</p>
+                <p>On <span class="date">April 12, 2025</span>, <span class="highlight">CRIXGAMING VR</span> was born. First livestream: <span class="date">October 15, 2025</span>. Hit <span class="date milestone">1,000 subscribers on February 11, 2026</span>! Now streaming Gorilla Tag on SteamVR.</p>
             </div>
         </section>
         
         <!-- VIDEO PLAYER - AT BOTTOM -->
         <div class="video-player-container">
             <video id="crixVideo" class="crix-video" controls loop>
-                <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/video.mp4" type="video/mp4">
+                <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/video.mp4" type="video/mp4">
                 Your browser does not support the video tag.
             </video>
         </div>
@@ -845,23 +917,19 @@
         const merchFavicon = document.getElementById('merchFavicon');
         const merchFavicon2 = document.getElementById('merchFavicon2');
         const bgMusic = document.getElementById('bgMusic');
+        const totalSubNumber = document.getElementById('totalSubNumber');
 
         // ========== FIX MUSIC PLAYBACK ==========
         function setupMusic() {
-            // Set volume to 30%
             bgMusic.volume = 0.3;
-            
-            // Browsers block autoplay - this tries multiple methods
             const playPromise = bgMusic.play();
             
             if (playPromise !== undefined) {
                 playPromise.then(() => {
                     console.log('✅ Music playing automatically');
-                    // Unmute after successful play
                     bgMusic.muted = false;
                 }).catch(error => {
-                    console.log('⚠️ Autoplay blocked, waiting for user interaction');
-                    // Wait for first click anywhere on page
+                    console.log('⚠️ Autoplay blocked, waiting for click');
                     document.addEventListener('click', function playMusic() {
                         bgMusic.muted = false;
                         bgMusic.play().catch(e => console.log('Still blocked:', e));
@@ -871,20 +939,47 @@
             }
         }
 
+        // ========== SUBSCRIBER FEED ==========
+        async function fetchRecentSubscribers() {
+            try {
+                // IMPORTANT: Replace this URL with your actual backend URL after setting it up
+                const response = await fetch('https://your-backend-service.com/data/latest-subs.json');
+                const subscribers = await response.json();
+                
+                const listContainer = document.getElementById('recentSubscriberList');
+                if (!listContainer) return;
+                
+                if (subscribers && subscribers.length > 0) {
+                    listContainer.innerHTML = subscribers.map(sub => 
+                        `<div class="subscriber-badge">⭐ ${sub.name}</div>`
+                    ).join('');
+                } else {
+                    listContainer.innerHTML = '<div class="loading-text">🔮 BE THE FIRST TO SUBSCRIBE!</div>';
+                }
+            } catch (error) {
+                console.log('Subscriber feed not available yet - this is normal until you set up the backend');
+                // Don't show error to users, just keep loading message
+            }
+        }
+
         // ========== INIT ==========
         async function initialize() {
-            console.log('🚀 CRIXGAMING VR SYSTEM WITH MEDIA');
+            console.log('🚀 CRIXGAMING VR SYSTEM WITH SUBSCRIBER FEED');
             
             await detectUserCurrency();
             generateAllProducts();
             createChannelButtons();
             createSocialButtons();
-            setupMusic(); // Initialize music
+            setupMusic();
             
             // Start background refresh
             startBackgroundRefresh();
             startStatsUpdates();
             fetchLatestVideos();
+            
+            // Start subscriber feed (will show loading until backend is set up)
+            fetchRecentSubscribers();
+            setInterval(fetchRecentSubscribers, 60000); // Refresh every minute
             
             // Merch click
             if (merchFavicon) merchFavicon.addEventListener('click', () => window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'));
@@ -1073,12 +1168,15 @@
                 const data = await res.json();
                 if (data.items?.[0]) {
                     const stats = data.items[0].statistics;
-                    document.getElementById('subCount').textContent = formatNumber(parseInt(stats.subscriberCount));
+                    const subCount = parseInt(stats.subscriberCount);
+                    document.getElementById('subCount').textContent = formatNumber(subCount);
+                    if (totalSubNumber) totalSubNumber.textContent = subCount.toLocaleString();
                     document.getElementById('videoCount').textContent = formatNumber(parseInt(stats.videoCount));
                     document.getElementById('viewCount').textContent = formatNumber(parseInt(stats.viewCount));
                 }
             } catch {
                 document.getElementById('subCount').textContent = '5,24K';
+                if (totalSubNumber) totalSubNumber.textContent = '5,240';
                 document.getElementById('videoCount').textContent = '127';
                 document.getElementById('viewCount').textContent = '142,89K';
             }
