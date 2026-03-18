@@ -20,7 +20,7 @@
     </style>
     
     <style>
-        /* CYBER STYLE WITH CURVED UI */
+        /* CYBER STYLE WITH CURVED UI - MATCHING MAIN SITE */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -58,7 +58,12 @@
             padding: 20px;
         }
         
-        /* GAME CONTAINER */
+        /* CYBER GLOW EFFECTS */
+        .cyber-glow {
+            text-shadow: var(--text-glow);
+        }
+        
+        /* GAME CONTAINER - CURVED */
         .game-container {
             max-width: 600px;
             width: 100%;
@@ -86,12 +91,13 @@
             border-radius: 40px 40px 0 0;
         }
         
-        /* HEADER */
+        /* HEADER - CURVED */
         .game-header {
             text-align: center;
             margin-bottom: 20px;
             padding-bottom: 15px;
             border-bottom: 3px solid var(--neon-red);
+            position: relative;
         }
         
         .game-title {
@@ -125,7 +131,7 @@
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* CANVAS WRAPPER */
+        /* CANVAS WRAPPER - CURVED */
         .canvas-wrapper {
             display: flex;
             justify-content: center;
@@ -147,7 +153,7 @@
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
         }
         
-        /* STATS GRID */
+        /* STATS GRID - CURVED */
         .stats-grid {
             display: grid;
             grid-template-columns: 1fr 1fr 1fr 1fr;
@@ -161,8 +167,15 @@
             border-radius: 20px;
             padding: 10px 5px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
             transition: all 0.3s;
             box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+        }
+        
+        .cyber-stat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 107, 53, 0.5);
         }
         
         .stat-label {
@@ -180,21 +193,14 @@
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
+        /* COIN COUNT SPECIAL STYLING */
         #coinCount {
             color: gold;
             text-shadow: 0 0 10px gold;
         }
         
-        /* STORE & LOCKER BUTTONS */
-        .button-container {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            margin: 15px 0;
-            flex-wrap: wrap;
-        }
-        
-        .action-btn {
+        /* LOCKER BUTTON */
+        .locker-button {
             background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
             color: white;
             border: 2px solid var(--matrix-green);
@@ -207,22 +213,20 @@
             cursor: pointer;
             transition: all 0.3s;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
+            margin: 10px auto;
+            display: block;
+            width: fit-content;
             box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
-            flex: 1;
-            min-width: 140px;
         }
         
-        .action-btn:hover {
-            transform: translateY(-3px);
+        .locker-button:hover {
+            transform: scale(1.05);
             box-shadow: 0 8px 25px var(--matrix-green);
+            border-color: gold;
         }
         
-        .action-btn.secondary {
-            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
-        }
-        
-        /* MODAL BASE STYLES */
-        .modal {
+        /* LOCKER MODAL */
+        .locker-modal {
             display: none;
             position: fixed;
             top: 0;
@@ -236,12 +240,12 @@
             padding: 20px;
         }
         
-        .modal.active {
+        .locker-modal.active {
             display: block;
         }
         
-        .modal-content {
-            max-width: 700px;
+        .locker-modal-content {
+            max-width: 600px;
             margin: 30px auto;
             background: var(--dark-bg);
             border: 3px solid var(--neon-red);
@@ -250,7 +254,7 @@
             position: relative;
         }
         
-        .modal-header {
+        .locker-modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -259,21 +263,21 @@
             padding-bottom: 10px;
         }
         
-        .modal-title {
-            font-size: 32px;
+        .locker-modal-title {
+            font-size: 28px;
             color: var(--matrix-green);
             text-transform: uppercase;
             letter-spacing: 2px;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        .modal-close {
+        .locker-modal-close {
             background: transparent;
             border: 2px solid var(--neon-red);
             color: var(--neon-red);
-            font-size: 28px;
-            width: 45px;
-            height: 45px;
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             cursor: pointer;
             transition: all 0.3s;
@@ -282,254 +286,251 @@
             justify-content: center;
         }
         
-        .modal-close:hover {
+        .locker-modal-close:hover {
             background: var(--neon-red);
             color: white;
             transform: rotate(90deg);
         }
         
-        .modal-balance {
-            text-align: center;
-            font-size: 24px;
-            color: gold;
-            margin: 15px 0;
-            padding: 15px;
-            border: 2px solid gold;
-            border-radius: 40px;
-        }
-        
-        /* STORE GRID */
-        .store-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .store-section {
-            background: rgba(20, 20, 30, 0.9);
-            border: 2px solid var(--neon-orange);
-            border-radius: 25px;
-            padding: 15px;
-        }
-        
-        .store-section-title {
-            color: var(--neon-orange);
-            font-size: 20px;
-            text-align: center;
-            margin-bottom: 15px;
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--neon-orange);
-            padding-bottom: 5px;
-        }
-        
-        .store-item {
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid var(--neon-orange);
-            border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 15px;
+        .locker-tabs {
             display: flex;
-            align-items: center;
-            gap: 15px;
-            transition: all 0.3s;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--neon-orange);
+            padding-bottom: 10px;
         }
         
-        .store-item:hover {
-            border-color: var(--matrix-green);
-            transform: scale(1.02);
-        }
-        
-        .store-item-image {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            padding: 5px;
-        }
-        
-        .store-item-info {
-            flex: 1;
-        }
-        
-        .store-item-name {
-            font-size: 18px;
+        .locker-tab {
+            background: transparent;
+            border: 2px solid var(--neon-orange);
             color: white;
-            text-transform: uppercase;
-            margin-bottom: 5px;
-        }
-        
-        .store-item-price {
-            font-size: 20px;
-            color: gold;
-            font-weight: bold;
-        }
-        
-        .store-item-desc {
-            font-size: 12px;
-            color: #aaa;
-        }
-        
-        .store-buy-btn {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
-            color: white;
-            border: none;
-            border-radius: 20px;
             padding: 8px 20px;
-            font-size: 16px;
-            font-weight: bold;
+            border-radius: 30px;
             cursor: pointer;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
             transition: all 0.3s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            font-size: 14px;
         }
         
-        .store-buy-btn:hover:not(:disabled) {
-            transform: scale(1.05);
-            box-shadow: 0 0 20px var(--neon-orange);
+        .locker-tab:hover {
+            background: rgba(255, 107, 53, 0.3);
+            border-color: var(--matrix-green);
         }
         
-        .store-buy-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
+        .locker-tab.active {
+            background: var(--neon-orange);
+            border-color: var(--matrix-green);
+            color: black;
         }
         
-        .store-buy-btn.owned {
-            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
-        }
-        
-        /* LOCKER GRID */
         .locker-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
             margin: 20px 0;
-        }
-        
-        .locker-section {
-            background: rgba(20, 20, 30, 0.9);
-            border: 2px solid var(--neon-orange);
-            border-radius: 25px;
-            padding: 15px;
-        }
-        
-        .locker-section-title {
-            color: var(--matrix-green);
-            font-size: 20px;
-            text-align: center;
-            margin-bottom: 15px;
-            text-transform: uppercase;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
         }
         
         .locker-item {
-            background: rgba(0, 0, 0, 0.5);
+            background: rgba(20, 20, 30, 0.9);
             border: 2px solid var(--neon-orange);
             border-radius: 20px;
-            padding: 15px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+            padding: 15px 10px;
+            text-align: center;
             cursor: pointer;
             transition: all 0.3s;
+            position: relative;
         }
         
         .locker-item:hover {
+            transform: scale(1.05);
             border-color: var(--matrix-green);
-            transform: translateX(5px);
+            box-shadow: 0 0 20px var(--matrix-green);
         }
         
-        .locker-item.equipped {
+        .locker-item.owned {
             border-color: gold;
             background: rgba(255, 215, 0, 0.1);
         }
         
-        .locker-item-image {
+        .locker-item.equipped {
+            border-color: var(--matrix-green);
+            box-shadow: 0 0 30px var(--matrix-green);
+            background: rgba(0, 255, 157, 0.1);
+        }
+        
+        .locker-item img {
             width: 50px;
             height: 50px;
             object-fit: contain;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 5px;
-        }
-        
-        .locker-item-info {
-            flex: 1;
+            margin-bottom: 8px;
         }
         
         .locker-item-name {
-            font-size: 16px;
+            font-size: 12px;
             color: white;
+            margin-bottom: 5px;
             text-transform: uppercase;
         }
         
-        .locker-item-status {
-            font-size: 12px;
-            color: var(--matrix-green);
+        .locker-item-price {
+            font-size: 14px;
+            color: gold;
+            font-weight: bold;
         }
         
-        .powerup-timer {
+        .locker-item-owned {
             font-size: 12px;
-            color: gold;
+            color: var(--matrix-green);
             margin-top: 5px;
         }
         
-        /* PREVIEW CANVAS */
-        .preview-container {
+        .locker-equip-btn {
+            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            width: 100%;
+            margin: 15px 0;
+        }
+        
+        .locker-equip-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px var(--matrix-green);
+        }
+        
+        .locker-balance {
             text-align: center;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 2px solid var(--neon-orange);
+            font-size: 20px;
+            color: gold;
+            margin: 15px 0;
+            padding: 10px;
+            border: 2px solid gold;
             border-radius: 30px;
         }
         
-        .preview-title {
-            color: var(--neon-orange);
+        /* POWERUPS SECTION */
+        .powerups-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .powerup-item {
+            background: rgba(20, 20, 30, 0.9);
+            border: 2px solid var(--neon-orange);
+            border-radius: 20px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .powerup-item:hover {
+            transform: scale(1.05);
+            border-color: var(--matrix-green);
+            box-shadow: 0 0 20px var(--matrix-green);
+        }
+        
+        .powerup-item.active {
+            border-color: gold;
+            box-shadow: 0 0 30px gold;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .powerup-name {
+            font-size: 16px;
+            color: white;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .powerup-price {
             font-size: 18px;
+            color: gold;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        
+        .powerup-desc {
+            font-size: 12px;
+            color: #aaa;
             margin-bottom: 10px;
         }
         
-        #previewCanvas {
-            width: 150px;
-            height: 150px;
-            border: 2px solid var(--neon-orange);
-            border-radius: 20px;
-            background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
-            margin: 0 auto;
-            display: block;
-        }
-        
-        /* ACTIVE POWERUPS */
-        .active-powerups {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: 10px 0;
-            flex-wrap: wrap;
-            min-height: 40px;
-        }
-        
-        .powerup-badge {
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid gold;
-            border-radius: 20px;
-            padding: 5px 15px;
-            font-size: 14px;
-            color: gold;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .powerup-badge-timer {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            padding: 2px 8px;
+        .powerup-buy-btn {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
             color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* GAME CONTROLS */
+        .powerup-buy-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px var(--neon-orange);
+        }
+        
+        .powerup-buy-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* CHEAT CODES SECTION */
+        .cheats-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--neon-red);
+            border-radius: 25px;
+        }
+        
+        .cheats-title {
+            color: var(--neon-red);
+            font-size: 18px;
+            text-transform: uppercase;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .cheats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            text-align: center;
+        }
+        
+        .cheat-code {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-orange);
+            border-radius: 15px;
+            padding: 5px;
+            font-size: 14px;
+            color: var(--matrix-green);
+        }
+        
+        .cheat-desc {
+            font-size: 10px;
+            color: #aaa;
+        }
+        
+        /* BUTTONS - CURVED */
         .controls-box {
             display: flex;
             gap: 10px;
@@ -555,6 +556,7 @@
         }
         
         .game-btn:hover {
+            background: linear-gradient(45deg, var(--cyber-red), var(--cyber-orange));
             transform: translateY(-3px);
             box-shadow: 0 8px 25px var(--matrix-green);
         }
@@ -563,7 +565,7 @@
             background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
         }
         
-        /* INSTRUCTIONS */
+        /* INSTRUCTIONS - CURVED */
         .instructions {
             text-align: center;
             margin: 15px 0;
@@ -583,7 +585,7 @@
             color: var(--neon-orange);
         }
         
-        /* BACK LINK */
+        /* BACK LINK - CURVED */
         .back-link {
             text-align: center;
             margin-top: 15px;
@@ -608,17 +610,33 @@
             transform: scale(1.05);
         }
         
+        /* BOUNCE ANIMATION FOR EXIT */
+        @keyframes bounce {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-20px); }
+            50% { transform: translateX(20px); }
+            75% { transform: translateX(-10px); }
+        }
+        
+        .bounce {
+            animation: bounce 0.5s ease-in-out;
+        }
+        
         /* RESPONSIVE */
         @media (max-width: 500px) {
             .game-title { font-size: 36px; }
-            .store-grid { grid-template-columns: 1fr; }
-            .locker-grid { grid-template-columns: 1fr; }
-            .store-item { flex-direction: column; text-align: center; }
+            .game-subtitle { font-size: 12px; }
+            .game-btn { font-size: 14px; padding: 8px 15px; }
+            .stats-grid { gap: 5px; }
+            .stat-value { font-size: 16px; }
+            .locker-grid { grid-template-columns: repeat(2, 1fr); }
+            .powerups-grid { grid-template-columns: 1fr; }
+            .cheats-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
-    <!-- AUDIO PLAYERS -->
+    <!-- AUDIO PLAYER (hidden) -->
     <audio id="jumpSound" preload="auto">
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg">
     </audio>
@@ -640,7 +658,7 @@
     </audio>
     
     <audio id="powerupSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg">
     </audio>
     
     <audio id="bgMusic" loop>
@@ -650,7 +668,7 @@
     <div class="game-container">
         <div class="game-header">
             <div class="game-title">FLAPPY CRIX</div>
-            <div class="game-subtitle">collect coins • buy drip</div>
+            <div class="game-subtitle">wear the drip • collect the coins</div>
         </div>
         
         <div class="canvas-wrapper">
@@ -676,22 +694,35 @@
             </div>
         </div>
         
-        <!-- ACTIVE POWERUPS DISPLAY -->
-        <div class="active-powerups" id="activePowerups"></div>
+        <!-- LOCKER BUTTON -->
+        <button class="locker-button" id="lockerBtn">👕 OPEN LOCKER 👕</button>
         
-        <!-- STORE & LOCKER BUTTONS -->
-        <div class="button-container">
-            <button class="action-btn" id="storeBtn">🛒 STORE</button>
-            <button class="action-btn secondary" id="lockerBtn">👕 LOCKER</button>
-            <button class="action-btn" id="musicToggleBtn">🔊 MUSIC</button>
-        </div>
+        <!-- ACTIVE CHEATS DISPLAY -->
+        <div id="activeCheats" style="text-align: center; min-height: 25px; margin: 5px 0;"></div>
         
         <div class="controls-box">
-            <button class="game-btn" id="startGameBtn">▶ START GAME</button>
+            <button class="game-btn" id="startGameBtn">▶ START</button>
+            <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
         
         <div class="instructions">
-            <p><span class="highlight">⬆️ SPACE/CLICK</span> to flap • <span class="highlight">🪙 COLLECT COINS</span> for store</p>
+            <p><span class="highlight">⬆️ SPACE/CLICK</span> to flap • <span class="highlight">🪙 COLLECT COINS</span> for drip</p>
+        </div>
+        
+        <!-- CHEAT CODES DISPLAYED ON PAGE -->
+        <div class="cheats-section">
+            <div class="cheats-title">⚡ CHEAT CODES ⚡</div>
+            <div class="cheats-grid">
+                <div><span class="cheat-code">6969</span><div class="cheat-desc">GODMODE</div></div>
+                <div><span class="cheat-code">1337</span><div class="cheat-desc">COIN LORD</div></div>
+                <div><span class="cheat-code">0420</span><div class="cheat-desc">SLOW MO</div></div>
+                <div><span class="cheat-code">8008</span><div class="cheat-desc">BIG BIRD</div></div>
+                <div><span class="cheat-code">9999</span><div class="cheat-desc">+100 COINS</div></div>
+                <div><span class="cheat-code">2468</span><div class="cheat-desc">2X COINS</div></div>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <input type="text" class="cheat-input" id="cheatInput" placeholder="ENTER CODE" maxlength="4" autocomplete="off" style="width:120px;">
+            </div>
         </div>
         
         <div class="back-link">
@@ -699,91 +730,63 @@
         </div>
     </div>
     
-    <!-- STORE MODAL -->
-    <div class="modal" id="storeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">🛒 CRIX STORE</div>
-                <button class="modal-close" id="closeStoreBtn">✕</button>
-            </div>
-            
-            <div class="modal-balance" id="storeBalance">YOUR COINS: 🪙 0</div>
-            
-            <div class="store-grid">
-                <!-- COSMETICS SECTION -->
-                <div class="store-section">
-                    <div class="store-section-title">👕 COSMETICS</div>
-                    <div id="cosmeticsStore"></div>
-                </div>
-                
-                <!-- POWERUPS SECTION -->
-                <div class="store-section">
-                    <div class="store-section-title">⚡ POWER-UPS</div>
-                    <div id="powerupsStore"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
     <!-- LOCKER MODAL -->
-    <div class="modal" id="lockerModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">👕 CRIX LOCKER</div>
-                <button class="modal-close" id="closeLockerBtn">✕</button>
+    <div class="locker-modal" id="lockerModal">
+        <div class="locker-modal-content">
+            <div class="locker-modal-header">
+                <div class="locker-modal-title">👕 CRIX LOCKER</div>
+                <button class="locker-modal-close" id="closeLockerBtn">✕</button>
             </div>
             
-            <!-- PREVIEW SECTION -->
-            <div class="preview-container">
-                <div class="preview-title">YOUR CURRENT DRIP</div>
-                <canvas id="previewCanvas" width="150" height="150"></canvas>
+            <div class="locker-balance" id="lockerBalance">YOUR COINS: 🪙 0</div>
+            
+            <div class="locker-tabs">
+                <button class="locker-tab active" id="tabCosmetics">🎨 COSMETICS</button>
+                <button class="locker-tab" id="tabPowerups">⚡ POWER-UPS</button>
             </div>
             
-            <div class="locker-grid">
-                <!-- COSMETICS SECTION -->
-                <div class="locker-section">
-                    <div class="locker-section-title">🎨 YOUR COSMETICS</div>
-                    <div id="cosmeticsLocker"></div>
-                </div>
-                
-                <!-- POWERUPS SECTION -->
-                <div class="locker-section">
-                    <div class="locker-section-title">⚡ ACTIVE POWER-UPS</div>
-                    <div id="powerupsLocker"></div>
+            <!-- COSMETICS TAB -->
+            <div id="cosmeticsTab">
+                <div class="locker-grid" id="cosmeticsGrid">
+                    <!-- Cosmetics will be loaded here -->
                 </div>
             </div>
+            
+            <!-- POWERUPS TAB (hidden by default) -->
+            <div id="powerupsTab" style="display: none;">
+                <div class="powerups-grid" id="powerupsGrid">
+                    <!-- Powerups will be loaded here -->
+                </div>
+            </div>
+            
+            <button class="locker-equip-btn" id="lockerActionBtn">EQUIP SELECTED</button>
         </div>
     </div>
     
     <script>
         // ========== GAME VARIABLES ==========
         const canvas = document.getElementById('gameCanvas');
-        const previewCanvas = document.getElementById('previewCanvas');
         const ctx = canvas.getContext('2d');
-        const previewCtx = previewCanvas.getContext('2d');
-        
         const gameScore = document.getElementById('gameScore');
         const coinCountEl = document.getElementById('coinCount');
         const highScoreEl = document.getElementById('highScore');
         const coinMultiplierEl = document.getElementById('coinMultiplier');
-        const activePowerupsEl = document.getElementById('activePowerups');
-        
         const startGameBtn = document.getElementById('startGameBtn');
         const musicToggle = document.getElementById('musicToggleBtn');
         const backLink = document.getElementById('backLink');
-        
-        // Modal elements
-        const storeBtn = document.getElementById('storeBtn');
+        const cheatInput = document.getElementById('cheatInput');
+        const activeCheats = document.getElementById('activeCheats');
         const lockerBtn = document.getElementById('lockerBtn');
-        const storeModal = document.getElementById('storeModal');
         const lockerModal = document.getElementById('lockerModal');
-        const closeStoreBtn = document.getElementById('closeStoreBtn');
         const closeLockerBtn = document.getElementById('closeLockerBtn');
-        const storeBalance = document.getElementById('storeBalance');
-        const cosmeticsStore = document.getElementById('cosmeticsStore');
-        const powerupsStore = document.getElementById('powerupsStore');
-        const cosmeticsLocker = document.getElementById('cosmeticsLocker');
-        const powerupsLocker = document.getElementById('powerupsLocker');
+        const lockerBalance = document.getElementById('lockerBalance');
+        const cosmeticsGrid = document.getElementById('cosmeticsGrid');
+        const powerupsGrid = document.getElementById('powerupsGrid');
+        const lockerActionBtn = document.getElementById('lockerActionBtn');
+        const tabCosmetics = document.getElementById('tabCosmetics');
+        const tabPowerups = document.getElementById('tabPowerups');
+        const cosmeticsTab = document.getElementById('cosmeticsTab');
+        const powerupsTab = document.getElementById('powerupsTab');
         
         // Sounds
         const jumpSound = document.getElementById('jumpSound');
@@ -804,7 +807,7 @@
         // Coin variables
         let coins = [];
         let coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0;
-        let coinMultiplier = 1;
+        let coinMultiplier = parseFloat(localStorage.getItem('flappyCrixMultiplier')) || 1;
         const coinImage = new Image();
         coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
         
@@ -812,13 +815,15 @@
         const birdImage = new Image();
         birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
-        // ========== COSMETICS DATA ==========
+        // COSMETICS ITEMS - Hats (go on head) and Shirts (go on body)
         const cosmetics = [
+            // HATS (will be drawn above bird)
             { 
                 id: 'bucket', 
                 name: 'BUCKET HAT', 
                 type: 'hat',
                 price: 50, 
+                icon: '🧢',
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif',
                 equipped: false,
                 owned: false
@@ -828,15 +833,19 @@
                 name: 'BASEBALL CAP', 
                 type: 'hat',
                 price: 45, 
+                icon: '🧢',
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png',
                 equipped: false,
                 owned: false
             },
+            
+            // SHIRTS (will be drawn on bird's body)
             { 
                 id: 'tank', 
                 name: 'TANK TOP', 
                 type: 'shirt',
                 price: 40, 
+                icon: '🎽',
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif',
                 equipped: false,
                 owned: false
@@ -846,6 +855,7 @@
                 name: 'HOODIE', 
                 type: 'shirt',
                 price: 100, 
+                icon: '👕',
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png',
                 equipped: false,
                 owned: false
@@ -855,64 +865,71 @@
                 name: 'T-SHIRT', 
                 type: 'shirt',
                 price: 35, 
+                icon: '👔',
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png',
                 equipped: false,
                 owned: false
             },
+            
+            // ACCESSORIES
             { 
                 id: 'backpack', 
                 name: 'BACKPACK', 
                 type: 'accessory',
                 price: 80, 
+                icon: '🎒',
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png',
                 equipped: false,
                 owned: false
             }
         ];
         
-        // ========== POWERUPS DATA (TIMED) ==========
+        // POWERUPS
         const powerups = [
             {
                 id: 'x2coins',
                 name: '2X COINS',
-                price: 100,
-                duration: 30, // seconds
-                desc: 'Double coins for 30 seconds',
-                active: false,
-                timeLeft: 0
+                price: 200,
+                duration: 'permanent',
+                effect: 'multiplier',
+                value: 2,
+                desc: 'Get 2 coins for every 1 collected',
+                active: false
             },
             {
                 id: 'shield',
                 name: 'SHIELD',
-                price: 75,
-                duration: 20,
-                desc: 'Invincible for 20 seconds',
-                active: false,
-                timeLeft: 0
+                price: 150,
+                duration: '1 game',
+                effect: 'shield',
+                desc: 'Survive one hit',
+                active: false
             },
             {
                 id: 'magnet',
                 name: 'MAGNET',
-                price: 60,
-                duration: 25,
+                price: 120,
+                duration: '30 sec',
+                effect: 'magnet',
                 desc: 'Coins attract to you',
-                active: false,
-                timeLeft: 0
+                active: false
             }
         ];
         
-        // Load saved data
+        // Load owned items from localStorage
         let ownedCosmetics = JSON.parse(localStorage.getItem('flappyCrixOwned')) || [];
         let equippedItems = JSON.parse(localStorage.getItem('flappyCrixEquipped')) || {
             hat: null,
             shirt: null,
             accessory: null
         };
+        let activePowerups = JSON.parse(localStorage.getItem('flappyCrixPowerups')) || {
+            x2coins: false,
+            shield: false,
+            magnet: false
+        };
         
-        // Load active powerups with timers
-        let activePowerupsList = JSON.parse(localStorage.getItem('flappyCrixActivePowerups')) || [];
-        
-        // Update cosmetics with owned/equipped status
+        // Update cosmetics with owned status
         cosmetics.forEach(item => {
             if (ownedCosmetics.includes(item.id)) {
                 item.owned = true;
@@ -922,188 +939,37 @@
             }
         });
         
-        // Update powerups with saved active state
-        powerups.forEach(powerup => {
-            const saved = activePowerupsList.find(p => p.id === powerup.id);
-            if (saved) {
-                powerup.active = true;
-                powerup.timeLeft = saved.timeLeft;
-            }
-        });
+        // Update multiplier based on powerup
+        if (activePowerups.x2coins) {
+            coinMultiplier = 2;
+        }
+        coinMultiplierEl.textContent = coinMultiplier + 'x';
         
         highScoreEl.textContent = highScore;
         updateCoinDisplay();
-        updateMultiplier();
         
-        // ========== POWERUP TIMER SYSTEM ==========
-        setInterval(() => {
-            let changed = false;
-            
-            powerups.forEach(powerup => {
-                if (powerup.active && powerup.timeLeft > 0) {
-                    powerup.timeLeft -= 1;
-                    changed = true;
-                    
-                    if (powerup.timeLeft <= 0) {
-                        powerup.active = false;
-                        if (powerup.id === 'x2coins') {
-                            updateMultiplier();
-                        }
-                    }
-                }
-            });
-            
-            if (changed) {
-                updateActivePowerupsDisplay();
-                saveActivePowerups();
-                if (lockerModal.classList.contains('active')) {
-                    updateLockerDisplay();
-                }
-            }
-        }, 1000);
-        
-        function updateMultiplier() {
-            const x2Active = powerups.find(p => p.id === 'x2coins')?.active || false;
-            coinMultiplier = x2Active ? 2 : 1;
-            coinMultiplierEl.textContent = coinMultiplier + 'x';
-        }
-        
-        function saveActivePowerups() {
-            const toSave = powerups
-                .filter(p => p.active)
-                .map(p => ({ id: p.id, timeLeft: p.timeLeft }));
-            localStorage.setItem('flappyCrixActivePowerups', JSON.stringify(toSave));
-        }
-        
-        function updateActivePowerupsDisplay() {
-            let html = '';
-            powerups.forEach(powerup => {
-                if (powerup.active && powerup.timeLeft > 0) {
-                    html += `
-                        <div class="powerup-badge">
-                            ${powerup.id === 'x2coins' ? '💰' : powerup.id === 'shield' ? '🛡️' : '🧲'}
-                            ${powerup.name}
-                            <span class="powerup-badge-timer">${powerup.timeLeft}s</span>
-                        </div>
-                    `;
-                }
-            });
-            activePowerupsEl.innerHTML = html;
-        }
-        
-        // ========== STORE FUNCTIONS ==========
-        function openStore() {
-            playSelectSound();
-            updateStoreDisplay();
-            storeModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeStore() {
-            storeModal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-        
-        function updateStoreDisplay() {
-            storeBalance.innerHTML = `YOUR COINS: 🪙 ${coinCount}`;
-            
-            // Update cosmetics store
-            let cosmeticsHtml = '';
-            cosmetics.forEach(item => {
-                cosmeticsHtml += `
-                    <div class="store-item">
-                        <img class="store-item-image" src="${item.image}" alt="${item.name}">
-                        <div class="store-item-info">
-                            <div class="store-item-name">${item.name}</div>
-                            <div class="store-item-price">🪙 ${item.price}</div>
-                        </div>
-                        <button class="store-buy-btn ${item.owned ? 'owned' : ''}" 
-                                onclick="buyCosmetic('${item.id}')" 
-                                ${item.owned ? 'disabled' : ''}>
-                            ${item.owned ? 'OWNED' : 'BUY'}
-                        </button>
-                    </div>
-                `;
-            });
-            cosmeticsStore.innerHTML = cosmeticsHtml;
-            
-            // Update powerups store
-            let powerupsHtml = '';
-            powerups.forEach(powerup => {
-                const isActive = powerup.active;
-                powerupsHtml += `
-                    <div class="store-item">
-                        <div class="store-item-info">
-                            <div class="store-item-name">${powerup.name}</div>
-                            <div class="store-item-price">🪙 ${powerup.price}</div>
-                            <div class="store-item-desc">${powerup.desc}</div>
-                        </div>
-                        <button class="store-buy-btn" 
-                                onclick="buyPowerup('${powerup.id}')" 
-                                ${isActive ? 'disabled' : ''}>
-                            ${isActive ? 'ACTIVE' : 'BUY'}
-                        </button>
-                    </div>
-                `;
-            });
-            powerupsStore.innerHTML = powerupsHtml;
-        }
-        
-        // Make functions globally available
-        window.buyCosmetic = function(itemId) {
-            const item = cosmetics.find(c => c.id === itemId);
-            if (!item || item.owned) return;
-            
-            if (coinCount >= item.price) {
-                coinCount -= item.price;
-                item.owned = true;
-                ownedCosmetics.push(itemId);
-                
-                localStorage.setItem('flappyCrixCoins', coinCount);
-                localStorage.setItem('flappyCrixOwned', JSON.stringify(ownedCosmetics));
-                
-                playPurchaseSound();
-                updateCoinDisplay();
-                updateStoreDisplay();
-                updatePreview();
-                
-                alert(`You bought the ${item.name}!`);
-            } else {
-                alert('Not enough coins!');
-            }
+        // Cheat codes
+        const CHEATS = {
+            '6969': { name: 'GODMODE', effect: 'godmode', message: '👼 You feel invincible!' },
+            '1337': { name: 'COIN LORD', effect: 'coinlord', message: '💰 Coins rain from heaven!' },
+            '0420': { name: 'SLOW MO', effect: 'slowmo', message: '⏱️ Time slows down...' },
+            '8008': { name: 'BIG BIRD', effect: 'bigbird', message: '🦅 BIIIIRD!' },
+            '9999': { name: 'RICH', effect: 'rich', message: '💰 +100 coins!' },
+            '2468': { name: '2X COINS', effect: 'x2coins', message: '💰 Coin multiplier activated!' }
         };
         
-        window.buyPowerup = function(powerupId) {
-            const powerup = powerups.find(p => p.id === powerupId);
-            if (!powerup || powerup.active) return;
-            
-            if (coinCount >= powerup.price) {
-                coinCount -= powerup.price;
-                powerup.active = true;
-                powerup.timeLeft = powerup.duration;
-                
-                if (powerupId === 'x2coins') {
-                    updateMultiplier();
-                }
-                
-                localStorage.setItem('flappyCrixCoins', coinCount);
-                playPowerupSound();
-                updateCoinDisplay();
-                updateStoreDisplay();
-                updateActivePowerupsDisplay();
-                saveActivePowerups();
-                
-                alert(`${powerup.name} activated for ${powerup.duration} seconds!`);
-            } else {
-                alert('Not enough coins!');
-            }
+        let activeCheatEffects = {
+            godmode: false,
+            coinlord: false,
+            slowmo: false,
+            bigbird: false,
+            x2coins: false
         };
         
         // ========== LOCKER FUNCTIONS ==========
         function openLocker() {
             playSelectSound();
             updateLockerDisplay();
-            updatePreview();
             lockerModal.classList.add('active');
             document.body.style.overflow = 'hidden';
         }
@@ -1114,116 +980,121 @@
         }
         
         function updateLockerDisplay() {
-            // Update cosmetics locker
+            lockerBalance.innerHTML = `YOUR COINS: 🪙 ${coinCount}`;
+            
+            // Update cosmetics grid
             let cosmeticsHtml = '';
-            cosmetics.filter(c => c.owned).forEach(item => {
+            cosmetics.forEach(item => {
+                const isOwned = item.owned;
+                const isEquipped = item.equipped;
+                
                 cosmeticsHtml += `
-                    <div class="locker-item ${item.equipped ? 'equipped' : ''}" onclick="equipCosmetic('${item.id}')">
-                        <img class="locker-item-image" src="${item.image}" alt="${item.name}">
-                        <div class="locker-item-info">
-                            <div class="locker-item-name">${item.name}</div>
-                            <div class="locker-item-status">${item.equipped ? '✓ EQUIPPED' : 'Click to equip'}</div>
-                        </div>
+                    <div class="locker-item ${isOwned ? 'owned' : ''} ${isEquipped ? 'equipped' : ''}" data-id="${item.id}" data-type="${item.type}" data-price="${item.price}">
+                        <img src="${item.image}" alt="${item.name}">
+                        <div class="locker-item-name">${item.name}</div>
+                        <div class="locker-item-price">${isOwned ? 'OWNED' : `🪙 ${item.price}`}</div>
+                        ${isEquipped ? '<div class="locker-item-owned">✔ EQUIPPED</div>' : ''}
                     </div>
                 `;
             });
+            cosmeticsGrid.innerHTML = cosmeticsHtml;
             
-            if (cosmeticsHtml === '') {
-                cosmeticsHtml = '<div style="text-align:center; color:#666; padding:20px;">No cosmetics owned yet.<br>Visit the store!</div>';
-            }
-            cosmeticsLocker.innerHTML = cosmeticsHtml;
-            
-            // Update powerups locker
+            // Update powerups grid
             let powerupsHtml = '';
-            powerups.filter(p => p.active).forEach(powerup => {
+            powerups.forEach(powerup => {
+                const isActive = activePowerups[powerup.id] || false;
+                
                 powerupsHtml += `
-                    <div class="locker-item">
-                        <div class="locker-item-info">
-                            <div class="locker-item-name">${powerup.name}</div>
-                            <div class="powerup-timer">⏱️ ${powerup.timeLeft}s remaining</div>
-                        </div>
+                    <div class="powerup-item ${isActive ? 'active' : ''}" data-id="${powerup.id}">
+                        <div class="powerup-name">${powerup.name}</div>
+                        <div class="powerup-desc">${powerup.desc}</div>
+                        <div class="powerup-price">🪙 ${powerup.price}</div>
+                        <button class="powerup-buy-btn" onclick="buyPowerup('${powerup.id}')" ${isActive ? 'disabled' : ''}>
+                            ${isActive ? 'ACTIVE' : 'BUY'}
+                        </button>
                     </div>
                 `;
             });
-            
-            if (powerupsHtml === '') {
-                powerupsHtml = '<div style="text-align:center; color:#666; padding:20px;">No active power-ups.</div>';
-            }
-            powerupsLocker.innerHTML = powerupsHtml;
+            powerupsGrid.innerHTML = powerupsHtml;
         }
         
-        window.equipCosmetic = function(itemId) {
-            const item = cosmetics.find(c => c.id === itemId);
-            if (!item || !item.owned) return;
+        // Make buyPowerup globally available
+        window.buyPowerup = function(powerupId) {
+            const powerup = powerups.find(p => p.id === powerupId);
+            if (!powerup) return;
+            
+            if (coinCount >= powerup.price) {
+                coinCount -= powerup.price;
+                activePowerups[powerupId] = true;
+                
+                if (powerupId === 'x2coins') {
+                    coinMultiplier = 2;
+                    activeCheatEffects.x2coins = true;
+                    coinMultiplierEl.textContent = coinMultiplier + 'x';
+                    localStorage.setItem('flappyCrixMultiplier', 2);
+                }
+                
+                localStorage.setItem('flappyCrixCoins', coinCount);
+                localStorage.setItem('flappyCrixPowerups', JSON.stringify(activePowerups));
+                
+                playPowerupSound();
+                updateCoinDisplay();
+                updateLockerDisplay();
+                alert(`Power-up ${powerup.name} activated!`);
+            } else {
+                alert('Not enough coins!');
+            }
+        };
+        
+        window.equipSelected = function() {
+            const selected = document.querySelector('.locker-item.selected');
+            if (!selected) {
+                alert('Select an item first!');
+                return;
+            }
+            
+            const itemId = selected.dataset.id;
+            const itemType = selected.dataset.type;
+            const item = cosmetics.find(i => i.id === itemId);
+            
+            if (!item.owned) {
+                // Try to buy it
+                const price = parseInt(selected.dataset.price);
+                if (coinCount >= price) {
+                    coinCount -= price;
+                    item.owned = true;
+                    ownedCosmetics.push(itemId);
+                    localStorage.setItem('flappyCrixCoins', coinCount);
+                    localStorage.setItem('flappyCrixOwned', JSON.stringify(ownedCosmetics));
+                    playCoinSound();
+                    updateCoinDisplay();
+                } else {
+                    alert('Not enough coins!');
+                    return;
+                }
+            }
             
             // Unequip previous item of same type
-            cosmetics.forEach(c => {
-                if (c.type === item.type && c.equipped) {
-                    c.equipped = false;
+            cosmetics.forEach(i => {
+                if (i.type === itemType && i.equipped) {
+                    i.equipped = false;
                 }
             });
             
             // Equip new item
             item.equipped = true;
-            equippedItems[item.type] = itemId;
-            
+            equippedItems[itemType] = itemId;
             localStorage.setItem('flappyCrixEquipped', JSON.stringify(equippedItems));
+            
             updateLockerDisplay();
-            updatePreview();
-            playSelectSound();
+            playPurchaseSound();
+            alert(`${item.name} equipped!`);
         };
         
-        function updatePreview() {
-            previewCtx.fillStyle = '#0A0A0F';
-            previewCtx.fillRect(0, 0, 150, 150);
-            
-            // Draw grid
-            previewCtx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
-            previewCtx.lineWidth = 1;
-            for (let i = 0; i < 150; i += 20) {
-                previewCtx.beginPath();
-                previewCtx.moveTo(i, 0);
-                previewCtx.lineTo(i, 150);
-                previewCtx.stroke();
-                previewCtx.beginPath();
-                previewCtx.moveTo(0, i);
-                previewCtx.lineTo(150, i);
-                previewCtx.stroke();
-            }
-            
-            // Draw bird
-            previewCtx.save();
-            previewCtx.translate(75, 75);
-            
-            if (birdImage.complete) {
-                previewCtx.drawImage(birdImage, -20, -20, 40, 40);
-                
-                // Draw shirt
-                const shirtItem = cosmetics.find(i => i.type === 'shirt' && i.equipped);
-                if (shirtItem) {
-                    const shirtImg = new Image();
-                    shirtImg.src = shirtItem.image;
-                    previewCtx.drawImage(shirtImg, -20, -20, 40, 40);
-                }
-                
-                // Draw hat
-                const hatItem = cosmetics.find(i => i.type === 'hat' && i.equipped);
-                if (hatItem) {
-                    const hatImg = new Image();
-                    hatImg.src = hatItem.image;
-                    previewCtx.drawImage(hatImg, -20, -25, 40, 40);
-                }
-                
-                // Draw accessory
-                const accessoryItem = cosmetics.find(i => i.type === 'accessory' && i.equipped);
-                if (accessoryItem) {
-                    const accessoryImg = new Image();
-                    accessoryImg.src = accessoryItem.image;
-                    previewCtx.drawImage(accessoryImg, -15, -20, 40, 40);
-                }
-            }
-            
-            previewCtx.restore();
+        function playPowerupSound() {
+            powerupSound.currentTime = 0;
+            powerupSound.volume = 0.3;
+            powerupSound.play().catch(e => console.log('Powerup sound blocked'));
         }
         
         // ========== GAME CLASS ==========
@@ -1236,23 +1107,30 @@
                 this.bird = {
                     x: 100,
                     y: 300,
-                    width: 30,
-                    height: 30,
+                    width: activeCheatEffects.bigbird ? 45 : 30,
+                    height: activeCheatEffects.bigbird ? 45 : 30,
                     velocity: 0,
-                    gravity: 0.25,
-                    jump: -6.5
+                    gravity: activeCheatEffects.slowmo ? 0.15 : 0.25,
+                    jump: activeCheatEffects.slowmo ? -5 : -6.5,
+                    angle: 0
                 };
                 
                 this.pipes = [];
                 this.pipeWidth = 50;
                 this.pipeGap = 170;
+                this.pipeSpacing = 300;
                 this.frameCount = 0;
                 this.score = 0;
                 this.gameOver = false;
                 
+                // Reset coins
                 coins = [];
+                if (!activeCheatEffects.coinlord) {
+                    // Keep coin count
+                }
             }
             
+            // Helper to check if a position is safe for a coin
             isCoinPositionSafe(x, y) {
                 if (y < 40 || y > canvas.height - 40) return false;
                 
@@ -1308,9 +1186,9 @@
                 ctx.shadowColor = '#00FF9D';
                 ctx.shadowBlur = 10;
                 this.pipes.forEach(pipe => {
-                    this.roundRect(ctx, pipe.x, 0, this.pipeWidth, pipe.top, 15);
+                    this.roundRect(pipe.x, 0, this.pipeWidth, pipe.top, 15);
                     ctx.fill();
-                    this.roundRect(ctx, pipe.x, pipe.bottom, this.pipeWidth, canvas.height - pipe.bottom, 15);
+                    this.roundRect(pipe.x, pipe.bottom, this.pipeWidth, canvas.height - pipe.bottom, 15);
                     ctx.fill();
                 });
                 ctx.shadowBlur = 0;
@@ -1320,34 +1198,45 @@
                     if (!coin.collected) {
                         if (coinImage.complete) {
                             ctx.drawImage(coinImage, coin.x - 15, coin.y - 15, 30, 30);
+                        } else {
+                            ctx.fillStyle = 'gold';
+                            ctx.shadowColor = 'gold';
+                            ctx.shadowBlur = 15;
+                            ctx.beginPath();
+                            ctx.arc(coin.x, coin.y, 12, 0, Math.PI * 2);
+                            ctx.fill();
                         }
                     }
                 });
+                ctx.shadowBlur = 0;
                 
-                // Draw bird
+                // Draw bird with rotation based on velocity
                 ctx.save();
                 ctx.translate(this.bird.x, this.bird.y);
                 
+                // Calculate rotation angle based on velocity
                 let rotationAngle = Math.min(Math.max(this.bird.velocity * 0.1, -0.5), 0.5);
                 ctx.rotate(rotationAngle);
                 
+                // Draw bird body
                 if (birdImage.complete) {
-                    ctx.drawImage(birdImage, -15, -15, 30, 30);
+                    let size = activeCheatEffects.bigbird ? 45 : 30;
+                    ctx.drawImage(birdImage, -size/2, -size/2, size, size);
                     
-                    // Draw shirt
+                    // Draw shirt (on body)
                     const shirtItem = cosmetics.find(i => i.type === 'shirt' && i.equipped);
                     if (shirtItem) {
                         const shirtImg = new Image();
                         shirtImg.src = shirtItem.image;
-                        ctx.drawImage(shirtImg, -15, -15, 30, 30);
+                        ctx.drawImage(shirtImg, -size/2, -size/2, size, size);
                     }
                     
-                    // Draw hat
+                    // Draw hat (on head)
                     const hatItem = cosmetics.find(i => i.type === 'hat' && i.equipped);
                     if (hatItem) {
                         const hatImg = new Image();
                         hatImg.src = hatItem.image;
-                        ctx.drawImage(hatImg, -15, -20, 30, 30);
+                        ctx.drawImage(hatImg, -size/2, -size/2 - 5, size, size);
                     }
                     
                     // Draw accessory
@@ -1355,21 +1244,19 @@
                     if (accessoryItem) {
                         const accessoryImg = new Image();
                         accessoryImg.src = accessoryItem.image;
-                        ctx.drawImage(accessoryImg, -10, -15, 30, 30);
+                        ctx.drawImage(accessoryImg, -size/2 + 5, -size/2, size, size);
                     }
+                } else {
+                    // Fallback
+                    ctx.fillStyle = '#FF6B35';
+                    ctx.shadowColor = '#FF6B35';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, activeCheatEffects.bigbird ? 22 : 15, 0, Math.PI * 2);
+                    ctx.fill();
                 }
                 
                 ctx.restore();
-                
-                // Draw shield effect if active
-                const shieldActive = powerups.find(p => p.id === 'shield')?.active || false;
-                if (shieldActive) {
-                    ctx.beginPath();
-                    ctx.arc(this.bird.x, this.bird.y, 25, 0, Math.PI * 2);
-                    ctx.strokeStyle = 'rgba(0, 255, 157, 0.5)';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-                }
                 
                 // Draw score
                 if (!this.gameOver && gameRunning) {
@@ -1379,15 +1266,24 @@
                     ctx.fillText(`SCORE: ${this.score}`, canvas.width / 2, 50);
                 }
                 
+                // Draw active cheat indicators
+                if (activeCheatEffects.godmode) {
+                    ctx.fillStyle = 'rgba(255, 70, 85, 0.3)';
+                    ctx.font = '14px "CRIX Pixel", monospace';
+                    ctx.fillText('⚡ GODMODE', canvas.width - 100, 80);
+                }
+                
                 if (this.gameOver) {
                     ctx.fillStyle = '#FF4655';
                     ctx.font = '28px "CRIX Pixel", monospace';
                     ctx.textAlign = 'center';
                     ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
+                    ctx.font = '16px "CRIX Pixel", monospace';
+                    ctx.fillText('Press START', canvas.width / 2, canvas.height / 2 + 40);
                 }
             }
             
-            roundRect(ctx, x, y, w, h, r) {
+            roundRect(x, y, w, h, r) {
                 if (w < 2 * r) r = w / 2;
                 if (h < 2 * r) r = h / 2;
                 ctx.beginPath();
@@ -1406,15 +1302,12 @@
             update() {
                 if (this.gameOver) return;
                 
-                const shieldActive = powerups.find(p => p.id === 'shield')?.active || false;
-                const magnetActive = powerups.find(p => p.id === 'magnet')?.active || false;
-                
                 // Bird physics
                 this.bird.velocity += this.bird.gravity;
                 this.bird.y += this.bird.velocity;
                 
                 // Check boundaries
-                if (!shieldActive) {
+                if (!activeCheatEffects.godmode) {
                     if (this.bird.y < 10 || this.bird.y > canvas.height - 10) {
                         this.gameOver = true;
                         playDeathSound();
@@ -1432,7 +1325,7 @@
                 }
                 
                 // Generate pipes
-                if (this.frameCount % 120 === 0) {
+                if (this.frameCount % (activeCheatEffects.slowmo ? 180 : 120) === 0) {
                     const topHeight = Math.random() * (canvas.height - this.pipeGap - 150) + 70;
                     this.pipes.push({
                         x: canvas.width,
@@ -1444,7 +1337,7 @@
                 
                 // Generate coins
                 if (this.frameCount % 40 === 0 && gameRunning) {
-                    if (Math.random() < 0.4) {
+                    if (activeCheatEffects.coinlord || activeCheatEffects.x2coins || Math.random() < 0.35) {
                         const coinX = canvas.width + 40;
                         const coinY = this.getSafeCoinY(coinX);
                         
@@ -1459,15 +1352,15 @@
                 }
                 
                 // Update pipes
-                let speed = 2.5;
+                let speed = activeCheatEffects.slowmo ? 1.5 : 2.5;
                 for (let i = this.pipes.length - 1; i >= 0; i--) {
                     this.pipes[i].x -= speed;
                     
-                    if (!shieldActive) {
-                        if (this.bird.x + 15 > this.pipes[i].x && 
-                            this.bird.x - 15 < this.pipes[i].x + this.pipeWidth) {
-                            if (this.bird.y - 15 < this.pipes[i].top || 
-                                this.bird.y + 15 > this.pipes[i].bottom) {
+                    if (!activeCheatEffects.godmode) {
+                        if (this.bird.x + this.bird.width/2 > this.pipes[i].x && 
+                            this.bird.x - this.bird.width/2 < this.pipes[i].x + this.pipeWidth) {
+                            if (this.bird.y - this.bird.height/2 < this.pipes[i].top || 
+                                this.bird.y + this.bird.height/2 > this.pipes[i].bottom) {
                                 this.gameOver = true;
                                 playDeathSound();
                                 this.updateHighScore();
@@ -1486,19 +1379,9 @@
                     }
                 }
                 
-                // Update coins with magnet effect
+                // Update coins
                 for (let i = coins.length - 1; i >= 0; i--) {
                     if (!coins[i].collected) {
-                        if (magnetActive) {
-                            const dx = this.bird.x - coins[i].x;
-                            const dy = this.bird.y - coins[i].y;
-                            const dist = Math.sqrt(dx * dx + dy * dy);
-                            if (dist < 100) {
-                                coins[i].x += dx * 0.05;
-                                coins[i].y += dy * 0.05;
-                            }
-                        }
-                        
                         coins[i].x -= speed;
                         
                         const dist = Math.hypot(this.bird.x - coins[i].x, this.bird.y - coins[i].y);
@@ -1508,6 +1391,11 @@
                             playCoinSound();
                             updateCoinDisplay();
                             localStorage.setItem('flappyCrixCoins', coinCount);
+                            
+                            if (activeCheatEffects.coinlord || activeCheatEffects.x2coins) {
+                                this.score += 5;
+                                gameScore.textContent = this.score;
+                            }
                         }
                         
                         if (coins[i].x + 30 < 0) {
@@ -1535,9 +1423,9 @@
                 playJumpSound();
             }
         }
-        
+
         let game = new FlappyBird();
-        
+
         // ========== SOUND FUNCTIONS ==========
         function playJumpSound() {
             jumpSound.currentTime = 0;
@@ -1550,6 +1438,7 @@
             deathSound.volume = 0.4;
             deathSound.play().catch(e => console.log('Death sound blocked'));
             
+            // Stop music on death
             if (!musicMuted) {
                 bgMusic.pause();
                 musicWasPlaying = true;
@@ -1575,20 +1464,14 @@
             purchaseSound.volume = 0.3;
             purchaseSound.play().catch(e => console.log('Purchase sound blocked'));
         }
-        
-        function playPowerupSound() {
-            powerupSound.currentTime = 0;
-            powerupSound.volume = 0.4;
-            powerupSound.play().catch(e => console.log('Powerup sound blocked'));
-        }
-        
+
         function updateCoinDisplay() {
             coinCountEl.innerHTML = `🪙 ${coinCount}`;
-            if (storeBalance) {
-                storeBalance.innerHTML = `YOUR COINS: 🪙 ${coinCount}`;
+            if (lockerBalance) {
+                lockerBalance.innerHTML = `YOUR COINS: 🪙 ${coinCount}`;
             }
         }
-        
+
         // ========== MUSIC CONTROL ==========
         bgMusic.volume = 0.3;
         musicMuted = true;
@@ -1605,7 +1488,84 @@
             musicMuted = !musicMuted;
             playSelectSound();
         });
-        
+
+        // ========== CHEAT CODE SYSTEM ==========
+        cheatInput.addEventListener('input', (e) => {
+            const code = e.target.value.toUpperCase();
+            
+            if (code.length === 4 && CHEATS[code]) {
+                const cheat = CHEATS[code];
+                
+                switch(cheat.effect) {
+                    case 'godmode':
+                        activeCheatEffects.godmode = !activeCheatEffects.godmode;
+                        break;
+                    case 'coinlord':
+                        activeCheatEffects.coinlord = !activeCheatEffects.coinlord;
+                        break;
+                    case 'slowmo':
+                        activeCheatEffects.slowmo = !activeCheatEffects.slowmo;
+                        break;
+                    case 'bigbird':
+                        activeCheatEffects.bigbird = !activeCheatEffects.bigbird;
+                        break;
+                    case 'rich':
+                        coinCount += 100;
+                        localStorage.setItem('flappyCrixCoins', coinCount);
+                        updateCoinDisplay();
+                        break;
+                    case 'x2coins':
+                        activeCheatEffects.x2coins = !activeCheatEffects.x2coins;
+                        coinMultiplier = activeCheatEffects.x2coins ? 2 : 1;
+                        coinMultiplierEl.textContent = coinMultiplier + 'x';
+                        break;
+                }
+                
+                updateCheatDisplay();
+                alert(cheat.message);
+                cheatInput.value = '';
+                
+                if (gameRunning && cheat.effect !== 'rich') {
+                    game.reset();
+                }
+            }
+        });
+
+        function updateCheatDisplay() {
+            let html = '';
+            if (activeCheatEffects.godmode) {
+                html += '<span class="cheat-indicator cheat-godmode">⚡ GODMODE</span>';
+            }
+            if (activeCheatEffects.coinlord) {
+                html += '<span class="cheat-indicator cheat-coins">💰 COIN LORD</span>';
+            }
+            if (activeCheatEffects.slowmo) {
+                html += '<span class="cheat-indicator" style="background:rgba(0,255,157,0.3); border-color:var(--matrix-green); color:var(--matrix-green);">⏱️ SLOW MO</span>';
+            }
+            if (activeCheatEffects.bigbird) {
+                html += '<span class="cheat-indicator" style="background:rgba(255,107,53,0.3); border-color:var(--neon-orange); color:var(--neon-orange);">🦅 BIG BIRD</span>';
+            }
+            if (activeCheatEffects.x2coins) {
+                html += '<span class="cheat-indicator" style="background:rgba(255,215,0,0.3); border-color:gold; color:gold;">💰 2X COINS</span>';
+            }
+            activeCheats.innerHTML = html;
+        }
+
+        // ========== EXIT WITH BOUNCE ==========
+        backLink.addEventListener('click', (e) => {
+            if (activeCheatEffects.godmode) {
+                e.preventDefault();
+                document.querySelector('.game-container').classList.add('bounce');
+                alert('HEY! I KNOW YOU GOT GODMODE BUT IT DOESNT MEAN YOU GOTTA BREAK THE FORTH WALL MAN!');
+                setTimeout(() => {
+                    document.querySelector('.game-container').classList.remove('bounce');
+                }, 500);
+                setTimeout(() => {
+                    window.open('https://crixgamingvr.vercel.app', '_blank');
+                }, 600);
+            }
+        });
+
         // ========== GAME LOOP ==========
         function gameLoop() {
             if (gameRunning) {
@@ -1614,13 +1574,14 @@
                 gameAnimationFrame = requestAnimationFrame(gameLoop);
             }
         }
-        
+
         function startGame() {
             playSelectSound();
             game.reset();
             gameRunning = true;
             gameScore.textContent = '0';
             
+            // Resume music if it was playing before death
             if (musicWasPlaying && musicMuted) {
                 bgMusic.play();
                 musicToggle.innerHTML = '🔊 MUSIC';
@@ -1631,40 +1592,66 @@
             if (gameAnimationFrame) cancelAnimationFrame(gameAnimationFrame);
             gameLoop();
         }
-        
+
         // ========== EVENT LISTENERS ==========
         startGameBtn.addEventListener('click', startGame);
         
-        storeBtn.addEventListener('click', openStore);
         lockerBtn.addEventListener('click', openLocker);
-        
-        closeStoreBtn.addEventListener('click', closeStore);
         closeLockerBtn.addEventListener('click', closeLocker);
         
-        window.addEventListener('click', (e) => {
-            if (e.target === storeModal) closeStore();
-            if (e.target === lockerModal) closeLocker();
+        tabCosmetics.addEventListener('click', () => {
+            tabCosmetics.classList.add('active');
+            tabPowerups.classList.remove('active');
+            cosmeticsTab.style.display = 'block';
+            powerupsTab.style.display = 'none';
+            lockerActionBtn.style.display = 'block';
         });
         
+        tabPowerups.addEventListener('click', () => {
+            tabPowerups.classList.add('active');
+            tabCosmetics.classList.remove('active');
+            cosmeticsTab.style.display = 'none';
+            powerupsTab.style.display = 'block';
+            lockerActionBtn.style.display = 'none';
+            updateLockerDisplay();
+        });
+        
+        lockerActionBtn.addEventListener('click', () => {
+            equipSelected();
+        });
+        
+        // Item selection
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('.locker-item')) {
+                document.querySelectorAll('.locker-item').forEach(i => i.classList.remove('selected'));
+                e.target.closest('.locker-item').classList.add('selected');
+            }
+        });
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === lockerModal) {
+                closeLocker();
+            }
+        });
+
         document.addEventListener('keydown', (e) => {
             if (e.key === ' ' || e.key === 'Space') {
                 e.preventDefault();
                 game.jump();
             }
         });
-        
+
         canvas.addEventListener('click', () => {
             game.jump();
         });
-        
+
         canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             game.jump();
         });
-        
-        // Initial draw
+
+        // Draw initial screen
         game.draw();
-        updateActivePowerupsDisplay();
     </script>
 </body>
 </html>
