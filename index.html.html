@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CRIXGAMING VR</title>
+    <title>CRIXGAMING VR • CARTOON CYBER</title>
     
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
@@ -26,7 +26,7 @@
     <script src="https://cdn.jsdelivr.net/npm/rss-parser@3.13.4/dist/rss-parser.min.js"></script>
     
     <style>
-        /* ORIGINAL STYLE - KEEPING THE CLASSIC LOOK */
+        /* ORIGINAL CYBER STYLE - WITH CARTOON TWISTS (NO WHITE BORDERS) */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -37,6 +37,11 @@
             --darker-bg: #050508;
             --grid-color: rgba(255, 70, 85, 0.1);
             --text-glow: 0 0 10px rgba(255, 107, 53, 0.7);
+            
+            /* Cartoon additions - NO WHITE */
+            --cartoon-shadow: 6px 6px 0px rgba(0, 0, 0, 0.7);
+            --cartoon-border: 2px solid var(--neon-orange);
+            --cartoon-roundness: 20px;
         }
         
         * {
@@ -57,17 +62,24 @@
             overflow-x: hidden;
         }
         
-        /* CYBER GLOW EFFECTS */
+        /* FUN ANIMATIONS */
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(2deg); }
+            75% { transform: rotate(-2deg); }
+        }
+        
+        /* CYBER GLOW EFFECTS - KEPT ORIGINAL */
         .cyber-glow {
             text-shadow: var(--text-glow);
         }
         
-        .neon-border {
-            border: 2px solid var(--neon-red);
-            box-shadow: 0 0 15px var(--neon-red), inset 0 0 15px rgba(255, 70, 85, 0.3);
-        }
-        
-        /* HEADER - ORIGINAL */
+        /* HEADER - ORIGINAL COLORS, CARTOON SHAPES (NO WHITE) */
         .cyber-header {
             text-align: center;
             padding: 40px 20px;
@@ -76,6 +88,8 @@
             border-bottom: 3px solid var(--neon-red);
             margin-bottom: 40px;
             position: relative;
+            border-radius: 0 0 var(--cartoon-roundness) var(--cartoon-roundness);
+            box-shadow: var(--cartoon-shadow);
         }
         
         .cyber-header::before {
@@ -102,13 +116,9 @@
             text-transform: uppercase;
             letter-spacing: 5px;
             margin-bottom: 15px;
-            animation: hologram 3s infinite alternate;
+            animation: bounce 2s infinite ease-in-out;
+            text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.7);
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        @keyframes hologram {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
         }
         
         .cyber-tagline {
@@ -116,6 +126,12 @@
             color: var(--matrix-green);
             text-transform: uppercase;
             letter-spacing: 3px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 25px;
+            display: inline-block;
+            border-radius: 40px;
+            border: 2px solid var(--neon-orange);
+            box-shadow: 4px 4px 0 #000;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
@@ -127,7 +143,141 @@
             position: relative;
         }
         
-        /* STATS GRID - ORIGINAL */
+        /* VIDEO PLAYER - NOW AT TOP (NO WHITE) */
+        .video-player-section {
+            background: rgba(5, 5, 8, 0.9);
+            padding: 30px 30px 40px;
+            margin: 30px 0 40px;
+            border: 3px solid var(--neon-red);
+            border-radius: var(--cartoon-roundness);
+            position: relative;
+            box-shadow: var(--cartoon-shadow);
+        }
+        
+        .video-player-section::after {
+            content: '🎬🎬🎬';
+            position: absolute;
+            bottom: -18px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--neon-red);
+            font-size: 24px;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 0 #000;
+            background: var(--dark-bg);
+            padding: 0 20px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-orange);
+        }
+        
+        .video-player-container {
+            border: 2px solid var(--neon-orange);
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 5px 5px 0 #000;
+            margin-top: 20px;
+        }
+        
+        .crix-video {
+            width: 100%;
+            max-height: 400px;
+            display: block;
+            background: #000;
+        }
+        
+        /* CIRCLE BUTTONS CONTAINER - TOP (NO WHITE) */
+        .circle-buttons-top {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0 20px;
+            padding: 15px;
+            background: rgba(10, 10, 15, 0.8);
+            border: 2px solid var(--neon-orange);
+            border-radius: 50px;
+            box-shadow: 5px 5px 0 #000;
+        }
+        
+        /* CIRCLE BUTTONS CONTAINER - BOTTOM (NO WHITE) */
+        .circle-buttons-bottom {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 20px;
+            margin: 30px 0 40px;
+            padding: 15px;
+            background: rgba(10, 10, 15, 0.8);
+            border: 2px solid var(--neon-orange);
+            border-radius: 50px;
+            box-shadow: 5px 5px 0 #000;
+        }
+        
+        /* CIRCLE BUTTON STYLE (NO WHITE) */
+        .circle-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, var(--neon-orange), var(--neon-red));
+            border: 2px solid var(--matrix-green);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 4px 4px 0 #000;
+            animation: wiggle 3s infinite;
+            animation-delay: calc(var(--i) * 0.1s);
+        }
+        
+        .circle-button:hover {
+            transform: scale(1.15) rotate(5deg);
+            box-shadow: 6px 6px 0 #000;
+            border-color: var(--neon-orange);
+        }
+        
+        .circle-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+        }
+        
+        /* SOCIAL BUTTONS (NO WHITE) */
+        .social-button {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(145deg, var(--matrix-green), #00F0FF);
+            border: 2px solid var(--neon-red);
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 4px 4px 0 #000;
+            animation: bounce 2s infinite;
+            animation-delay: calc(var(--i) * 0.1s);
+        }
+        
+        .social-button:hover {
+            transform: scale(1.15) rotate(-5deg);
+            box-shadow: 6px 6px 0 #000;
+            border-color: var(--matrix-green);
+        }
+        
+        .social-button img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+            display: block;
+        }
+        
+        /* STATS GRID - ORIGINAL STYLE WITH CARTOON BORDERS (NO WHITE) */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -138,12 +288,13 @@
         .cyber-stat {
             background: rgba(10, 10, 15, 0.8);
             border: 2px solid var(--neon-orange);
-            border-radius: 0;
+            border-radius: 20px;
             padding: 40px 30px;
             text-align: center;
             position: relative;
             overflow: hidden;
             transition: all 0.3s;
+            box-shadow: 6px 6px 0 #000;
         }
         
         .cyber-stat::before {
@@ -163,7 +314,7 @@
         
         .cyber-stat:hover {
             transform: translateY(-10px);
-            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+            box-shadow: 8px 8px 0 #000;
         }
         
         .stat-display {
@@ -172,147 +323,48 @@
             color: var(--neon-orange);
             margin: 20px 0;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+            text-shadow: 0 0 20px rgba(255, 107, 53, 0.5), 3px 3px 0 #000;
         }
         
         .stat-label {
             font-size: 20px;
-            color: #ccc;
+            color: white;
             text-transform: uppercase;
             letter-spacing: 2px;
+            background: var(--neon-red);
+            display: inline-block;
+            padding: 8px 20px;
+            border-radius: 30px;
+            border: 2px solid var(--neon-orange);
+            box-shadow: 3px 3px 0 #000;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* VIDEO PLAYER - AT BOTTOM */
-        .video-player-container {
-            margin: 40px 0 20px;
-            border: 3px solid var(--neon-red);
-            box-shadow: 0 0 25px var(--neon-red);
-        }
-        
-        .crix-video {
-            width: 100%;
-            max-height: 400px;
-            display: block;
-            background: #000;
-        }
-        
-        /* CIRCLE BUTTONS CONTAINER - TOP (Channels) */
-        .circle-buttons-top {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin: 30px 0 20px;
-            padding: 15px;
-            background: rgba(10, 10, 15, 0.8);
-            border: 2px solid var(--neon-orange);
-        }
-        
-        /* CIRCLE BUTTONS CONTAINER - BOTTOM (Social) */
-        .circle-buttons-bottom {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 20px;
-            margin: 30px 0 80px;
-            padding: 15px;
-            background: rgba(10, 10, 15, 0.8);
-            border: 2px solid var(--neon-orange);
-        }
-        
-        /* CIRCLE BUTTON STYLE - UPDATED with perfect circles */
-        .circle-button {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, var(--neon-orange), var(--neon-red));
-            border: 3px solid var(--matrix-green);
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            box-shadow: 0 0 20px var(--neon-orange);
-            padding: 0;
-        }
-        
-        .circle-button:hover {
-            transform: scale(1.15) rotate(5deg);
-            box-shadow: 0 0 30px var(--matrix-green);
-            border-color: white;
-        }
-        
-        .circle-button img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-            display: block;
-        }
-        
-        /* SOCIAL BUTTONS - UPDATED with perfect circles */
-        .social-button {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, var(--matrix-green), #00F0FF);
-            border: 3px solid var(--neon-red);
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
-            box-shadow: 0 0 20px var(--matrix-green);
-            font-size: 24px;
-            color: white;
-            padding: 0;
-        }
-        
-        .social-button:hover {
-            transform: scale(1.15) rotate(-5deg);
-            box-shadow: 0 0 30px var(--neon-orange);
-            border-color: white;
-        }
-        
-        .social-button img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 50%;
-            display: block;
-        }
-        
-        /* Fallback for when images don't load */
-        .circle-button:not(:has(img)) {
-            font-size: 30px;
-            color: white;
-        }
-        
-        .social-button:not(:has(img)) {
-            font-size: 26px;
-        }
-        
-        /* VIDEOS SECTION */
+        /* VIDEOS SECTION - CARTOONIFIED (NO WHITE) */
         .videos-section {
             background: rgba(5, 5, 8, 0.9);
             padding: 60px 40px;
             margin: 60px 0;
             border: 3px solid var(--neon-red);
+            border-radius: 30px;
             position: relative;
+            box-shadow: var(--cartoon-shadow);
         }
         
         .videos-section::after {
             content: '▶▶▶';
             position: absolute;
-            bottom: -20px;
+            bottom: -18px;
             left: 50%;
             transform: translateX(-50%);
             color: var(--matrix-green);
             font-size: 24px;
-            letter-spacing: 10px;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 0 #000;
+            background: var(--dark-bg);
+            padding: 0 20px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-orange);
         }
         
         .video-grid {
@@ -325,17 +377,19 @@
         .video-card {
             background: rgba(20, 20, 30, 0.9);
             border: 2px solid var(--cyber-orange);
+            border-radius: 20px;
             padding: 0;
             position: relative;
-            transition: all 0.4s;
+            transition: all 0.3s;
             overflow: hidden;
             cursor: pointer;
+            box-shadow: 5px 5px 0 #000;
         }
         
         .video-card:hover {
-            transform: scale(1.05);
+            transform: scale(1.05) translateY(-8px);
+            box-shadow: 7px 7px 0 #000;
             border-color: var(--matrix-green);
-            box-shadow: 0 0 40px rgba(0, 255, 157, 0.3);
         }
         
         .video-thumbnail-container {
@@ -344,6 +398,7 @@
             overflow: hidden;
             position: relative;
             background: linear-gradient(45deg, #1a1a2e, #16213e);
+            border-bottom: 2px solid var(--neon-orange);
         }
         
         .video-thumbnail {
@@ -371,96 +426,45 @@
             -webkit-line-clamp: 2;
             -webkit-box-orient: vertical;
             overflow: hidden;
+            text-shadow: 2px 2px 0 #000;
         }
         
         .video-date {
             font-size: 14px;
             color: var(--matrix-green);
             margin-bottom: 5px;
+            background: rgba(0, 0, 0, 0.5);
+            display: inline-block;
+            padding: 3px 12px;
+            border-radius: 15px;
+            border: 1px solid var(--neon-orange);
         }
         
-        /* SUBSCRIBER SECTION - NEW */
-        .subscriber-section {
-            background: rgba(5, 5, 8, 0.9);
-            padding: 50px 40px;
-            margin: 60px 0;
-            border: 3px solid var(--neon-orange);
-            position: relative;
-            text-align: center;
-        }
-        
-        .subscriber-section::after {
-            content: '⭐⭐⭐';
-            position: absolute;
-            bottom: -20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--neon-orange);
-            font-size: 24px;
-            letter-spacing: 10px;
-        }
-        
-        .subscriber-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 15px;
-            margin-top: 30px;
-            min-height: 80px;
-        }
-        
-        .subscriber-badge {
-            background: rgba(255, 107, 53, 0.2);
-            border: 2px solid var(--matrix-green);
-            color: white;
-            padding: 10px 25px;
-            font-size: 18px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            animation: glowPulse 2s infinite;
-            border-radius: 40px;
-            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
-        }
-        
-        @keyframes glowPulse {
-            0% { box-shadow: 0 0 5px var(--matrix-green); }
-            50% { box-shadow: 0 0 20px var(--matrix-green); }
-            100% { box-shadow: 0 0 5px var(--matrix-green); }
-        }
-        
-        .subscriber-count {
-            font-size: 22px;
-            color: var(--neon-orange);
-            margin-top: 20px;
-            text-shadow: 0 0 10px var(--neon-orange);
-        }
-        
-        .loading-text {
-            color: var(--neon-orange);
-            font-size: 18px;
-            text-align: center;
-            width: 100%;
-            padding: 20px;
-        }
-        
-        /* MERCH SECTION */
+        /* MERCH SECTION - CARTOONIFIED (NO WHITE) */
         .cyber-merch {
             background: rgba(5, 5, 8, 0.9);
             padding: 60px 40px;
             margin: 60px 0;
             border: 3px solid var(--neon-red);
+            border-radius: 40px;
             position: relative;
+            box-shadow: var(--cartoon-shadow);
         }
         
         .cyber-merch::after {
             content: '▲▼▲▼▲';
             position: absolute;
-            bottom: -20px;
+            bottom: -18px;
             left: 50%;
             transform: translateX(-50%);
             color: var(--matrix-green);
             font-size: 24px;
-            letter-spacing: 10px;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 0 #000;
+            background: var(--dark-bg);
+            padding: 0 20px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-orange);
         }
         
         .merch-header {
@@ -478,16 +482,17 @@
             cursor: pointer;
             transition: all 0.3s;
             border: 2px solid var(--neon-orange);
-            padding: 5px;
-            background: rgba(10, 10, 15, 0.8);
             border-radius: 50%;
-            object-fit: cover;
+            padding: 8px;
+            background: linear-gradient(145deg, var(--neon-orange), var(--neon-red));
+            box-shadow: 4px 4px 0 #000;
+            animation: bounce 2s infinite;
         }
         
         .merch-favicon:hover {
-            transform: scale(1.15) rotate(5deg);
+            transform: scale(1.15) rotate(8deg);
+            box-shadow: 6px 6px 0 #000;
             border-color: var(--matrix-green);
-            box-shadow: 0 0 20px var(--matrix-green);
         }
         
         .section-title {
@@ -498,15 +503,22 @@
             text-transform: uppercase;
             letter-spacing: 4px;
             position: relative;
+            text-shadow: 4px 4px 0 #000;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px 30px;
+            border-radius: 40px;
+            border: 2px solid var(--neon-red);
+            display: inline-block;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .section-title::after {
             content: '';
             position: absolute;
-            bottom: -15px;
+            bottom: -10px;
             left: 50%;
             transform: translateX(-50%);
-            width: 200px;
+            width: 150px;
             height: 3px;
             background: linear-gradient(90deg, transparent, var(--neon-red), transparent);
         }
@@ -521,19 +533,21 @@
         .hologram-product {
             background: rgba(20, 20, 30, 0.9);
             border: 2px solid var(--cyber-orange);
+            border-radius: 25px;
             padding: 0;
             position: relative;
-            transition: all 0.4s;
+            transition: all 0.3s;
             height: 100%;
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            box-shadow: 6px 6px 0 #000;
         }
         
         .hologram-product:hover {
-            transform: scale(1.05);
+            transform: scale(1.05) translateY(-8px);
+            box-shadow: 8px 8px 0 #000;
             border-color: var(--matrix-green);
-            box-shadow: 0 0 40px rgba(0, 255, 157, 0.3);
         }
         
         .product-image-container {
@@ -543,6 +557,7 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            border-bottom: 2px solid var(--neon-orange);
         }
         
         .product-image {
@@ -571,6 +586,7 @@
             text-transform: uppercase;
             letter-spacing: 1px;
             min-height: 60px;
+            text-shadow: 2px 2px 0 #000;
         }
         
         .product-description {
@@ -581,23 +597,19 @@
             flex-grow: 1;
         }
         
-        .product-price-display {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        
         .price-primary {
             font-size: 32px;
             color: var(--neon-orange);
             font-weight: bold;
+            text-shadow: 3px 3px 0 #000;
+            margin: 10px 0;
         }
         
         .buy-button {
             background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
             color: white;
-            border: none;
+            border: 2px solid var(--matrix-green);
+            border-radius: 40px;
             padding: 15px;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
             font-size: 18px;
@@ -610,32 +622,40 @@
             text-decoration: none;
             text-align: center;
             display: block;
+            box-shadow: 4px 4px 0 #000;
         }
         
         .buy-button:hover {
-            background: linear-gradient(45deg, var(--cyber-red), var(--cyber-orange));
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(255, 70, 85, 0.4);
+            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
+            transform: translateY(-4px);
+            box-shadow: 6px 6px 0 #000;
         }
         
-        /* ABOUT SECTION */
+        /* ABOUT SECTION - CARTOONIFIED (NO WHITE) */
         .about-section {
             background: rgba(5, 5, 8, 0.9);
             padding: 60px 40px;
             margin: 60px 0;
             border: 3px solid var(--neon-red);
+            border-radius: 40px;
             position: relative;
+            box-shadow: var(--cartoon-shadow);
         }
         
         .about-section::after {
             content: '▼▲▼▲▼';
             position: absolute;
-            bottom: -20px;
+            bottom: -18px;
             left: 50%;
             transform: translateX(-50%);
             color: var(--matrix-green);
             font-size: 24px;
-            letter-spacing: 10px;
+            letter-spacing: 8px;
+            text-shadow: 2px 2px 0 #000;
+            background: var(--dark-bg);
+            padding: 0 20px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-orange);
         }
         
         .about-content {
@@ -645,24 +665,29 @@
             font-size: 16px;
             line-height: 1.8;
             text-align: justify;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            border-radius: 25px;
+            border: 2px solid var(--neon-orange);
         }
         
         .about-content p {
             margin-bottom: 20px;
+            text-shadow: 1px 1px 0 #000;
         }
         
         .about-content .highlight {
             color: var(--neon-orange);
+            text-shadow: 2px 2px 0 #000;
         }
         
         .about-content .date {
             color: var(--matrix-green);
             font-weight: bold;
-        }
-        
-        .milestone {
-            color: var(--neon-red);
-            font-weight: bold;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 10px;
+            border-radius: 15px;
+            border: 1px solid var(--neon-orange);
         }
         
         /* RESPONSIVE */
@@ -675,21 +700,29 @@
             .circle-buttons-top, .circle-buttons-bottom { gap: 15px; }
             .circle-button { width: 60px; height: 60px; }
             .social-button { width: 50px; height: 50px; }
-            .subscriber-badge { font-size: 14px; padding: 8px 15px; }
         }
         
         @media (max-width: 480px) {
             .hologram-logo { font-size: 36px; }
             .section-title { font-size: 24px; }
             .circle-button { width: 50px; height: 50px; }
-            .subscriber-badge { font-size: 12px; padding: 6px 12px; }
+            .social-button { width: 45px; height: 45px; }
         }
     </style>
 </head>
 <body>
-    <!-- AUDIO PLAYER (hidden) - with autoplay -->
-    <audio id="bgMusic" loop autoplay muted playsinline>
+    <!-- AUDIO PLAYER (hidden) - Background music -->
+    <audio id="bgMusic" loop>
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
+    </audio>
+    
+    <!-- SOUND EFFECTS -->
+    <audio id="hoverSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/hover.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="clickSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/click.mp3" type="audio/mpeg">
     </audio>
     
     <!-- HEADER -->
@@ -699,6 +732,17 @@
     </header>
     
     <div class="cyber-container">
+        <!-- VIDEO PLAYER - NOW AT THE TOP -->
+        <section class="video-player-section">
+            <h2 class="section-title" style="margin-bottom: 20px;">🎬 FEATURED VIDEO</h2>
+            <div class="video-player-container">
+                <video id="crixVideo" class="crix-video" controls loop>
+                    <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/video.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        </section>
+        
         <!-- CIRCLE BUTTONS - TOP (Channel Icons) -->
         <div class="circle-buttons-top" id="channelButtons">
             <!-- Will be populated by JavaScript -->
@@ -707,43 +751,30 @@
         <!-- LIVE STATS -->
         <div class="stats-grid">
             <div class="cyber-stat">
-                <div class="stat-icon">[👁️]</div>
+                <div class="stat-icon" style="font-size: 40px;">👁️</div>
                 <div class="stat-display" id="subCount">--</div>
-                <div class="stat-label">SUBSCRIBERS</div>
+                <div class="stat-label">SUBS</div>
             </div>
             
             <div class="cyber-stat">
-                <div class="stat-icon">[▶️]</div>
+                <div class="stat-icon" style="font-size: 40px;">▶️</div>
                 <div class="stat-display" id="videoCount">--</div>
                 <div class="stat-label">VIDEOS</div>
             </div>
             
             <div class="cyber-stat">
-                <div class="stat-icon">[🔍]</div>
+                <div class="stat-icon" style="font-size: 40px;">🔍</div>
                 <div class="stat-display" id="viewCount">--</div>
                 <div class="stat-label">VIEWS</div>
             </div>
         </div>
         
-        <!-- SUBSCRIBER SECTION - NEW -->
-        <section class="subscriber-section">
-            <h2 class="section-title cyber-glow">🎉 RECENT SUBSCRIBERS</h2>
-            
-            <div id="recentSubscriberList" class="subscriber-grid">
-                <div class="loading-text">▶ CONNECTING TO SUBSCRIBER FEED... ◀</div>
-            </div>
-            
-            <div class="subscriber-count" id="totalSubCount">
-                TOTAL: <span id="totalSubNumber">5,240</span>
-            </div>
-        </section>
-        
         <!-- LATEST VIDEOS SECTION -->
         <section class="videos-section">
-            <h2 class="section-title cyber-glow">LATEST UPLOADS</h2>
+            <h2 class="section-title">📺 LATEST UPLOADS</h2>
             
             <div class="video-grid" id="videoGrid">
-                <div class="video-loading">▶ SYSTEM SCANNING YOUTUBE FEED... ◀</div>
+                <div class="video-loading" style="grid-column:1/-1; text-align:center; padding:40px;">▶ LOADING VIDEOS... ◀</div>
             </div>
         </section>
         
@@ -751,7 +782,7 @@
         <section class="cyber-merch">
             <div class="merch-header">
                 <img class="merch-favicon" id="merchFavicon" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png" alt="MERCH" onerror="this.style.display='none'">
-                <h2 class="section-title" style="margin-bottom: 0;">CYBER MERCHANDISE</h2>
+                <h2 class="section-title">🛒 CYBER MERCH</h2>
                 <img class="merch-favicon" id="merchFavicon2" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png" alt="MERCH" onerror="this.style.display='none'">
             </div>
             
@@ -767,22 +798,16 @@
         
         <!-- ABOUT SECTION -->
         <section class="about-section">
-            <h2 class="section-title cyber-glow">ABOUT CRIXGAMING VR</h2>
+            <h2 class="section-title">📖 ABOUT CRIX</h2>
             
             <div class="about-content">
-                <p><span class="highlight">CRIXGAMING VR</span> started on <span class="date">January 19, 2024</span> with <span class="highlight">CRIX SMP</span>. After getting a Meta Quest 2 and discovering Gorilla Tag, everything changed!</p>
+                <p><span class="highlight">CRIXGAMING VR</span> started on <span class="date">January 19, 2024</span> with <span class="highlight">CRIX SMP</span> (Minecraft). After getting a Meta Quest 2 and discovering Gorilla Tag, everything changed!</p>
                 
                 <p>On <span class="date">April 12, 2025</span>, <span class="highlight">CRIXGAMING VR</span> was born. First livestream: <span class="date">October 15, 2025</span>. Hit <span class="date milestone">1,000 subscribers on February 11, 2026</span>! Now streaming Gorilla Tag on SteamVR.</p>
+                
+                <p>Thanks for being part of the journey! 🎮</p>
             </div>
         </section>
-        
-        <!-- VIDEO PLAYER - AT BOTTOM -->
-        <div class="video-player-container">
-            <video id="crixVideo" class="crix-video" controls loop>
-                <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/video.mp4" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
     </div>
     
     <!-- JAVASCRIPT -->
@@ -809,90 +834,18 @@
 
         // ========== PRODUCT DATA ==========
         const products = [
-            {
-                name: "CRIXGAMING VR BUCKET HAT",
-                description: "Official bucket hat with futuristic CRIX design",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif",
-                priceUSD: 24.99
-            },
-            {
-                name: "CRIX ARMY TANK TOP",
-                description: "Military-style tank top for hardcore fans",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-army-tank-top",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif",
-                priceUSD: 19.99
-            },
-            {
-                name: "CRIXGAMING VR PHONE CASE",
-                description: "Protective phone case with cyber design",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-phone-case",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/phone-case.avif",
-                priceUSD: 16.99
-            },
-            {
-                name: "CRIXGAMING VR DESK MAT",
-                description: "Large desk mat with RGB-style design",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-desk-mat",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/desk-mat.avif",
-                priceUSD: 29.99
-            },
-            {
-                name: "CRIX STICKERS",
-                description: "Set of vinyl stickers for customization",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-stickers",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/stickers.avif",
-                priceUSD: 7.99
-            },
-            {
-                name: "CRIXGAMING VR MUG",
-                description: "Ceramic mug for your gaming sessions",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-mug.png",
-                priceUSD: 12.99
-            },
-            {
-                name: "CRIX POSTER",
-                description: "High-quality poster for your gaming room",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-poster",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/poster.avif",
-                priceUSD: 10.99
-            },
-            {
-                name: "CRIXGAMING VR FACE MASK",
-                description: "Comfortable face mask with updated logo design",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-face-mask.png",
-                priceUSD: 7.99
-            },
-            {
-                name: "CRIXGAMING VR MENS HOODIE",
-                description: "Premium hoodie with holographic details - Updated Design",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png",
-                priceUSD: 49.99
-            },
-            {
-                name: "CRIXGAMING VR T-SHIRT",
-                description: "Classic t-shirt with updated circuit board design",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png",
-                priceUSD: 19.99
-            },
-            {
-                name: "CRIXGAMING VR BACKPACK",
-                description: "Durable backpack for gaming gear and daily use",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png",
-                priceUSD: 39.99
-            },
-            {
-                name: "CRIXGAMING VR BASEBALL CAP",
-                description: "Stylish baseball cap with embroidered logo",
-                link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap",
-                image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png",
-                priceUSD: 21.99
-            }
+            { name: "CRIXGAMING VR BUCKET HAT", description: "Official bucket hat", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif", priceUSD: 24.99 },
+            { name: "CRIX ARMY TANK TOP", description: "Military-style tank top", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-army-tank-top", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif", priceUSD: 19.99 },
+            { name: "CRIXGAMING VR PHONE CASE", description: "Protective phone case", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-phone-case", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/phone-case.avif", priceUSD: 16.99 },
+            { name: "CRIXGAMING VR DESK MAT", description: "Large desk mat", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-desk-mat", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/desk-mat.avif", priceUSD: 29.99 },
+            { name: "CRIX STICKERS", description: "Vinyl sticker set", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-stickers", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/stickers.avif", priceUSD: 7.99 },
+            { name: "CRIXGAMING VR MUG", description: "Ceramic mug", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-mug.png", priceUSD: 12.99 },
+            { name: "CRIX POSTER", description: "High-quality poster", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-poster", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/poster.avif", priceUSD: 10.99 },
+            { name: "CRIXGAMING VR FACE MASK", description: "Comfortable face mask", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-face-mask.png", priceUSD: 7.99 },
+            { name: "CRIXGAMING VR HOODIE", description: "Premium hoodie", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png", priceUSD: 49.99 },
+            { name: "CRIXGAMING VR T-SHIRT", description: "Classic t-shirt", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png", priceUSD: 19.99 },
+            { name: "CRIXGAMING VR BACKPACK", description: "Durable backpack", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png", priceUSD: 39.99 },
+            { name: "CRIXGAMING VR BASEBALL CAP", description: "Baseball cap", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png", priceUSD: 21.99 }
         ];
 
         // ========== CURRENCY DATA ==========
@@ -917,7 +870,21 @@
         const merchFavicon = document.getElementById('merchFavicon');
         const merchFavicon2 = document.getElementById('merchFavicon2');
         const bgMusic = document.getElementById('bgMusic');
-        const totalSubNumber = document.getElementById('totalSubNumber');
+        const hoverSound = document.getElementById('hoverSound');
+        const clickSound = document.getElementById('clickSound');
+
+        // ========== SOUND FUNCTIONS ==========
+        function playHoverSound() {
+            hoverSound.currentTime = 0;
+            hoverSound.volume = 0.3;
+            hoverSound.play().catch(e => console.log('Hover sound blocked'));
+        }
+        
+        function playClickSound() {
+            clickSound.currentTime = 0;
+            clickSound.volume = 0.4;
+            clickSound.play().catch(e => console.log('Click sound blocked'));
+        }
 
         // ========== FIX MUSIC PLAYBACK ==========
         function setupMusic() {
@@ -926,45 +893,20 @@
             
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('✅ Music playing automatically');
+                    console.log('✅ Music playing');
                     bgMusic.muted = false;
-                }).catch(error => {
-                    console.log('⚠️ Autoplay blocked, waiting for click');
-                    document.addEventListener('click', function playMusic() {
-                        bgMusic.muted = false;
-                        bgMusic.play().catch(e => console.log('Still blocked:', e));
-                        document.removeEventListener('click', playMusic);
+                }).catch(() => {
+                    document.addEventListener('click', function initMusic() {
+                        bgMusic.play();
+                        document.removeEventListener('click', initMusic);
                     }, { once: true });
                 });
             }
         }
 
-        // ========== SUBSCRIBER FEED ==========
-        async function fetchRecentSubscribers() {
-            try {
-                // IMPORTANT: Replace this URL with your actual backend URL after setting it up
-                const response = await fetch('https://your-backend-service.com/data/latest-subs.json');
-                const subscribers = await response.json();
-                
-                const listContainer = document.getElementById('recentSubscriberList');
-                if (!listContainer) return;
-                
-                if (subscribers && subscribers.length > 0) {
-                    listContainer.innerHTML = subscribers.map(sub => 
-                        `<div class="subscriber-badge">⭐ ${sub.name}</div>`
-                    ).join('');
-                } else {
-                    listContainer.innerHTML = '<div class="loading-text">🔮 BE THE FIRST TO SUBSCRIBE!</div>';
-                }
-            } catch (error) {
-                console.log('Subscriber feed not available yet - this is normal until you set up the backend');
-                // Don't show error to users, just keep loading message
-            }
-        }
-
         // ========== INIT ==========
         async function initialize() {
-            console.log('🚀 CRIXGAMING VR SYSTEM WITH SUBSCRIBER FEED');
+            console.log('🚀 CRIXGAMING VR - CARTOON CYBER WITH SOUNDS');
             
             await detectUserCurrency();
             generateAllProducts();
@@ -972,28 +914,43 @@
             createSocialButtons();
             setupMusic();
             
+            // Add sound effects to merch favicons
+            if (merchFavicon) {
+                merchFavicon.addEventListener('mouseenter', playHoverSound);
+                merchFavicon.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank');
+                });
+            }
+            if (merchFavicon2) {
+                merchFavicon2.addEventListener('mouseenter', playHoverSound);
+                merchFavicon2.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank');
+                });
+            }
+            
             // Start background refresh
             startBackgroundRefresh();
             startStatsUpdates();
             fetchLatestVideos();
-            
-            // Start subscriber feed (will show loading until backend is set up)
-            fetchRecentSubscribers();
-            setInterval(fetchRecentSubscribers, 60000); // Refresh every minute
-            
-            // Merch click
-            if (merchFavicon) merchFavicon.addEventListener('click', () => window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'));
-            if (merchFavicon2) merchFavicon2.addEventListener('click', () => window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'));
         }
 
-        // ========== CREATE CHANNEL BUTTONS ==========
+        // ========== CREATE CHANNEL BUTTONS WITH SOUNDS ==========
         function createChannelButtons() {
             channelButtons.innerHTML = '';
-            channelIcons.forEach(channel => {
+            channelIcons.forEach((channel, index) => {
                 const btn = document.createElement('div');
                 btn.className = 'circle-button';
+                btn.style.setProperty('--i', index);
                 btn.title = channel.name;
-                btn.onclick = () => window.open(channel.url, '_blank');
+                
+                // Add sound effects
+                btn.addEventListener('mouseenter', playHoverSound);
+                btn.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open(channel.url, '_blank');
+                });
                 
                 const img = document.createElement('img');
                 img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${channel.file}`;
@@ -1001,7 +958,6 @@
                 img.onerror = function() {
                     this.style.display = 'none';
                     btn.innerHTML = '🎬';
-                    btn.style.fontSize = '30px';
                 };
                 
                 btn.appendChild(img);
@@ -1009,14 +965,21 @@
             });
         }
 
-        // ========== CREATE SOCIAL BUTTONS ==========
+        // ========== CREATE SOCIAL BUTTONS WITH SOUNDS ==========
         function createSocialButtons() {
             socialButtons.innerHTML = '';
-            socialIcons.forEach(social => {
+            socialIcons.forEach((social, index) => {
                 const btn = document.createElement('div');
                 btn.className = 'social-button';
+                btn.style.setProperty('--i', index);
                 btn.title = social.name;
-                btn.onclick = () => window.open(social.url, '_blank');
+                
+                // Add sound effects
+                btn.addEventListener('mouseenter', playHoverSound);
+                btn.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open(social.url, '_blank');
+                });
                 
                 const img = document.createElement('img');
                 img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${social.file}`;
@@ -1024,7 +987,6 @@
                 img.onerror = function() {
                     this.style.display = 'none';
                     btn.innerHTML = social.icon;
-                    btn.style.fontSize = '26px';
                 };
                 
                 btn.appendChild(img);
@@ -1080,9 +1042,15 @@
                     <h3 class="product-name">${product.name}</h3>
                     <p class="product-description">${product.description}</p>
                     <div class="price-primary">${currencySymbol}${price}</div>
-                    <a href="${product.link}" target="_blank" class="buy-button">[ ACQUIRE ITEM ]</a>
+                    <a href="${product.link}" target="_blank" class="buy-button">[ BUY ]</a>
                 </div>
             `;
+            
+            // Add sound effects to buy button
+            const buyBtn = el.querySelector('.buy-button');
+            buyBtn.addEventListener('mouseenter', playHoverSound);
+            buyBtn.addEventListener('click', playClickSound);
+            
             return el;
         }
 
@@ -1128,7 +1096,7 @@
                         <img class="video-thumbnail" src="${snippet.thumbnails.medium?.url}" alt="" loading="lazy">
                     </div>
                     <div class="video-info">
-                        <div class="video-date">[${date}]</div>
+                        <div class="video-date">${date}</div>
                         <div class="video-title">${snippet.title}</div>
                     </div>
                 `;
@@ -1140,27 +1108,25 @@
             videoGrid.innerHTML = `
                 <div class="video-card" onclick="window.open('https://youtube.com/@CRIXGAMINGVR', '_blank')">
                     <div class="video-thumbnail-container"><div style="color: var(--matrix-green); font-size: 48px;">▶️</div></div>
-                    <div class="video-info"><div class="video-title">CRIXGAMING VR</div><div style="color:#aaa;">Main Channel</div></div>
+                    <div class="video-info"><div class="video-title">CRIXGAMING VR</div></div>
                 </div>
                 <div class="video-card" onclick="window.open('https://youtube.com/@CRIXMC123', '_blank')">
                     <div class="video-thumbnail-container"><div style="color: var(--neon-orange); font-size: 48px;">⛏️</div></div>
-                    <div class="video-info"><div class="video-title">CRIX SMP</div><div style="color:#aaa;">Minecraft</div></div>
+                    <div class="video-info"><div class="video-title">CRIX SMP</div></div>
                 </div>
                 <div class="video-card" onclick="window.open('https://youtube.com/@CRIXBLOX', '_blank')">
                     <div class="video-thumbnail-container"><div style="color: var(--neon-red); font-size: 48px;">🎮</div></div>
-                    <div class="video-info"><div class="video-title">CRIXBLOX</div><div style="color:#aaa;">Roblox</div></div>
+                    <div class="video-info"><div class="video-title">CRIXBLOX</div></div>
                 </div>
             `;
         }
 
-        // ========== NUMBER FORMATTING ==========
         function formatNumber(num) {
             if (num >= 1000000) return (num/1000000).toFixed(2).replace('.', ',') + 'M';
             if (num >= 1000) return (num/1000).toFixed(2).replace('.', ',') + 'K';
             return num.toString();
         }
 
-        // ========== YOUTUBE STATS ==========
         async function updateYouTubeStats() {
             try {
                 const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=UCjiqZo0vfIZsn8E50TrOV_g&key=AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw`;
@@ -1168,15 +1134,12 @@
                 const data = await res.json();
                 if (data.items?.[0]) {
                     const stats = data.items[0].statistics;
-                    const subCount = parseInt(stats.subscriberCount);
-                    document.getElementById('subCount').textContent = formatNumber(subCount);
-                    if (totalSubNumber) totalSubNumber.textContent = subCount.toLocaleString();
+                    document.getElementById('subCount').textContent = formatNumber(parseInt(stats.subscriberCount));
                     document.getElementById('videoCount').textContent = formatNumber(parseInt(stats.videoCount));
                     document.getElementById('viewCount').textContent = formatNumber(parseInt(stats.viewCount));
                 }
             } catch {
                 document.getElementById('subCount').textContent = '5,24K';
-                if (totalSubNumber) totalSubNumber.textContent = '5,240';
                 document.getElementById('videoCount').textContent = '127';
                 document.getElementById('viewCount').textContent = '142,89K';
             }
