@@ -190,6 +190,53 @@
             text-shadow: 0 0 10px gold;
         }
         
+        /* CHEAT INDICATORS */
+        .cheat-indicators {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 10px 0;
+            min-height: 40px;
+            flex-wrap: wrap;
+        }
+        
+        .cheat-badge {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--neon-red);
+            border-radius: 30px;
+            padding: 5px 15px;
+            font-size: 14px;
+            color: var(--neon-red);
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .cheat-badge.godmode {
+            border-color: var(--neon-red);
+            color: var(--neon-red);
+            background: rgba(255, 70, 85, 0.2);
+        }
+        
+        .cheat-badge.coinlord {
+            border-color: gold;
+            color: gold;
+            background: rgba(255, 215, 0, 0.2);
+        }
+        
+        .cheat-badge.slowmo {
+            border-color: var(--matrix-green);
+            color: var(--matrix-green);
+            background: rgba(0, 255, 157, 0.2);
+        }
+        
+        .cheat-badge.bigbird {
+            border-color: var(--neon-orange);
+            color: var(--neon-orange);
+            background: rgba(255, 107, 53, 0.2);
+        }
+        
         /* ACTIVE POWER-UPS DISPLAY */
         .active-powerups {
             display: flex;
@@ -793,6 +840,9 @@
             </div>
         </div>
         
+        <!-- ACTIVE CHEATS DISPLAY -->
+        <div class="cheat-indicators" id="cheatIndicators"></div>
+        
         <!-- ACTIVE POWER-UPS DISPLAY -->
         <div class="active-powerups" id="activePowerups"></div>
         
@@ -889,6 +939,7 @@
         const coinCountEl = document.getElementById('coinCount');
         const highScoreEl = document.getElementById('highScore');
         const coinMultiplierEl = document.getElementById('coinMultiplier');
+        const cheatIndicators = document.getElementById('cheatIndicators');
         const activePowerupsEl = document.getElementById('activePowerups');
         
         // Buttons
@@ -949,6 +1000,14 @@
         const birdImage = new Image();
         birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
+        // ========== CHEAT STATES ==========
+        let cheats = {
+            godmode: false,
+            coinlord: false,
+            slowmo: false,
+            bigbird: false
+        };
+        
         // ========== COSMETICS DATA ==========
         const cosmetics = [
             // HATS
@@ -1007,7 +1066,7 @@
                 id: 'x2coins',
                 name: '2X COINS',
                 price: 100,
-                duration: 30, // seconds
+                duration: 30,
                 desc: 'Double coins for 30 seconds',
                 active: false,
                 timeLeft: 0,
@@ -1017,7 +1076,7 @@
                 id: 'shield',
                 name: 'SHIELD',
                 price: 75,
-                duration: 20, // seconds
+                duration: 20,
                 desc: 'Invincible for 20 seconds',
                 active: false,
                 timeLeft: 0,
@@ -1027,7 +1086,7 @@
                 id: 'magnet',
                 name: 'MAGNET',
                 price: 60,
-                duration: 15, // seconds
+                duration: 15,
                 desc: 'Coins attract to you',
                 active: false,
                 timeLeft: 0,
@@ -1085,10 +1144,8 @@
                     powerup.timeLeft = 0;
                     clearInterval(powerup.timerInterval);
                     
-                    // Save to localStorage
                     savePowerups();
                     
-                    // Update multiplier if needed
                     if (powerup.id === 'x2coins') {
                         updateMultiplier();
                     }
@@ -1137,6 +1194,23 @@
                 `;
             });
             activePowerupsEl.innerHTML = html;
+        }
+        
+        function updateCheatIndicators() {
+            let html = '';
+            if (cheats.godmode) {
+                html += '<div class="cheat-badge godmode">⚡ GODMODE</div>';
+            }
+            if (cheats.coinlord) {
+                html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>';
+            }
+            if (cheats.slowmo) {
+                html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>';
+            }
+            if (cheats.bigbird) {
+                html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>';
+            }
+            cheatIndicators.innerHTML = html;
         }
         
         // ========== SAVE FUNCTIONS ==========
@@ -1348,19 +1422,21 @@
                 previewCtx.stroke();
             }
             
-            // Draw bird
+            // Draw bird with cheat size
             previewCtx.save();
             previewCtx.translate(75, 75);
             
+            let size = cheats.bigbird ? 50 : 40;
+            
             if (birdImage.complete) {
-                previewCtx.drawImage(birdImage, -20, -20, 40, 40);
+                previewCtx.drawImage(birdImage, -size/2, -size/2, size, size);
                 
                 // Draw shirt
                 const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
                 if (shirt) {
                     const shirtImg = new Image();
                     shirtImg.src = shirt.image;
-                    previewCtx.drawImage(shirtImg, -20, -20, 40, 40);
+                    previewCtx.drawImage(shirtImg, -size/2, -size/2, size, size);
                 }
                 
                 // Draw hat
@@ -1368,7 +1444,7 @@
                 if (hat) {
                     const hatImg = new Image();
                     hatImg.src = hat.image;
-                    previewCtx.drawImage(hatImg, -20, -25, 40, 40);
+                    previewCtx.drawImage(hatImg, -size/2, -size/2 - 5, size, size);
                 }
             }
             
@@ -1386,14 +1462,16 @@
             }
             
             reset() {
+                let size = cheats.bigbird ? 45 : 30;
+                
                 this.bird = {
                     x: 100,
                     y: 300,
-                    width: 30,
-                    height: 30,
+                    width: size,
+                    height: size,
                     velocity: 0,
-                    gravity: 0.25,
-                    jump: -6.5
+                    gravity: cheats.slowmo ? 0.15 : 0.25,
+                    jump: cheats.slowmo ? -5 : -6.5
                 };
                 
                 this.pipes = [];
@@ -1404,6 +1482,21 @@
                 this.gameOver = false;
                 
                 coins = [];
+                
+                if (cheats.coinlord) {
+                    // Spawn extra coins at start
+                    for (let i = 0; i < 5; i++) {
+                        setTimeout(() => {
+                            if (gameRunning) {
+                                coins.push({
+                                    x: canvas.width + 100 + i * 50,
+                                    y: Math.random() * (canvas.height - 80) + 40,
+                                    collected: false
+                                });
+                            }
+                        }, i * 200);
+                    }
+                }
             }
             
             isCoinPositionSafe(x, y) {
@@ -1461,7 +1554,7 @@
                 });
                 ctx.shadowBlur = 0;
                 
-                // Draw coins
+                // Draw coins (more if coinlord)
                 coins.forEach(coin => {
                     if (!coin.collected) {
                         if (coinImage.complete) {
@@ -1479,14 +1572,15 @@
                 ctx.rotate(rotation);
                 
                 if (birdImage.complete) {
-                    ctx.drawImage(birdImage, -15, -15, 30, 30);
+                    let size = cheats.bigbird ? 45 : 30;
+                    ctx.drawImage(birdImage, -size/2, -size/2, size, size);
                     
                     // Draw shirt
                     const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
                     if (shirt) {
                         const shirtImg = new Image();
                         shirtImg.src = shirt.image;
-                        ctx.drawImage(shirtImg, -15, -15, 30, 30);
+                        ctx.drawImage(shirtImg, -size/2, -size/2, size, size);
                     }
                     
                     // Draw hat
@@ -1494,7 +1588,7 @@
                     if (hat) {
                         const hatImg = new Image();
                         hatImg.src = hat.image;
-                        ctx.drawImage(hatImg, -15, -20, 30, 30);
+                        ctx.drawImage(hatImg, -size/2, -size/2 - 5, size, size);
                     }
                 }
                 
@@ -1521,7 +1615,7 @@
             update() {
                 if (this.gameOver) return;
                 
-                const shieldActive = powerups.find(p => p.id === 'shield')?.active || false;
+                const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode;
                 const magnetActive = powerups.find(p => p.id === 'magnet')?.active || false;
                 
                 // Bird physics
@@ -1546,8 +1640,9 @@
                     }
                 }
                 
-                // Generate pipes
-                if (this.frameCount % 120 === 0) {
+                // Generate pipes (slower if slowmo)
+                let pipeRate = cheats.slowmo ? 180 : 120;
+                if (this.frameCount % pipeRate === 0) {
                     const topHeight = Math.random() * (canvas.height - this.pipeGap - 150) + 70;
                     this.pipes.push({
                         x: canvas.width,
@@ -1557,9 +1652,12 @@
                     });
                 }
                 
-                // Generate coins
-                if (this.frameCount % 40 === 0 && gameRunning) {
-                    if (Math.random() < 0.4) {
+                // Generate coins (more if coinlord)
+                let coinRate = cheats.coinlord ? 20 : 40;
+                let coinChance = cheats.coinlord ? 0.8 : 0.4;
+                
+                if (this.frameCount % coinRate === 0 && gameRunning) {
+                    if (Math.random() < coinChance) {
                         const coinX = canvas.width + 40;
                         const coinY = this.getSafeCoinY(coinX);
                         coins.push({
@@ -1571,8 +1669,9 @@
                 }
                 
                 // Update pipes
+                let speed = cheats.slowmo ? 1.5 : 2.5;
                 for (let i = this.pipes.length - 1; i >= 0; i--) {
-                    this.pipes[i].x -= 2.5;
+                    this.pipes[i].x -= speed;
                     
                     if (!shieldActive) {
                         if (this.bird.x + 15 > this.pipes[i].x && 
@@ -1600,11 +1699,10 @@
                 // Update coins
                 for (let i = coins.length - 1; i >= 0; i--) {
                     if (!coins[i].collected) {
-                        coins[i].x -= 2.5;
+                        coins[i].x -= speed;
                         
                         let dist;
                         if (magnetActive) {
-                            // Attract coins
                             const dx = this.bird.x - coins[i].x;
                             const dy = this.bird.y - coins[i].y;
                             dist = Math.hypot(dx, dy);
@@ -1720,21 +1818,40 @@
         // ========== CHEAT CODES ==========
         const CHEATS = {
             '6969': () => { // GODMODE
-                const shield = powerups.find(p => p.id === 'shield');
-                if (!shield.active) {
-                    activatePowerup('shield');
-                }
+                cheats.godmode = !cheats.godmode;
+                updateCheatIndicators();
+                alert(cheats.godmode ? '👼 Godmode activated!' : '👼 Godmode deactivated');
             },
-            '1337': () => { // +50 COINS
-                coinCount += 50;
-                updateCoinDisplay();
-                localStorage.setItem('flappyCrixCoins', coinCount);
+            '1337': () => { // COIN LORD
+                cheats.coinlord = !cheats.coinlord;
+                updateCheatIndicators();
+                alert(cheats.coinlord ? '💰 Coin Lord activated!' : '💰 Coin Lord deactivated');
+                if (gameRunning) game.reset();
             },
-            '2468': () => { // 2X COINS
+            '0420': () => { // SLOW MO
+                cheats.slowmo = !cheats.slowmo;
+                updateCheatIndicators();
+                alert(cheats.slowmo ? '⏱️ Slow motion activated!' : '⏱️ Slow motion deactivated');
+                if (gameRunning) game.reset();
+            },
+            '8008': () => { // BIG BIRD
+                cheats.bigbird = !cheats.bigbird;
+                updateCheatIndicators();
+                alert(cheats.bigbird ? '🦅 Big bird activated!' : '🦅 Big bird deactivated');
+                if (gameRunning) game.reset();
+                updatePreview();
+            },
+            '2468': () => { // 2X COINS (power-up)
                 const x2 = powerups.find(p => p.id === 'x2coins');
                 if (!x2.active) {
                     activatePowerup('x2coins');
                 }
+            },
+            '9999': () => { // +50 COINS
+                coinCount += 50;
+                updateCoinDisplay();
+                localStorage.setItem('flappyCrixCoins', coinCount);
+                alert('💰 +50 coins!');
             }
         };
         
@@ -1742,15 +1859,13 @@
             const code = e.target.value;
             if (code.length === 4 && CHEATS[code]) {
                 CHEATS[code]();
-                alert('Cheat activated!');
                 cheatInput.value = '';
             }
         });
         
         // ========== EXIT WITH BOUNCE ==========
         backLink.addEventListener('click', (e) => {
-            const shield = powerups.find(p => p.id === 'shield')?.active;
-            if (shield) {
+            if (cheats.godmode) {
                 e.preventDefault();
                 document.querySelector('.game-container').classList.add('bounce');
                 alert('HEY! I KNOW YOU GOT GODMODE BUT IT DOESNT MEAN YOU GOTTA BREAK THE FORTH WALL MAN!');
@@ -1835,6 +1950,7 @@
         loadSavedData();
         updateCoinDisplay();
         updateActivePowerupsDisplay();
+        updateCheatIndicators();
         game.draw();
         
         // Load images for preview
