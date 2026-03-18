@@ -8,7 +8,7 @@
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
     
-    <!-- Custom Pixel Font (matching main site) -->
+    <!-- Custom Pixel Font -->
     <style>
         @font-face {
             font-family: 'CRIX Pixel';
@@ -20,7 +20,7 @@
     </style>
     
     <style>
-        /* EXACT SAME STYLE AS YOUR MAIN SITE - NO CARTOON */
+        /* CYBER STYLE WITH CURVED UI - MATCHING MAIN SITE */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -31,6 +31,10 @@
             --darker-bg: #050508;
             --grid-color: rgba(255, 70, 85, 0.1);
             --text-glow: 0 0 10px rgba(255, 107, 53, 0.7);
+            
+            /* Curved UI additions */
+            --curve-amount: 25px;
+            --border-glow: 0 0 15px currentColor;
         }
         
         * {
@@ -59,14 +63,16 @@
             text-shadow: var(--text-glow);
         }
         
-        /* GAME CONTAINER - MATCHING MAIN SITE STYLE */
+        /* GAME CONTAINER - CURVED */
         .game-container {
             max-width: 600px;
             width: 100%;
             background: rgba(5, 5, 8, 0.95);
             border: 3px solid var(--neon-red);
+            border-radius: 40px;
             padding: 30px 20px;
             position: relative;
+            box-shadow: 0 10px 30px rgba(255, 70, 85, 0.4);
         }
         
         .game-container::before {
@@ -82,14 +88,16 @@
                 var(--neon-orange), 
                 var(--neon-red), 
                 transparent);
+            border-radius: 40px 40px 0 0;
         }
         
-        /* HEADER - MATCHING MAIN SITE */
+        /* HEADER - CURVED */
         .game-header {
             text-align: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
             border-bottom: 3px solid var(--neon-red);
+            position: relative;
         }
         
         .game-title {
@@ -100,7 +108,7 @@
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
             letter-spacing: 5px;
-            margin-bottom: 10px;
+            margin-bottom: 5px;
             animation: hologram 3s infinite alternate;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
@@ -111,24 +119,28 @@
         }
         
         .game-subtitle {
-            font-size: 18px;
+            font-size: 16px;
             color: var(--matrix-green);
             text-transform: uppercase;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
             background: rgba(0, 0, 0, 0.5);
-            padding: 8px 20px;
+            padding: 5px 20px;
             display: inline-block;
+            border-radius: 30px;
             border: 2px solid var(--neon-orange);
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* CANVAS - MATCHING SITE BORDERS */
+        /* CANVAS WRAPPER - CURVED */
         .canvas-wrapper {
             display: flex;
             justify-content: center;
-            margin: 20px 0;
+            margin: 15px 0;
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid var(--neon-orange);
+            border-radius: 35px;
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.3);
         }
         
         #gameCanvas {
@@ -137,62 +149,237 @@
             max-width: 400px;
             height: auto;
             border: 2px solid var(--neon-orange);
+            border-radius: 25px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
         }
         
-        /* SCORE BOX - MATCHING STATS STYLE */
+        /* STATS GRID - CURVED */
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 25px 0;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            margin: 15px 0;
         }
         
         .cyber-stat {
             background: rgba(10, 10, 15, 0.8);
             border: 2px solid var(--neon-orange);
-            padding: 20px 15px;
+            border-radius: 20px;
+            padding: 10px 5px;
             text-align: center;
             position: relative;
             overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
         }
         
-        .cyber-stat::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 107, 53, 0.2), transparent);
-            transition: left 0.6s;
-        }
-        
-        .cyber-stat:hover::before {
-            left: 100%;
+        .cyber-stat:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(255, 107, 53, 0.5);
         }
         
         .stat-label {
-            font-size: 16px;
+            font-size: 12px;
             color: #ccc;
             text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 10px;
+            letter-spacing: 1px;
+            margin-bottom: 3px;
         }
         
         .stat-value {
-            font-size: 36px;
+            font-size: 20px;
             font-weight: bold;
             color: var(--neon-orange);
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* BUTTONS - MATCHING MAIN SITE */
+        /* COIN COUNT SPECIAL STYLING */
+        #coinCount {
+            color: gold;
+            text-shadow: 0 0 10px gold;
+        }
+        
+        /* MERCH SHOP BUTTON */
+        .merch-button {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 2px solid gold;
+            border-radius: 30px;
+            padding: 8px 20px;
+            font-size: 16px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            margin: 10px auto;
+            display: block;
+            width: fit-content;
+            box-shadow: 0 0 15px gold;
+        }
+        
+        .merch-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px gold;
+            border-color: var(--matrix-green);
+        }
+        
+        /* MERCH SHOP MODAL */
+        .merch-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .merch-modal.active {
+            display: block;
+        }
+        
+        .merch-modal-content {
+            max-width: 500px;
+            margin: 30px auto;
+            background: var(--dark-bg);
+            border: 3px solid var(--neon-red);
+            border-radius: 40px;
+            padding: 25px;
+            position: relative;
+        }
+        
+        .merch-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--matrix-green);
+            padding-bottom: 10px;
+        }
+        
+        .merch-modal-title {
+            font-size: 24px;
+            color: gold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+        }
+        
+        .merch-modal-close {
+            background: transparent;
+            border: 2px solid var(--neon-red);
+            color: var(--neon-red);
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .merch-modal-close:hover {
+            background: var(--neon-red);
+            color: white;
+            transform: rotate(90deg);
+        }
+        
+        .merch-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .merch-item {
+            background: rgba(20, 20, 30, 0.9);
+            border: 2px solid var(--neon-orange);
+            border-radius: 25px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .merch-item:hover {
+            transform: scale(1.05);
+            border-color: gold;
+            box-shadow: 0 0 20px gold;
+        }
+        
+        .merch-item.selected {
+            border-color: gold;
+            box-shadow: 0 0 30px gold;
+            background: rgba(255, 215, 0, 0.1);
+        }
+        
+        .merch-item img {
+            width: 60px;
+            height: 60px;
+            object-fit: contain;
+            margin-bottom: 10px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+        
+        .merch-item-name {
+            font-size: 14px;
+            color: white;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        
+        .merch-item-price {
+            font-size: 16px;
+            color: gold;
+            font-weight: bold;
+        }
+        
+        .merch-equip-btn {
+            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 10px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            width: 100%;
+            margin-top: 15px;
+        }
+        
+        .merch-equip-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 20px var(--matrix-green);
+        }
+        
+        .merch-balance {
+            text-align: center;
+            font-size: 18px;
+            color: gold;
+            margin: 15px 0;
+            padding: 10px;
+            border: 2px solid gold;
+            border-radius: 30px;
+        }
+        
+        /* BUTTONS - CURVED */
         .controls-box {
             display: flex;
-            gap: 20px;
+            gap: 10px;
             justify-content: center;
-            margin: 25px 0;
+            margin: 15px 0;
             flex-wrap: wrap;
         }
         
@@ -200,37 +387,105 @@
             background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
             color: white;
             border: 2px solid var(--matrix-green);
-            padding: 12px 30px;
-            font-size: 20px;
+            border-radius: 30px;
+            padding: 10px 20px;
+            font-size: 16px;
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 2px;
             cursor: pointer;
             transition: all 0.3s;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
         }
         
         .game-btn:hover {
             background: linear-gradient(45deg, var(--cyber-red), var(--cyber-orange));
             transform: translateY(-3px);
+            box-shadow: 0 8px 25px var(--matrix-green);
         }
         
         .game-btn.secondary {
             background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
         }
         
-        /* INSTRUCTIONS */
+        /* CHEAT CODE INPUT - HIDDEN IN PLAIN SIGHT */
+        .cheat-container {
+            margin: 10px 0;
+            text-align: center;
+            opacity: 0.2;
+            transition: opacity 0.3s;
+        }
+        
+        .cheat-container:hover {
+            opacity: 1;
+        }
+        
+        .cheat-input {
+            background: rgba(0, 0, 0, 0.7);
+            border: 2px solid var(--neon-orange);
+            border-radius: 30px;
+            padding: 8px 15px;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            color: var(--matrix-green);
+            font-size: 14px;
+            width: 150px;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+        
+        .cheat-input:focus {
+            outline: none;
+            border-color: var(--matrix-green);
+            box-shadow: 0 0 20px var(--matrix-green);
+        }
+        
+        .cheat-input::placeholder {
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: normal;
+        }
+        
+        /* ACTIVE CHEAT INDICATORS */
+        .cheat-indicator {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin: 0 3px;
+            animation: pulse 1.5s infinite;
+        }
+        
+        .cheat-godmode {
+            background: rgba(255, 70, 85, 0.3);
+            border: 1px solid var(--neon-red);
+            color: var(--neon-red);
+        }
+        
+        .cheat-coins {
+            background: rgba(255, 215, 0, 0.3);
+            border: 1px solid gold;
+            color: gold;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        /* INSTRUCTIONS - CURVED */
         .instructions {
             text-align: center;
-            margin: 25px 0;
+            margin: 15px 0;
             padding: 15px;
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid var(--neon-orange);
+            border-radius: 30px;
         }
         
         .instructions p {
             color: #ccc;
-            font-size: 16px;
+            font-size: 14px;
             margin: 5px 0;
         }
         
@@ -238,20 +493,21 @@
             color: var(--neon-orange);
         }
         
-        /* BACK LINK */
+        /* BACK LINK - CURVED */
         .back-link {
             text-align: center;
-            margin-top: 25px;
+            margin-top: 15px;
         }
         
         .back-link a {
             color: var(--matrix-green);
             text-decoration: none;
-            font-size: 18px;
+            font-size: 16px;
             text-transform: uppercase;
             letter-spacing: 2px;
-            padding: 8px 20px;
+            padding: 6px 20px;
             border: 2px solid var(--neon-red);
+            border-radius: 30px;
             display: inline-block;
             transition: all 0.3s;
         }
@@ -259,14 +515,29 @@
         .back-link a:hover {
             border-color: var(--matrix-green);
             color: var(--neon-orange);
+            transform: scale(1.05);
+        }
+        
+        /* BOUNCE ANIMATION FOR EXIT */
+        @keyframes bounce {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-20px); }
+            50% { transform: translateX(20px); }
+            75% { transform: translateX(-10px); }
+        }
+        
+        .bounce {
+            animation: bounce 0.5s ease-in-out;
         }
         
         /* RESPONSIVE */
         @media (max-width: 500px) {
             .game-title { font-size: 36px; }
-            .game-subtitle { font-size: 14px; }
-            .game-btn { font-size: 16px; padding: 10px 20px; }
-            .stats-grid { gap: 10px; }
+            .game-subtitle { font-size: 12px; }
+            .game-btn { font-size: 14px; padding: 8px 15px; }
+            .stats-grid { gap: 5px; }
+            .stat-value { font-size: 16px; }
+            .merch-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -284,6 +555,14 @@
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg">
     </audio>
     
+    <audio id="coinSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="purchaseSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg">
+    </audio>
+    
     <audio id="bgMusic" loop>
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
     </audio>
@@ -291,7 +570,7 @@
     <div class="game-container">
         <div class="game-header">
             <div class="game-title">FLAPPY CRIX</div>
-            <div class="game-subtitle">who do you think i am 😂😂😂😂</div>
+            <div class="game-subtitle">wear the drip • collect the coins</div>
         </div>
         
         <div class="canvas-wrapper">
@@ -304,9 +583,28 @@
                 <div class="stat-value" id="gameScore">0</div>
             </div>
             <div class="cyber-stat">
-                <div class="stat-label">HIGH SCORE</div>
+                <div class="stat-label">COINS</div>
+                <div class="stat-value" id="coinCount">🪙 0</div>
+            </div>
+            <div class="cyber-stat">
+                <div class="stat-label">HIGH</div>
                 <div class="stat-value" id="highScore">0</div>
             </div>
+            <div class="cyber-stat">
+                <div class="stat-label">DRIP</div>
+                <div class="stat-value" id="currentOutfit">👕</div>
+            </div>
+        </div>
+        
+        <!-- MERCH SHOP BUTTON -->
+        <button class="merch-button" id="merchShopBtn">🛍️ MERCH SHOP 🛍️</button>
+        
+        <!-- ACTIVE CHEATS DISPLAY (hidden until activated) -->
+        <div id="activeCheats" style="text-align: center; min-height: 25px; margin: 5px 0;"></div>
+        
+        <!-- CHEAT CODE INPUT - DISCREET -->
+        <div class="cheat-container">
+            <input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" autocomplete="off">
         </div>
         
         <div class="controls-box">
@@ -315,12 +613,29 @@
         </div>
         
         <div class="instructions">
-            <p><span class="highlight">⬆️ PRESS SPACE</span> or <span class="highlight">🖱️ CLICK</span> to jump</p>
-            <p>⚡ Don't hit the pipes! ⚡</p>
+            <p><span class="highlight">⬆️ SPACE/CLICK</span> to jump • <span class="highlight">🪙 COLLECT COINS</span> for drip</p>
         </div>
         
         <div class="back-link">
-            <a href="https://crixgamingvr.vercel.app" target="_blank">← BACK TO MAIN SITE</a>
+            <a href="https://crixgamingvr.vercel.app" target="_blank" id="backLink">← BACK TO MAIN SITE</a>
+        </div>
+    </div>
+    
+    <!-- MERCH SHOP MODAL -->
+    <div class="merch-modal" id="merchModal">
+        <div class="merch-modal-content">
+            <div class="merch-modal-header">
+                <div class="merch-modal-title">🛍️ CRIX MERCH SHOP</div>
+                <button class="merch-modal-close" id="closeMerchBtn">✕</button>
+            </div>
+            
+            <div class="merch-balance" id="merchBalance">YOUR COINS: 🪙 0</div>
+            
+            <div class="merch-grid" id="merchGrid">
+                <!-- Merch items will be loaded here -->
+            </div>
+            
+            <button class="merch-equip-btn" id="equipMerchBtn">EQUIP SELECTED</button>
         </div>
     </div>
     
@@ -329,14 +644,27 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const gameScore = document.getElementById('gameScore');
+        const coinCountEl = document.getElementById('coinCount');
         const highScoreEl = document.getElementById('highScore');
+        const currentOutfitEl = document.getElementById('currentOutfit');
         const startGameBtn = document.getElementById('startGameBtn');
         const musicToggle = document.getElementById('musicToggleBtn');
+        const backLink = document.getElementById('backLink');
+        const cheatInput = document.getElementById('cheatInput');
+        const activeCheats = document.getElementById('activeCheats');
+        const merchShopBtn = document.getElementById('merchShopBtn');
+        const merchModal = document.getElementById('merchModal');
+        const closeMerchBtn = document.getElementById('closeMerchBtn');
+        const merchGrid = document.getElementById('merchGrid');
+        const merchBalance = document.getElementById('merchBalance');
+        const equipMerchBtn = document.getElementById('equipMerchBtn');
         
         // Sounds
         const jumpSound = document.getElementById('jumpSound');
         const deathSound = document.getElementById('deathSound');
         const selectSound = document.getElementById('selectSound');
+        const coinSound = document.getElementById('coinSound');
+        const purchaseSound = document.getElementById('purchaseSound');
         const bgMusic = document.getElementById('bgMusic');
         
         // Game state
@@ -345,7 +673,201 @@
         let highScore = localStorage.getItem('flappyCrixHighScore') || 0;
         let musicMuted = true;
         
+        // Coin variables
+        let coins = [];
+        let coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0;
+        const coinImage = new Image();
+        coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        
+        // Bird image
+        const birdImage = new Image();
+        birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
+        
+        // MERCH ITEMS - Using your actual products!
+        const merchItems = [
+            { 
+                id: 'bucket', 
+                name: 'BUCKET HAT', 
+                price: 50, 
+                icon: '🧢',
+                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif',
+                equipped: false,
+                owned: false
+            },
+            { 
+                id: 'tank', 
+                name: 'TANK TOP', 
+                price: 40, 
+                icon: '🎽',
+                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif',
+                equipped: false,
+                owned: false
+            },
+            { 
+                id: 'hoodie', 
+                name: 'HOODIE', 
+                price: 100, 
+                icon: '👕',
+                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png',
+                equipped: false,
+                owned: false
+            },
+            { 
+                id: 'tshirt', 
+                name: 'T-SHIRT', 
+                price: 35, 
+                icon: '👔',
+                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png',
+                equipped: false,
+                owned: false
+            },
+            { 
+                id: 'backpack', 
+                name: 'BACKPACK', 
+                price: 80, 
+                icon: '🎒',
+                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png',
+                equipped: false,
+                owned: false
+            },
+            { 
+                id: 'cap', 
+                name: 'BASEBALL CAP', 
+                price: 45, 
+                icon: '🧢',
+                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png',
+                equipped: false,
+                owned: false
+            }
+        ];
+        
+        // Load owned items from localStorage
+        let ownedItems = JSON.parse(localStorage.getItem('flappyCrixOwned')) || [];
+        let equippedItem = localStorage.getItem('flappyCrixEquipped') || null;
+        
+        // Update merch items with owned status
+        merchItems.forEach(item => {
+            if (ownedItems.includes(item.id)) {
+                item.owned = true;
+            }
+            if (equippedItem === item.id) {
+                item.equipped = true;
+                updateOutfitDisplay(item.icon);
+            }
+        });
+        
         highScoreEl.textContent = highScore;
+        updateCoinDisplay();
+        
+        // Cheat codes (numbers only)
+        const CHEATS = {
+            '6969': { name: 'GODMODE', effect: 'godmode', message: '👼 You feel invincible!' },
+            '1337': { name: 'COIN LORD', effect: 'coinlord', message: '💰 Coins rain from heaven!' },
+            '0420': { name: 'SLOW MO', effect: 'slowmo', message: '⏱️ Time slows down...' },
+            '8008': { name: 'BIG BIRD', effect: 'bigbird', message: '🦅 BIIIIRD!' },
+            '9999': { name: 'RICH', effect: 'rich', message: '💰 +100 coins!' }
+        };
+        
+        let activeCheatEffects = {
+            godmode: false,
+            coinlord: false,
+            slowmo: false,
+            bigbird: false
+        };
+        
+        // ========== MERCH SHOP FUNCTIONS ==========
+        function openMerchShop() {
+            playSelectSound();
+            updateMerchDisplay();
+            merchModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeMerchShop() {
+            merchModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+        
+        function updateMerchDisplay() {
+            merchBalance.innerHTML = `YOUR COINS: 🪙 ${coinCount}`;
+            
+            let html = '';
+            merchItems.forEach(item => {
+                const canAfford = coinCount >= item.price;
+                const isOwned = item.owned;
+                const isEquipped = item.equipped;
+                
+                html += `
+                    <div class="merch-item ${isEquipped ? 'selected' : ''}" data-id="${item.id}" data-price="${item.price}">
+                        <img src="${item.image}" alt="${item.name}" style="width:50px; height:50px; object-fit:contain;">
+                        <div class="merch-item-name">${item.name}</div>
+                        <div class="merch-item-price">${isOwned ? 'OWNED' : `🪙 ${item.price}`}</div>
+                        ${isEquipped ? '<div style="color:var(--matrix-green); font-size:12px;">✔ EQUIPPED</div>' : ''}
+                    </div>
+                `;
+            });
+            merchGrid.innerHTML = html;
+            
+            // Add click handlers
+            document.querySelectorAll('.merch-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    document.querySelectorAll('.merch-item').forEach(i => i.classList.remove('selected'));
+                    el.classList.add('selected');
+                });
+            });
+        }
+        
+        function equipSelectedMerch() {
+            const selected = document.querySelector('.merch-item.selected');
+            if (!selected) {
+                alert('Select an item first!');
+                return;
+            }
+            
+            const itemId = selected.dataset.id;
+            const item = merchItems.find(i => i.id === itemId);
+            
+            if (!item.owned) {
+                // Try to buy it
+                const price = parseInt(selected.dataset.price);
+                if (coinCount >= price) {
+                    coinCount -= price;
+                    item.owned = true;
+                    ownedItems.push(itemId);
+                    localStorage.setItem('flappyCrixCoins', coinCount);
+                    localStorage.setItem('flappyCrixOwned', JSON.stringify(ownedItems));
+                    playCoinSound();
+                    updateCoinDisplay();
+                    updateMerchDisplay();
+                    alert(`You bought the ${item.name}!`);
+                } else {
+                    alert('Not enough coins!');
+                    return;
+                }
+            }
+            
+            // Equip the item
+            merchItems.forEach(i => i.equipped = false);
+            item.equipped = true;
+            equippedItem = itemId;
+            localStorage.setItem('flappyCrixEquipped', itemId);
+            updateOutfitDisplay(item.icon);
+            
+            // Update display
+            updateMerchDisplay();
+            playPurchaseSound();
+            alert(`${item.name} equipped!`);
+        }
+        
+        function updateOutfitDisplay(icon) {
+            currentOutfitEl.textContent = icon;
+        }
+        
+        function playPurchaseSound() {
+            purchaseSound.currentTime = 0;
+            purchaseSound.volume = 0.3;
+            purchaseSound.play().catch(e => console.log('Purchase sound blocked'));
+        }
         
         // ========== GAME CLASS ==========
         class FlappyBird {
@@ -354,28 +876,62 @@
             }
             
             reset() {
-                // FIXED: Better spawn position - not touching pipes
                 this.bird = {
                     x: 100,
-                    y: 300,  // Safe middle position
-                    width: 30,
-                    height: 30,
+                    y: 300,
+                    width: activeCheatEffects.bigbird ? 45 : 30,
+                    height: activeCheatEffects.bigbird ? 45 : 30,
                     velocity: 0,
-                    gravity: 0.25,  // Slightly reduced gravity
-                    jump: -6.5       // Adjusted jump force
+                    gravity: activeCheatEffects.slowmo ? 0.15 : 0.25,
+                    jump: activeCheatEffects.slowmo ? -5 : -6.5
                 };
                 
                 this.pipes = [];
                 this.pipeWidth = 50;
-                this.pipeGap = 170;  // Slightly larger gap
+                this.pipeGap = 170;
                 this.pipeSpacing = 300;
                 this.frameCount = 0;
                 this.score = 0;
                 this.gameOver = false;
                 
-                // Load bird image
-                this.birdImage = new Image();
-                this.birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
+                // Reset coins
+                coins = [];
+                if (!activeCheatEffects.coinlord) {
+                    // Don't reset coin count, keep accumulated coins
+                }
+            }
+            
+            // Helper to check if a position is safe for a coin
+            isCoinPositionSafe(x, y) {
+                // Don't spawn too close to edges (30px padding)
+                if (y < 40 || y > canvas.height - 40) return false;
+                
+                // Don't spawn too close to pipes
+                for (let pipe of this.pipes) {
+                    if (Math.abs(x - pipe.x) < 60) {
+                        if (y < pipe.top - 30 || y > pipe.bottom + 30) {
+                            return false;
+                        }
+                    }
+                }
+                
+                return true;
+            }
+            
+            // Get a safe Y position for a coin
+            getSafeCoinY(x) {
+                let attempts = 0;
+                const maxAttempts = 50;
+                
+                while (attempts < maxAttempts) {
+                    const y = Math.random() * (canvas.height - 80) + 40;
+                    if (this.isCoinPositionSafe(x, y)) {
+                        return y;
+                    }
+                    attempts++;
+                }
+                
+                return canvas.height / 2;
             }
             
             draw() {
@@ -383,7 +939,7 @@
                 ctx.fillStyle = '#0A0A0F';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw grid (matching main site)
+                // Draw grid
                 ctx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
                 ctx.lineWidth = 1;
                 for (let i = 0; i < canvas.width; i += 50) {
@@ -404,21 +960,54 @@
                 ctx.shadowColor = '#00FF9D';
                 ctx.shadowBlur = 10;
                 this.pipes.forEach(pipe => {
-                    ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.top);
-                    ctx.fillRect(pipe.x, pipe.bottom, this.pipeWidth, canvas.height - pipe.bottom);
+                    this.roundRect(pipe.x, 0, this.pipeWidth, pipe.top, 15);
+                    ctx.fill();
+                    this.roundRect(pipe.x, pipe.bottom, this.pipeWidth, canvas.height - pipe.bottom, 15);
+                    ctx.fill();
                 });
                 ctx.shadowBlur = 0;
                 
-                // Draw bird
-                if (this.birdImage.complete) {
-                    ctx.drawImage(this.birdImage, this.bird.x - 15, this.bird.y - 15, 30, 30);
+                // Draw coins
+                coins.forEach(coin => {
+                    if (!coin.collected) {
+                        if (coinImage.complete) {
+                            ctx.drawImage(coinImage, coin.x - 15, coin.y - 15, 30, 30);
+                        } else {
+                            ctx.fillStyle = 'gold';
+                            ctx.shadowColor = 'gold';
+                            ctx.shadowBlur = 15;
+                            ctx.beginPath();
+                            ctx.arc(coin.x, coin.y, 12, 0, Math.PI * 2);
+                            ctx.fill();
+                        }
+                    }
+                });
+                ctx.shadowBlur = 0;
+                
+                // Draw bird with equipped merch
+                if (birdImage.complete) {
+                    let size = activeCheatEffects.bigbird ? 45 : 30;
+                    
+                    // Draw the bird
+                    ctx.drawImage(birdImage, this.bird.x - size/2, this.bird.y - size/2, size, size);
+                    
+                    // Draw equipped merch overlay
+                    if (equippedItem) {
+                        const item = merchItems.find(i => i.id === equippedItem);
+                        if (item) {
+                            // Load and draw merch image
+                            const merchImg = new Image();
+                            merchImg.src = item.image;
+                            ctx.drawImage(merchImg, this.bird.x - size/2, this.bird.y - size/2 - 5, size, size);
+                        }
+                    }
                 } else {
-                    // Fallback circle
+                    // Fallback
                     ctx.fillStyle = '#FF6B35';
                     ctx.shadowColor = '#FF6B35';
                     ctx.shadowBlur = 15;
                     ctx.beginPath();
-                    ctx.arc(this.bird.x, this.bird.y, 15, 0, Math.PI * 2);
+                    ctx.arc(this.bird.x, this.bird.y, activeCheatEffects.bigbird ? 22 : 15, 0, Math.PI * 2);
                     ctx.fill();
                     ctx.shadowBlur = 0;
                 }
@@ -431,14 +1020,37 @@
                     ctx.fillText(`SCORE: ${this.score}`, canvas.width / 2, 50);
                 }
                 
+                // Draw active cheat indicators
+                if (activeCheatEffects.godmode) {
+                    ctx.fillStyle = 'rgba(255, 70, 85, 0.3)';
+                    ctx.font = '14px "CRIX Pixel", monospace';
+                    ctx.fillText('⚡ GODMODE', canvas.width - 100, 80);
+                }
+                
                 if (this.gameOver) {
                     ctx.fillStyle = '#FF4655';
-                    ctx.font = '24px "CRIX Pixel", monospace';
+                    ctx.font = '28px "CRIX Pixel", monospace';
                     ctx.textAlign = 'center';
                     ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
                     ctx.font = '16px "CRIX Pixel", monospace';
                     ctx.fillText('Press START', canvas.width / 2, canvas.height / 2 + 40);
                 }
+            }
+            
+            roundRect(x, y, w, h, r) {
+                if (w < 2 * r) r = w / 2;
+                if (h < 2 * r) r = h / 2;
+                ctx.beginPath();
+                ctx.moveTo(x + r, y);
+                ctx.lineTo(x + w - r, y);
+                ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+                ctx.lineTo(x + w, y + h - r);
+                ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+                ctx.lineTo(x + r, y + h);
+                ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+                ctx.lineTo(x, y + r);
+                ctx.quadraticCurveTo(x, y, x + r, y);
+                ctx.closePath();
             }
             
             update() {
@@ -448,15 +1060,26 @@
                 this.bird.velocity += this.bird.gravity;
                 this.bird.y += this.bird.velocity;
                 
-                // Check boundaries (with small buffer)
-                if (this.bird.y < 10 || this.bird.y > canvas.height - 10) {
-                    this.gameOver = true;
-                    playDeathSound();
-                    this.updateHighScore();
+                // Check boundaries
+                if (!activeCheatEffects.godmode) {
+                    if (this.bird.y < 10 || this.bird.y > canvas.height - 10) {
+                        this.gameOver = true;
+                        playDeathSound();
+                        this.updateHighScore();
+                    }
+                } else {
+                    if (this.bird.y < 10) {
+                        this.bird.y = 10;
+                        this.bird.velocity = Math.abs(this.bird.velocity) * 0.5;
+                    }
+                    if (this.bird.y > canvas.height - 10) {
+                        this.bird.y = canvas.height - 10;
+                        this.bird.velocity = -Math.abs(this.bird.velocity) * 0.5;
+                    }
                 }
                 
                 // Generate pipes
-                if (this.frameCount % 120 === 0) {
+                if (this.frameCount % (activeCheatEffects.slowmo ? 180 : 120) === 0) {
                     const topHeight = Math.random() * (canvas.height - this.pipeGap - 150) + 70;
                     this.pipes.push({
                         x: canvas.width,
@@ -466,31 +1089,74 @@
                     });
                 }
                 
+                // Generate coins
+                if (this.frameCount % 40 === 0 && gameRunning) {
+                    if (activeCheatEffects.coinlord || Math.random() < 0.35) {
+                        const coinX = canvas.width + 40;
+                        const coinY = this.getSafeCoinY(coinX);
+                        
+                        if (this.isCoinPositionSafe(coinX, coinY)) {
+                            coins.push({
+                                x: coinX,
+                                y: coinY,
+                                collected: false
+                            });
+                        }
+                    }
+                }
+                
                 // Update pipes
+                let speed = activeCheatEffects.slowmo ? 1.5 : 2.5;
                 for (let i = this.pipes.length - 1; i >= 0; i--) {
-                    this.pipes[i].x -= 2.5;  // Slightly slower pipes
+                    this.pipes[i].x -= speed;
                     
-                    // Check collision
-                    if (this.bird.x + 15 > this.pipes[i].x && 
-                        this.bird.x - 15 < this.pipes[i].x + this.pipeWidth) {
-                        if (this.bird.y - 15 < this.pipes[i].top || 
-                            this.bird.y + 15 > this.pipes[i].bottom) {
-                            this.gameOver = true;
-                            playDeathSound();
-                            this.updateHighScore();
+                    if (!activeCheatEffects.godmode) {
+                        if (this.bird.x + this.bird.width/2 > this.pipes[i].x && 
+                            this.bird.x - this.bird.width/2 < this.pipes[i].x + this.pipeWidth) {
+                            if (this.bird.y - this.bird.height/2 < this.pipes[i].top || 
+                                this.bird.y + this.bird.height/2 > this.pipes[i].bottom) {
+                                this.gameOver = true;
+                                playDeathSound();
+                                this.updateHighScore();
+                            }
                         }
                     }
                     
-                    // Score
                     if (this.pipes[i].x + this.pipeWidth < this.bird.x && !this.pipes[i].scored) {
                         this.score++;
                         this.pipes[i].scored = true;
                         gameScore.textContent = this.score;
                     }
                     
-                    // Remove off-screen pipes
                     if (this.pipes[i].x + this.pipeWidth < 0) {
                         this.pipes.splice(i, 1);
+                    }
+                }
+                
+                // Update coins
+                for (let i = coins.length - 1; i >= 0; i--) {
+                    if (!coins[i].collected) {
+                        coins[i].x -= speed;
+                        
+                        const dist = Math.hypot(this.bird.x - coins[i].x, this.bird.y - coins[i].y);
+                        if (dist < 30) {
+                            coins[i].collected = true;
+                            coinCount++;
+                            playCoinSound();
+                            updateCoinDisplay();
+                            localStorage.setItem('flappyCrixCoins', coinCount);
+                            
+                            if (activeCheatEffects.coinlord) {
+                                this.score += 5;
+                                gameScore.textContent = this.score;
+                            }
+                        }
+                        
+                        if (coins[i].x + 30 < 0) {
+                            coins.splice(i, 1);
+                        }
+                    } else {
+                        coins.splice(i, 1);
                     }
                 }
                 
@@ -532,6 +1198,19 @@
             selectSound.volume = 0.3;
             selectSound.play().catch(e => console.log('Select sound blocked'));
         }
+        
+        function playCoinSound() {
+            coinSound.currentTime = 0;
+            coinSound.volume = 0.3;
+            coinSound.play().catch(e => console.log('Coin sound blocked'));
+        }
+
+        function updateCoinDisplay() {
+            coinCountEl.innerHTML = `🪙 ${coinCount}`;
+            if (merchBalance) {
+                merchBalance.innerHTML = `YOUR COINS: 🪙 ${coinCount}`;
+            }
+        }
 
         // ========== MUSIC CONTROL ==========
         bgMusic.volume = 0.3;
@@ -548,6 +1227,75 @@
             }
             musicMuted = !musicMuted;
             playSelectSound();
+        });
+
+        // ========== CHEAT CODE SYSTEM ==========
+        cheatInput.addEventListener('input', (e) => {
+            const code = e.target.value;
+            
+            if (code.length === 4 && CHEATS[code]) {
+                const cheat = CHEATS[code];
+                
+                switch(cheat.effect) {
+                    case 'godmode':
+                        activeCheatEffects.godmode = !activeCheatEffects.godmode;
+                        break;
+                    case 'coinlord':
+                        activeCheatEffects.coinlord = !activeCheatEffects.coinlord;
+                        break;
+                    case 'slowmo':
+                        activeCheatEffects.slowmo = !activeCheatEffects.slowmo;
+                        break;
+                    case 'bigbird':
+                        activeCheatEffects.bigbird = !activeCheatEffects.bigbird;
+                        break;
+                    case 'rich':
+                        coinCount += 100;
+                        localStorage.setItem('flappyCrixCoins', coinCount);
+                        updateCoinDisplay();
+                        break;
+                }
+                
+                updateCheatDisplay();
+                alert(cheat.message);
+                cheatInput.value = '';
+                
+                if (gameRunning && cheat.effect !== 'rich') {
+                    game.reset();
+                }
+            }
+        });
+
+        function updateCheatDisplay() {
+            let html = '';
+            if (activeCheatEffects.godmode) {
+                html += '<span class="cheat-indicator cheat-godmode">⚡ GODMODE</span>';
+            }
+            if (activeCheatEffects.coinlord) {
+                html += '<span class="cheat-indicator cheat-coins">💰 COIN LORD</span>';
+            }
+            if (activeCheatEffects.slowmo) {
+                html += '<span class="cheat-indicator" style="background:rgba(0,255,157,0.3); border-color:var(--matrix-green); color:var(--matrix-green);">⏱️ SLOW MO</span>';
+            }
+            if (activeCheatEffects.bigbird) {
+                html += '<span class="cheat-indicator" style="background:rgba(255,107,53,0.3); border-color:var(--neon-orange); color:var(--neon-orange);">🦅 BIG BIRD</span>';
+            }
+            activeCheats.innerHTML = html;
+        }
+
+        // ========== EXIT WITH BOUNCE ==========
+        backLink.addEventListener('click', (e) => {
+            if (activeCheatEffects.godmode) {
+                e.preventDefault();
+                document.querySelector('.game-container').classList.add('bounce');
+                alert('HEY! I KNOW YOU GOT GODMODE BUT IT DOESNT MEAN YOU GOTTA BREAK THE FORTH WALL MAN!');
+                setTimeout(() => {
+                    document.querySelector('.game-container').classList.remove('bounce');
+                }, 500);
+                setTimeout(() => {
+                    window.open('https://crixgamingvr.vercel.app', '_blank');
+                }, 600);
+            }
         });
 
         // ========== GAME LOOP ==========
@@ -570,6 +1318,16 @@
 
         // ========== EVENT LISTENERS ==========
         startGameBtn.addEventListener('click', startGame);
+        
+        merchShopBtn.addEventListener('click', openMerchShop);
+        closeMerchBtn.addEventListener('click', closeMerchShop);
+        equipMerchBtn.addEventListener('click', equipSelectedMerch);
+        
+        window.addEventListener('click', (e) => {
+            if (e.target === merchModal) {
+                closeMerchShop();
+            }
+        });
 
         document.addEventListener('keydown', (e) => {
             if (e.key === ' ' || e.key === 'Space') {
