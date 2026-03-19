@@ -22,9 +22,6 @@
         }
     </style>
     
-    <!-- YouTube RSS Feed Parser -->
-    <script src="https://cdn.jsdelivr.net/npm/rss-parser@3.13.4/dist/rss-parser.min.js"></script>
-    
     <style>
         /* EXACT SAME STYLE AS YOUR LIVE SITE */
         :root {
@@ -122,102 +119,40 @@
             position: relative;
         }
         
-        /* GAMES SECTION */
-        .games-section {
-            background: rgba(5, 5, 8, 0.9);
-            padding: 40px 30px;
-            margin: 40px 0;
-            border: 3px solid var(--neon-red);
-            border-radius: 20px;
-            position: relative;
-        }
-        
-        .games-section::after {
-            content: '🎮🎮🎮';
-            position: absolute;
-            bottom: -18px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--neon-orange);
-            font-size: 24px;
-            letter-spacing: 8px;
-            background: var(--dark-bg);
-            padding: 0 20px;
-            border: 2px solid var(--matrix-green);
-        }
-        
-        .section-title {
-            font-size: 42px;
+        /* GAME BUTTON - RESTORED */
+        .game-button-container {
             text-align: center;
-            margin-bottom: 30px;
-            color: var(--neon-orange);
+            margin: 30px 0 40px;
+        }
+        
+        .game-button {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 2px solid var(--matrix-green);
+            padding: 18px 50px;
+            font-size: 28px;
+            font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 4px;
-        }
-        
-        .games-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 25px;
-            margin-top: 20px;
-        }
-        
-        .game-card {
-            background: rgba(20, 20, 30, 0.9);
-            border: 2px solid var(--cyber-orange);
-            border-radius: 15px;
-            padding: 25px 20px;
-            text-align: center;
-            transition: all 0.3s;
             cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             text-decoration: none;
-            color: white;
-            display: block;
+            display: inline-block;
+            animation: pulse 2s infinite;
+            border-radius: 50px;
         }
         
-        .game-card:hover {
-            transform: scale(1.05) translateY(-5px);
-            border-color: var(--matrix-green);
-            box-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
+        @keyframes pulse {
+            0% { box-shadow: 0 0 10px var(--matrix-green); }
+            50% { box-shadow: 0 0 25px var(--matrix-green); }
+            100% { box-shadow: 0 0 10px var(--matrix-green); }
         }
         
-        .game-card.active {
-            border-color: var(--matrix-green);
-            background: rgba(0, 255, 157, 0.1);
-        }
-        
-        .game-card.coming-soon {
-            opacity: 0.7;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        
-        .game-icon {
-            font-size: 48px;
-            margin-bottom: 15px;
-        }
-        
-        .game-name {
-            font-size: 24px;
-            color: var(--neon-orange);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        
-        .game-desc {
-            font-size: 14px;
-            color: #aaa;
-            margin-bottom: 15px;
-        }
-        
-        .game-status {
-            font-size: 16px;
-            color: var(--matrix-green);
-            text-transform: uppercase;
-        }
-        
-        .game-status.coming {
-            color: var(--neon-red);
+        .game-button:hover {
+            background: linear-gradient(45deg, var(--cyber-red), var(--cyber-orange));
+            transform: translateY(-5px);
+            border-color: white;
         }
         
         /* VIDEO PLAYER SECTION */
@@ -248,6 +183,7 @@
             border: 2px solid var(--neon-orange);
             overflow: hidden;
             margin-top: 20px;
+            border-radius: 10px;
         }
         
         .crix-video {
@@ -426,6 +362,7 @@
             transition: all 0.3s;
             overflow: hidden;
             cursor: pointer;
+            border-radius: 10px;
         }
         
         .video-card:hover {
@@ -546,6 +483,7 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            border-radius: 10px;
         }
         
         .hologram-product:hover {
@@ -725,7 +663,7 @@
             .circle-button { width: 60px; height: 60px; }
             .social-button { width: 50px; height: 50px; }
             .music-control { width: 50px; height: 50px; font-size: 24px; }
-            .games-grid { grid-template-columns: 1fr; }
+            .game-button { font-size: 22px; padding: 15px 40px; }
         }
         
         @media (max-width: 480px) {
@@ -734,6 +672,7 @@
             .circle-button { width: 50px; height: 50px; }
             .social-button { width: 45px; height: 45px; }
             .music-control { width: 45px; height: 45px; font-size: 22px; }
+            .game-button { font-size: 18px; padding: 12px 30px; }
         }
     </style>
 </head>
@@ -762,43 +701,12 @@
     </header>
     
     <div class="cyber-container">
-        <!-- GAMES SECTION - SINGLE LOCATION FOR GAME BUTTONS -->
-        <section class="games-section">
-            <h2 class="section-title">🎮 CRIX GAMES</h2>
-            <div class="games-grid">
-                <!-- FLAPPY CRIX - CURRENT GAME (ONLY ONE BUTTON) -->
-                <a href="https://crixgamingvr.vercel.app/game.html" target="_blank" class="game-card active">
-                    <div class="game-icon">🐦</div>
-                    <div class="game-name">FLAPPY CRIX</div>
-                    <div class="game-desc">Flap your way to victory! Collect coins, buy drip, and discover secrets.</div>
-                    <div class="game-status">▶ PLAY NOW</div>
-                </a>
-                
-                <!-- CRIX RUNNER - COMING SOON -->
-                <div class="game-card coming-soon">
-                    <div class="game-icon">🏃</div>
-                    <div class="game-name">CRIX RUNNER</div>
-                    <div class="game-desc">Endless runner through cyber landscapes. Coming soon!</div>
-                    <div class="game-status coming">🚧 COMING SOON</div>
-                </div>
-                
-                <!-- CRIX CLICKER - COMING SOON -->
-                <div class="game-card coming-soon">
-                    <div class="game-icon">👆</div>
-                    <div class="game-name">CRIX CLICKER</div>
-                    <div class="game-desc">Clicker game with CRIX style. Coming soon!</div>
-                    <div class="game-status coming">🚧 COMING SOON</div>
-                </div>
-                
-                <!-- CRIX MEMORY - COMING SOON -->
-                <div class="game-card coming-soon">
-                    <div class="game-icon">🧠</div>
-                    <div class="game-name">CRIX MEMORY</div>
-                    <div class="game-desc">Test your memory with CRIX cards. Coming soon!</div>
-                    <div class="game-status coming">🚧 COMING SOON</div>
-                </div>
-            </div>
-        </section>
+        <!-- GAME BUTTON - RESTORED -->
+        <div class="game-button-container">
+            <a href="https://crixgamingvr.vercel.app/game.html" target="_blank" style="text-decoration: none;">
+                <button class="game-button">🎮 PLAY FLAPPY CRIX</button>
+            </a>
+        </div>
         
         <!-- VIDEO PLAYER -->
         <section class="video-player-section">
@@ -842,7 +750,7 @@
             <h2 class="section-title">📺 LATEST UPLOADS</h2>
             
             <div class="video-grid" id="videoGrid">
-                <div class="video-loading" style="grid-column:1/-1; text-align:center; padding:40px;">▶ LOADING VIDEOS... ◀</div>
+                <!-- Videos will be loaded here -->
             </div>
         </section>
         
@@ -878,7 +786,7 @@
         </section>
     </div>
     
-    <!-- JAVASCRIPT -->
+    <!-- JAVASCRIPT - COMPLETELY FIXED -->
     <script>
         // ========== CHANNEL ICONS ==========
         const channelIcons = [
@@ -918,11 +826,16 @@
 
         // ========== CURRENCY DATA ==========
         const currencies = {
-            US: { code: "USD", symbol: "$", rate: 1.0 }, AU: { code: "AUD", symbol: "A$", rate: 1.52 },
-            GB: { code: "GBP", symbol: "£", rate: 0.79 }, EU: { code: "EUR", symbol: "€", rate: 0.92 },
-            CA: { code: "CAD", symbol: "C$", rate: 1.35 }, JP: { code: "JPY", symbol: "¥", rate: 110 },
-            VN: { code: "VND", symbol: "₫", rate: 24750 }, CN: { code: "CNY", symbol: "¥", rate: 7.20 },
-            IN: { code: "INR", symbol: "₹", rate: 83 }, KR: { code: "KRW", symbol: "₩", rate: 1300 }
+            US: { code: "USD", symbol: "$", rate: 1.0 },
+            AU: { code: "AUD", symbol: "A$", rate: 1.52 },
+            GB: { code: "GBP", symbol: "£", rate: 0.79 },
+            EU: { code: "EUR", symbol: "€", rate: 0.92 },
+            CA: { code: "CAD", symbol: "C$", rate: 1.35 },
+            JP: { code: "JPY", symbol: "¥", rate: 110 },
+            VN: { code: "VND", symbol: "₫", rate: 24750 },
+            CN: { code: "CNY", symbol: "¥", rate: 7.20 },
+            IN: { code: "INR", symbol: "₹", rate: 83 },
+            KR: { code: "KRW", symbol: "₩", rate: 1300 }
         };
 
         // ========== STATE ==========
@@ -993,93 +906,177 @@
             musicToggle.addEventListener('mouseenter', playHoverSound);
         }
 
-        // ========== INIT ==========
-        async function initialize() {
-            console.log('🚀 CRIXGAMING VR');
-            
-            await detectUserCurrency();
-            generateAllProducts();
-            createChannelButtons();
-            createSocialButtons();
-            setupMusic();
-            
-            // Add sound effects to merch favicons
-            if (merchFavicon) {
-                merchFavicon.addEventListener('mouseenter', playHoverSound);
-                merchFavicon.addEventListener('click', (e) => {
-                    playClickSound();
-                    window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank');
-                });
+        // ========== YOUTUBE API - COMPLETELY REWRITTEN ==========
+        const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
+        const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
+        
+        // Hardcoded video data as backup
+        const hardcodedVideos = [
+            {
+                videoId: 'dQw4w9WgXcQ',
+                title: '[UPDATED] how to get the bark mod menu [100% LEGAL]',
+                date: 'Mar 16, 2026',
+                channelUrl: 'https://youtube.com/@CRIXGAMINGVR'
+            },
+            {
+                videoId: 'dQw4w9WgXcQ',
+                title: '🔴 GORILLA TAG LIVE | MINIGMAES FT. VTgtag 🔴',
+                date: 'Mar 15, 2026',
+                channelUrl: 'https://youtube.com/@CRIXGAMINGVR'
+            },
+            {
+                videoId: 'dQw4w9WgXcQ',
+                title: '🔴 MINECRAFT LIVE | WORKING ON RP REALM 🔴',
+                date: 'Mar 15, 2026',
+                channelUrl: 'https://youtube.com/@CRIXGAMINGVR'
             }
-            if (merchFavicon2) {
-                merchFavicon2.addEventListener('mouseenter', playHoverSound);
-                merchFavicon2.addEventListener('click', (e) => {
-                    playClickSound();
-                    window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank');
-                });
+        ];
+
+        // Main function to fetch all YouTube data
+        async function fetchYouTubeData() {
+            try {
+                // Show loading state
+                videoGrid.innerHTML = '<div style="grid-column:1/-1; text-align:center; padding:40px;">▶ LOADING VIDEOS... ◀</div>';
+                
+                // Fetch channel statistics
+                const statsUrl = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`;
+                const statsResponse = await fetch(statsUrl);
+                
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    if (statsData.items && statsData.items[0]) {
+                        const stats = statsData.items[0].statistics;
+                        document.getElementById('subCount').textContent = formatNumber(parseInt(stats.subscriberCount));
+                        document.getElementById('videoCount').textContent = formatNumber(parseInt(stats.videoCount));
+                        document.getElementById('viewCount').textContent = formatNumber(parseInt(stats.viewCount));
+                    }
+                }
+                
+                // Fetch latest videos
+                await fetchLatestVideos();
+                
+            } catch (error) {
+                console.log('YouTube API error, using hardcoded data');
+                // Set fallback stats
+                document.getElementById('subCount').textContent = '1,15K';
+                document.getElementById('videoCount').textContent = '154';
+                document.getElementById('viewCount').textContent = '52,78K';
+                
+                // Use hardcoded videos
+                displayHardcodedVideos();
             }
-            
-            // Start background refresh
-            startBackgroundRefresh();
-            startStatsUpdates();
-            fetchLatestVideos();
         }
 
-        // ========== CREATE CHANNEL BUTTONS WITH SOUNDS ==========
-        function createChannelButtons() {
-            channelButtons.innerHTML = '';
-            channelIcons.forEach((channel, index) => {
-                const btn = document.createElement('div');
-                btn.className = 'circle-button';
-                btn.title = channel.name;
+        async function fetchLatestVideos() {
+            try {
+                // First get the uploads playlist ID
+                const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${CHANNEL_ID}&key=${API_KEY}`;
+                const channelResponse = await fetch(channelUrl);
                 
-                btn.addEventListener('mouseenter', playHoverSound);
-                btn.addEventListener('click', (e) => {
-                    playClickSound();
-                    window.open(channel.url, '_blank');
+                if (!channelResponse.ok) {
+                    throw new Error('Channel fetch failed');
+                }
+                
+                const channelData = await channelResponse.json();
+                
+                if (channelData.items && channelData.items[0]) {
+                    const uploadsId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+                    
+                    // Then get the latest videos
+                    const videosUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=3&playlistId=${uploadsId}&key=${API_KEY}`;
+                    const videosResponse = await fetch(videosUrl);
+                    
+                    if (!videosResponse.ok) {
+                        throw new Error('Videos fetch failed');
+                    }
+                    
+                    const videosData = await videosResponse.json();
+                    
+                    if (videosData.items && videosData.items.length > 0) {
+                        displayVideos(videosData.items);
+                    } else {
+                        displayHardcodedVideos();
+                    }
+                } else {
+                    displayHardcodedVideos();
+                }
+            } catch (error) {
+                console.log('Error fetching videos, using hardcoded');
+                displayHardcodedVideos();
+            }
+        }
+
+        function displayVideos(videos) {
+            videoGrid.innerHTML = '';
+            
+            videos.forEach(item => {
+                const snippet = item.snippet;
+                const videoId = snippet.resourceId.videoId;
+                const title = snippet.title;
+                // Use medium quality thumbnail for reliability
+                const thumbnail = snippet.thumbnails.medium?.url || 
+                                 snippet.thumbnails.default?.url || 
+                                 `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
+                const date = new Date(snippet.publishedAt).toLocaleDateString('en-US', { 
+                    month: 'short', 
+                    day: 'numeric',
+                    year: 'numeric'
                 });
                 
-                const img = document.createElement('img');
-                img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${channel.file}`;
-                img.alt = channel.name;
-                img.onerror = function() {
-                    this.style.display = 'none';
-                    btn.innerHTML = '🎬';
-                };
-                
-                btn.appendChild(img);
-                channelButtons.appendChild(btn);
+                const videoCard = createVideoCard(videoId, title, thumbnail, date);
+                videoGrid.appendChild(videoCard);
             });
         }
 
-        // ========== CREATE SOCIAL BUTTONS WITH SOUNDS ==========
-        function createSocialButtons() {
-            socialButtons.innerHTML = '';
-            socialIcons.forEach((social, index) => {
-                const btn = document.createElement('div');
-                btn.className = 'social-button';
-                btn.title = social.name;
-                
-                btn.addEventListener('mouseenter', playHoverSound);
-                btn.addEventListener('click', (e) => {
-                    playClickSound();
-                    window.open(social.url, '_blank');
-                });
-                
-                const img = document.createElement('img');
-                img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${social.file}`;
-                img.alt = social.name;
-                img.onerror = function() {
-                    this.style.display = 'none';
-                    btn.innerHTML = social.icon;
-                };
-                
-                btn.appendChild(img);
-                socialButtons.appendChild(btn);
+        function displayHardcodedVideos() {
+            videoGrid.innerHTML = '';
+            
+            hardcodedVideos.forEach(video => {
+                const thumbnail = `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
+                const videoCard = createVideoCard(video.videoId, video.title, thumbnail, video.date, video.channelUrl);
+                videoGrid.appendChild(videoCard);
             });
         }
 
-        // ========== DETECT CURRENCY ==========
+        function createVideoCard(videoId, title, thumbnail, date, channelUrl) {
+            const card = document.createElement('div');
+            card.className = 'video-card';
+            
+            // If we have a channel URL but no video ID, use channel link
+            if (channelUrl && videoId === 'dQw4w9WgXcQ') {
+                card.onclick = () => window.open(channelUrl, '_blank');
+            } else {
+                card.onclick = () => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
+            }
+            
+            // Create thumbnail with error handling
+            const thumbnailHtml = videoId !== 'dQw4w9WgXcQ' 
+                ? `<img class="video-thumbnail" src="${thumbnail}" alt="${title}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${videoId}/mqdefault.jpg'">`
+                : `<div style="color: var(--matrix-green); font-size: 48px; display: flex; align-items: center; justify-content: center; height: 100%;">▶️</div>`;
+            
+            card.innerHTML = `
+                <div class="video-thumbnail-container">
+                    ${thumbnailHtml}
+                </div>
+                <div class="video-info">
+                    <div class="video-date">${date}</div>
+                    <div class="video-title">${title}</div>
+                </div>
+            `;
+            
+            return card;
+        }
+
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num/1000000).toFixed(2).replace('.', ',') + 'M';
+            } else if (num >= 1000) {
+                return (num/1000).toFixed(2).replace('.', ',') + 'K';
+            }
+            return num.toString();
+        }
+
+        // ========== CURRENCY DETECTION ==========
         async function detectUserCurrency() {
             try {
                 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -1138,107 +1135,102 @@
             return el;
         }
 
-        // ========== YOUTUBE VIDEOS ==========
-        async function fetchLatestVideos() {
-            try {
-                const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
-                const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
+        // ========== CREATE BUTTONS ==========
+        function createChannelButtons() {
+            channelButtons.innerHTML = '';
+            channelIcons.forEach((channel) => {
+                const btn = document.createElement('div');
+                btn.className = 'circle-button';
+                btn.title = channel.name;
                 
-                const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${CHANNEL_ID}&key=${API_KEY}`;
-                const channelRes = await fetch(channelUrl);
-                const channelData = await channelRes.json();
+                btn.addEventListener('mouseenter', playHoverSound);
+                btn.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open(channel.url, '_blank');
+                });
                 
-                if (channelData.items?.[0]) {
-                    const playlistId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
-                    const videosUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=3&playlistId=${playlistId}&key=${API_KEY}`;
-                    const videosRes = await fetch(videosUrl);
-                    const videosData = await videosRes.json();
-                    displayVideos(videosData.items);
-                }
-            } catch (error) {
-                displayFallbackVideos();
-            }
-        }
-
-        function displayVideos(videos) {
-            if (!videos || videos.length === 0) {
-                displayFallbackVideos();
-                return;
-            }
-            
-            videoGrid.innerHTML = '';
-            videos.forEach(video => {
-                const snippet = video.snippet;
-                const videoId = snippet.resourceId.videoId;
-                const date = new Date(snippet.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                const img = document.createElement('img');
+                img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${channel.file}`;
+                img.alt = channel.name;
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    btn.innerHTML = '🎬';
+                };
                 
-                const card = document.createElement('div');
-                card.className = 'video-card';
-                card.onclick = () => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
-                card.innerHTML = `
-                    <div class="video-thumbnail-container">
-                        <img class="video-thumbnail" src="${snippet.thumbnails.medium?.url}" alt="" loading="lazy">
-                    </div>
-                    <div class="video-info">
-                        <div class="video-date">${date}</div>
-                        <div class="video-title">${snippet.title}</div>
-                    </div>
-                `;
-                videoGrid.appendChild(card);
+                btn.appendChild(img);
+                channelButtons.appendChild(btn);
             });
         }
 
-        function displayFallbackVideos() {
-            videoGrid.innerHTML = `
-                <div class="video-card" onclick="window.open('https://youtube.com/@CRIXGAMINGVR', '_blank')">
-                    <div class="video-thumbnail-container"><div style="color: var(--matrix-green); font-size: 48px;">▶️</div></div>
-                    <div class="video-info"><div class="video-title">CRIXGAMING VR</div></div>
-                </div>
-                <div class="video-card" onclick="window.open('https://youtube.com/@CRIXMC123', '_blank')">
-                    <div class="video-thumbnail-container"><div style="color: var(--neon-orange); font-size: 48px;">⛏️</div></div>
-                    <div class="video-info"><div class="video-title">CRIX SMP</div></div>
-                </div>
-                <div class="video-card" onclick="window.open('https://youtube.com/@CRIXBLOX', '_blank')">
-                    <div class="video-thumbnail-container"><div style="color: var(--neon-red); font-size: 48px;">🎮</div></div>
-                    <div class="video-info"><div class="video-title">CRIXBLOX</div></div>
-                </div>
-            `;
+        function createSocialButtons() {
+            socialButtons.innerHTML = '';
+            socialIcons.forEach((social) => {
+                const btn = document.createElement('div');
+                btn.className = 'social-button';
+                btn.title = social.name;
+                
+                btn.addEventListener('mouseenter', playHoverSound);
+                btn.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open(social.url, '_blank');
+                });
+                
+                const img = document.createElement('img');
+                img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${social.file}`;
+                img.alt = social.name;
+                img.onerror = function() {
+                    this.style.display = 'none';
+                    btn.innerHTML = social.icon;
+                };
+                
+                btn.appendChild(img);
+                socialButtons.appendChild(btn);
+            });
         }
 
-        function formatNumber(num) {
-            if (num >= 1000000) return (num/1000000).toFixed(2).replace('.', ',') + 'M';
-            if (num >= 1000) return (num/1000).toFixed(2).replace('.', ',') + 'K';
-            return num.toString();
-        }
-
-        async function updateYouTubeStats() {
-            try {
-                const url = `https://www.googleapis.com/youtube/v3/channels?part=statistics&id=UCjiqZo0vfIZsn8E50TrOV_g&key=AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw`;
-                const res = await fetch(url);
-                const data = await res.json();
-                if (data.items?.[0]) {
-                    const stats = data.items[0].statistics;
-                    document.getElementById('subCount').textContent = formatNumber(parseInt(stats.subscriberCount));
-                    document.getElementById('videoCount').textContent = formatNumber(parseInt(stats.videoCount));
-                    document.getElementById('viewCount').textContent = formatNumber(parseInt(stats.viewCount));
-                }
-            } catch {
-                document.getElementById('subCount').textContent = '1,15K';
-                document.getElementById('videoCount').textContent = '154';
-                document.getElementById('viewCount').textContent = '52,78K';
+        // ========== INITIALIZE ==========
+        async function initialize() {
+            console.log('🚀 CRIXGAMING VR - FULLY FIXED');
+            
+            // Create UI elements
+            createChannelButtons();
+            createSocialButtons();
+            
+            // Setup music
+            setupMusic();
+            
+            // Detect currency and generate products
+            await detectUserCurrency();
+            
+            // Add merch click handlers
+            if (merchFavicon) {
+                merchFavicon.addEventListener('mouseenter', playHoverSound);
+                merchFavicon.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank');
+                });
             }
+            if (merchFavicon2) {
+                merchFavicon2.addEventListener('mouseenter', playHoverSound);
+                merchFavicon2.addEventListener('click', (e) => {
+                    playClickSound();
+                    window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank');
+                });
+            }
+            
+            // Fetch YouTube data immediately
+            await fetchYouTubeData();
+            
+            // Refresh data every 30 seconds
+            setInterval(fetchYouTubeData, 30000);
         }
 
-        function startBackgroundRefresh() {
-            setInterval(fetchLatestVideos, 30000);
-            setInterval(updateYouTubeStats, 60000);
+        // Start everything when page loads
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
         }
-
-        function startStatsUpdates() {
-            updateYouTubeStats();
-        }
-
-        window.addEventListener('DOMContentLoaded', initialize);
     </script>
 </body>
 </html>
