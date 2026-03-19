@@ -20,7 +20,7 @@
     </style>
     
     <style>
-        /* CYBER STYLE WITH CURVED UI - OPTIMIZED FOR ALL DEVICES */
+        /* CLEAN CYBER STYLE - EVERYTHING NEAT AND ORGANIZED */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -32,13 +32,13 @@
             --grid-color: rgba(255, 70, 85, 0.1);
             --text-glow: 0 0 10px rgba(255, 107, 53, 0.7);
             
-            /* Responsive sizing */
+            /* Consistent sizing */
             --container-width: min(600px, 95vw);
             --canvas-size: min(400px, 85vw);
-            --font-size-large: clamp(24px, 8vw, 48px);
-            --font-size-medium: clamp(14px, 4vw, 20px);
-            --font-size-small: clamp(10px, 3vw, 14px);
-            --button-padding: clamp(8px, 2vw, 15px) clamp(15px, 4vw, 30px);
+            --font-large: clamp(24px, 8vw, 48px);
+            --font-medium: clamp(14px, 4vw, 20px);
+            --font-small: clamp(10px, 3vw, 14px);
+            --spacing: clamp(8px, 2vh, 15px);
         }
         
         * {
@@ -46,12 +46,6 @@
             padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            -khtml-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
         }
         
         body {
@@ -66,21 +60,19 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px;
-            overflow-x: hidden;
+            padding: var(--spacing);
         }
         
-        /* GAME CONTAINER - FULLY RESPONSIVE */
+        /* MAIN GAME CONTAINER - CLEAN AND ORGANIZED */
         .game-container {
             max-width: var(--container-width);
             width: 100%;
             background: rgba(5, 5, 8, 0.95);
             border: 3px solid var(--neon-red);
-            border-radius: max(20px, 5vw);
-            padding: max(15px, 3vw) max(10px, 2vw);
+            border-radius: 20px;
+            padding: var(--spacing);
             position: relative;
             box-shadow: 0 10px 30px rgba(255, 70, 85, 0.4);
-            margin: 10px auto;
         }
         
         .game-container::before {
@@ -96,63 +88,51 @@
                 var(--neon-orange), 
                 var(--neon-red), 
                 transparent);
-            border-radius: max(20px, 5vw) max(20px, 5vw) 0 0;
+            border-radius: 20px 20px 0 0;
         }
         
-        /* HEADER */
+        /* HEADER - TOP */
         .game-header {
             text-align: center;
-            margin-bottom: max(10px, 2vh);
-            padding-bottom: max(8px, 1.5vh);
+            margin-bottom: var(--spacing);
+            padding-bottom: var(--spacing);
             border-bottom: 3px solid var(--neon-red);
         }
         
         .game-title {
-            font-size: var(--font-size-large);
+            font-size: var(--font-large);
             font-weight: bold;
             background: linear-gradient(45deg, var(--neon-red), var(--neon-orange), #FF0040);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
-            letter-spacing: max(2px, 1vw);
-            margin-bottom: max(3px, 0.5vh);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
             animation: hologram 3s infinite alternate;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            line-height: 1.2;
-            word-break: break-word;
-        }
-        
-        @keyframes hologram {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.8; }
         }
         
         .game-subtitle {
-            font-size: var(--font-size-small);
+            font-size: var(--font-small);
             color: var(--matrix-green);
             text-transform: uppercase;
-            letter-spacing: max(1px, 0.5vw);
             background: rgba(0, 0, 0, 0.5);
-            padding: max(3px, 0.5vh) max(10px, 2vw);
+            padding: 5px 15px;
             display: inline-block;
-            border-radius: max(15px, 3vw);
+            border-radius: 30px;
             border: 2px solid var(--neon-orange);
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-            line-height: 1.4;
         }
         
-        /* CANVAS WRAPPER - TOUCH OPTIMIZED */
+        /* CANVAS - CENTERED */
         .canvas-wrapper {
             display: flex;
             justify-content: center;
-            margin: max(8px, 1.5vh) 0;
-            padding: max(8px, 1.5vh);
+            margin: var(--spacing) 0;
+            padding: var(--spacing);
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid var(--neon-orange);
-            border-radius: max(20px, 4vw);
+            border-radius: 15px;
             box-shadow: 0 5px 20px rgba(255, 107, 53, 0.3);
-            cursor: pointer;
-            touch-action: manipulation;
         }
         
         #gameCanvas {
@@ -161,43 +141,32 @@
             height: auto;
             aspect-ratio: 2/3;
             border: 2px solid var(--neon-orange);
-            border-radius: max(15px, 3vw);
+            border-radius: 10px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
-            touch-action: none;
-            pointer-events: none;
         }
         
-        /* STATS GRID - RESPONSIVE */
+        /* STATS GRID - 4 COLUMNS */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: max(5px, 1vw);
-            margin: max(8px, 1.5vh) 0;
+            gap: 8px;
+            margin: var(--spacing) 0;
         }
         
         .cyber-stat {
             background: rgba(10, 10, 15, 0.8);
             border: 2px solid var(--neon-orange);
-            border-radius: max(12px, 2vw);
-            padding: max(5px, 1vh) max(2px, 0.5vw);
+            border-radius: 10px;
+            padding: 8px 5px;
             text-align: center;
-            transition: transform 0.2s;
             box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
         }
         
-        .cyber-stat:active {
-            transform: scale(0.95);
-        }
-        
         .stat-label {
-            font-size: var(--font-size-small);
+            font-size: var(--font-small);
             color: #ccc;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 2px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            margin-bottom: 3px;
         }
         
         .stat-value {
@@ -205,7 +174,6 @@
             font-weight: bold;
             color: var(--neon-orange);
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            white-space: nowrap;
         }
         
         #coinCount {
@@ -213,50 +181,51 @@
             text-shadow: 0 0 10px gold;
         }
         
-        /* INDICATORS - RESPONSIVE FLEX WRAP */
+        /* INDICATORS ROW - CHEATS AND POWER-UPS */
+        .indicators-row {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin: var(--spacing) 0;
+            min-height: 50px;
+        }
+        
         .cheat-indicators, .active-powerups {
             display: flex;
-            gap: max(5px, 1vw);
+            gap: 8px;
             justify-content: center;
-            margin: max(5px, 1vh) 0;
-            min-height: max(25px, 4vh);
             flex-wrap: wrap;
         }
         
         .cheat-badge, .powerup-badge {
             background: rgba(0, 0, 0, 0.7);
-            border-radius: max(15px, 3vw);
-            padding: max(3px, 0.5vh) max(8px, 1.5vw);
-            font-size: var(--font-size-small);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: var(--font-small);
             display: inline-flex;
             align-items: center;
-            gap: max(3px, 0.5vw);
+            gap: 5px;
             animation: pulse 1.5s infinite;
-            white-space: nowrap;
         }
         
         .cheat-badge.godmode {
             border: 2px solid var(--neon-red);
             color: var(--neon-red);
-            background: rgba(255, 70, 85, 0.2);
         }
         
         .cheat-badge.coinlord {
             border: 2px solid gold;
             color: gold;
-            background: rgba(255, 215, 0, 0.2);
         }
         
         .cheat-badge.slowmo {
             border: 2px solid var(--matrix-green);
             color: var(--matrix-green);
-            background: rgba(0, 255, 157, 0.2);
         }
         
         .cheat-badge.bigbird {
             border: 2px solid var(--neon-orange);
             color: var(--neon-orange);
-            background: rgba(255, 107, 53, 0.2);
         }
         
         .powerup-badge {
@@ -267,69 +236,96 @@
         .powerup-timer {
             background: var(--neon-red);
             color: white;
-            border-radius: max(10px, 2vw);
-            padding: max(1px, 0.2vh) max(4px, 0.8vw);
-            font-size: calc(var(--font-size-small) - 2px);
+            border-radius: 15px;
+            padding: 2px 6px;
+            font-size: calc(var(--font-small) - 2px);
         }
         
-        @keyframes pulse {
-            0% { opacity: 0.8; }
-            50% { opacity: 1; }
-            100% { opacity: 0.8; }
+        /* BUTTONS ROW */
+        .buttons-row {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: var(--spacing) 0;
+            flex-wrap: wrap;
         }
         
-        /* BUTTONS - TOUCH FRIENDLY */
-        .store-button, .game-btn {
+        .action-btn {
             background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
             color: white;
             border: 2px solid gold;
-            border-radius: max(20px, 4vw);
-            padding: var(--button-padding);
-            font-size: var(--font-size-medium);
+            border-radius: 30px;
+            padding: 10px 25px;
+            font-size: var(--font-medium);
             font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: max(1px, 0.3vw);
             cursor: pointer;
             transition: all 0.2s;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            margin: max(5px, 1vh) auto;
-            display: block;
-            width: fit-content;
-            min-width: max(150px, 40vw);
-            max-width: 90%;
+            min-width: 120px;
             box-shadow: 0 5px 15px gold;
-            touch-action: manipulation;
-            -webkit-appearance: none;
         }
         
-        .store-button:active, .game-btn:active {
-            transform: scale(0.95);
-            box-shadow: 0 2px 10px gold;
+        .action-btn.small {
+            padding: 8px 20px;
+            font-size: var(--font-small);
+            min-width: 100px;
+        }
+        
+        .action-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px gold;
+        }
+        
+        .action-btn.secondary {
+            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
+            border-color: var(--neon-red);
+            box-shadow: 0 5px 15px var(--matrix-green);
+        }
+        
+        /* GAME CONTROLS ROW */
+        .game-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: var(--spacing) 0;
+            flex-wrap: wrap;
+        }
+        
+        .game-btn {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 2px solid var(--matrix-green);
+            border-radius: 30px;
+            padding: 10px 25px;
+            font-size: var(--font-medium);
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            min-width: 120px;
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
         }
         
         .game-btn.secondary {
             background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
-            border-color: var(--neon-red);
-            box-shadow: 0 5px 15px var(--matrix-green);
-            min-width: max(120px, 30vw);
         }
         
-        .controls-box {
-            display: flex;
-            gap: max(5px, 1vw);
-            justify-content: center;
-            margin: max(8px, 1.5vh) 0;
-            flex-wrap: wrap;
+        .game-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px var(--matrix-green);
         }
         
-        /* CHEAT INPUT - OPTIMIZED */
+        /* CHEAT INPUT - DISCREET */
         .cheat-container {
-            margin: max(5px, 1vh) 0;
+            margin: var(--spacing) 0;
             text-align: center;
-            opacity: 0.3;
+            opacity: 0.2;
             transition: opacity 0.3s;
         }
         
+        .cheat-container:hover,
         .cheat-container:focus-within {
             opacity: 1;
         }
@@ -337,33 +333,30 @@
         .cheat-input {
             background: rgba(0, 0, 0, 0.7);
             border: 2px solid var(--neon-orange);
-            border-radius: max(20px, 4vw);
-            padding: max(5px, 1vh) max(10px, 2vw);
+            border-radius: 30px;
+            padding: 8px 15px;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
             color: var(--matrix-green);
-            font-size: var(--font-size-medium);
-            width: min(200px, 70vw);
+            font-size: var(--font-small);
+            width: 150px;
             text-align: center;
             letter-spacing: 4px;
-            -webkit-appearance: none;
-            appearance: none;
         }
         
         /* INSTRUCTIONS */
         .instructions {
             text-align: center;
-            margin: max(8px, 1.5vh) 0;
-            padding: max(8px, 1.5vh);
+            margin: var(--spacing) 0;
+            padding: var(--spacing);
             background: rgba(0, 0, 0, 0.3);
             border: 2px solid var(--neon-orange);
-            border-radius: max(20px, 4vw);
+            border-radius: 15px;
         }
         
         .instructions p {
             color: #ccc;
-            font-size: var(--font-size-small);
+            font-size: var(--font-small);
             margin: 3px 0;
-            line-height: 1.5;
         }
         
         .instructions .highlight {
@@ -373,30 +366,27 @@
         /* BACK LINK */
         .back-link {
             text-align: center;
-            margin-top: max(8px, 1.5vh);
+            margin-top: var(--spacing);
         }
         
         .back-link a {
             color: var(--matrix-green);
             text-decoration: none;
-            font-size: var(--font-size-small);
+            font-size: var(--font-small);
             text-transform: uppercase;
-            letter-spacing: max(1px, 0.3vw);
-            padding: max(4px, 0.8vh) max(10px, 2vw);
+            padding: 6px 20px;
             border: 2px solid var(--neon-red);
-            border-radius: max(20px, 4vw);
+            border-radius: 30px;
             display: inline-block;
             transition: all 0.2s;
-            touch-action: manipulation;
         }
         
-        .back-link a:active {
-            transform: scale(0.95);
+        .back-link a:hover {
             border-color: var(--matrix-green);
             color: var(--neon-orange);
         }
         
-        /* MODALS - RESPONSIVE */
+        /* MODALS - STORE AND LOCKER */
         .store-modal, .locker-modal {
             display: none;
             position: fixed;
@@ -408,8 +398,7 @@
             backdrop-filter: blur(5px);
             z-index: 10000;
             overflow-y: auto;
-            padding: max(10px, 2vh);
-            -webkit-overflow-scrolling: touch;
+            padding: 20px;
         }
         
         .store-modal.active, .locker-modal.active {
@@ -417,91 +406,69 @@
         }
         
         .store-modal-content, .locker-modal-content {
-            max-width: min(700px, 95vw);
-            margin: max(10px, 2vh) auto;
+            max-width: 700px;
+            margin: 30px auto;
             background: var(--dark-bg);
             border: 3px solid var(--neon-red);
-            border-radius: max(25px, 5vw);
-            padding: max(15px, 3vh) max(10px, 2vw);
+            border-radius: 20px;
+            padding: 20px;
         }
         
         .locker-modal-content {
             border-color: var(--matrix-green);
         }
         
-        .store-modal-header, .locker-modal-header {
+        .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: max(10px, 2vh);
+            margin-bottom: 20px;
             border-bottom: 2px solid gold;
-            padding-bottom: max(5px, 1vh);
+            padding-bottom: 10px;
         }
         
-        .locker-modal-header {
-            border-bottom-color: var(--matrix-green);
-        }
-        
-        .store-modal-title, .locker-modal-title {
-            font-size: clamp(20px, 6vw, 32px);
+        .modal-title {
+            font-size: clamp(20px, 6vw, 28px);
             color: gold;
             text-transform: uppercase;
-            letter-spacing: max(1px, 0.3vw);
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            word-break: break-word;
         }
         
-        .locker-modal-title {
-            color: var(--matrix-green);
-        }
-        
-        .store-modal-close, .locker-modal-close {
+        .modal-close {
             background: transparent;
             border: 2px solid var(--neon-red);
             color: var(--neon-red);
-            font-size: clamp(20px, 6vw, 24px);
-            width: max(30px, 8vw);
-            height: max(30px, 8vw);
+            font-size: 24px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             cursor: pointer;
-            transition: all 0.2s;
             display: flex;
             align-items: center;
             justify-content: center;
-            touch-action: manipulation;
         }
         
-        .store-modal-close:active, .locker-modal-close:active {
-            transform: scale(0.9);
+        .modal-close:hover {
             background: var(--neon-red);
             color: white;
         }
         
-        /* TABS - RESPONSIVE */
         .store-tabs {
             display: flex;
-            gap: max(5px, 1vw);
-            margin-bottom: max(15px, 3vh);
+            gap: 10px;
+            margin-bottom: 20px;
             justify-content: center;
-            flex-wrap: wrap;
         }
         
         .store-tab {
             background: transparent;
             border: 2px solid var(--neon-orange);
             color: white;
-            padding: max(5px, 1vh) max(15px, 3vw);
-            border-radius: max(20px, 4vw);
+            padding: 8px 25px;
+            border-radius: 30px;
             cursor: pointer;
-            font-size: var(--font-size-medium);
+            font-size: var(--font-medium);
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            transition: all 0.2s;
-            touch-action: manipulation;
-            min-width: max(100px, 25vw);
-        }
-        
-        .store-tab:active {
-            transform: scale(0.95);
         }
         
         .store-tab.active {
@@ -510,76 +477,60 @@
             color: black;
         }
         
-        /* GRIDS - RESPONSIVE */
         .store-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(200px, 90vw), 1fr));
-            gap: max(10px, 2vw);
-            margin: max(10px, 2vh) 0;
-            max-height: 50vh;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            max-height: 400px;
             overflow-y: auto;
-            padding: max(5px, 1vh);
-            -webkit-overflow-scrolling: touch;
+            padding: 10px;
         }
         
         .store-item {
             background: rgba(20, 20, 30, 0.9);
             border: 2px solid var(--neon-orange);
-            border-radius: max(15px, 3vw);
-            padding: max(10px, 2vh);
+            border-radius: 15px;
+            padding: 15px;
             text-align: center;
-            transition: all 0.2s;
-        }
-        
-        .store-item:active {
-            transform: scale(0.98);
         }
         
         .store-item img {
-            width: min(60px, 15vw);
-            height: min(60px, 15vw);
+            width: 60px;
+            height: 60px;
             object-fit: contain;
-            margin-bottom: max(5px, 1vh);
+            margin-bottom: 8px;
         }
         
         .store-item-name {
-            font-size: var(--font-size-small);
+            font-size: var(--font-small);
             color: white;
-            margin-bottom: max(3px, 0.5vh);
-            word-break: break-word;
+            margin-bottom: 5px;
         }
         
         .store-item-price {
-            font-size: var(--font-size-medium);
+            font-size: var(--font-medium);
             color: gold;
             font-weight: bold;
-            margin: max(5px, 1vh) 0;
+            margin: 8px 0;
         }
         
         .store-item-desc {
-            font-size: calc(var(--font-size-small) - 2px);
+            font-size: calc(var(--font-small) - 2px);
             color: #aaa;
-            margin-bottom: max(5px, 1vh);
+            margin-bottom: 10px;
         }
         
         .store-buy-btn {
             background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
             color: white;
             border: none;
-            border-radius: max(15px, 3vw);
-            padding: max(5px, 1vh) max(10px, 2vw);
-            font-size: var(--font-size-small);
+            border-radius: 25px;
+            padding: 8px 15px;
+            font-size: var(--font-small);
             font-weight: bold;
             cursor: pointer;
             width: 100%;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            transition: all 0.2s;
-            touch-action: manipulation;
-            min-height: max(30px, 5vh);
-        }
-        
-        .store-buy-btn:active {
-            transform: scale(0.95);
         }
         
         .store-buy-btn.owned {
@@ -587,45 +538,48 @@
             color: black;
         }
         
-        /* LOCKER - RESPONSIVE */
+        .store-buy-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* LOCKER SPECIFIC STYLES */
         .locker-preview {
             display: flex;
-            flex-direction: row;
             align-items: center;
-            gap: max(10px, 2vw);
-            margin-bottom: max(15px, 3vh);
-            padding: max(10px, 2vh);
+            gap: 20px;
+            margin-bottom: 25px;
+            padding: 15px;
             background: rgba(0, 0, 0, 0.5);
-            border: 2px solid var(--neon-orange);
-            border-radius: max(20px, 4vw);
+            border: 2px solid gold;
+            border-radius: 15px;
             flex-wrap: wrap;
             justify-content: center;
         }
         
         .preview-canvas {
-            width: min(120px, 30vw);
-            height: min(120px, 30vw);
+            width: 120px;
+            height: 120px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
             border: 2px solid gold;
-            border-radius: max(10px, 2vw);
+            border-radius: 10px;
         }
         
         .preview-info {
             flex: 1;
-            min-width: max(150px, 40vw);
+            min-width: 200px;
             text-align: center;
         }
         
         .preview-title {
-            font-size: var(--font-size-medium);
+            font-size: var(--font-medium);
             color: gold;
-            margin-bottom: max(5px, 1vh);
-            word-break: break-word;
+            margin-bottom: 10px;
         }
         
         .preview-equip {
             display: flex;
-            gap: max(5px, 1vw);
+            gap: 10px;
             flex-wrap: wrap;
             justify-content: center;
         }
@@ -634,78 +588,190 @@
             background: var(--matrix-green);
             color: black;
             border: none;
-            border-radius: max(15px, 3vw);
-            padding: max(5px, 1vh) max(10px, 2vw);
-            font-size: var(--font-size-small);
+            border-radius: 25px;
+            padding: 8px 15px;
+            font-size: var(--font-small);
             font-weight: bold;
             cursor: pointer;
             font-family: 'CRIX Pixel', 'Courier New', monospace;
-            transition: all 0.2s;
-            touch-action: manipulation;
-            min-width: max(80px, 20vw);
         }
         
-        .equip-btn:active {
-            transform: scale(0.95);
+        .locker-section {
+            margin-bottom: 20px;
         }
         
         .locker-section-title {
-            font-size: var(--font-size-medium);
+            font-size: var(--font-medium);
             color: var(--neon-orange);
-            margin: max(10px, 2vh) 0 max(5px, 1vh);
+            margin-bottom: 10px;
             text-transform: uppercase;
         }
         
         .locker-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(min(100px, 40vw), 1fr));
-            gap: max(5px, 1vw);
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 10px;
         }
         
         .locker-item {
             background: rgba(20, 20, 30, 0.9);
             border: 2px solid var(--neon-orange);
-            border-radius: max(10px, 2vw);
-            padding: max(5px, 1vh);
+            border-radius: 10px;
+            padding: 10px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
-            touch-action: manipulation;
+            position: relative;
         }
         
-        .locker-item:active {
-            transform: scale(0.95);
+        .locker-item:hover {
+            border-color: gold;
         }
         
         .locker-item.equipped {
             border-color: var(--matrix-green);
-            box-shadow: 0 0 20px var(--matrix-green);
+            box-shadow: 0 0 15px var(--matrix-green);
         }
         
         .locker-item img {
-            width: min(40px, 10vw);
-            height: min(40px, 10vw);
+            width: 50px;
+            height: 50px;
             object-fit: contain;
-            margin-bottom: max(3px, 0.5vh);
+            margin-bottom: 5px;
         }
         
         .locker-item-name {
-            font-size: calc(var(--font-size-small) - 2px);
+            font-size: calc(var(--font-small) - 2px);
             color: white;
-            word-break: break-word;
+        }
+        
+        .equipped-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--matrix-green);
+            color: black;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
         }
         
         .locker-balance {
             text-align: center;
-            font-size: var(--font-size-medium);
+            font-size: var(--font-medium);
             color: gold;
-            margin: max(10px, 2vh) 0;
-            padding: max(8px, 1.5vh);
+            margin: 15px 0;
+            padding: 10px;
             border: 2px solid gold;
-            border-radius: max(25px, 5vw);
+            border-radius: 30px;
         }
         
-        /* BOUNCE ANIMATION */
+        /* VICTORY OVERLAY */
+        .victory-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 20000;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .victory-overlay.active {
+            display: flex;
+        }
+        
+        .victory-title {
+            font-size: clamp(30px, 10vw, 48px);
+            color: gold;
+            text-shadow: 0 0 20px gold;
+            margin-bottom: 20px;
+            animation: victoryPulse 2s infinite;
+        }
+        
+        .victory-message {
+            font-size: var(--font-medium);
+            color: white;
+            margin: 20px 0;
+            max-width: 500px;
+        }
+        
+        .victory-message.cheater {
+            color: var(--neon-red);
+        }
+        
+        .victory-restart {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 2px solid gold;
+            border-radius: 30px;
+            padding: 15px 40px;
+            font-size: var(--font-large);
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+        }
+        
+        /* EVENT OVERLAYS */
+        .event-overlay, .boom-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 15000;
+            pointer-events: none;
+            text-align: center;
+        }
+        
+        .event-gif {
+            max-width: 200px;
+            max-height: 200px;
+            animation: float 1s infinite alternate;
+        }
+        
+        .boom-gif {
+            max-width: 400px;
+            max-height: 400px;
+            animation: shake 0.5s infinite;
+        }
+        
+        @keyframes float {
+            from { transform: translateY(0); }
+            to { transform: translateY(-20px); }
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(5deg) scale(1.1); }
+            75% { transform: rotate(-5deg) scale(1.1); }
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 1; }
+            100% { opacity: 0.7; }
+        }
+        
+        @keyframes hologram {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        @keyframes victoryPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
         @keyframes bounce {
             0%, 100% { transform: translateX(0); }
             25% { transform: translateX(-10px); }
@@ -717,69 +783,35 @@
             animation: bounce 0.5s ease-in-out;
         }
         
-        /* CONSOLE OPTIMIZATIONS */
-        @media (hover: none) and (pointer: coarse) {
-            /* Mobile/Touch optimizations */
-            .store-button:hover, .game-btn:hover, .store-tab:hover {
-                transform: none;
-            }
-            
-            .store-button:active, .game-btn:active, .store-tab:active {
-                transform: scale(0.95);
-            }
-            
-            .cyber-stat {
-                cursor: default;
-            }
-        }
-        
-        /* TV / Console optimizations */
-        @media (min-width: 1200px) {
-            :root {
-                --container-width: 700px;
-                --canvas-size: 450px;
-            }
-            
-            .game-container {
-                margin: 30px auto;
-            }
-            
-            .store-button, .game-btn {
-                transition: transform 0.3s;
-            }
-            
-            .store-button:hover, .game-btn:hover {
-                transform: scale(1.05);
-            }
-        }
-        
-        /* Landscape orientation on mobile */
-        @media (orientation: landscape) and (max-height: 600px) {
-            .game-container {
-                padding: 10px;
-            }
-            
-            .canvas-wrapper {
-                margin: 5px 0;
-                padding: 5px;
-            }
-            
-            #gameCanvas {
-                max-height: 50vh;
-                width: auto;
-            }
-            
+        /* RESPONSIVE */
+        @media (max-width: 500px) {
             .stats-grid {
-                margin: 5px 0;
+                grid-template-columns: repeat(2, 1fr);
             }
-            
-            .cheat-indicators, .active-powerups {
-                margin: 3px 0;
+            .buttons-row {
+                flex-direction: column;
+                align-items: center;
+            }
+            .action-btn, .game-btn {
+                width: 100%;
+                max-width: 250px;
             }
         }
     </style>
 </head>
 <body>
+    <!-- VICTORY OVERLAY -->
+    <div class="victory-overlay" id="victoryOverlay">
+        <div class="victory-title">🎉 VICTORY! 🎉</div>
+        <div class="victory-message" id="victoryMessage"></div>
+        <img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="event-gif" style="max-width: 200px;">
+        <button class="victory-restart" id="victoryRestart">PLAY AGAIN</button>
+    </div>
+    
+    <!-- EVENT OVERLAYS -->
+    <div id="eventOverlay" class="event-overlay" style="display: none;"></div>
+    <div id="boomOverlay" class="boom-overlay" style="display: none;"></div>
+    
     <!-- AUDIO PLAYERS -->
     <audio id="jumpSound" preload="auto">
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg">
@@ -801,20 +833,35 @@
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg">
     </audio>
     
+    <audio id="victorySound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="sixtySevenSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3" type="audio/mpeg">
+    </audio>
+    
+    <audio id="boomSound" preload="auto">
+        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3" type="audio/mpeg">
+    </audio>
+    
     <audio id="bgMusic" loop>
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
     </audio>
     
     <div class="game-container">
+        <!-- HEADER -->
         <div class="game-header">
             <div class="game-title">FLAPPY CRIX</div>
             <div class="game-subtitle">collect coins • buy drip</div>
         </div>
         
+        <!-- CANVAS -->
         <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="gameCanvas" width="400" height="600"></canvas>
         </div>
         
+        <!-- STATS -->
         <div class="stats-grid">
             <div class="cyber-stat">
                 <div class="stat-label">SCORE</div>
@@ -834,31 +881,36 @@
             </div>
         </div>
         
-        <!-- ACTIVE CHEATS DISPLAY -->
-        <div class="cheat-indicators" id="cheatIndicators"></div>
+        <!-- INDICATORS -->
+        <div class="indicators-row">
+            <div class="cheat-indicators" id="cheatIndicators"></div>
+            <div class="active-powerups" id="activePowerups"></div>
+        </div>
         
-        <!-- ACTIVE POWER-UPS DISPLAY -->
-        <div class="active-powerups" id="activePowerups"></div>
+        <!-- ACTION BUTTONS -->
+        <div class="buttons-row">
+            <button class="action-btn" id="storeBtn">🛒 STORE</button>
+            <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
+        </div>
         
-        <!-- STORE AND LOCKER BUTTONS -->
-        <button class="store-button" id="storeBtn">🛒 STORE 🛒</button>
-        <button class="store-button" id="lockerBtn">👕 LOCKER 👕</button>
-        
-        <!-- CHEAT INPUT (HIDDEN) -->
+        <!-- CHEAT INPUT -->
         <div class="cheat-container">
             <input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
         </div>
         
-        <div class="controls-box">
+        <!-- GAME CONTROLS -->
+        <div class="game-controls">
             <button class="game-btn" id="startGameBtn">▶ START</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
         
+        <!-- INSTRUCTIONS -->
         <div class="instructions">
             <p><span class="highlight">⬆️ TAP/SPACE</span> to jump • <span class="highlight">🪙 COLLECT COINS</span></p>
-            <p><span class="highlight">🎮 CONTROLLER:</span> A / B / X / Y / START</p>
+            <p><span class="highlight">🎯 SECRETS AWAIT...</span></p>
         </div>
         
+        <!-- BACK LINK -->
         <div class="back-link">
             <a href="https://crixgamingvr.vercel.app" target="_blank" id="backLink">← BACK TO MAIN SITE</a>
         </div>
@@ -867,9 +919,9 @@
     <!-- STORE MODAL -->
     <div class="store-modal" id="storeModal">
         <div class="store-modal-content">
-            <div class="store-modal-header">
-                <div class="store-modal-title">🛒 CRIX STORE</div>
-                <button class="store-modal-close" id="closeStoreBtn">✕</button>
+            <div class="modal-header">
+                <div class="modal-title">🛒 CRIX STORE</div>
+                <button class="modal-close" id="closeStoreBtn">✕</button>
             </div>
             
             <div class="store-tabs">
@@ -890,16 +942,16 @@
     <!-- LOCKER MODAL -->
     <div class="locker-modal" id="lockerModal">
         <div class="locker-modal-content">
-            <div class="locker-modal-header">
-                <div class="locker-modal-title">👕 CRIX LOCKER</div>
-                <button class="locker-modal-close" id="closeLockerBtn">✕</button>
+            <div class="modal-header">
+                <div class="modal-title">👕 CRIX LOCKER</div>
+                <button class="modal-close" id="closeLockerBtn">✕</button>
             </div>
             
             <div class="locker-balance" id="lockerBalance">🪙 0</div>
             
-            <!-- PREVIEW SECTION -->
+            <!-- PREVIEW -->
             <div class="locker-preview">
-                <canvas id="previewCanvas" class="preview-canvas" width="150" height="150"></canvas>
+                <canvas id="previewCanvas" class="preview-canvas" width="120" height="120"></canvas>
                 <div class="preview-info">
                     <div class="preview-title" id="previewTitle">YOUR DRIP</div>
                     <div class="preview-equip">
@@ -909,13 +961,13 @@
                 </div>
             </div>
             
-            <!-- HATS SECTION -->
+            <!-- HATS -->
             <div class="locker-section">
                 <div class="locker-section-title">🧢 HATS</div>
                 <div class="locker-grid" id="lockerHats"></div>
             </div>
             
-            <!-- SHIRTS SECTION -->
+            <!-- SHIRTS -->
             <div class="locker-section">
                 <div class="locker-section-title">👕 SHIRTS</div>
                 <div class="locker-grid" id="lockerShirts"></div>
@@ -937,6 +989,11 @@
         const coinMultiplierEl = document.getElementById('coinMultiplier');
         const cheatIndicators = document.getElementById('cheatIndicators');
         const activePowerupsEl = document.getElementById('activePowerups');
+        const victoryOverlay = document.getElementById('victoryOverlay');
+        const victoryMessage = document.getElementById('victoryMessage');
+        const victoryRestart = document.getElementById('victoryRestart');
+        const eventOverlay = document.getElementById('eventOverlay');
+        const boomOverlay = document.getElementById('boomOverlay');
         
         // Buttons
         const startGameBtn = document.getElementById('startGameBtn');
@@ -976,6 +1033,9 @@
         const coinSound = document.getElementById('coinSound');
         const purchaseSound = document.getElementById('purchaseSound');
         const powerupSound = document.getElementById('powerupSound');
+        const victorySound = document.getElementById('victorySound');
+        const sixtySevenSound = document.getElementById('sixtySevenSound');
+        const boomSound = document.getElementById('boomSound');
         const bgMusic = document.getElementById('bgMusic');
         
         // Game state
@@ -984,6 +1044,8 @@
         let highScore = localStorage.getItem('flappyCrixHighScore') || 0;
         let musicMuted = true;
         let musicWasPlaying = false;
+        let hasTriggered67 = false;
+        let hasTriggered1000 = false;
         
         // Coin variables
         let coins = [];
@@ -991,6 +1053,13 @@
         let coinMultiplier = 1;
         const coinImage = new Image();
         coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        
+        // Event GIFs
+        const sixtySevenGif = new Image();
+        sixtySevenGif.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif';
+        
+        const boomGif = new Image();
+        boomGif.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif';
         
         // Bird image
         const birdImage = new Image();
@@ -1033,15 +1102,6 @@
                 type: 'shirt',
                 price: 40, 
                 image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif',
-                owned: false,
-                equipped: false
-            },
-            { 
-                id: 'hoodie', 
-                name: 'HOODIE', 
-                type: 'shirt',
-                price: 100, 
-                image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png',
                 owned: false,
                 equipped: false
             },
@@ -1092,7 +1152,6 @@
         
         // ========== LOAD SAVED DATA ==========
         function loadSavedData() {
-            // Load owned cosmetics
             const savedOwned = localStorage.getItem('flappyCrixOwned');
             if (savedOwned) {
                 const ownedIds = JSON.parse(savedOwned);
@@ -1101,7 +1160,6 @@
                 });
             }
             
-            // Load equipped items
             const savedEquipped = localStorage.getItem('flappyCrixEquipped');
             if (savedEquipped) {
                 const equipped = JSON.parse(savedEquipped);
@@ -1112,7 +1170,6 @@
                 });
             }
             
-            // Load active power-ups
             const savedPowerups = localStorage.getItem('flappyCrixPowerups');
             if (savedPowerups) {
                 const active = JSON.parse(savedPowerups);
@@ -1235,6 +1292,55 @@
             localStorage.setItem('flappyCrixPowerups', JSON.stringify(active));
         }
         
+        // ========== SPECIAL EVENTS ==========
+        function trigger67() {
+            if (hasTriggered67) return;
+            hasTriggered67 = true;
+            
+            sixtySevenSound.currentTime = 0;
+            sixtySevenSound.volume = 0.5;
+            sixtySevenSound.play().catch(e => console.log('67 sound blocked'));
+            
+            eventOverlay.style.display = 'block';
+            eventOverlay.innerHTML = `<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" class="event-gif">`;
+            
+            setTimeout(() => {
+                eventOverlay.style.display = 'none';
+                eventOverlay.innerHTML = '';
+            }, 3000);
+        }
+        
+        function trigger1000() {
+            if (hasTriggered1000) return;
+            hasTriggered1000 = true;
+            
+            gameRunning = false;
+            
+            boomOverlay.style.display = 'flex';
+            boomOverlay.innerHTML = `<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="boom-gif">`;
+            
+            boomSound.currentTime = 0;
+            boomSound.volume = 0.6;
+            boomSound.play().catch(e => console.log('Boom sound blocked'));
+            
+            setTimeout(() => {
+                boomOverlay.style.display = 'none';
+                
+                const usedCheats = Object.values(cheats).some(v => v === true);
+                
+                victoryMessage.innerHTML = usedCheats 
+                    ? 'YOU DID IT! ...AND MAYBE USED SOME HELP? 😈\nThanks for playing!'
+                    : 'VICTORY! YOU CONQUERED FLAPPY CRIX!\nThanks for playing!';
+                
+                if (usedCheats) {
+                    victoryMessage.classList.add('cheater');
+                }
+                
+                victoryOverlay.classList.add('active');
+                victorySound.play().catch(e => console.log('Victory sound blocked'));
+            }, 2000);
+        }
+        
         // ========== STORE FUNCTIONS ==========
         function openStore() {
             playSelectSound();
@@ -1249,7 +1355,6 @@
         }
         
         function updateStoreDisplay() {
-            // Power-ups store
             let powerupsHtml = '';
             powerups.forEach(p => {
                 powerupsHtml += `
@@ -1265,7 +1370,6 @@
             });
             powerupsStoreGrid.innerHTML = powerupsHtml;
             
-            // Cosmetics store
             let cosmeticsHtml = '';
             cosmetics.forEach(c => {
                 cosmeticsHtml += `
@@ -1282,7 +1386,6 @@
             cosmeticsStoreGrid.innerHTML = cosmeticsHtml;
         }
         
-        // Buy functions (make global)
         window.buyPowerup = function(id) {
             const powerup = powerups.find(p => p.id === id);
             if (!powerup || powerup.active) return;
@@ -1336,36 +1439,37 @@
         function updateLockerDisplay() {
             lockerBalance.innerHTML = `🪙 ${coinCount}`;
             
-            // Hats grid
+            // Hats
             let hatsHtml = '';
             cosmetics.filter(c => c.type === 'hat' && c.owned).forEach(hat => {
                 hatsHtml += `
                     <div class="locker-item ${hat.equipped ? 'equipped' : ''}" onclick="equipItem('${hat.id}')">
                         <img src="${hat.image}" alt="${hat.name}">
                         <div class="locker-item-name">${hat.name}</div>
+                        ${hat.equipped ? '<div class="equipped-badge">✓</div>' : ''}
                     </div>
                 `;
             });
             lockerHats.innerHTML = hatsHtml || '<div style="grid-column:1/-1; text-align:center;">No hats owned</div>';
             
-            // Shirts grid
+            // Shirts
             let shirtsHtml = '';
             cosmetics.filter(c => c.type === 'shirt' && c.owned).forEach(shirt => {
                 shirtsHtml += `
                     <div class="locker-item ${shirt.equipped ? 'equipped' : ''}" onclick="equipItem('${shirt.id}')">
                         <img src="${shirt.image}" alt="${shirt.name}">
                         <div class="locker-item-name">${shirt.name}</div>
+                        ${shirt.equipped ? '<div class="equipped-badge">✓</div>' : ''}
                     </div>
                 `;
             });
             lockerShirts.innerHTML = shirtsHtml || '<div style="grid-column:1/-1; text-align:center;">No shirts owned</div>';
         }
         
-        window.equipItem = function(id) {
+        function equipItem(id) {
             const item = cosmetics.find(c => c.id === id);
             if (!item || !item.owned) return;
             
-            // Unequip other items of same type
             cosmetics.forEach(c => {
                 if (c.type === item.type && c.equipped) {
                     c.equipped = false;
@@ -1377,7 +1481,7 @@
             updateLockerDisplay();
             updatePreview();
             playSelectSound();
-        };
+        }
         
         unequipHat.addEventListener('click', () => {
             const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
@@ -1402,36 +1506,35 @@
         });
         
         function updatePreview() {
-            previewCtx.clearRect(0, 0, 150, 150);
+            previewCtx.clearRect(0, 0, 120, 120);
             
-            // Draw background
+            // Background
             previewCtx.fillStyle = '#0A0A0F';
-            previewCtx.fillRect(0, 0, 150, 150);
+            previewCtx.fillRect(0, 0, 120, 120);
             
-            // Draw grid
+            // Grid
             previewCtx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
             previewCtx.lineWidth = 1;
-            for (let i = 0; i < 150; i += 20) {
+            for (let i = 0; i < 120; i += 20) {
                 previewCtx.beginPath();
                 previewCtx.moveTo(i, 0);
-                previewCtx.lineTo(i, 150);
+                previewCtx.lineTo(i, 120);
                 previewCtx.stroke();
                 previewCtx.beginPath();
                 previewCtx.moveTo(0, i);
-                previewCtx.lineTo(150, i);
+                previewCtx.lineTo(120, i);
                 previewCtx.stroke();
             }
             
-            // Draw bird with cheat size
+            // Bird
             previewCtx.save();
-            previewCtx.translate(75, 75);
+            previewCtx.translate(60, 60);
             
-            let size = cheats.bigbird ? 50 : 40;
+            let size = cheats.bigbird ? 45 : 35;
             
             if (birdImage.complete) {
                 previewCtx.drawImage(birdImage, -size/2, -size/2, size, size);
                 
-                // Draw shirt
                 const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
                 if (shirt) {
                     const shirtImg = new Image();
@@ -1439,7 +1542,6 @@
                     previewCtx.drawImage(shirtImg, -size/2, -size/2, size, size);
                 }
                 
-                // Draw hat
                 const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
                 if (hat) {
                     const hatImg = new Image();
@@ -1482,6 +1584,8 @@
                 this.gameOver = false;
                 
                 coins = [];
+                hasTriggered67 = false;
+                hasTriggered1000 = false;
             }
             
             isCoinPositionSafe(x, y) {
@@ -1509,11 +1613,9 @@
             }
             
             draw() {
-                // Clear canvas
-                ctx.fillStyle = '#0A0A0F';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
                 
-                // Draw grid
+                // Grid
                 ctx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
                 ctx.lineWidth = 1;
                 for (let i = 0; i < canvas.width; i += 50) {
@@ -1529,7 +1631,7 @@
                     ctx.stroke();
                 }
                 
-                // Draw pipes
+                // Pipes
                 ctx.fillStyle = '#00FF9D';
                 ctx.shadowColor = '#00FF9D';
                 ctx.shadowBlur = 10;
@@ -1539,20 +1641,17 @@
                 });
                 ctx.shadowBlur = 0;
                 
-                // Draw coins
+                // Coins
                 coins.forEach(coin => {
-                    if (!coin.collected) {
-                        if (coinImage.complete) {
-                            ctx.drawImage(coinImage, coin.x - 15, coin.y - 15, 30, 30);
-                        }
+                    if (!coin.collected && coinImage.complete) {
+                        ctx.drawImage(coinImage, coin.x - 15, coin.y - 15, 30, 30);
                     }
                 });
                 
-                // Draw bird with cosmetics
+                // Bird
                 ctx.save();
                 ctx.translate(this.bird.x, this.bird.y);
                 
-                // Rotate based on velocity
                 let rotation = Math.min(Math.max(this.bird.velocity * 0.1, -0.5), 0.5);
                 ctx.rotate(rotation);
                 
@@ -1560,7 +1659,6 @@
                     let size = cheats.bigbird ? 45 : 30;
                     ctx.drawImage(birdImage, -size/2, -size/2, size, size);
                     
-                    // Draw shirt
                     const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
                     if (shirt) {
                         const shirtImg = new Image();
@@ -1568,7 +1666,6 @@
                         ctx.drawImage(shirtImg, -size/2, -size/2, size, size);
                     }
                     
-                    // Draw hat
                     const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
                     if (hat) {
                         const hatImg = new Image();
@@ -1579,7 +1676,7 @@
                 
                 ctx.restore();
                 
-                // Draw score
+                // Score
                 if (!this.gameOver && gameRunning) {
                     ctx.fillStyle = '#FF6B35';
                     ctx.font = '20px "CRIX Pixel", monospace';
@@ -1603,11 +1700,9 @@
                 const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode;
                 const magnetActive = powerups.find(p => p.id === 'magnet')?.active || false;
                 
-                // Bird physics
                 this.bird.velocity += this.bird.gravity;
                 this.bird.y += this.bird.velocity;
                 
-                // Check boundaries
                 if (!shieldActive) {
                     if (this.bird.y < 10 || this.bird.y > canvas.height - 10) {
                         this.gameOver = true;
@@ -1625,7 +1720,6 @@
                     }
                 }
                 
-                // Generate pipes (slower if slowmo)
                 let pipeRate = cheats.slowmo ? 180 : 120;
                 if (this.frameCount % pipeRate === 0) {
                     const topHeight = Math.random() * (canvas.height - this.pipeGap - 150) + 70;
@@ -1637,7 +1731,6 @@
                     });
                 }
                 
-                // Generate coins (more if coinlord)
                 let coinRate = cheats.coinlord ? 20 : 40;
                 let coinChance = cheats.coinlord ? 0.8 : 0.4;
                 
@@ -1653,7 +1746,6 @@
                     }
                 }
                 
-                // Update pipes
                 let speed = cheats.slowmo ? 1.5 : 2.5;
                 for (let i = this.pipes.length - 1; i >= 0; i--) {
                     this.pipes[i].x -= speed;
@@ -1674,6 +1766,14 @@
                         this.score++;
                         this.pipes[i].scored = true;
                         gameScore.textContent = this.score;
+                        
+                        if (this.score === 67 && !hasTriggered67) {
+                            trigger67();
+                        }
+                        
+                        if (this.score === 1000 && !hasTriggered1000) {
+                            trigger1000();
+                        }
                     }
                     
                     if (this.pipes[i].x + this.pipeWidth < 0) {
@@ -1681,7 +1781,6 @@
                     }
                 }
                 
-                // Update coins
                 for (let i = coins.length - 1; i >= 0; i--) {
                     if (!coins[i].collected) {
                         coins[i].x -= speed;
@@ -1802,37 +1901,37 @@
         
         // ========== CHEAT CODES ==========
         const CHEATS = {
-            '6969': () => { // GODMODE
+            '6969': () => {
                 cheats.godmode = !cheats.godmode;
                 updateCheatIndicators();
                 alert(cheats.godmode ? '👼 Godmode activated!' : '👼 Godmode deactivated');
             },
-            '1337': () => { // COIN LORD
+            '1337': () => {
                 cheats.coinlord = !cheats.coinlord;
                 updateCheatIndicators();
                 alert(cheats.coinlord ? '💰 Coin Lord activated!' : '💰 Coin Lord deactivated');
                 if (gameRunning) game.reset();
             },
-            '0420': () => { // SLOW MO
+            '0420': () => {
                 cheats.slowmo = !cheats.slowmo;
                 updateCheatIndicators();
                 alert(cheats.slowmo ? '⏱️ Slow motion activated!' : '⏱️ Slow motion deactivated');
                 if (gameRunning) game.reset();
             },
-            '8008': () => { // BIG BIRD
+            '8008': () => {
                 cheats.bigbird = !cheats.bigbird;
                 updateCheatIndicators();
                 alert(cheats.bigbird ? '🦅 Big bird activated!' : '🦅 Big bird deactivated');
                 if (gameRunning) game.reset();
                 updatePreview();
             },
-            '2468': () => { // 2X COINS (power-up)
+            '2468': () => {
                 const x2 = powerups.find(p => p.id === 'x2coins');
                 if (!x2.active) {
                     activatePowerup('x2coins');
                 }
             },
-            '9999': () => { // +50 COINS
+            '9999': () => {
                 coinCount += 50;
                 updateCoinDisplay();
                 localStorage.setItem('flappyCrixCoins', coinCount);
@@ -1846,6 +1945,13 @@
                 CHEATS[code]();
                 cheatInput.value = '';
             }
+        });
+        
+        // ========== VICTORY RESTART ==========
+        victoryRestart.addEventListener('click', () => {
+            victoryOverlay.classList.remove('active');
+            game.reset();
+            startGame();
         });
         
         // ========== EXIT WITH BOUNCE ==========
@@ -1889,63 +1995,19 @@
             gameLoop();
         }
         
-        // ========== INPUT HANDLERS (PC, MOBILE, CONSOLE) ==========
-        
-        // Touch/Click on canvas
+        // ========== INPUT HANDLERS ==========
         canvasWrapper.addEventListener('click', () => game.jump());
         canvasWrapper.addEventListener('touchstart', (e) => {
             e.preventDefault();
             game.jump();
         });
         
-        // Keyboard (PC)
         document.addEventListener('keydown', (e) => {
             if (e.key === ' ' || e.key === 'Space') {
                 e.preventDefault();
                 game.jump();
             }
-            
-            // Console controller emulation
-            if (e.code === 'GamepadButton0' || e.code === 'GamepadButton1' || 
-                e.code === 'GamepadButton2' || e.code === 'GamepadButton3' ||
-                e.code === 'GamepadButton9') { // A, B, X, Y, Start buttons
-                e.preventDefault();
-                game.jump();
-            }
         });
-        
-        // Gamepad/Controller support
-        let gamepadIndex = null;
-        
-        window.addEventListener('gamepadconnected', (e) => {
-            gamepadIndex = e.gamepad.index;
-            console.log('Controller connected');
-        });
-        
-        window.addEventListener('gamepaddisconnected', () => {
-            gamepadIndex = null;
-            console.log('Controller disconnected');
-        });
-        
-        function checkGamepad() {
-            if (gamepadIndex !== null) {
-                const gamepad = navigator.getGamepads()[gamepadIndex];
-                if (gamepad) {
-                    // Check for button presses (A, B, X, Y, Start)
-                    const jumpButtons = [0, 1, 2, 3, 9]; // A, B, X, Y, Start
-                    for (let button of jumpButtons) {
-                        if (gamepad.buttons[button] && gamepad.buttons[button].pressed) {
-                            game.jump();
-                            break;
-                        }
-                    }
-                }
-            }
-            requestAnimationFrame(checkGamepad);
-        }
-        
-        // Start checking for gamepad
-        checkGamepad();
         
         // ========== EVENT LISTENERS ==========
         startGameBtn.addEventListener('click', startGame);
@@ -1975,11 +2037,6 @@
             if (e.target === lockerModal) closeLocker();
         });
         
-        // Prevent zoom on double tap for mobile
-        document.addEventListener('touchstart', (e) => {
-            if (e.touches.length > 1) e.preventDefault();
-        }, { passive: false });
-        
         // ========== INITIALIZE ==========
         highScoreEl.textContent = highScore;
         loadSavedData();
@@ -1988,7 +2045,6 @@
         updateCheatIndicators();
         game.draw();
         
-        // Load images for preview
         birdImage.onload = () => {
             updatePreview();
             game.draw();
