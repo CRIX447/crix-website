@@ -122,42 +122,7 @@
             position: relative;
         }
         
-        /* GAME BUTTON */
-        .game-button-container {
-            text-align: center;
-            margin: 30px 0 40px;
-        }
-        
-        .game-button {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
-            color: white;
-            border: 2px solid var(--matrix-green);
-            padding: 18px 50px;
-            font-size: 28px;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 4px;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-            text-decoration: none;
-            display: inline-block;
-            animation: pulse 2s infinite;
-        }
-        
-        @keyframes pulse {
-            0% { box-shadow: 0 0 10px var(--matrix-green); }
-            50% { box-shadow: 0 0 25px var(--matrix-green); }
-            100% { box-shadow: 0 0 10px var(--matrix-green); }
-        }
-        
-        .game-button:hover {
-            background: linear-gradient(45deg, var(--cyber-red), var(--cyber-orange));
-            transform: translateY(-5px);
-            border-color: white;
-        }
-        
-        /* GAMES SECTION - NEW */
+        /* GAMES SECTION */
         .games-section {
             background: rgba(5, 5, 8, 0.9);
             padding: 40px 30px;
@@ -760,7 +725,6 @@
             .circle-button { width: 60px; height: 60px; }
             .social-button { width: 50px; height: 50px; }
             .music-control { width: 50px; height: 50px; font-size: 24px; }
-            .game-button { font-size: 22px; padding: 15px 40px; }
             .games-grid { grid-template-columns: 1fr; }
         }
         
@@ -770,7 +734,6 @@
             .circle-button { width: 50px; height: 50px; }
             .social-button { width: 45px; height: 45px; }
             .music-control { width: 45px; height: 45px; font-size: 22px; }
-            .game-button { font-size: 18px; padding: 12px 30px; }
         }
     </style>
 </head>
@@ -799,18 +762,11 @@
     </header>
     
     <div class="cyber-container">
-        <!-- GAME BUTTON (opens Flappy Crix) -->
-        <div class="game-button-container">
-            <a href="https://crixgamingvr.vercel.app/game.html" target="_blank" style="text-decoration: none;">
-                <button class="game-button">🎮 PLAY FLAPPY CRIX</button>
-            </a>
-        </div>
-        
-        <!-- GAMES SECTION - NEW! -->
+        <!-- GAMES SECTION - SINGLE LOCATION FOR GAME BUTTONS -->
         <section class="games-section">
             <h2 class="section-title">🎮 CRIX GAMES</h2>
             <div class="games-grid">
-                <!-- FLAPPY CRIX - CURRENT GAME -->
+                <!-- FLAPPY CRIX - CURRENT GAME (ONLY ONE BUTTON) -->
                 <a href="https://crixgamingvr.vercel.app/game.html" target="_blank" class="game-card active">
                     <div class="game-icon">🐦</div>
                     <div class="game-name">FLAPPY CRIX</div>
