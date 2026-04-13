@@ -6,6 +6,14 @@
     <title>FLAPPY CRIX • CRIXGAMING VR</title>
     
     <style>
+        @font-face {
+            font-family: 'CRIX Pixel';
+            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        
         * {
             margin: 0;
             padding: 0;
@@ -15,7 +23,7 @@
         }
         
         body {
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', 'Lucida Console', 'Monaco', monospace;
             background: #0A0A0F;
             min-height: 100vh;
             display: flex;
@@ -52,7 +60,7 @@
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
             letter-spacing: 2px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .game-subtitle {
@@ -63,7 +71,7 @@
             display: inline-block;
             border-radius: 30px;
             border: 1px solid #FF6B35;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .canvas-wrapper {
@@ -107,14 +115,14 @@
             font-size: 9px;
             color: #ccc;
             text-transform: uppercase;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .stat-value {
             font-size: 14px;
             font-weight: bold;
             color: #FF6B35;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         #coinCount { color: gold; }
@@ -132,7 +140,7 @@
             border-radius: 20px;
             padding: 3px 10px;
             font-size: 10px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .cheat-badge.godmode { border: 1px solid #FF4655; color: #FF4655; }
@@ -159,7 +167,7 @@
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             min-width: 90px;
         }
         
@@ -184,7 +192,7 @@
             border: 1px solid #FF6B35;
             border-radius: 30px;
             padding: 6px 12px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             color: #00CC7A;
             width: 110px;
             text-align: center;
@@ -205,7 +213,7 @@
             color: #ccc;
             font-size: 10px;
             margin: 2px 0;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .highlight { color: #FF6B35; }
@@ -222,7 +230,7 @@
             padding: 5px 15px;
             border: 1px solid #FF4655;
             border-radius: 30px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .store-modal, .locker-modal, .achievements-modal {
@@ -261,7 +269,7 @@
             font-size: 20px;
             color: gold;
             text-transform: uppercase;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .modal-close {
@@ -290,7 +298,7 @@
             border-radius: 30px;
             cursor: pointer;
             font-size: 12px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .store-tab.active { background: gold; color: black; border-color: gold; }
@@ -314,8 +322,8 @@
         }
         
         .store-item img, .locker-item img { width: 50px; height: 50px; object-fit: contain; }
-        .store-item-name { font-size: 10px; color: white; font-family: 'Courier New', Courier, monospace; }
-        .store-item-price { font-size: 13px; color: gold; margin: 5px 0; font-family: 'Courier New', Courier, monospace; }
+        .store-item-name { font-size: 10px; color: white; font-family: 'CRIX Pixel', 'Courier New', monospace; }
+        .store-item-price { font-size: 13px; color: gold; margin: 5px 0; font-family: 'CRIX Pixel', 'Courier New', monospace; }
         
         .store-buy-btn {
             background: linear-gradient(45deg, #FF4655, #FF6B35);
@@ -326,7 +334,7 @@
             cursor: pointer;
             width: 100%;
             font-size: 10px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .locker-preview {
@@ -343,7 +351,7 @@
         
         .preview-canvas { width: 80px; height: 80px; border: 1px solid gold; border-radius: 8px; }
         .preview-info { text-align: center; }
-        .preview-title { font-size: 12px; color: gold; font-family: 'Courier New', Courier, monospace; }
+        .preview-title { font-size: 12px; color: gold; font-family: 'CRIX Pixel', 'Courier New', monospace; }
         
         .equip-btn {
             background: #00CC7A;
@@ -354,7 +362,7 @@
             cursor: pointer;
             font-size: 10px;
             margin: 3px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .locker-section-title {
@@ -363,7 +371,7 @@
             margin: 10px 0 8px;
             text-transform: uppercase;
             text-align: center;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .locker-item.equipped { border-color: #00CC7A; }
@@ -391,7 +399,7 @@
             padding: 8px;
             border: 1px solid gold;
             border-radius: 30px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .achievements-grid {
@@ -413,8 +421,8 @@
         
         .achievement-item.unlocked { border-color: gold; background: rgba(255,215,0,0.1); }
         .achievement-icon { font-size: 30px; }
-        .achievement-name { font-size: 12px; color: white; font-family: 'Courier New', Courier, monospace; }
-        .achievement-desc { font-size: 9px; color: #aaa; font-family: 'Courier New', Courier, monospace; }
+        .achievement-name { font-size: 12px; color: white; font-family: 'CRIX Pixel', 'Courier New', monospace; }
+        .achievement-desc { font-size: 9px; color: #aaa; font-family: 'CRIX Pixel', 'Courier New', monospace; }
         
         .event-overlay, .boom-overlay {
             position: fixed;
@@ -443,8 +451,8 @@
         }
         
         .victory-overlay.active { display: flex; }
-        .victory-title { font-size: 32px; color: gold; margin-bottom: 15px; font-family: 'Courier New', Courier, monospace; }
-        .victory-message { font-family: 'Courier New', Courier, monospace; color: white; margin-bottom: 20px; }
+        .victory-title { font-size: 32px; color: gold; margin-bottom: 15px; font-family: 'CRIX Pixel', 'Courier New', monospace; }
+        .victory-message { font-family: 'CRIX Pixel', 'Courier New', monospace; color: white; margin-bottom: 20px; }
         .victory-restart {
             background: linear-gradient(45deg, #FF4655, #FF6B35);
             color: white;
@@ -453,7 +461,7 @@
             padding: 12px 30px;
             margin-top: 20px;
             cursor: pointer;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         @media (max-width: 450px) {
@@ -583,17 +591,17 @@
         <button class="victory-restart" id="victoryRestart">PLAY AGAIN</button>
     </div>
     
-    <!-- AUDIO - USING CORRECT FILE NAMES -->
-    <audio id="jumpSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg"></audio>
-    <audio id="deathSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3" type="audio/mpeg"></audio>
-    <audio id="coinSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3" type="audio/mpeg"></audio>
-    <audio id="selectSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg"></audio>
-    <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg"></audio>
-    <audio id="victorySound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3" type="audio/mpeg"></audio>
-    <audio id="sixtySevenSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3" type="audio/mpeg"></audio>
-    <audio id="boomSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3" type="audio/mpeg"></audio>
-    <audio id="achSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3" type="audio/mpeg"></audio>
-    <audio id="bgMusic" loop><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg"></audio>
+    <!-- AUDIO -->
+    <audio id="jumpSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg"></audio>
+    <audio id="deathSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3" type="audio/mpeg"></audio>
+    <audio id="coinSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3" type="audio/mpeg"></audio>
+    <audio id="selectSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg"></audio>
+    <audio id="powerupSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg"></audio>
+    <audio id="victorySound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3" type="audio/mpeg"></audio>
+    <audio id="sixtySevenSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3" type="audio/mpeg"></audio>
+    <audio id="boomSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3" type="audio/mpeg"></audio>
+    <audio id="achSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3" type="audio/mpeg"></audio>
+    <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg"></audio>
     
     <script>
         // DOM elements
@@ -628,6 +636,8 @@
         // Images
         const coinImage = new Image(); 
         coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        coinImage.onload = () => { console.log('Coin GIF loaded'); drawGame(); };
+        
         const birdImage = new Image(); 
         birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
@@ -730,6 +740,7 @@
                 if (bird.y < 10 || bird.y > canvas.height - 10) { 
                     gameOver = true; 
                     if (deathSound) deathSound.play().catch(e=>console.log('Death sound error'));
+                    if (bgMusic && !musicMuted) bgMusic.pause();
                     updateHighScore(); 
                     return;
                 }
@@ -745,8 +756,8 @@
                 pipes.push({ x: canvas.width, top: topHeight, bottom: topHeight + pipeGap, scored: false });
             }
             
-            // Spawn coins
-            let coinRate = cheats.coinlord ? 25 : 50;
+            // Spawn coins - FIXED: more reliable
+            let coinRate = cheats.coinlord ? 30 : 60;
             if (frameCount % coinRate === 0) {
                 let coinY = Math.random() * (canvas.height - 100) + 50;
                 coins.push({ x: canvas.width, y: coinY, collected: false });
@@ -759,6 +770,7 @@
                     if (bird.y - 15 < pipes[i].top || bird.y + 15 > pipes[i].bottom) {
                         gameOver = true; 
                         if (deathSound) deathSound.play().catch(e=>console.log('Death sound error'));
+                        if (bgMusic && !musicMuted) bgMusic.pause();
                         updateHighScore(); 
                         return;
                     }
@@ -817,7 +829,7 @@
                 ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom); 
             }
             
-            // Coins
+            // Coins - Animated GIF
             for (let c of coins) { 
                 if (!c.collected) {
                     if (coinImage.complete && coinImage.naturalWidth > 0) {
@@ -827,6 +839,9 @@
                         ctx.beginPath();
                         ctx.arc(c.x + 10, c.y + 10, 10, 0, Math.PI * 2);
                         ctx.fill();
+                        ctx.fillStyle = '#FF6B35';
+                        ctx.font = '12px monospace';
+                        ctx.fillText('🪙', c.x + 5, c.y + 15);
                     }
                 }
             }
@@ -865,16 +880,16 @@
             // UI Text
             if (!gameOver && gameRunning) {
                 ctx.fillStyle = '#FF6B35'; 
-                ctx.font = '20px "Courier New", monospace'; 
+                ctx.font = '20px "CRIX Pixel", "Courier New", monospace'; 
                 ctx.textAlign = 'center';
                 ctx.fillText(`SCORE: ${score}`, canvas.width/2, 50);
             }
             if (gameOver) {
                 ctx.fillStyle = '#FF4655'; 
-                ctx.font = '24px "Courier New", monospace'; 
+                ctx.font = '24px "CRIX Pixel", "Courier New", monospace'; 
                 ctx.textAlign = 'center';
                 ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
-                ctx.font = '14px "Courier New", monospace'; 
+                ctx.font = '14px "CRIX Pixel", "Courier New", monospace'; 
                 ctx.fillText('Press START', canvas.width/2, canvas.height/2 + 40);
             }
         }
@@ -897,7 +912,12 @@
             gamesPlayed++;
             if (animationId) cancelAnimationFrame(animationId);
             animationId = requestAnimationFrame(gameLoop);
-            if (!musicMuted && bgMusic) bgMusic.play().catch(e=>console.log('Music error'));
+            if (!musicMuted && bgMusic) {
+                bgMusic.currentTime = 0;
+                bgMusic.play().catch(e=>console.log('Music error'));
+            }
+            // Play select sound for start button
+            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
             checkAchievements();
         }
         
@@ -1072,8 +1092,12 @@
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         document.getElementById('musicToggleBtn').addEventListener('click', () => { 
             musicMuted = !musicMuted; 
-            if(!musicMuted && bgMusic) bgMusic.play().catch(e=>console.log('Music error')); 
-            else if (bgMusic) bgMusic.pause(); 
+            if(!musicMuted && bgMusic) {
+                bgMusic.currentTime = 0;
+                bgMusic.play().catch(e=>console.log('Music error')); 
+            } else if (bgMusic) {
+                bgMusic.pause(); 
+            }
             if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
         });
         document.getElementById('storeBtn').addEventListener('click', () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); });
