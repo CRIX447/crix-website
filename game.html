@@ -5,458 +5,227 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FLAPPY CRIX • CRIXGAMING VR</title>
     
-    <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
-    
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-    
-    <!-- Custom Pixel Font -->
     <style>
-        @font-face {
-            font-family: 'CRIX Pixel';
-            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-    </style>
-    
-    <style>
-        /* CLEAN BOLD CYBER STYLE - LESS GLOW */
-        :root {
-            --neon-red: #FF4655;
-            --neon-orange: #FF6B35;
-            --cyber-red: #CC0030;
-            --cyber-orange: #CC5500;
-            --matrix-green: #00CC7A;
-            --dark-bg: #0A0A0F;
-            --darker-bg: #050508;
-            --grid-color: rgba(255, 70, 85, 0.08);
-            --text-glow: 0 0 5px rgba(255, 107, 53, 0.4);
-            
-            --container-width: min(600px, 95vw);
-            --canvas-size: min(400px, 85vw);
-            --font-large: clamp(24px, 8vw, 48px);
-            --font-medium: clamp(14px, 4vw, 20px);
-            --font-small: clamp(10px, 3vw, 14px);
-            --spacing: clamp(8px, 2vh, 15px);
-        }
-        
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
         
         body {
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-            background: var(--dark-bg);
-            color: white;
-            background-image: 
-                linear-gradient(var(--grid-color) 1px, transparent 1px),
-                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-            background-size: 50px 50px;
+            font-family: 'Courier New', Courier, monospace;
+            background: #0A0A0F;
             min-height: 100vh;
             display: flex;
-            align-items: center;
             justify-content: center;
-            padding: var(--spacing);
+            align-items: center;
+            padding: 15px;
+            background-image: 
+                linear-gradient(rgba(255, 70, 85, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 70, 85, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
         }
         
-        /* MAIN GAME CONTAINER */
         .game-container {
-            max-width: var(--container-width);
+            max-width: 480px;
             width: 100%;
             background: rgba(5, 5, 8, 0.95);
-            border: 2px solid var(--neon-red);
+            border: 2px solid #FF4655;
             border-radius: 20px;
-            padding: var(--spacing);
-            position: relative;
+            padding: 15px;
         }
         
-        .game-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            background: linear-gradient(90deg, 
-                transparent, 
-                var(--neon-red), 
-                var(--neon-orange), 
-                var(--neon-red), 
-                transparent);
-            border-radius: 20px 20px 0 0;
-        }
-        
-        /* USER SECTION */
-        .user-section {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px 15px;
-            border-radius: 50px;
-            margin-bottom: var(--spacing);
-            border: 1px solid var(--neon-orange);
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--neon-orange);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            border: 1px solid white;
-        }
-        
-        .user-name {
-            font-size: 14px;
-            color: white;
-        }
-        
-        .login-btn, .logout-btn {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
-            color: white;
-            border: 1px solid var(--matrix-green);
-            border-radius: 30px;
-            padding: 8px 20px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        .login-btn:hover, .logout-btn:hover {
-            transform: scale(1.02);
-            border-color: white;
-        }
-        
-        .save-status {
-            font-size: 12px;
-            color: var(--matrix-green);
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        /* HEADER */
         .game-header {
             text-align: center;
-            margin-bottom: var(--spacing);
-            padding-bottom: var(--spacing);
-            border-bottom: 2px solid var(--neon-red);
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #FF4655;
         }
         
         .game-title {
-            font-size: var(--font-large);
+            font-size: 32px;
             font-weight: bold;
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange), #CC0030);
+            background: linear-gradient(45deg, #FF4655, #FF6B35);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 5px;
-            animation: fadePulse 3s infinite alternate;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        @keyframes fadePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.9; }
+            font-family: 'Courier New', Courier, monospace;
         }
         
         .game-subtitle {
-            font-size: var(--font-small);
-            color: var(--matrix-green);
-            text-transform: uppercase;
-            background: rgba(0, 0, 0, 0.4);
-            padding: 5px 15px;
+            font-size: 10px;
+            color: #00CC7A;
+            background: rgba(0,0,0,0.4);
+            padding: 4px 12px;
             display: inline-block;
             border-radius: 30px;
-            border: 1px solid var(--neon-orange);
+            border: 1px solid #FF6B35;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        /* CANVAS */
         .canvas-wrapper {
             display: flex;
             justify-content: center;
-            margin: var(--spacing) 0;
-            padding: var(--spacing);
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--neon-orange);
-            border-radius: 15px;
+            margin: 12px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #FF6B35;
+            border-radius: 12px;
+            cursor: pointer;
         }
         
-        #gameCanvas {
-            display: block;
-            width: var(--canvas-size);
+        canvas {
+            width: 100%;
             height: auto;
-            aspect-ratio: 2/3;
-            border: 1px solid var(--neon-orange);
-            border-radius: 10px;
+            border: 1px solid #FF6B35;
+            border-radius: 8px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
+            cursor: pointer;
+            display: block;
         }
         
-        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
-            margin: var(--spacing) 0;
+            gap: 6px;
+            margin: 12px 0;
         }
         
         .cyber-stat {
-            background: rgba(10, 10, 15, 0.85);
-            border: 1px solid var(--neon-orange);
-            border-radius: 10px;
-            padding: 8px 5px;
+            background: rgba(10,10,15,0.85);
+            border: 1px solid #FF6B35;
+            border-radius: 8px;
+            padding: 6px 3px;
             text-align: center;
-            transition: all 0.2s;
             cursor: pointer;
-        }
-        
-        .cyber-stat:hover {
-            transform: translateY(-2px);
-            border-color: gold;
         }
         
         .stat-label {
-            font-size: var(--font-small);
+            font-size: 9px;
             color: #ccc;
             text-transform: uppercase;
-            margin-bottom: 3px;
+            font-family: 'Courier New', Courier, monospace;
         }
         
         .stat-value {
-            font-size: clamp(14px, 5vw, 20px);
+            font-size: 14px;
             font-weight: bold;
-            color: var(--neon-orange);
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            color: #FF6B35;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        #coinCount {
-            color: gold;
-        }
-        
-        /* INDICATORS ROW */
-        .indicators-row {
-            display: flex;
-            flex-direction: column;
-            gap: 5px;
-            margin: var(--spacing) 0;
-            min-height: 50px;
-        }
+        #coinCount { color: gold; }
         
         .cheat-indicators, .active-powerups {
             display: flex;
-            gap: 8px;
+            gap: 6px;
             justify-content: center;
             flex-wrap: wrap;
+            margin: 8px 0;
         }
         
         .cheat-badge, .powerup-badge {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0,0,0,0.7);
             border-radius: 20px;
-            padding: 4px 12px;
-            font-size: var(--font-small);
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            animation: subtlePulse 2s infinite;
+            padding: 3px 10px;
+            font-size: 10px;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        @keyframes subtlePulse {
-            0%, 100% { opacity: 0.8; }
-            50% { opacity: 1; }
-        }
+        .cheat-badge.godmode { border: 1px solid #FF4655; color: #FF4655; }
+        .cheat-badge.coinlord { border: 1px solid gold; color: gold; }
+        .cheat-badge.slowmo { border: 1px solid #00CC7A; color: #00CC7A; }
+        .cheat-badge.bigbird { border: 1px solid #FF6B35; color: #FF6B35; }
+        .powerup-badge { border: 1px solid gold; color: gold; }
+        .powerup-timer { background: #FF4655; border-radius: 12px; padding: 1px 5px; margin-left: 5px; font-size: 9px; }
         
-        .cheat-badge.godmode {
-            border: 1px solid var(--neon-red);
-            color: var(--neon-red);
-        }
-        
-        .cheat-badge.coinlord {
-            border: 1px solid gold;
-            color: gold;
-        }
-        
-        .cheat-badge.slowmo {
-            border: 1px solid var(--matrix-green);
-            color: var(--matrix-green);
-        }
-        
-        .cheat-badge.bigbird {
-            border: 1px solid var(--neon-orange);
-            color: var(--neon-orange);
-        }
-        
-        .powerup-badge {
-            border: 1px solid gold;
-            color: gold;
-        }
-        
-        .powerup-timer {
-            background: var(--neon-red);
-            color: white;
-            border-radius: 15px;
-            padding: 2px 6px;
-            font-size: calc(var(--font-small) - 2px);
-        }
-        
-        /* ACTION BUTTONS */
-        .buttons-row {
+        .buttons-row, .game-controls {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             justify-content: center;
-            margin: var(--spacing) 0;
+            margin: 8px 0;
             flex-wrap: wrap;
         }
         
-        .action-btn {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+        .action-btn, .game-btn {
+            background: linear-gradient(45deg, #FF4655, #FF6B35);
             color: white;
             border: 1px solid gold;
             border-radius: 30px;
-            padding: 10px 25px;
-            font-size: var(--font-medium);
+            padding: 8px 18px;
+            font-size: 12px;
             font-weight: bold;
-            text-transform: uppercase;
             cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-            min-width: 120px;
-        }
-        
-        .action-btn:hover {
-            transform: scale(1.02);
-            border-color: white;
-        }
-        
-        .action-btn.secondary {
-            background: linear-gradient(45deg, var(--matrix-green), #0099CC);
-        }
-        
-        /* CHEAT INPUT */
-        .cheat-container {
-            margin: var(--spacing) 0;
-            text-align: center;
-            opacity: 0.2;
-            transition: opacity 0.3s;
-        }
-        
-        .cheat-container:hover,
-        .cheat-container:focus-within {
-            opacity: 1;
-        }
-        
-        .cheat-input {
-            background: rgba(0, 0, 0, 0.7);
-            border: 1px solid var(--neon-orange);
-            border-radius: 30px;
-            padding: 8px 15px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-            color: var(--matrix-green);
-            font-size: var(--font-small);
-            width: 150px;
-            text-align: center;
-            letter-spacing: 4px;
-        }
-        
-        /* GAME CONTROLS */
-        .game-controls {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin: var(--spacing) 0;
-            flex-wrap: wrap;
-        }
-        
-        .game-btn {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
-            color: white;
-            border: 1px solid var(--matrix-green);
-            border-radius: 30px;
-            padding: 10px 25px;
-            font-size: var(--font-medium);
-            font-weight: bold;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-            min-width: 120px;
-        }
-        
-        .game-btn:hover {
-            transform: translateY(-2px);
-            border-color: white;
+            font-family: 'Courier New', Courier, monospace;
+            min-width: 90px;
         }
         
         .game-btn.secondary {
-            background: linear-gradient(45deg, var(--matrix-green), #0099CC);
+            background: linear-gradient(45deg, #00CC7A, #0099CC);
         }
         
-        /* INSTRUCTIONS */
+        .action-btn:hover, .game-btn:hover {
+            transform: scale(1.02);
+        }
+        
+        .cheat-container {
+            text-align: center;
+            margin: 8px 0;
+            opacity: 0.25;
+        }
+        
+        .cheat-container:focus-within { opacity: 1; }
+        
+        .cheat-input {
+            background: rgba(0,0,0,0.7);
+            border: 1px solid #FF6B35;
+            border-radius: 30px;
+            padding: 6px 12px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00CC7A;
+            width: 110px;
+            text-align: center;
+            letter-spacing: 3px;
+            font-size: 12px;
+        }
+        
         .instructions {
             text-align: center;
-            margin: var(--spacing) 0;
-            padding: var(--spacing);
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--neon-orange);
-            border-radius: 15px;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid #FF6B35;
+            border-radius: 12px;
         }
         
         .instructions p {
             color: #ccc;
-            font-size: var(--font-small);
-            margin: 3px 0;
+            font-size: 10px;
+            margin: 2px 0;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        .instructions .highlight {
-            color: var(--neon-orange);
-        }
+        .highlight { color: #FF6B35; }
         
-        /* BACK LINK */
         .back-link {
             text-align: center;
-            margin-top: var(--spacing);
+            margin-top: 12px;
         }
         
         .back-link a {
-            color: var(--matrix-green);
+            color: #00CC7A;
             text-decoration: none;
-            font-size: var(--font-small);
-            text-transform: uppercase;
-            padding: 6px 20px;
-            border: 1px solid var(--neon-red);
+            font-size: 11px;
+            padding: 5px 15px;
+            border: 1px solid #FF4655;
             border-radius: 30px;
-            display: inline-block;
-            transition: all 0.2s;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        .back-link a:hover {
-            border-color: var(--matrix-green);
-            color: var(--neon-orange);
-        }
-        
-        /* MODALS */
+        /* Modals */
         .store-modal, .locker-modal, .achievements-modal {
             display: none;
             position: fixed;
@@ -464,396 +233,201 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            backdrop-filter: blur(5px);
+            background: rgba(0,0,0,0.95);
             z-index: 10000;
+            padding: 15px;
             overflow-y: auto;
-            padding: 20px;
         }
         
-        .store-modal.active, .locker-modal.active, .achievements-modal.active {
-            display: block;
-        }
+        .store-modal.active, .locker-modal.active, .achievements-modal.active { display: block; }
         
         .modal-content {
-            max-width: 700px;
-            margin: 30px auto;
-            background: var(--dark-bg);
-            border: 2px solid var(--neon-red);
+            max-width: 450px;
+            margin: 20px auto;
+            background: #0A0A0F;
+            border: 2px solid #FF4655;
             border-radius: 20px;
-            padding: 20px;
-        }
-        
-        .locker-modal .modal-content {
-            border-color: var(--matrix-green);
-        }
-        
-        .achievements-modal .modal-content {
-            border-color: gold;
+            padding: 15px;
         }
         
         .modal-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             border-bottom: 1px solid gold;
-            padding-bottom: 10px;
+            padding-bottom: 8px;
         }
         
         .modal-title {
-            font-size: clamp(20px, 6vw, 28px);
+            font-size: 20px;
             color: gold;
             text-transform: uppercase;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            font-family: 'Courier New', Courier, monospace;
         }
         
         .modal-close {
             background: transparent;
-            border: 1px solid var(--neon-red);
-            color: var(--neon-red);
-            font-size: 24px;
-            width: 40px;
-            height: 40px;
+            border: 1px solid #FF4655;
+            color: #FF4655;
+            font-size: 20px;
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
-        .modal-close:hover {
-            background: var(--neon-red);
-            color: white;
-        }
-        
-        /* STORE TABS */
         .store-tabs {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 8px;
             justify-content: center;
+            margin-bottom: 15px;
         }
         
         .store-tab {
             background: transparent;
-            border: 1px solid var(--neon-orange);
+            border: 1px solid #FF6B35;
             color: white;
-            padding: 8px 25px;
+            padding: 6px 18px;
             border-radius: 30px;
             cursor: pointer;
-            font-size: var(--font-medium);
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            font-size: 12px;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        .store-tab.active {
-            background: gold;
-            border-color: gold;
-            color: black;
-        }
+        .store-tab.active { background: gold; color: black; border-color: gold; }
         
-        .store-grid {
+        .store-grid, .locker-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            max-height: 400px;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+            max-height: 350px;
             overflow-y: auto;
-            padding: 10px;
         }
         
-        .store-item {
-            background: rgba(20, 20, 30, 0.9);
-            border: 1px solid var(--neon-orange);
-            border-radius: 15px;
-            padding: 15px;
-            text-align: center;
-        }
-        
-        .store-item img {
-            width: 60px;
-            height: 60px;
-            object-fit: contain;
-            margin-bottom: 8px;
-        }
-        
-        .store-item-name {
-            font-size: var(--font-small);
-            color: white;
-            margin-bottom: 5px;
-        }
-        
-        .store-item-price {
-            font-size: var(--font-medium);
-            color: gold;
-            font-weight: bold;
-            margin: 8px 0;
-        }
-        
-        .store-item-desc {
-            font-size: calc(var(--font-small) - 2px);
-            color: #aaa;
-            margin-bottom: 10px;
-        }
-        
-        .store-buy-btn {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
-            color: white;
-            border: none;
-            border-radius: 25px;
-            padding: 8px 15px;
-            font-size: var(--font-small);
-            font-weight: bold;
-            cursor: pointer;
-            width: 100%;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        .store-buy-btn.owned {
-            background: var(--matrix-green);
-            color: black;
-        }
-        
-        /* LOCKER STYLES */
-        .locker-preview {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 25px;
-            padding: 15px;
-            background: rgba(0, 0, 0, 0.5);
-            border: 1px solid gold;
-            border-radius: 15px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .preview-canvas {
-            width: 120px;
-            height: 120px;
-            background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
-            border: 1px solid gold;
-            border-radius: 10px;
-        }
-        
-        .preview-info {
-            flex: 1;
-            min-width: 200px;
-            text-align: center;
-        }
-        
-        .preview-title {
-            font-size: var(--font-medium);
-            color: gold;
-            margin-bottom: 10px;
-        }
-        
-        .preview-equip {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: center;
-        }
-        
-        .equip-btn {
-            background: var(--matrix-green);
-            color: black;
-            border: none;
-            border-radius: 25px;
-            padding: 8px 15px;
-            font-size: var(--font-small);
-            font-weight: bold;
-            cursor: pointer;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        .locker-section {
-            margin-bottom: 20px;
-        }
-        
-        .locker-section-title {
-            font-size: var(--font-medium);
-            color: var(--neon-orange);
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        
-        .locker-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-        }
-        
-        .locker-item {
-            background: rgba(20, 20, 30, 0.9);
-            border: 1px solid var(--neon-orange);
-            border-radius: 10px;
+        .store-item, .locker-item {
+            background: rgba(20,20,30,0.9);
+            border: 1px solid #FF6B35;
+            border-radius: 12px;
             padding: 10px;
             text-align: center;
             cursor: pointer;
             position: relative;
         }
         
-        .locker-item:hover {
-            border-color: gold;
-        }
+        .store-item img, .locker-item img { width: 50px; height: 50px; object-fit: contain; }
+        .store-item-name { font-size: 10px; color: white; font-family: 'Courier New', Courier, monospace; }
+        .store-item-price { font-size: 13px; color: gold; margin: 5px 0; font-family: 'Courier New', Courier, monospace; }
         
-        .locker-item.equipped {
-            border-color: var(--matrix-green);
-        }
-        
-        .locker-item img {
-            width: 50px;
-            height: 50px;
-            object-fit: contain;
-            margin-bottom: 5px;
-        }
-        
-        .locker-item-name {
-            font-size: calc(var(--font-small) - 2px);
+        .store-buy-btn {
+            background: linear-gradient(45deg, #FF4655, #FF6B35);
             color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 10px;
+            font-family: 'Courier New', Courier, monospace;
         }
+        
+        .locker-preview {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid gold;
+            border-radius: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .preview-canvas { width: 80px; height: 80px; border: 1px solid gold; border-radius: 8px; }
+        .preview-info { text-align: center; }
+        .preview-title { font-size: 12px; color: gold; font-family: 'Courier New', Courier, monospace; }
+        
+        .equip-btn {
+            background: #00CC7A;
+            color: black;
+            border: none;
+            border-radius: 20px;
+            padding: 5px 12px;
+            cursor: pointer;
+            font-size: 10px;
+            margin: 3px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        .locker-section-title {
+            font-size: 13px;
+            color: #FF6B35;
+            margin: 10px 0 8px;
+            text-transform: uppercase;
+            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+        }
+        
+        .locker-item.equipped { border-color: #00CC7A; }
         
         .equipped-badge {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            background: var(--matrix-green);
+            top: -4px;
+            right: -4px;
+            background: #00CC7A;
             color: black;
             border-radius: 50%;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
+            font-size: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 11px;
         }
         
         .locker-balance {
             text-align: center;
-            font-size: var(--font-medium);
+            font-size: 14px;
             color: gold;
-            margin: 15px 0;
-            padding: 10px;
+            margin: 10px 0;
+            padding: 8px;
             border: 1px solid gold;
             border-radius: 30px;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        /* ACHIEVEMENTS STYLES */
         .achievements-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            padding: 10px;
-            max-height: 500px;
+            gap: 10px;
+            max-height: 450px;
             overflow-y: auto;
         }
         
         .achievement-item {
-            background: rgba(20, 20, 30, 0.9);
-            border: 1px solid var(--neon-orange);
-            border-radius: 15px;
-            padding: 15px;
+            background: rgba(20,20,30,0.9);
+            border: 1px solid #FF6B35;
+            border-radius: 12px;
+            padding: 10px;
             display: flex;
+            gap: 10px;
             align-items: center;
-            gap: 15px;
-            transition: all 0.2s;
         }
         
-        .achievement-item.unlocked {
-            border-color: gold;
-            background: rgba(255, 215, 0, 0.1);
-        }
+        .achievement-item.unlocked { border-color: gold; background: rgba(255,215,0,0.1); }
+        .achievement-icon { font-size: 30px; }
+        .achievement-name { font-size: 12px; color: white; font-family: 'Courier New', Courier, monospace; }
+        .achievement-desc { font-size: 9px; color: #aaa; font-family: 'Courier New', Courier, monospace; }
         
-        .achievement-icon {
-            font-size: 40px;
-            min-width: 60px;
-            text-align: center;
-        }
-        
-        .achievement-info {
-            flex: 1;
-        }
-        
-        .achievement-name {
-            font-size: var(--font-medium);
-            color: white;
-            margin-bottom: 5px;
-        }
-        
-        .achievement-desc {
-            font-size: calc(var(--font-small) - 1px);
-            color: #aaa;
-            margin-bottom: 5px;
-        }
-        
-        .achievement-progress {
-            font-size: calc(var(--font-small) - 2px);
-            color: var(--matrix-green);
-        }
-        
-        .achievement-unlocked {
-            color: gold;
-            font-size: 20px;
-            margin-left: auto;
-        }
-        
-        /* EVENT OVERLAYS */
-        .event-overlay {
+        .event-overlay, .boom-overlay {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 15000;
             pointer-events: none;
-            text-align: center;
         }
         
-        .event-gif {
-            max-width: 200px;
-            max-height: 200px;
-            animation: float 1s infinite alternate;
-        }
+        .event-gif, .boom-gif { max-width: 150px; }
         
-        .boom-overlay {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 15000;
-            pointer-events: none;
-            text-align: center;
-        }
-        
-        .boom-gif {
-            max-width: 200px;
-            max-height: 200px;
-            animation: boomShake 0.3s infinite;
-        }
-        
-        @keyframes float {
-            from { transform: translateY(0); }
-            to { transform: translateY(-20px); }
-        }
-        
-        @keyframes boomShake {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            25% { transform: rotate(10deg) scale(1.3); }
-            50% { transform: rotate(-10deg) scale(1.3); }
-            75% { transform: rotate(5deg) scale(1.2); }
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateX(0); }
-            25% { transform: translateX(-10px); }
-            50% { transform: translateX(10px); }
-            75% { transform: translateX(-5px); }
-        }
-        
-        .bounce {
-            animation: bounce 0.5s ease-in-out;
-        }
-        
-        /* VICTORY OVERLAY */
         .victory-overlay {
             display: none;
             position: fixed;
@@ -861,153 +435,47 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.95);
+            background: rgba(0,0,0,0.95);
             z-index: 20000;
             align-items: center;
             justify-content: center;
             flex-direction: column;
             text-align: center;
-            padding: 20px;
         }
         
-        .victory-overlay.active {
-            display: flex;
-        }
-        
-        .victory-title {
-            font-size: clamp(30px, 10vw, 48px);
-            color: gold;
-            margin-bottom: 20px;
-            animation: victoryPulse 2s infinite;
-        }
-        
-        @keyframes victoryPulse {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-        
-        .victory-message {
-            font-size: var(--font-medium);
-            color: white;
-            margin: 20px 0;
-            max-width: 500px;
-        }
-        
-        .victory-message.cheater {
-            color: var(--neon-red);
-        }
-        
+        .victory-overlay.active { display: flex; }
+        .victory-title { font-size: 32px; color: gold; margin-bottom: 15px; font-family: 'Courier New', Courier, monospace; }
+        .victory-message { font-family: 'Courier New', Courier, monospace; color: white; margin-bottom: 20px; }
         .victory-restart {
-            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            background: linear-gradient(45deg, #FF4655, #FF6B35);
             color: white;
             border: 1px solid gold;
             border-radius: 30px;
-            padding: 15px 40px;
-            font-size: var(--font-large);
-            font-weight: bold;
+            padding: 12px 30px;
+            margin-top: 20px;
             cursor: pointer;
-            margin-top: 30px;
+            font-family: 'Courier New', Courier, monospace;
         }
         
-        /* RESPONSIVE */
-        @media (max-width: 500px) {
-            .stats-grid {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .buttons-row {
-                flex-direction: column;
-                align-items: center;
-            }
-            .action-btn, .game-btn {
-                width: 100%;
-                max-width: 250px;
-            }
-            .user-section {
-                flex-direction: column;
-                text-align: center;
-            }
+        @media (max-width: 450px) {
+            .stats-grid { gap: 4px; }
+            .stat-value { font-size: 12px; }
+            .action-btn, .game-btn { padding: 6px 12px; font-size: 10px; min-width: 70px; }
+            .game-title { font-size: 26px; }
         }
     </style>
 </head>
 <body>
-    <!-- VICTORY OVERLAY -->
-    <div class="victory-overlay" id="victoryOverlay">
-        <div class="victory-title">🎉 VICTORY! 🎉</div>
-        <div class="victory-message" id="victoryMessage"></div>
-        <button class="victory-restart" id="victoryRestart">PLAY AGAIN</button>
-    </div>
-    
-    <!-- EVENT OVERLAYS -->
-    <div id="eventOverlay" class="event-overlay" style="display: none;"></div>
-    <div id="boomOverlay" class="boom-overlay" style="display: none;"></div>
-    
-    <!-- AUDIO PLAYERS -->
-    <audio id="jumpSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="deathSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="coinSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="purchaseSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="powerupSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="victorySound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="sixtySevenSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="boomSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="achSound" preload="auto">
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3" type="audio/mpeg">
-    </audio>
-    
-    <audio id="bgMusic" loop>
-        <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
-    </audio>
-    
     <div class="game-container">
-        <!-- USER SECTION WITH GOOGLE LOGIN -->
-        <div class="user-section" id="userSection">
-            <div class="user-info" id="userInfo">
-                <div class="user-avatar" id="userAvatar">👤</div>
-                <div class="user-name" id="userName">Not Logged In</div>
-            </div>
-            <div class="save-status" id="saveStatus">
-                <span>💾</span> <span id="saveStatusText">Local Only</span>
-            </div>
-            <button class="login-btn" id="loginBtn">🔑 SIGN IN WITH GOOGLE</button>
-            <button class="logout-btn" id="logoutBtn" style="display: none;">🚪 SIGN OUT</button>
-        </div>
-        
-        <!-- HEADER -->
         <div class="game-header">
             <div class="game-title">FLAPPY CRIX</div>
-            <div class="game-subtitle">collect coins • buy drip</div>
+            <div class="game-subtitle">tap • collect • drip</div>
         </div>
         
-        <!-- CANVAS -->
         <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="gameCanvas" width="400" height="600"></canvas>
         </div>
         
-        <!-- STATS -->
         <div class="stats-grid">
             <div class="cyber-stat" id="achievementsBtn">
                 <div class="stat-label">🏆 ACHIEVEMENTS</div>
@@ -1027,77 +495,58 @@
             </div>
         </div>
         
-        <!-- INDICATORS -->
-        <div class="indicators-row">
-            <div class="cheat-indicators" id="cheatIndicators"></div>
-            <div class="active-powerups" id="activePowerups"></div>
-        </div>
+        <div class="cheat-indicators" id="cheatIndicators"></div>
+        <div class="active-powerups" id="activePowerups"></div>
         
-        <!-- ACTION BUTTONS -->
         <div class="buttons-row">
             <button class="action-btn" id="storeBtn">🛒 STORE</button>
             <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
         </div>
         
-        <!-- CHEAT INPUT -->
         <div class="cheat-container">
-            <input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" autocomplete="off" inputmode="numeric" pattern="[0-9]*">
+            <input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" inputmode="numeric">
         </div>
         
-        <!-- GAME CONTROLS -->
         <div class="game-controls">
             <button class="game-btn" id="startGameBtn">▶ START</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
         
-        <!-- INSTRUCTIONS -->
         <div class="instructions">
             <p><span class="highlight">⬆️ TAP/SPACE</span> to jump • <span class="highlight">🪙 COLLECT COINS</span></p>
-            <p><span class="highlight">🏆 UNLOCK ACHIEVEMENTS</span> • <span class="highlight">🔑 SIGN IN TO SAVE</span></p>
+            <p><span class="highlight">🏆 UNLOCK ACHIEVEMENTS</span></p>
         </div>
         
-        <!-- BACK LINK -->
         <div class="back-link">
-            <a href="https://crixgamingvr.vercel.app" target="_blank" id="backLink">← BACK TO MAIN SITE</a>
+            <a href="https://crixgamingvr.vercel.app" target="_blank">← BACK TO MAIN SITE</a>
         </div>
     </div>
     
-    <!-- STORE MODAL -->
+    <!-- MODALS -->
     <div class="store-modal" id="storeModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">🛒 CRIX STORE</div>
+                <div class="modal-title">🛒 STORE</div>
                 <button class="modal-close" id="closeStoreBtn">✕</button>
             </div>
-            
             <div class="store-tabs">
                 <button class="store-tab active" id="tabPowerupsStore">⚡ POWER-UPS</button>
                 <button class="store-tab" id="tabCosmeticsStore">👕 COSMETICS</button>
             </div>
-            
-            <div id="storePowerups" style="display: block;">
-                <div class="store-grid" id="powerupsStoreGrid"></div>
-            </div>
-            
-            <div id="storeCosmetics" style="display: none;">
-                <div class="store-grid" id="cosmeticsStoreGrid"></div>
-            </div>
+            <div id="storePowerups"><div class="store-grid" id="powerupsStoreGrid"></div></div>
+            <div id="storeCosmetics" style="display:none;"><div class="store-grid" id="cosmeticsStoreGrid"></div></div>
         </div>
     </div>
     
-    <!-- LOCKER MODAL -->
     <div class="locker-modal" id="lockerModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">👕 CRIX LOCKER</div>
+                <div class="modal-title">👕 LOCKER</div>
                 <button class="modal-close" id="closeLockerBtn">✕</button>
             </div>
-            
             <div class="locker-balance" id="lockerBalance">🪙 0</div>
-            
-            <!-- PREVIEW -->
             <div class="locker-preview">
-                <canvas id="previewCanvas" class="preview-canvas" width="120" height="120"></canvas>
+                <canvas id="previewCanvas" width="120" height="120" class="preview-canvas"></canvas>
                 <div class="preview-info">
                     <div class="preview-title" id="previewTitle">YOUR DRIP</div>
                     <div class="preview-equip">
@@ -1106,14 +555,10 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- HATS -->
             <div class="locker-section">
                 <div class="locker-section-title">🧢 HATS</div>
                 <div class="locker-grid" id="lockerHats"></div>
             </div>
-            
-            <!-- SHIRTS -->
             <div class="locker-section">
                 <div class="locker-section-title">👕 SHIRTS</div>
                 <div class="locker-grid" id="lockerShirts"></div>
@@ -1121,117 +566,102 @@
         </div>
     </div>
     
-    <!-- ACHIEVEMENTS MODAL -->
     <div class="achievements-modal" id="achievementsModal">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">🏆 ACHIEVEMENTS</div>
                 <button class="modal-close" id="closeAchievementsBtn">✕</button>
             </div>
-            
             <div class="achievements-grid" id="achievementsGrid"></div>
         </div>
     </div>
     
+    <div id="eventOverlay" class="event-overlay" style="display:none;"></div>
+    <div id="boomOverlay" class="boom-overlay" style="display:none;"></div>
+    <div class="victory-overlay" id="victoryOverlay">
+        <div class="victory-title">🎉 VICTORY! 🎉</div>
+        <div class="victory-message" id="victoryMessage"></div>
+        <button class="victory-restart" id="victoryRestart">PLAY AGAIN</button>
+    </div>
+    
+    <!-- AUDIO -->
+    <audio id="jumpSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
+    <audio id="deathSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
+    <audio id="coinSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
+    <audio id="selectSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
+    <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
+    <audio id="victorySound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
+    <audio id="sixtySevenSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
+    <audio id="boomSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
+    <audio id="achSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
+    <audio id="bgMusic" loop><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
+    
     <script>
-        // ========== FIREBASE CONFIGURATION - YOUR CONFIG ADDED ==========
-        const firebaseConfig = {
-            apiKey: "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
-            authDomain: "flappy-crix.firebaseapp.com",
-            projectId: "flappy-crix",
-            storageBucket: "flappy-crix.firebasestorage.app",
-            messagingSenderId: "543002752038",
-            appId: "1:543002752038:web:70c45999a25647313062e7",
-            measurementId: "G-EL0X7HNTVL"
-        };
-        
-        // Initialize Firebase
-        let app, auth, db;
-        let currentUser = null;
-        
-        // Try to initialize Firebase
-        try {
-            if (typeof firebase !== 'undefined') {
-                app = firebase.initializeApp(firebaseConfig);
-                auth = firebase.auth();
-                db = firebase.firestore();
-                console.log('Firebase initialized successfully!');
-                console.log('Firebase project:', firebaseConfig.projectId);
-            } else {
-                console.log('Firebase not loaded - check internet connection');
-            }
-        } catch(e) {
-            console.log('Firebase init error:', e);
-        }
-        
-        // ========== GAME VARIABLES ==========
+        // DOM elements
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        const previewCanvas = document.getElementById('previewCanvas');
-        const previewCtx = previewCanvas.getContext('2d');
-        const canvasWrapper = document.getElementById('canvasWrapper');
         
-        const gameScore = document.getElementById('gameScore');
-        const coinCountEl = document.getElementById('coinCount');
-        const highScoreEl = document.getElementById('highScore');
-        const coinMultiplierEl = document.getElementById('coinMultiplier');
-        const achievementCountEl = document.getElementById('achievementCount');
-        const cheatIndicators = document.getElementById('cheatIndicators');
-        const activePowerupsEl = document.getElementById('activePowerups');
-        const victoryOverlay = document.getElementById('victoryOverlay');
-        const victoryMessage = document.getElementById('victoryMessage');
-        const victoryRestart = document.getElementById('victoryRestart');
-        const eventOverlay = document.getElementById('eventOverlay');
-        const boomOverlay = document.getElementById('boomOverlay');
+        // Game state - INITIALIZE WITH VALUES
+        let gameRunning = false;
+        let animationId = null;
+        let highScore = 0;
+        let coinCount = 0;
+        let coinMultiplier = 1;
+        let musicMuted = true;
+        let gamesPlayed = 0;
+        let hasTriggered67 = false;
+        let hasTriggered1000 = false;
         
-        // Buttons
-        const startGameBtn = document.getElementById('startGameBtn');
-        const musicToggle = document.getElementById('musicToggleBtn');
-        const backLink = document.getElementById('backLink');
-        const cheatInput = document.getElementById('cheatInput');
-        const storeBtn = document.getElementById('storeBtn');
-        const lockerBtn = document.getElementById('lockerBtn');
-        const achievementsBtn = document.getElementById('achievementsBtn');
+        // Cheats
+        let cheats = { godmode: false, coinlord: false, slowmo: false, bigbird: false };
         
-        // Login buttons
-        const loginBtn = document.getElementById('loginBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const userName = document.getElementById('userName');
-        const userAvatar = document.getElementById('userAvatar');
-        const saveStatusText = document.getElementById('saveStatusText');
+        // Game objects
+        let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5, visible: true };
+        let pipes = [];
+        let coins = [];
+        let score = 0;
+        let gameOver = false;
+        let frameCount = 0;
+        let pipeGap = 170;
+        let pipeWidth = 50;
+        let gameSpeed = 2.5;
         
-        // Modals
-        const storeModal = document.getElementById('storeModal');
-        const lockerModal = document.getElementById('lockerModal');
-        const achievementsModal = document.getElementById('achievementsModal');
-        const closeStoreBtn = document.getElementById('closeStoreBtn');
-        const closeLockerBtn = document.getElementById('closeLockerBtn');
-        const closeAchievementsBtn = document.getElementById('closeAchievementsBtn');
+        // Images
+        const coinImage = new Image(); 
+        coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        const birdImage = new Image(); 
+        birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
-        // Tabs
-        const tabPowerupsStore = document.getElementById('tabPowerupsStore');
-        const tabCosmeticsStore = document.getElementById('tabCosmeticsStore');
-        const storePowerups = document.getElementById('storePowerups');
-        const storeCosmetics = document.getElementById('storeCosmetics');
+        // Powerups
+        let powerups = [
+            { id: 'x2coins', name: '2X COINS', price: 100, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins for 30s' },
+            { id: 'shield', name: 'SHIELD', price: 75, duration: 20, active: false, timeLeft: 0, timer: null, desc: 'Invincible for 20s' },
+            { id: 'magnet', name: 'MAGNET', price: 60, duration: 15, active: false, timeLeft: 0, timer: null, desc: 'Coins attract for 15s' }
+        ];
         
-        // Grids
-        const powerupsStoreGrid = document.getElementById('powerupsStoreGrid');
-        const cosmeticsStoreGrid = document.getElementById('cosmeticsStoreGrid');
-        const lockerHats = document.getElementById('lockerHats');
-        const lockerShirts = document.getElementById('lockerShirts');
-        const lockerBalance = document.getElementById('lockerBalance');
-        const previewTitle = document.getElementById('previewTitle');
-        const achievementsGrid = document.getElementById('achievementsGrid');
+        // Cosmetics
+        let cosmetics = [
+            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 50, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif', owned: false, equipped: false },
+            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 45, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png', owned: false, equipped: false },
+            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 40, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif', owned: false, equipped: false },
+            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 35, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png', owned: false, equipped: false }
+        ];
         
-        // Unequip buttons
-        const unequipHat = document.getElementById('unequipHat');
-        const unequipShirt = document.getElementById('unequipShirt');
+        // Achievements
+        let achievements = [
+            { id: 'first', name: 'FIRST FLIGHT', desc: 'Play your first game', icon: '🐣', unlocked: false, progress: 0, target: 1 },
+            { id: 'collector', name: 'COIN COLLECTOR', desc: 'Collect 100 coins', icon: '🪙', unlocked: false, progress: 0, target: 100 },
+            { id: 'score50', name: 'SCORE 50', desc: 'Reach a score of 50', icon: '50', unlocked: false, progress: 0, target: 50 },
+            { id: 'score100', name: 'SCORE 100', desc: 'Reach a score of 100', icon: '💯', unlocked: false, progress: 0, target: 100 },
+            { id: 'mystery', name: 'MYSTERY LEVEL', desc: 'Find the secret', icon: '❓', unlocked: false, progress: 0, target: 1 },
+            { id: 'legend', name: 'LEGEND', desc: 'Reach level 1000', icon: '👑', unlocked: false, progress: 0, target: 1 }
+        ];
         
         // Sounds
         const jumpSound = document.getElementById('jumpSound');
         const deathSound = document.getElementById('deathSound');
         const coinSound = document.getElementById('coinSound');
-        const purchaseSound = document.getElementById('purchaseSound');
+        const selectSound = document.getElementById('selectSound');
         const powerupSound = document.getElementById('powerupSound');
         const victorySound = document.getElementById('victorySound');
         const sixtySevenSound = document.getElementById('sixtySevenSound');
@@ -1239,1174 +669,484 @@
         const achSound = document.getElementById('achSound');
         const bgMusic = document.getElementById('bgMusic');
         
-        // Game state
-        let gameRunning = false;
-        let gameAnimationFrame;
-        let highScore = 0;
-        let musicMuted = true;
-        let musicWasPlaying = false;
-        let hasTriggered67 = false;
-        let hasTriggered1000 = false;
-        
-        // Coin variables
-        let coins = [];
-        let coinCount = 0;
-        let coinMultiplier = 1;
-        const coinImage = new Image();
-        coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
-        
-        // Event GIFs
-        const sixtySevenGif = new Image();
-        sixtySevenGif.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif';
-        
-        const boomGif = new Image();
-        boomGif.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif';
-        
-        // Bird image
-        const birdImage = new Image();
-        birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
-        
-        // ========== CHEAT STATES ==========
-        let cheats = {
-            godmode: false,
-            coinlord: false,
-            slowmo: false,
-            bigbird: false
-        };
-        
-        // ========== ACHIEVEMENTS ==========
-        const achievements = [
-            { id: 'first', name: 'FIRST FLIGHT', desc: 'Play your first game', icon: '🐣', unlocked: false, progress: 0, target: 1 },
-            { id: 'collector', name: 'COIN COLLECTOR', desc: 'Collect 100 coins', icon: '🪙', unlocked: false, progress: 0, target: 100 },
-            { id: 'score50', name: 'SCORE 50', desc: 'Reach a score of 50', icon: '50', unlocked: false, progress: 0, target: 50 },
-            { id: 'score100', name: 'SCORE 100', desc: 'Reach a score of 100', icon: '💯', unlocked: false, progress: 0, target: 100 },
-            { id: 'mystery', name: 'MYSTERY LEVEL', desc: 'Find the secret at level 67', icon: '❓', unlocked: false, progress: 0, target: 1 },
-            { id: 'legend', name: 'LEGEND', desc: 'Reach level 1000', icon: '👑', unlocked: false, progress: 0, target: 1 }
-        ];
-        
-        // ========== COSMETICS DATA ==========
-        const cosmetics = [
-            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 50, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif', owned: false, equipped: false },
-            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 45, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png', owned: false, equipped: false },
-            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 40, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif', owned: false, equipped: false },
-            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 35, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png', owned: false, equipped: false }
-        ];
-        
-        // ========== POWER-UPS DATA ==========
-        const powerups = [
-            { id: 'x2coins', name: '2X COINS', price: 100, duration: 30, desc: 'Double coins for 30s', active: false, timeLeft: 0, timerInterval: null },
-            { id: 'shield', name: 'SHIELD', price: 75, duration: 20, desc: 'Invincible for 20s', active: false, timeLeft: 0, timerInterval: null },
-            { id: 'magnet', name: 'MAGNET', price: 60, duration: 15, desc: 'Coins attract for 15s', active: false, timeLeft: 0, timerInterval: null }
-        ];
-        
-        // ========== SAVE/LOAD FUNCTIONS ==========
-        function saveToLocalStorage() {
-            localStorage.setItem('flappyCrixHighScore', highScore);
-            localStorage.setItem('flappyCrixCoins', coinCount);
-            
-            const ownedIds = cosmetics.filter(c => c.owned).map(c => c.id);
-            localStorage.setItem('flappyCrixOwned', JSON.stringify(ownedIds));
-            
-            const equipped = {
-                hat: cosmetics.find(c => c.type === 'hat' && c.equipped)?.id || null,
-                shirt: cosmetics.find(c => c.type === 'shirt' && c.equipped)?.id || null
-            };
-            localStorage.setItem('flappyCrixEquipped', JSON.stringify(equipped));
-            
-            localStorage.setItem('flappyCrixAchievements', JSON.stringify(achievements));
+        // Local storage
+        function saveToLocal() { 
+            localStorage.setItem('flappyCrixHighScore', highScore); 
+            localStorage.setItem('flappyCrixCoins', coinCount); 
+            localStorage.setItem('flappyCrixOwned', JSON.stringify(cosmetics.filter(c=>c.owned).map(c=>c.id))); 
+            localStorage.setItem('flappyCrixEquipped', JSON.stringify({ hat: cosmetics.find(c=>c.type==='hat'&&c.equipped)?.id || null, shirt: cosmetics.find(c=>c.type==='shirt'&&c.equipped)?.id || null })); 
         }
         
-        function loadFromLocalStorage() {
-            highScore = parseInt(localStorage.getItem('flappyCrixHighScore')) || 0;
-            coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0;
-            highScoreEl.textContent = highScore;
-            updateCoinDisplay();
+        function loadFromLocal() { 
+            highScore = parseInt(localStorage.getItem('flappyCrixHighScore')) || 0; 
+            coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0; 
+            let owned = JSON.parse(localStorage.getItem('flappyCrixOwned')||'[]'); 
+            cosmetics.forEach(c=>c.owned = owned.includes(c.id)); 
+            let eq = JSON.parse(localStorage.getItem('flappyCrixEquipped')||'{}'); 
+            cosmetics.forEach(c=>{ if(c.type==='hat' && eq.hat===c.id) c.equipped=true; if(c.type==='shirt' && eq.shirt===c.id) c.equipped=true; }); 
+            document.getElementById('highScore').textContent = highScore; 
+            updateCoinDisplay(); 
+            updateAchievementCount(); 
+            updateLockerDisplay(); 
+            updatePreview(); 
+        }
+        
+        // Game functions
+        function resetGame() {
+            bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5, visible: true };
+            pipes = [];
+            coins = [];
+            score = 0;
+            gameOver = false;
+            frameCount = 0;
+            hasTriggered67 = false;
+            hasTriggered1000 = false;
+            gameSpeed = cheats.slowmo ? 1.5 : 2.5;
+            document.getElementById('gameScore').textContent = '0';
+        }
+        
+        function updateGame() {
+            if (gameOver || !gameRunning) return;
             
-            const savedOwned = localStorage.getItem('flappyCrixOwned');
-            if (savedOwned) {
-                const ownedIds = JSON.parse(savedOwned);
-                cosmetics.forEach(item => {
-                    item.owned = ownedIds.includes(item.id);
-                });
+            const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode;
+            
+            // Bird physics
+            bird.velocity += bird.gravity;
+            bird.y += bird.velocity;
+            
+            // Boundaries
+            if (!shieldActive) {
+                if (bird.y < 10 || bird.y > canvas.height - 10) { 
+                    gameOver = true; 
+                    deathSound.play(); 
+                    updateHighScore(); 
+                    return;
+                }
+            } else {
+                if (bird.y < 10) { bird.y = 10; bird.velocity = Math.abs(bird.velocity) * 0.5; }
+                if (bird.y > canvas.height - 10) { bird.y = canvas.height - 10; bird.velocity = -Math.abs(bird.velocity) * 0.5; }
             }
             
-            const savedEquipped = localStorage.getItem('flappyCrixEquipped');
-            if (savedEquipped) {
-                const equipped = JSON.parse(savedEquipped);
-                cosmetics.forEach(item => {
-                    if (equipped[item.type] === item.id) {
-                        item.equipped = true;
+            // Spawn pipes
+            let pipeRate = cheats.slowmo ? 180 : 120;
+            if (frameCount % pipeRate === 0) {
+                let topHeight = Math.random() * (canvas.height - pipeGap - 150) + 70;
+                pipes.push({ x: canvas.width, top: topHeight, bottom: topHeight + pipeGap, scored: false });
+            }
+            
+            // Spawn coins
+            let coinRate = cheats.coinlord ? 25 : 50;
+            if (frameCount % coinRate === 0) {
+                let coinY = Math.random() * (canvas.height - 100) + 50;
+                coins.push({ x: canvas.width, y: coinY, collected: false });
+            }
+            
+            // Update pipes
+            for (let i = 0; i < pipes.length; i++) {
+                pipes[i].x -= gameSpeed;
+                if (!shieldActive && bird.x + 15 > pipes[i].x && bird.x - 15 < pipes[i].x + pipeWidth) {
+                    if (bird.y - 15 < pipes[i].top || bird.y + 15 > pipes[i].bottom) {
+                        gameOver = true; 
+                        deathSound.play(); 
+                        updateHighScore(); 
+                        return;
                     }
-                });
+                }
+                if (pipes[i].x + pipeWidth < bird.x && !pipes[i].scored) {
+                    score++; 
+                    pipes[i].scored = true;
+                    document.getElementById('gameScore').textContent = score;
+                    if (score === 67 && !hasTriggered67) trigger67();
+                    if (score === 1000 && !hasTriggered1000) trigger1000();
+                    checkAchievements();
+                }
+                if (pipes[i].x + pipeWidth < 0) pipes.splice(i--, 1);
             }
             
-            const savedAchievements = localStorage.getItem('flappyCrixAchievements');
-            if (savedAchievements) {
-                const savedAch = JSON.parse(savedAchievements);
-                achievements.forEach(ach => {
-                    const found = savedAch.find(a => a.id === ach.id);
-                    if (found) {
-                        ach.unlocked = found.unlocked;
-                        ach.progress = found.progress;
-                    }
-                });
-            }
-            
-            updateAchievementCount();
-        }
-        
-        async function saveToCloud() {
-            if (!currentUser || !db) return;
-            
-            try {
-                const userRef = db.collection('users').doc(currentUser.uid);
-                await userRef.set({
-                    highScore: highScore,
-                    coinCount: coinCount,
-                    owned: cosmetics.filter(c => c.owned).map(c => c.id),
-                    equipped: {
-                        hat: cosmetics.find(c => c.type === 'hat' && c.equipped)?.id || null,
-                        shirt: cosmetics.find(c => c.type === 'shirt' && c.equipped)?.id || null
-                    },
-                    achievements: achievements,
-                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
-                saveStatusText.textContent = 'Saved to Cloud';
-                setTimeout(() => {
-                    saveStatusText.textContent = 'Cloud Sync';
-                }, 2000);
-            } catch(e) {
-                console.log('Cloud save error:', e);
-                saveStatusText.textContent = 'Save Failed';
-            }
-        }
-        
-        async function loadFromCloud() {
-            if (!currentUser || !db) return;
-            
-            try {
-                const userRef = db.collection('users').doc(currentUser.uid);
-                const doc = await userRef.get();
+            // Update coins
+            for (let i = 0; i < coins.length; i++) {
+                coins[i].x -= gameSpeed;
                 
-                if (doc.exists) {
-                    const data = doc.data();
-                    highScore = data.highScore || 0;
-                    coinCount = data.coinCount || 0;
-                    highScoreEl.textContent = highScore;
+                // Coin collision
+                if (!coins[i].collected && 
+                    bird.x + 15 > coins[i].x && 
+                    bird.x - 15 < coins[i].x + 20 &&
+                    bird.y + 15 > coins[i].y && 
+                    bird.y - 15 < coins[i].y + 20) {
+                    coins[i].collected = true;
+                    coinCount += coinMultiplier;
+                    coinSound.play();
                     updateCoinDisplay();
-                    
-                    if (data.owned) {
-                        cosmetics.forEach(item => {
-                            item.owned = data.owned.includes(item.id);
-                        });
-                    }
-                    
-                    if (data.equipped) {
-                        cosmetics.forEach(item => {
-                            item.equipped = (item.type === 'hat' && data.equipped.hat === item.id) ||
-                                           (item.type === 'shirt' && data.equipped.shirt === item.id);
-                        });
-                    }
-                    
-                    if (data.achievements) {
-                        data.achievements.forEach(savedAch => {
-                            const ach = achievements.find(a => a.id === savedAch.id);
-                            if (ach) {
-                                ach.unlocked = savedAch.unlocked;
-                                ach.progress = savedAch.progress;
-                            }
-                        });
-                    }
-                    
-                    updateAchievementCount();
-                    updateLockerDisplay();
-                    updatePreview();
-                    saveStatusText.textContent = 'Cloud Loaded';
-                    setTimeout(() => {
-                        saveStatusText.textContent = 'Cloud Sync';
-                    }, 2000);
-                } else {
-                    await saveToCloud();
+                    checkAchievements();
+                    saveToLocal();
                 }
-            } catch(e) {
-                console.log('Cloud load error:', e);
-                loadFromLocalStorage();
+                if (coins[i].x + 20 < 0) coins.splice(i--, 1);
             }
+            
+            frameCount++;
         }
         
-        // ========== AUTH FUNCTIONS ==========
-        async function signInWithGoogle() {
-            if (!auth) {
-                alert('Firebase not configured. Please check your internet connection.');
-                return;
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Grid
+            ctx.strokeStyle = 'rgba(255,70,85,0.08)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 50) { 
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); 
+            }
+            for (let i = 0; i < canvas.height; i += 50) { 
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); 
             }
             
-            try {
-                const provider = new firebase.auth.GoogleAuthProvider();
-                const result = await auth.signInWithPopup(provider);
-                currentUser = result.user;
-                userName.textContent = currentUser.displayName || currentUser.email;
-                userAvatar.innerHTML = currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : '👤';
-                loginBtn.style.display = 'none';
-                logoutBtn.style.display = 'block';
-                saveStatusText.textContent = 'Cloud Sync';
-                await loadFromCloud();
-                playSelectSound();
-            } catch(e) {
-                console.log('Login error:', e);
-                alert('Login failed: ' + e.message);
-            }
-        }
-        
-        async function signOut() {
-            if (!auth) return;
-            
-            try {
-                await auth.signOut();
-                currentUser = null;
-                userName.textContent = 'Not Logged In';
-                userAvatar.innerHTML = '👤';
-                loginBtn.style.display = 'block';
-                logoutBtn.style.display = 'none';
-                saveStatusText.textContent = 'Local Only';
-                loadFromLocalStorage();
-                playSelectSound();
-            } catch(e) {
-                console.log('Logout error:', e);
-            }
-        }
-        
-        // Listen for auth changes
-        if (auth) {
-            auth.onAuthStateChanged((user) => {
-                currentUser = user;
-                if (user) {
-                    userName.textContent = user.displayName || user.email;
-                    userAvatar.innerHTML = user.displayName ? user.displayName.charAt(0).toUpperCase() : '👤';
-                    loginBtn.style.display = 'none';
-                    logoutBtn.style.display = 'block';
-                    saveStatusText.textContent = 'Cloud Sync';
-                    loadFromCloud();
-                } else {
-                    userName.textContent = 'Not Logged In';
-                    userAvatar.innerHTML = '👤';
-                    loginBtn.style.display = 'block';
-                    logoutBtn.style.display = 'none';
-                    saveStatusText.textContent = 'Local Only';
-                    loadFromLocalStorage();
-                }
-            });
-        } else {
-            // Fallback to localStorage only
-            loadFromLocalStorage();
-        }
-        
-        // ========== POWER-UP TIMERS ==========
-        function startPowerupTimer(powerup) {
-            if (powerup.timerInterval) clearInterval(powerup.timerInterval);
-            
-            powerup.timerInterval = setInterval(() => {
-                powerup.timeLeft--;
-                
-                if (powerup.timeLeft <= 0) {
-                    powerup.active = false;
-                    powerup.timeLeft = 0;
-                    clearInterval(powerup.timerInterval);
-                    if (powerup.id === 'x2coins') updateMultiplier();
-                    if (currentUser && db) saveToCloud();
-                }
-                updateActivePowerupsDisplay();
-            }, 1000);
-        }
-        
-        function activatePowerup(powerupId) {
-            const powerup = powerups.find(p => p.id === powerupId);
-            if (!powerup) return;
-            
-            powerup.active = true;
-            powerup.timeLeft = powerup.duration;
-            playPowerupSound();
-            startPowerupTimer(powerup);
-            if (powerupId === 'x2coins') updateMultiplier();
-            if (currentUser && db) saveToCloud();
-            updateActivePowerupsDisplay();
-        }
-        
-        function updateMultiplier() {
-            const x2Active = powerups.find(p => p.id === 'x2coins')?.active || false;
-            coinMultiplier = x2Active ? 2 : 1;
-            coinMultiplierEl.textContent = coinMultiplier + 'x';
-        }
-        
-        function updateActivePowerupsDisplay() {
-            const active = powerups.filter(p => p.active);
-            if (active.length === 0) {
-                activePowerupsEl.innerHTML = '';
-                return;
+            // Pipes
+            ctx.fillStyle = '#00CC7A';
+            for (let p of pipes) { 
+                ctx.fillRect(p.x, 0, pipeWidth, p.top); 
+                ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom); 
             }
             
-            let html = '';
-            active.forEach(p => {
-                html += `<div class="powerup-badge">${p.name} <span class="powerup-timer">${p.timeLeft}s</span></div>`;
-            });
-            activePowerupsEl.innerHTML = html;
-        }
-        
-        function updateCheatIndicators() {
-            let html = '';
-            if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>';
-            if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>';
-            if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>';
-            if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>';
-            cheatIndicators.innerHTML = html;
-        }
-        
-        function updateAchievementCount() {
-            const unlocked = achievements.filter(a => a.unlocked).length;
-            achievementCountEl.textContent = `${unlocked}/${achievements.length}`;
-        }
-        
-        function checkAchievements(score, gamesPlayed) {
-            let unlocked = false;
-            
-            if (!achievements[0].unlocked && gamesPlayed >= 1) {
-                achievements[0].unlocked = true;
-                unlocked = true;
-            }
-            
-            if (!achievements[1].unlocked) {
-                achievements[1].progress = Math.min(coinCount, 100);
-                if (coinCount >= 100) {
-                    achievements[1].unlocked = true;
-                    unlocked = true;
-                }
-            }
-            
-            if (!achievements[2].unlocked && score >= 50) {
-                achievements[2].unlocked = true;
-                unlocked = true;
-            }
-            
-            if (!achievements[3].unlocked && score >= 100) {
-                achievements[3].unlocked = true;
-                unlocked = true;
-            }
-            
-            if (!achievements[4].unlocked && hasTriggered67) {
-                achievements[4].unlocked = true;
-                unlocked = true;
-            }
-            
-            if (!achievements[5].unlocked && hasTriggered1000) {
-                achievements[5].unlocked = true;
-                unlocked = true;
-            }
-            
-            if (unlocked) {
-                achSound.currentTime = 0;
-                achSound.play().catch(e => console.log('Achievement sound blocked'));
-                if (currentUser && db) saveToCloud();
-                else saveToLocalStorage();
-            }
-        }
-        
-        function updateAchievementsDisplay() {
-            let html = '';
-            achievements.forEach(ach => {
-                let progressText = '';
-                if (ach.target > 1 && !ach.unlocked) {
-                    progressText = `<div class="achievement-progress">${ach.progress}/${ach.target}</div>`;
-                }
-                html += `
-                    <div class="achievement-item ${ach.unlocked ? 'unlocked' : ''}">
-                        <div class="achievement-icon">${ach.icon}</div>
-                        <div class="achievement-info">
-                            <div class="achievement-name">${ach.name}</div>
-                            <div class="achievement-desc">${ach.desc}</div>
-                            ${progressText}
-                        </div>
-                        ${ach.unlocked ? '<div class="achievement-unlocked">✓</div>' : ''}
-                    </div>
-                `;
-            });
-            achievementsGrid.innerHTML = html;
-        }
-        
-        // ========== STORE FUNCTIONS ==========
-        function openStore() {
-            playSelectSound();
-            updateStoreDisplay();
-            storeModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeStore() {
-            storeModal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-        
-        function updateStoreDisplay() {
-            let powerupsHtml = '';
-            powerups.forEach(p => {
-                powerupsHtml += `
-                    <div class="store-item">
-                        <div class="store-item-name">⚡ ${p.name}</div>
-                        <div class="store-item-desc">${p.desc}</div>
-                        <div class="store-item-price">🪙 ${p.price}</div>
-                        <button class="store-buy-btn" onclick="buyPowerup('${p.id}')" ${p.active ? 'disabled' : ''}>
-                            ${p.active ? 'ACTIVE' : 'BUY'}
-                        </button>
-                    </div>
-                `;
-            });
-            powerupsStoreGrid.innerHTML = powerupsHtml;
-            
-            let cosmeticsHtml = '';
-            cosmetics.forEach(c => {
-                cosmeticsHtml += `
-                    <div class="store-item ${c.owned ? 'owned' : ''}">
-                        <img src="${c.image}" alt="${c.name}">
-                        <div class="store-item-name">${c.name}</div>
-                        <div class="store-item-price">🪙 ${c.price}</div>
-                        <button class="store-buy-btn ${c.owned ? 'owned' : ''}" onclick="buyCosmetic('${c.id}')" ${c.owned ? 'disabled' : ''}>
-                            ${c.owned ? 'OWNED' : 'BUY'}
-                        </button>
-                    </div>
-                `;
-            });
-            cosmeticsStoreGrid.innerHTML = cosmeticsHtml;
-        }
-        
-        window.buyPowerup = function(id) {
-            const powerup = powerups.find(p => p.id === id);
-            if (!powerup || powerup.active) return;
-            
-            if (coinCount >= powerup.price) {
-                coinCount -= powerup.price;
-                updateCoinDisplay();
-                activatePowerup(id);
-                playPurchaseSound();
-                updateStoreDisplay();
-                if (currentUser && db) saveToCloud();
-                else saveToLocalStorage();
-            } else {
-                alert('Not enough coins!');
-            }
-        };
-        
-        window.buyCosmetic = function(id) {
-            const cosmetic = cosmetics.find(c => c.id === id);
-            if (!cosmetic || cosmetic.owned) return;
-            
-            if (coinCount >= cosmetic.price) {
-                coinCount -= cosmetic.price;
-                cosmetic.owned = true;
-                updateCoinDisplay();
-                playPurchaseSound();
-                updateStoreDisplay();
-                updateLockerDisplay();
-                if (currentUser && db) saveToCloud();
-                else saveToLocalStorage();
-            } else {
-                alert('Not enough coins!');
-            }
-        };
-        
-        // ========== LOCKER FUNCTIONS ==========
-        function openLocker() {
-            playSelectSound();
-            updateLockerDisplay();
-            updatePreview();
-            lockerModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeLocker() {
-            lockerModal.classList.remove('active');
-            document.body.style.overflow = 'auto';
-        }
-        
-        function updateLockerDisplay() {
-            lockerBalance.innerHTML = `🪙 ${coinCount}`;
-            
-            let hatsHtml = '';
-            cosmetics.filter(c => c.type === 'hat' && c.owned).forEach(hat => {
-                hatsHtml += `
-                    <div class="locker-item ${hat.equipped ? 'equipped' : ''}" onclick="equipItem('${hat.id}')">
-                        <img src="${hat.image}" alt="${hat.name}">
-                        <div class="locker-item-name">${hat.name}</div>
-                        ${hat.equipped ? '<div class="equipped-badge">✓</div>' : ''}
-                    </div>
-                `;
-            });
-            lockerHats.innerHTML = hatsHtml || '<div style="grid-column:1/-1; text-align:center;">No hats owned</div>';
-            
-            let shirtsHtml = '';
-            cosmetics.filter(c => c.type === 'shirt' && c.owned).forEach(shirt => {
-                shirtsHtml += `
-                    <div class="locker-item ${shirt.equipped ? 'equipped' : ''}" onclick="equipItem('${shirt.id}')">
-                        <img src="${shirt.image}" alt="${shirt.name}">
-                        <div class="locker-item-name">${shirt.name}</div>
-                        ${shirt.equipped ? '<div class="equipped-badge">✓</div>' : ''}
-                    </div>
-                `;
-            });
-            lockerShirts.innerHTML = shirtsHtml || '<div style="grid-column:1/-1; text-align:center;">No shirts owned</div>';
-        }
-        
-        function equipItem(id) {
-            const item = cosmetics.find(c => c.id === id);
-            if (!item || !item.owned) return;
-            
-            cosmetics.forEach(c => {
-                if (c.type === item.type && c.equipped) c.equipped = false;
-            });
-            
-            item.equipped = true;
-            updateLockerDisplay();
-            updatePreview();
-            playSelectSound();
-            if (currentUser && db) saveToCloud();
-            else saveToLocalStorage();
-        }
-        
-        unequipHat.addEventListener('click', () => {
-            const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
-            if (hat) {
-                hat.equipped = false;
-                updateLockerDisplay();
-                updatePreview();
-                playSelectSound();
-                if (currentUser && db) saveToCloud();
-                else saveToLocalStorage();
-            }
-        });
-        
-        unequipShirt.addEventListener('click', () => {
-            const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
-            if (shirt) {
-                shirt.equipped = false;
-                updateLockerDisplay();
-                updatePreview();
-                playSelectSound();
-                if (currentUser && db) saveToCloud();
-                else saveToLocalStorage();
-            }
-        });
-        
-        function updatePreview() {
-            previewCtx.clearRect(0, 0, 120, 120);
-            previewCtx.fillStyle = '#0A0A0F';
-            previewCtx.fillRect(0, 0, 120, 120);
-            
-            previewCtx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
-            previewCtx.lineWidth = 1;
-            for (let i = 0; i < 120; i += 20) {
-                previewCtx.beginPath();
-                previewCtx.moveTo(i, 0);
-                previewCtx.lineTo(i, 120);
-                previewCtx.stroke();
-                previewCtx.beginPath();
-                previewCtx.moveTo(0, i);
-                previewCtx.lineTo(120, i);
-                previewCtx.stroke();
-            }
-            
-            previewCtx.save();
-            previewCtx.translate(60, 60);
-            
-            let size = cheats.bigbird ? 45 : 35;
-            
-            if (birdImage.complete) {
-                previewCtx.drawImage(birdImage, -size/2, -size/2, size, size);
-                
-                const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
-                if (shirt) {
-                    const shirtImg = new Image();
-                    shirtImg.src = shirt.image;
-                    previewCtx.drawImage(shirtImg, -size/2, -size/2, size, size);
-                }
-                
-                const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
-                if (hat) {
-                    const hatImg = new Image();
-                    hatImg.src = hat.image;
-                    previewCtx.drawImage(hatImg, -size/2, -size/2 - 5, size, size);
-                }
-            }
-            
-            previewCtx.restore();
-            
-            const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
-            const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
-            previewTitle.textContent = hat || shirt ? 'CURRENT DRIP' : 'NO DRIP EQUIPPED';
-        }
-        
-        // ========== GAME CLASS ==========
-        class FlappyBird {
-            constructor() {
-                this.reset();
-            }
-            
-            reset() {
-                let size = cheats.bigbird ? 45 : 30;
-                
-                this.bird = {
-                    x: 100,
-                    y: 300,
-                    width: size,
-                    height: size,
-                    velocity: 0,
-                    gravity: cheats.slowmo ? 0.15 : 0.25,
-                    jump: cheats.slowmo ? -5 : -6.5,
-                    visible: true
-                };
-                
-                this.pipes = [];
-                this.pipeWidth = 50;
-                this.pipeGap = 170;
-                this.frameCount = 0;
-                this.score = 0;
-                this.gameOver = false;
-                
-                coins = [];
-                hasTriggered67 = false;
-                hasTriggered1000 = false;
-            }
-            
-            isCoinPositionSafe(x, y) {
-                if (y < 40 || y > canvas.height - 40) return false;
-                for (let pipe of this.pipes) {
-                    if (Math.abs(x - pipe.x) < 60) {
-                        if (y < pipe.top - 30 || y > pipe.bottom + 30) return false;
-                    }
-                }
-                return true;
-            }
-            
-            getSafeCoinY(x) {
-                for (let attempt = 0; attempt < 50; attempt++) {
-                    const y = Math.random() * (canvas.height - 80) + 40;
-                    if (this.isCoinPositionSafe(x, y)) return y;
-                }
-                return canvas.height / 2;
-            }
-            
-            draw() {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                
-                // Grid
-                ctx.strokeStyle = 'rgba(255, 70, 85, 0.1)';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < canvas.width; i += 50) {
-                    ctx.beginPath();
-                    ctx.moveTo(i, 0);
-                    ctx.lineTo(i, canvas.height);
-                    ctx.stroke();
-                }
-                for (let i = 0; i < canvas.height; i += 50) {
-                    ctx.beginPath();
-                    ctx.moveTo(0, i);
-                    ctx.lineTo(canvas.width, i);
-                    ctx.stroke();
-                }
-                
-                // Pipes
-                ctx.fillStyle = '#00CC7A';
-                ctx.shadowColor = '#00CC7A';
-                ctx.shadowBlur = 8;
-                this.pipes.forEach(pipe => {
-                    ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.top);
-                    ctx.fillRect(pipe.x, pipe.bottom, this.pipeWidth, canvas.height - pipe.bottom);
-                });
-                ctx.shadowBlur = 0;
-                
-                // Coins
-                coins.forEach(coin => {
-                    if (!coin.collected && coinImage.complete) {
-                        ctx.drawImage(coinImage, coin.x - 15, coin.y - 15, 30, 30);
-                    }
-                });
-                
-                // Bird
-                if (this.bird.visible) {
-                    ctx.save();
-                    ctx.translate(this.bird.x, this.bird.y);
-                    let rotation = Math.min(Math.max(this.bird.velocity * 0.1, -0.5), 0.5);
-                    ctx.rotate(rotation);
-                    
-                    if (birdImage.complete) {
-                        let size = cheats.bigbird ? 45 : 30;
-                        ctx.drawImage(birdImage, -size/2, -size/2, size, size);
-                        
-                        const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
-                        if (shirt) {
-                            const shirtImg = new Image();
-                            shirtImg.src = shirt.image;
-                            ctx.drawImage(shirtImg, -size/2, -size/2, size, size);
-                        }
-                        
-                        const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
-                        if (hat) {
-                            const hatImg = new Image();
-                            hatImg.src = hat.image;
-                            ctx.drawImage(hatImg, -size/2, -size/2 - 5, size, size);
-                        }
-                    }
-                    ctx.restore();
-                }
-                
-                // Score
-                if (!this.gameOver && gameRunning) {
-                    ctx.fillStyle = '#FF6B35';
-                    ctx.font = '20px "CRIX Pixel", monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText(`SCORE: ${this.score}`, canvas.width / 2, 50);
-                }
-                
-                if (this.gameOver) {
-                    ctx.fillStyle = '#FF4655';
-                    ctx.font = '28px "CRIX Pixel", monospace';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2);
-                    ctx.font = '16px "CRIX Pixel", monospace';
-                    ctx.fillText('Press START', canvas.width / 2, canvas.height / 2 + 40);
-                }
-            }
-            
-            update() {
-                if (this.gameOver) return;
-                
-                const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode;
-                const magnetActive = powerups.find(p => p.id === 'magnet')?.active || false;
-                
-                this.bird.velocity += this.bird.gravity;
-                this.bird.y += this.bird.velocity;
-                
-                if (!shieldActive) {
-                    if (this.bird.y < 10 || this.bird.y > canvas.height - 10) {
-                        this.gameOver = true;
-                        playDeathSound();
-                        this.updateHighScore();
-                    }
-                } else {
-                    if (this.bird.y < 10) {
-                        this.bird.y = 10;
-                        this.bird.velocity = Math.abs(this.bird.velocity) * 0.5;
-                    }
-                    if (this.bird.y > canvas.height - 10) {
-                        this.bird.y = canvas.height - 10;
-                        this.bird.velocity = -Math.abs(this.bird.velocity) * 0.5;
-                    }
-                }
-                
-                let pipeRate = cheats.slowmo ? 180 : 120;
-                if (this.frameCount % pipeRate === 0) {
-                    const topHeight = Math.random() * (canvas.height - this.pipeGap - 150) + 70;
-                    this.pipes.push({
-                        x: canvas.width,
-                        top: topHeight,
-                        bottom: topHeight + this.pipeGap,
-                        scored: false
-                    });
-                }
-                
-                let coinRate = cheats.coinlord ? 20 : 40;
-                let coinChance = cheats.coinlord ? 0.8 : 0.4;
-                
-                if (this.frameCount % coinRate === 0 && gameRunning) {
-                    if (Math.random() < coinChance) {
-                        const coinX = canvas.width + 40;
-                        const coinY = this.getSafeCoinY(coinX);
-                        coins.push({ x: coinX, y: coinY, collected: false });
-                    }
-                }
-                
-                let speed = cheats.slowmo ? 1.5 : 2.5;
-                for (let i = this.pipes.length - 1; i >= 0; i--) {
-                    this.pipes[i].x -= speed;
-                    
-                    if (!shieldActive && this.bird.visible) {
-                        if (this.bird.x + 15 > this.pipes[i].x && 
-                            this.bird.x - 15 < this.pipes[i].x + this.pipeWidth) {
-                            if (this.bird.y - 15 < this.pipes[i].top || 
-                                this.bird.y + 15 > this.pipes[i].bottom) {
-                                this.gameOver = true;
-                                playDeathSound();
-                                this.updateHighScore();
-                            }
-                        }
-                    }
-                    
-                    if (this.pipes[i].x + this.pipeWidth < this.bird.x && !this.pipes[i].scored) {
-                        this.score++;
-                        this.pipes[i].scored = true;
-                        gameScore.textContent = this.score;
-                        checkAchievements(this.score, gamesPlayed);
-                        
-                        if (this.score === 67 && !hasTriggered67) trigger67();
-                        if (this.score === 1000 && !hasTriggered1000) trigger1000();
-                    }
-                    
-                    if (this.pipes[i].x + this.pipeWidth < 0) this.pipes.splice(i, 1);
-                }
-                
-                for (let i = coins.length - 1; i >= 0; i--) {
-                    if (!coins[i].collected) {
-                        coins[i].x -= speed;
-                        
-                        let dist;
-                        if (magnetActive) {
-                            const dx = this.bird.x - coins[i].x;
-                            const dy = this.bird.y - coins[i].y;
-                            dist = Math.hypot(dx, dy);
-                            if (dist < 80) {
-                                coins[i].x += dx * 0.05;
-                                coins[i].y += dy * 0.05;
-                            }
-                        }
-                        
-                        if (this.bird.visible) {
-                            dist = Math.hypot(this.bird.x - coins[i].x, this.bird.y - coins[i].y);
-                            if (dist < 30) {
-                                coins[i].collected = true;
-                                coinCount += coinMultiplier;
-                                playCoinSound();
-                                updateCoinDisplay();
-                                checkAchievements(this.score, gamesPlayed);
-                                if (currentUser && db) saveToCloud();
-                                else saveToLocalStorage();
-                            }
-                        }
-                        
-                        if (coins[i].x + 30 < 0) coins.splice(i, 1);
+            // Coins
+            for (let c of coins) { 
+                if (!c.collected) {
+                    if (coinImage.complete && coinImage.naturalWidth > 0) {
+                        ctx.drawImage(coinImage, c.x, c.y, 20, 20);
                     } else {
-                        coins.splice(i, 1);
+                        ctx.fillStyle = 'gold';
+                        ctx.beginPath();
+                        ctx.arc(c.x + 10, c.y + 10, 10, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.fillStyle = '#FF6B35';
+                        ctx.font = '12px monospace';
+                        ctx.fillText('🪙', c.x + 5, c.y + 15);
                     }
                 }
-                
-                this.frameCount++;
             }
             
-            updateHighScore() {
-                if (this.score > highScore) {
-                    highScore = this.score;
-                    highScoreEl.textContent = highScore;
-                    if (currentUser && db) saveToCloud();
-                    else saveToLocalStorage();
+            // Bird
+            if (bird.visible) {
+                ctx.save(); 
+                ctx.translate(bird.x, bird.y);
+                let rot = Math.min(Math.max(bird.velocity * 0.1, -0.5), 0.5);
+                ctx.rotate(rot);
+                if (birdImage.complete && birdImage.naturalWidth > 0) {
+                    ctx.drawImage(birdImage, -15, -15, 30, 30);
+                } else {
+                    ctx.fillStyle = '#FF6B35';
+                    ctx.fillRect(-15, -15, 30, 30);
+                    ctx.fillStyle = 'white';
+                    ctx.fillRect(-8, -10, 5, 5);
+                    ctx.fillRect(3, -10, 5, 5);
                 }
+                // Cosmetics
+                const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
+                if (shirt) { 
+                    let img = new Image(); 
+                    img.src = shirt.image; 
+                    ctx.drawImage(img, -15, -15, 30, 30); 
+                }
+                const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
+                if (hat) { 
+                    let img = new Image(); 
+                    img.src = hat.image; 
+                    ctx.drawImage(img, -15, -20, 30, 30); 
+                }
+                ctx.restore();
             }
             
-            jump() {
-                if (this.gameOver || !gameRunning) return;
-                this.bird.velocity = this.bird.jump;
-                playJumpSound();
+            // UI Text
+            if (!gameOver && gameRunning) {
+                ctx.fillStyle = '#FF6B35'; 
+                ctx.font = '20px "Courier New", monospace'; 
+                ctx.textAlign = 'center';
+                ctx.fillText(`SCORE: ${score}`, canvas.width/2, 50);
+            }
+            if (gameOver) {
+                ctx.fillStyle = '#FF4655'; 
+                ctx.font = '24px "Courier New", monospace'; 
+                ctx.textAlign = 'center';
+                ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
+                ctx.font = '14px "Courier New", monospace'; 
+                ctx.fillText('Press START', canvas.width/2, canvas.height/2 + 40);
             }
         }
         
-        let game = new FlappyBird();
-        let gamesPlayed = 0;
-        
-        // ========== SOUND FUNCTIONS ==========
-        function playJumpSound() {
-            jumpSound.currentTime = 0;
-            jumpSound.volume = 0.3;
-            jumpSound.play().catch(e => console.log('Jump sound blocked'));
-        }
-        
-        function playDeathSound() {
-            deathSound.currentTime = 0;
-            deathSound.volume = 0.4;
-            deathSound.play().catch(e => console.log('Death sound blocked'));
-            if (!musicMuted) {
-                bgMusic.pause();
-                musicWasPlaying = true;
-                musicToggle.innerHTML = '🔇 MUSIC';
-                musicMuted = true;
-            }
-        }
-        
-        function playSelectSound() {
-            purchaseSound.currentTime = 0;
-            purchaseSound.volume = 0.3;
-            purchaseSound.play().catch(e => console.log('Select sound blocked'));
-        }
-        
-        function playCoinSound() {
-            coinSound.currentTime = 0;
-            coinSound.volume = 0.3;
-            coinSound.play().catch(e => console.log('Coin sound blocked'));
-        }
-        
-        function playPurchaseSound() {
-            purchaseSound.currentTime = 0;
-            purchaseSound.volume = 0.3;
-            purchaseSound.play().catch(e => console.log('Purchase sound blocked'));
-        }
-        
-        function playPowerupSound() {
-            powerupSound.currentTime = 0;
-            powerupSound.volume = 0.3;
-            powerupSound.play().catch(e => console.log('Powerup sound blocked'));
-        }
-        
-        function updateCoinDisplay() {
-            coinCountEl.innerHTML = `🪙 ${coinCount}`;
-            if (lockerBalance) lockerBalance.innerHTML = `🪙 ${coinCount}`;
-        }
-        
-        // ========== MUSIC CONTROL ==========
-        bgMusic.volume = 0.3;
-        musicMuted = true;
-        musicToggle.innerHTML = '🔇 MUSIC';
-        
-        musicToggle.addEventListener('click', () => {
-            if (musicMuted) {
-                bgMusic.play();
-                musicToggle.innerHTML = '🔊 MUSIC';
-            } else {
-                bgMusic.pause();
-                musicToggle.innerHTML = '🔇 MUSIC';
-            }
-            musicMuted = !musicMuted;
-            playSelectSound();
-        });
-        
-        // ========== CHEAT CODES ==========
-        const CHEATS = {
-            '6969': () => {
-                cheats.godmode = !cheats.godmode;
-                updateCheatIndicators();
-                alert(cheats.godmode ? '👼 Godmode activated!' : '👼 Godmode deactivated');
-            },
-            '1337': () => {
-                cheats.coinlord = !cheats.coinlord;
-                updateCheatIndicators();
-                alert(cheats.coinlord ? '💰 Coin Lord activated!' : '💰 Coin Lord deactivated');
-                if (gameRunning) game.reset();
-            },
-            '0420': () => {
-                cheats.slowmo = !cheats.slowmo;
-                updateCheatIndicators();
-                alert(cheats.slowmo ? '⏱️ Slow motion activated!' : '⏱️ Slow motion deactivated');
-                if (gameRunning) game.reset();
-            },
-            '8008': () => {
-                cheats.bigbird = !cheats.bigbird;
-                updateCheatIndicators();
-                alert(cheats.bigbird ? '🦅 Big bird activated!' : '🦅 Big bird deactivated');
-                if (gameRunning) game.reset();
-                updatePreview();
-            },
-            '2468': () => {
-                const x2 = powerups.find(p => p.id === 'x2coins');
-                if (!x2.active) activatePowerup('x2coins');
-            },
-            '9999': () => {
-                coinCount += 50;
-                updateCoinDisplay();
-                alert('💰 +50 coins!');
-                if (currentUser && db) saveToCloud();
-                else saveToLocalStorage();
-            }
-        };
-        
-        cheatInput.addEventListener('input', (e) => {
-            const code = e.target.value;
-            if (code.length === 4 && CHEATS[code]) {
-                CHEATS[code]();
-                cheatInput.value = '';
-            }
-        });
-        
-        // ========== SPECIAL EVENTS ==========
-        function trigger67() {
-            if (hasTriggered67) return;
-            hasTriggered67 = true;
-            
-            sixtySevenSound.currentTime = 0;
-            sixtySevenSound.volume = 0.5;
-            sixtySevenSound.play().catch(e => console.log('67 sound blocked'));
-            
-            eventOverlay.style.display = 'block';
-            eventOverlay.innerHTML = `<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" class="event-gif">`;
-            
-            setTimeout(() => {
-                eventOverlay.style.display = 'none';
-                eventOverlay.innerHTML = '';
-            }, 3000);
-            
-            checkAchievements(0, gamesPlayed);
-        }
-        
-        function trigger1000() {
-            if (hasTriggered1000) return;
-            hasTriggered1000 = true;
-            
-            gameRunning = false;
-            
-            const birdX = game.bird.x;
-            const birdY = game.bird.y;
-            
-            game.bird.visible = false;
-            
-            boomOverlay.style.display = 'flex';
-            boomOverlay.style.left = birdX + 'px';
-            boomOverlay.style.top = birdY + 'px';
-            boomOverlay.innerHTML = `<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="boom-gif">`;
-            
-            boomSound.currentTime = 0;
-            boomSound.volume = 0.6;
-            boomSound.play().catch(e => console.log('Boom sound blocked'));
-            
-            setTimeout(() => {
-                boomOverlay.style.display = 'none';
-                
-                const usedCheats = Object.values(cheats).some(v => v === true);
-                victoryMessage.innerHTML = usedCheats 
-                    ? 'YOU DID IT! ...AND MAYBE USED SOME HELP? 😈\nThanks for playing!'
-                    : 'VICTORY! YOU CONQUERED FLAPPY CRIX!\nThanks for playing!';
-                
-                if (usedCheats) victoryMessage.classList.add('cheater');
-                
-                victoryOverlay.classList.add('active');
-                victorySound.play().catch(e => console.log('Victory sound blocked'));
-                checkAchievements(0, gamesPlayed);
-            }, 2000);
-        }
-        
-        // ========== VICTORY RESTART ==========
-        victoryRestart.addEventListener('click', () => {
-            victoryOverlay.classList.remove('active');
-            game.reset();
-            startGame();
-        });
-        
-        // ========== EXIT WITH BOUNCE ==========
-        backLink.addEventListener('click', (e) => {
-            if (cheats.godmode) {
-                e.preventDefault();
-                document.querySelector('.game-container').classList.add('bounce');
-                alert('HEY! I KNOW YOU GOT GODMODE BUT IT DOESNT MEAN YOU GOTTA BREAK THE FORTH WALL MAN!');
-                setTimeout(() => {
-                    document.querySelector('.game-container').classList.remove('bounce');
-                }, 500);
-                setTimeout(() => {
-                    window.open('https://crixgamingvr.vercel.app', '_blank');
-                }, 600);
-            }
-        });
-        
-        // ========== GAME LOOP ==========
         function gameLoop() {
             if (gameRunning) {
-                game.update();
-                game.draw();
-                gameAnimationFrame = requestAnimationFrame(gameLoop);
+                updateGame();
+                drawGame();
+                animationId = requestAnimationFrame(gameLoop);
             }
         }
         
         function startGame() {
-            playSelectSound();
-            game.reset();
+            if (gameRunning) {
+                // If game is already running, reset it first
+                if (animationId) cancelAnimationFrame(animationId);
+                resetGame();
+            }
             gameRunning = true;
-            gameScore.textContent = '0';
+            gameOver = false;
             gamesPlayed++;
-            
-            if (musicWasPlaying && musicMuted) {
-                bgMusic.play();
-                musicToggle.innerHTML = '🔊 MUSIC';
-                musicMuted = false;
-                musicWasPlaying = false;
-            }
-            
-            if (gameAnimationFrame) cancelAnimationFrame(gameAnimationFrame);
-            gameLoop();
-            checkAchievements(0, gamesPlayed);
+            if (animationId) cancelAnimationFrame(animationId);
+            animationId = requestAnimationFrame(gameLoop);
+            if (!musicMuted) bgMusic.play();
+            checkAchievements();
         }
         
-        // ========== INPUT HANDLERS ==========
-        canvasWrapper.addEventListener('click', () => game.jump());
-        canvasWrapper.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            game.jump();
-        });
+        function jump() {
+            if (!gameRunning || gameOver) return;
+            bird.velocity = bird.jump;
+            jumpSound.play();
+        }
         
-        document.addEventListener('keydown', (e) => {
-            if (e.key === ' ' || e.key === 'Space') {
-                e.preventDefault();
-                game.jump();
+        function updateHighScore() {
+            if (score > highScore) { 
+                highScore = score; 
+                document.getElementById('highScore').textContent = highScore; 
+                saveToLocal();
+            }
+        }
+        
+        // Helper functions
+        function updateCoinDisplay() { 
+            document.getElementById('coinCount').innerHTML = `🪙 ${coinCount}`; 
+            if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
+        }
+        
+        function checkAchievements() {
+            let unlocked = false;
+            if (!achievements[0].unlocked && gamesPlayed >= 1) { achievements[0].unlocked = true; unlocked = true; }
+            if (!achievements[1].unlocked) { achievements[1].progress = Math.min(coinCount, 100); if (coinCount >= 100) { achievements[1].unlocked = true; unlocked = true; } }
+            if (!achievements[2].unlocked && score >= 50) { achievements[2].unlocked = true; unlocked = true; }
+            if (!achievements[3].unlocked && score >= 100) { achievements[3].unlocked = true; unlocked = true; }
+            if (!achievements[4].unlocked && hasTriggered67) { achievements[4].unlocked = true; unlocked = true; }
+            if (!achievements[5].unlocked && hasTriggered1000) { achievements[5].unlocked = true; unlocked = true; }
+            if (unlocked) { 
+                achSound.play(); 
+                updateAchievementCount(); 
+                saveToLocal();
+            }
+        }
+        
+        function updateAchievementCount() { 
+            let u = achievements.filter(a => a.unlocked).length; 
+            document.getElementById('achievementCount').textContent = `${u}/${achievements.length}`; 
+        }
+        
+        function updateCheatIndicators() { 
+            let html = ''; 
+            if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>';
+            if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>';
+            if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>';
+            if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>';
+            document.getElementById('cheatIndicators').innerHTML = html;
+        }
+        
+        function updateActivePowerups() { 
+            let active = powerups.filter(p => p.active); 
+            let html = ''; 
+            active.forEach(p => { html += `<div class="powerup-badge">${p.name} <span class="powerup-timer">${p.timeLeft}s</span></div>`; });
+            document.getElementById('activePowerups').innerHTML = html;
+        }
+        
+        function trigger67() { 
+            hasTriggered67 = true; 
+            sixtySevenSound.play(); 
+            let ov = document.getElementById('eventOverlay'); 
+            ov.style.display = 'block'; 
+            ov.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" class="event-gif">'; 
+            setTimeout(() => { ov.style.display = 'none'; ov.innerHTML = ''; }, 3000); 
+        }
+        
+        function trigger1000() { 
+            hasTriggered1000 = true; 
+            gameRunning = false; 
+            if (animationId) cancelAnimationFrame(animationId);
+            let boom = document.getElementById('boomOverlay'); 
+            boom.style.display = 'flex'; 
+            boom.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="boom-gif">'; 
+            boomSound.play(); 
+            setTimeout(() => { 
+                boom.style.display = 'none'; 
+                let msg = Object.values(cheats).some(v=>v) ? 'YOU DID IT! ...AND MAYBE USED SOME HELP? 😈\nThanks for playing!' : 'VICTORY! YOU CONQUERED FLAPPY CRIX!\nThanks for playing!'; 
+                document.getElementById('victoryMessage').innerHTML = msg; 
+                document.getElementById('victoryOverlay').classList.add('active'); 
+                victorySound.play(); 
+            }, 2000);
+        }
+        
+        // UI functions
+        function updateStoreDisplay() { 
+            let phtml = ''; 
+            powerups.forEach(p => { phtml += `<div class="store-item"><div class="store-item-name">⚡ ${p.name}</div><div class="store-item-desc">${p.desc}</div><div class="store-item-price">🪙 ${p.price}</div><button class="store-buy-btn" onclick="buyPowerup('${p.id}')" ${p.active ? 'disabled' : ''}>${p.active ? 'ACTIVE' : 'BUY'}</button></div>`; }); 
+            document.getElementById('powerupsStoreGrid').innerHTML = phtml; 
+            let chtml = ''; 
+            cosmetics.forEach(c => { chtml += `<div class="store-item ${c.owned ? 'owned' : ''}"><img src="${c.image}"><div class="store-item-name">${c.name}</div><div class="store-item-price">🪙 ${c.price}</div><button class="store-buy-btn" onclick="buyCosmetic('${c.id}')" ${c.owned ? 'disabled' : ''}>${c.owned ? 'OWNED' : 'BUY'}</button></div>`; }); 
+            document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
+        }
+        
+        function updateLockerDisplay() { 
+            let hatsHtml = ''; 
+            cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div class="locker-item ${h.equipped ? 'equipped' : ''}" onclick="equipItem('${h.id}')"><img src="${h.image}"><div class="locker-item-name">${h.name}</div>${h.equipped ? '<div class="equipped-badge">✓</div>' : ''}</div>`; }); 
+            document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="grid-column:1/-1; text-align:center;">No hats owned</div>'; 
+            let shirtsHtml = ''; 
+            cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div class="locker-item ${s.equipped ? 'equipped' : ''}" onclick="equipItem('${s.id}')"><img src="${s.image}"><div class="locker-item-name">${s.name}</div>${s.equipped ? '<div class="equipped-badge">✓</div>' : ''}</div>`; }); 
+            document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="grid-column:1/-1; text-align:center;">No shirts owned</div>'; 
+            document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
+        }
+        
+        function updatePreview() { 
+            let previewCtx = document.getElementById('previewCanvas').getContext('2d');
+            previewCtx.clearRect(0,0,120,120); 
+            previewCtx.fillStyle = '#0A0A0F'; 
+            previewCtx.fillRect(0,0,120,120); 
+            previewCtx.save(); 
+            previewCtx.translate(60,60); 
+            let size = cheats.bigbird ? 45 : 35; 
+            if(birdImage.complete && birdImage.naturalWidth > 0) previewCtx.drawImage(birdImage, -size/2, -size/2, size, size); 
+            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
+            if(shirt){ let img=new Image(); img.src=shirt.image; previewCtx.drawImage(img, -size/2, -size/2, size, size); } 
+            let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
+            if(hat){ let img=new Image(); img.src=hat.image; previewCtx.drawImage(img, -size/2, -size/2-5, size, size); } 
+            previewCtx.restore(); 
+            document.getElementById('previewTitle').textContent = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP EQUIPPED'; 
+        }
+        
+        window.buyPowerup = function(id) { 
+            let p = powerups.find(p=>p.id===id); 
+            if(!p||p.active||coinCount<p.price) return; 
+            coinCount -= p.price; 
+            updateCoinDisplay(); 
+            p.active = true; 
+            p.timeLeft = p.duration; 
+            powerupSound.play(); 
+            if(id==='x2coins') coinMultiplier=2; 
+            let interval = setInterval(()=>{ 
+                p.timeLeft--; 
+                if(p.timeLeft<=0){ 
+                    p.active=false; 
+                    clearInterval(interval); 
+                    if(id==='x2coins') coinMultiplier=1; 
+                    updateActivePowerups(); 
+                    saveToLocal();
+                } 
+                updateActivePowerups(); 
+            }, 1000); 
+            updateActivePowerups(); 
+            updateStoreDisplay(); 
+            saveToLocal();
+        };
+        
+        window.buyCosmetic = function(id) { 
+            let c = cosmetics.find(c=>c.id===id); 
+            if(!c||c.owned||coinCount<c.price) return; 
+            coinCount -= c.price; 
+            c.owned = true; 
+            updateCoinDisplay(); 
+            selectSound.play(); 
+            updateStoreDisplay(); 
+            updateLockerDisplay(); 
+            saveToLocal();
+        };
+        
+        window.equipItem = function(id) { 
+            let item = cosmetics.find(c=>c.id===id); 
+            if(!item||!item.owned) return; 
+            cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); 
+            item.equipped=true; 
+            updateLockerDisplay(); 
+            updatePreview(); 
+            selectSound.play(); 
+            saveToLocal();
+        };
+        
+        // Event listeners
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        document.getElementById('musicToggleBtn').addEventListener('click', () => { 
+            musicMuted = !musicMuted; 
+            if(!musicMuted) bgMusic.play(); 
+            else bgMusic.pause(); 
+            selectSound.play(); 
+        });
+        document.getElementById('storeBtn').addEventListener('click', () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); });
+        document.getElementById('closeStoreBtn').addEventListener('click', () => { document.getElementById('storeModal').classList.remove('active'); });
+        document.getElementById('lockerBtn').addEventListener('click', () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); });
+        document.getElementById('closeLockerBtn').addEventListener('click', () => { document.getElementById('lockerModal').classList.remove('active'); });
+        document.getElementById('achievementsBtn').addEventListener('click', () => { 
+            let g = document.getElementById('achievementsGrid'); 
+            let h = ''; 
+            achievements.forEach(a => { 
+                h += `<div class="achievement-item ${a.unlocked ? 'unlocked' : ''}"><div class="achievement-icon">${a.icon}</div><div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div>${a.target>1&&!a.unlocked?`<div class="achievement-progress">${a.progress}/${a.target}</div>`:''}</div>${a.unlocked?'<div>✓</div>':''}</div>`; 
+            }); 
+            g.innerHTML = h; 
+            document.getElementById('achievementsModal').classList.add('active'); 
+        });
+        document.getElementById('closeAchievementsBtn').addEventListener('click', () => { document.getElementById('achievementsModal').classList.remove('active'); });
+        document.getElementById('unequipHat').addEventListener('click', () => { 
+            let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
+            if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); saveToLocal(); } 
+        });
+        document.getElementById('unequipShirt').addEventListener('click', () => { 
+            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
+            if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); saveToLocal(); } 
+        });
+        document.getElementById('victoryRestart').addEventListener('click', () => { 
+            document.getElementById('victoryOverlay').classList.remove('active'); 
+            startGame(); 
+        });
+        document.getElementById('canvasWrapper').addEventListener('click', jump);
+        document.getElementById('canvasWrapper').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
+        document.addEventListener('keydown', (e) => { if(e.key === ' ' || e.key === 'Space') { e.preventDefault(); jump(); } });
+        
+        document.getElementById('cheatInput').addEventListener('input', (e) => {
+            let code = e.target.value;
+            if(code.length === 4) {
+                if(code === '6969') { cheats.godmode = !cheats.godmode; alert(cheats.godmode ? 'Godmode ON' : 'Godmode OFF'); updateCheatIndicators(); }
+                if(code === '1337') { cheats.coinlord = !cheats.coinlord; alert(cheats.coinlord ? 'Coin Lord ON' : 'Coin Lord OFF'); updateCheatIndicators(); if(gameRunning) resetGame(); }
+                if(code === '0420') { cheats.slowmo = !cheats.slowmo; alert(cheats.slowmo ? 'Slow Mo ON' : 'Slow Mo OFF'); updateCheatIndicators(); gameSpeed = cheats.slowmo ? 1.5 : 2.5; if(gameRunning) resetGame(); }
+                if(code === '8008') { cheats.bigbird = !cheats.bigbird; alert(cheats.bigbird ? 'Big Bird ON' : 'Big Bird OFF'); updateCheatIndicators(); updatePreview(); if(gameRunning) resetGame(); }
+                if(code === '2468') { let x2 = powerups.find(p=>p.id==='x2coins'); if(!x2.active) buyPowerup('x2coins'); }
+                if(code === '9999') { coinCount += 50; updateCoinDisplay(); alert('+50 coins!'); saveToLocal(); }
+                e.target.value = '';
             }
         });
         
-        // ========== AUTH BUTTONS ==========
-        loginBtn.addEventListener('click', signInWithGoogle);
-        logoutBtn.addEventListener('click', signOut);
-        
-        // ========== MODAL EVENT LISTENERS ==========
-        storeBtn.addEventListener('click', openStore);
-        closeStoreBtn.addEventListener('click', closeStore);
-        
-        lockerBtn.addEventListener('click', openLocker);
-        closeLockerBtn.addEventListener('click', closeLocker);
-        
-        achievementsBtn.addEventListener('click', () => {
-            playSelectSound();
-            updateAchievementsDisplay();
-            achievementsModal.classList.add('active');
-            document.body.style.overflow = 'hidden';
+        document.getElementById('tabPowerupsStore').addEventListener('click', () => { 
+            document.getElementById('tabPowerupsStore').classList.add('active'); 
+            document.getElementById('tabCosmeticsStore').classList.remove('active'); 
+            document.getElementById('storePowerups').style.display = 'block'; 
+            document.getElementById('storeCosmetics').style.display = 'none'; 
+        });
+        document.getElementById('tabCosmeticsStore').addEventListener('click', () => { 
+            document.getElementById('tabCosmeticsStore').classList.add('active'); 
+            document.getElementById('tabPowerupsStore').classList.remove('active'); 
+            document.getElementById('storePowerups').style.display = 'none'; 
+            document.getElementById('storeCosmetics').style.display = 'block'; 
         });
         
-        closeAchievementsBtn.addEventListener('click', () => {
-            achievementsModal.classList.remove('active');
-            document.body.style.overflow = 'auto';
+        window.addEventListener('click', (e) => { 
+            if(e.target.classList.contains('store-modal')) document.getElementById('storeModal').classList.remove('active'); 
+            if(e.target.classList.contains('locker-modal')) document.getElementById('lockerModal').classList.remove('active'); 
+            if(e.target.classList.contains('achievements-modal')) document.getElementById('achievementsModal').classList.remove('active'); 
         });
         
-        window.addEventListener('click', (e) => {
-            if (e.target === storeModal) closeStore();
-            if (e.target === lockerModal) closeLocker();
-            if (e.target === achievementsModal) {
-                achievementsModal.classList.remove('active');
-                document.body.style.overflow = 'auto';
-            }
-        });
+        // Initialize
+        bgMusic.volume = 0.3;
+        loadFromLocal();
         
-        tabPowerupsStore.addEventListener('click', () => {
-            tabPowerupsStore.classList.add('active');
-            tabCosmeticsStore.classList.remove('active');
-            storePowerups.style.display = 'block';
-            storeCosmetics.style.display = 'none';
-        });
+        // Draw initial screen
+        drawGame();
         
-        tabCosmeticsStore.addEventListener('click', () => {
-            tabCosmeticsStore.classList.add('active');
-            tabPowerupsStore.classList.remove('active');
-            storePowerups.style.display = 'none';
-            storeCosmetics.style.display = 'block';
-        });
-        
-        // ========== INITIALIZE ==========
-        function init() {
-            highScoreEl.textContent = highScore;
-            updateCoinDisplay();
-            updateActivePowerupsDisplay();
-            updateCheatIndicators();
-            game.draw();
-            
-            birdImage.onload = () => {
-                updatePreview();
-                game.draw();
-            };
+        // Make sure we have a gameScore element
+        if (!document.getElementById('gameScore')) {
+            let scoreSpan = document.createElement('span');
+            scoreSpan.id = 'gameScore';
+            scoreSpan.style.display = 'none';
+            document.body.appendChild(scoreSpan);
         }
         
-        // Load data and start
-        if (auth) {
-            auth.onAuthStateChanged(() => {
-                init();
-            });
-        } else {
-            init();
-        }
+        console.log('Game initialized - Click START to play!');
     </script>
 </body>
 </html>
