@@ -225,7 +225,6 @@
             font-family: 'Courier New', Courier, monospace;
         }
         
-        /* Modals */
         .store-modal, .locker-modal, .achievements-modal {
             display: none;
             position: fixed;
@@ -584,24 +583,24 @@
         <button class="victory-restart" id="victoryRestart">PLAY AGAIN</button>
     </div>
     
-    <!-- AUDIO -->
-    <audio id="jumpSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
-    <audio id="deathSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
-    <audio id="coinSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
-    <audio id="selectSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
-    <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
-    <audio id="victorySound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
-    <audio id="sixtySevenSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
-    <audio id="boomSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
-    <audio id="achSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
-    <audio id="bgMusic" loop><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
+    <!-- AUDIO - USING CORRECT FILE NAMES -->
+    <audio id="jumpSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg"></audio>
+    <audio id="deathSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3" type="audio/mpeg"></audio>
+    <audio id="coinSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3" type="audio/mpeg"></audio>
+    <audio id="selectSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg"></audio>
+    <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg"></audio>
+    <audio id="victorySound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3" type="audio/mpeg"></audio>
+    <audio id="sixtySevenSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3" type="audio/mpeg"></audio>
+    <audio id="boomSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3" type="audio/mpeg"></audio>
+    <audio id="achSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3" type="audio/mpeg"></audio>
+    <audio id="bgMusic" loop><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg"></audio>
     
     <script>
         // DOM elements
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         
-        // Game state - INITIALIZE WITH VALUES
+        // Game state
         let gameRunning = false;
         let animationId = null;
         let highScore = 0;
@@ -669,6 +668,18 @@
         const achSound = document.getElementById('achSound');
         const bgMusic = document.getElementById('bgMusic');
         
+        // Set volume for all sounds
+        if (jumpSound) jumpSound.volume = 0.4;
+        if (deathSound) deathSound.volume = 0.5;
+        if (coinSound) coinSound.volume = 0.3;
+        if (selectSound) selectSound.volume = 0.3;
+        if (powerupSound) powerupSound.volume = 0.4;
+        if (victorySound) victorySound.volume = 0.5;
+        if (sixtySevenSound) sixtySevenSound.volume = 0.5;
+        if (boomSound) boomSound.volume = 0.6;
+        if (achSound) achSound.volume = 0.4;
+        if (bgMusic) bgMusic.volume = 0.3;
+        
         // Local storage
         function saveToLocal() { 
             localStorage.setItem('flappyCrixHighScore', highScore); 
@@ -702,7 +713,7 @@
             hasTriggered67 = false;
             hasTriggered1000 = false;
             gameSpeed = cheats.slowmo ? 1.5 : 2.5;
-            document.getElementById('gameScore').textContent = '0';
+            if (document.getElementById('gameScore')) document.getElementById('gameScore').textContent = '0';
         }
         
         function updateGame() {
@@ -718,7 +729,7 @@
             if (!shieldActive) {
                 if (bird.y < 10 || bird.y > canvas.height - 10) { 
                     gameOver = true; 
-                    deathSound.play(); 
+                    if (deathSound) deathSound.play().catch(e=>console.log('Death sound error'));
                     updateHighScore(); 
                     return;
                 }
@@ -747,7 +758,7 @@
                 if (!shieldActive && bird.x + 15 > pipes[i].x && bird.x - 15 < pipes[i].x + pipeWidth) {
                     if (bird.y - 15 < pipes[i].top || bird.y + 15 > pipes[i].bottom) {
                         gameOver = true; 
-                        deathSound.play(); 
+                        if (deathSound) deathSound.play().catch(e=>console.log('Death sound error'));
                         updateHighScore(); 
                         return;
                     }
@@ -755,7 +766,7 @@
                 if (pipes[i].x + pipeWidth < bird.x && !pipes[i].scored) {
                     score++; 
                     pipes[i].scored = true;
-                    document.getElementById('gameScore').textContent = score;
+                    if (document.getElementById('gameScore')) document.getElementById('gameScore').textContent = score;
                     if (score === 67 && !hasTriggered67) trigger67();
                     if (score === 1000 && !hasTriggered1000) trigger1000();
                     checkAchievements();
@@ -775,7 +786,7 @@
                     bird.y - 15 < coins[i].y + 20) {
                     coins[i].collected = true;
                     coinCount += coinMultiplier;
-                    coinSound.play();
+                    if (coinSound) coinSound.play().catch(e=>console.log('Coin sound error'));
                     updateCoinDisplay();
                     checkAchievements();
                     saveToLocal();
@@ -816,9 +827,6 @@
                         ctx.beginPath();
                         ctx.arc(c.x + 10, c.y + 10, 10, 0, Math.PI * 2);
                         ctx.fill();
-                        ctx.fillStyle = '#FF6B35';
-                        ctx.font = '12px monospace';
-                        ctx.fillText('🪙', c.x + 5, c.y + 15);
                     }
                 }
             }
@@ -881,7 +889,6 @@
         
         function startGame() {
             if (gameRunning) {
-                // If game is already running, reset it first
                 if (animationId) cancelAnimationFrame(animationId);
                 resetGame();
             }
@@ -890,14 +897,14 @@
             gamesPlayed++;
             if (animationId) cancelAnimationFrame(animationId);
             animationId = requestAnimationFrame(gameLoop);
-            if (!musicMuted) bgMusic.play();
+            if (!musicMuted && bgMusic) bgMusic.play().catch(e=>console.log('Music error'));
             checkAchievements();
         }
         
         function jump() {
             if (!gameRunning || gameOver) return;
             bird.velocity = bird.jump;
-            jumpSound.play();
+            if (jumpSound) jumpSound.play().catch(e=>console.log('Jump sound error'));
         }
         
         function updateHighScore() {
@@ -923,7 +930,7 @@
             if (!achievements[4].unlocked && hasTriggered67) { achievements[4].unlocked = true; unlocked = true; }
             if (!achievements[5].unlocked && hasTriggered1000) { achievements[5].unlocked = true; unlocked = true; }
             if (unlocked) { 
-                achSound.play(); 
+                if (achSound) achSound.play().catch(e=>console.log('Ach sound error'));
                 updateAchievementCount(); 
                 saveToLocal();
             }
@@ -952,7 +959,7 @@
         
         function trigger67() { 
             hasTriggered67 = true; 
-            sixtySevenSound.play(); 
+            if (sixtySevenSound) sixtySevenSound.play().catch(e=>console.log('67 sound error'));
             let ov = document.getElementById('eventOverlay'); 
             ov.style.display = 'block'; 
             ov.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" class="event-gif">'; 
@@ -966,13 +973,13 @@
             let boom = document.getElementById('boomOverlay'); 
             boom.style.display = 'flex'; 
             boom.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="boom-gif">'; 
-            boomSound.play(); 
+            if (boomSound) boomSound.play().catch(e=>console.log('Boom sound error'));
             setTimeout(() => { 
                 boom.style.display = 'none'; 
                 let msg = Object.values(cheats).some(v=>v) ? 'YOU DID IT! ...AND MAYBE USED SOME HELP? 😈\nThanks for playing!' : 'VICTORY! YOU CONQUERED FLAPPY CRIX!\nThanks for playing!'; 
                 document.getElementById('victoryMessage').innerHTML = msg; 
                 document.getElementById('victoryOverlay').classList.add('active'); 
-                victorySound.play(); 
+                if (victorySound) victorySound.play().catch(e=>console.log('Victory sound error'));
             }, 2000);
         }
         
@@ -1020,7 +1027,7 @@
             updateCoinDisplay(); 
             p.active = true; 
             p.timeLeft = p.duration; 
-            powerupSound.play(); 
+            if (powerupSound) powerupSound.play().catch(e=>console.log('Powerup sound error'));
             if(id==='x2coins') coinMultiplier=2; 
             let interval = setInterval(()=>{ 
                 p.timeLeft--; 
@@ -1044,7 +1051,7 @@
             coinCount -= c.price; 
             c.owned = true; 
             updateCoinDisplay(); 
-            selectSound.play(); 
+            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
             updateStoreDisplay(); 
             updateLockerDisplay(); 
             saveToLocal();
@@ -1057,7 +1064,7 @@
             item.equipped=true; 
             updateLockerDisplay(); 
             updatePreview(); 
-            selectSound.play(); 
+            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
             saveToLocal();
         };
         
@@ -1065,9 +1072,9 @@
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         document.getElementById('musicToggleBtn').addEventListener('click', () => { 
             musicMuted = !musicMuted; 
-            if(!musicMuted) bgMusic.play(); 
-            else bgMusic.pause(); 
-            selectSound.play(); 
+            if(!musicMuted && bgMusic) bgMusic.play().catch(e=>console.log('Music error')); 
+            else if (bgMusic) bgMusic.pause(); 
+            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
         });
         document.getElementById('storeBtn').addEventListener('click', () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); });
         document.getElementById('closeStoreBtn').addEventListener('click', () => { document.getElementById('storeModal').classList.remove('active'); });
@@ -1131,14 +1138,7 @@
             if(e.target.classList.contains('achievements-modal')) document.getElementById('achievementsModal').classList.remove('active'); 
         });
         
-        // Initialize
-        bgMusic.volume = 0.3;
-        loadFromLocal();
-        
-        // Draw initial screen
-        drawGame();
-        
-        // Make sure we have a gameScore element
+        // Create gameScore element if missing
         if (!document.getElementById('gameScore')) {
             let scoreSpan = document.createElement('span');
             scoreSpan.id = 'gameScore';
@@ -1146,7 +1146,11 @@
             document.body.appendChild(scoreSpan);
         }
         
-        console.log('Game initialized - Click START to play!');
+        // Initialize
+        loadFromLocal();
+        drawGame();
+        
+        console.log('Game ready - Click START to play!');
     </script>
 </body>
 </html>
