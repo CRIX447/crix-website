@@ -23,7 +23,7 @@
     </style>
     
     <style>
-        /* CLEAN BOLD CYBER STYLE - LESS GLOW */
+        /* CLEAN BOLD CYBER STYLE */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -54,18 +54,13 @@
             overflow-x: hidden;
         }
         
-        /* REDUCED GLOW EFFECTS */
-        .cyber-glow {
-            text-shadow: var(--text-glow);
-        }
-        
-        /* HEADER - CLEANER */
+        /* HEADER */
         .cyber-header {
             text-align: center;
             padding: 40px 20px;
             background: rgba(5, 5, 8, 0.95);
             backdrop-filter: blur(5px);
-            border-bottom: 3px solid var(--neon-red);
+            border-bottom: 2px solid var(--neon-red);
             margin-bottom: 40px;
             position: relative;
         }
@@ -123,7 +118,7 @@
             position: relative;
         }
         
-        /* GAME BUTTON - BOLD & CLEAN */
+        /* GAME BUTTON */
         .game-button-container {
             text-align: center;
             margin: 30px 0 40px;
@@ -208,7 +203,7 @@
             margin: 30px 0 40px;
         }
         
-        /* CIRCLE BUTTON STYLE - CLEANER */
+        /* CIRCLE BUTTON STYLE */
         .circle-button {
             width: 70px;
             height: 70px;
@@ -264,7 +259,7 @@
             display: block;
         }
         
-        /* STATS GRID - CLEANER */
+        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -632,7 +627,7 @@
             border-radius: 15px;
         }
         
-        /* MUSIC CONTROL BUTTON - CLEANER */
+        /* MUSIC CONTROL BUTTON */
         .music-control {
             position: fixed;
             bottom: 20px;
@@ -729,7 +724,7 @@
             </div>
         </section>
         
-        <!-- CIRCLE BUTTONS - TOP (Channel Icons) -->
+        <!-- CIRCLE BUTTONS - TOP (Channel Icons) - UPDATED -->
         <div class="circle-buttons-top" id="channelButtons">
             <!-- Will be populated by JavaScript -->
         </div>
@@ -796,14 +791,14 @@
         </section>
     </div>
     
-    <!-- JAVASCRIPT (same as before, just the styling changed) -->
+    <!-- JAVASCRIPT - UPDATED WITH CRIX YAPS -->
     <script>
-        // ========== CHANNEL ICONS ==========
+        // ========== CHANNEL ICONS - UPDATED ==========
         const channelIcons = [
             { name: "CRIXGAMING VR", file: "crixgamingvr.png", url: "https://www.youtube.com/@CRIXGAMINGVR" },
             { name: "CRIX SMP", file: "crixsmp.png", url: "https://www.youtube.com/@CRIXMC123" },
             { name: "CRIX REACTS", file: "crixreacts.png", url: "https://www.youtube.com/@CRIXREACTS123" },
-            { name: "CRIX PODCASTS", file: "crixpodcasts.png", url: "https://www.youtube.com/@CRIXPODCASTS" },
+            { name: "CRIX YAPS", file: "crixpodcasts.png", url: "https://www.youtube.com/@CRIXYAPS" },
             { name: "CRIX GAMES", file: "crixgames.png", url: "https://www.youtube.com/@CRIXGAMESYT" },
             { name: "CRIXBLOX", file: "crixblox.png", url: "https://www.youtube.com/@CRIXBLOX" }
         ];
@@ -911,7 +906,7 @@
             musicToggle.addEventListener('mouseenter', playHoverSound);
         }
 
-        // ========== YOUTUBE API ==========
+        // ========== YOUTUBE DATA FETCHING ==========
         const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
         const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
         
@@ -960,7 +955,7 @@
                 document.getElementById('subCount').textContent = '1,15K';
                 document.getElementById('videoCount').textContent = '154';
                 document.getElementById('viewCount').textContent = '52,78K';
-                displayHardcodedVideos();
+                displayFallbackVideos();
             }
         }
 
@@ -985,14 +980,14 @@
                     if (videosData.items && videosData.items.length > 0) {
                         displayVideos(videosData.items);
                     } else {
-                        displayHardcodedVideos();
+                        displayFallbackVideos();
                     }
                 } else {
-                    displayHardcodedVideos();
+                    displayFallbackVideos();
                 }
             } catch (error) {
                 console.log('Error fetching videos, using fallback');
-                displayHardcodedVideos();
+                displayFallbackVideos();
             }
         }
 
@@ -1011,7 +1006,7 @@
             });
         }
 
-        function displayHardcodedVideos() {
+        function displayFallbackVideos() {
             videoGrid.innerHTML = '';
             
             hardcodedVideos.forEach(video => {
@@ -1168,7 +1163,7 @@
 
         // ========== INITIALIZE ==========
         async function initialize() {
-            console.log('🚀 CRIXGAMING VR - CLEAN BOLD EDITION');
+            console.log('🚀 CRIXGAMING VR - UPDATED WITH CRIX YAPS');
             
             createChannelButtons();
             createSocialButtons();
