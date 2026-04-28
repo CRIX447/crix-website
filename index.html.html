@@ -23,7 +23,6 @@
     </style>
     
     <style>
-        /* CLEAN BOLD CYBER STYLE */
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
@@ -54,7 +53,6 @@
             overflow-x: hidden;
         }
         
-        /* HEADER */
         .cyber-header {
             text-align: center;
             padding: 40px 20px;
@@ -110,7 +108,6 @@
             border: 1px solid var(--neon-orange);
         }
         
-        /* CONTAINER */
         .cyber-container {
             max-width: 1400px;
             margin: 0 auto;
@@ -118,7 +115,6 @@
             position: relative;
         }
         
-        /* GAME BUTTON */
         .game-button-container {
             text-align: center;
             margin: 30px 0 40px;
@@ -147,7 +143,6 @@
             border-color: white;
         }
         
-        /* VIDEO PLAYER SECTION */
         .video-player-section {
             background: rgba(5, 5, 8, 0.95);
             padding: 30px 30px 40px;
@@ -186,7 +181,6 @@
             background: #000;
         }
         
-        /* CIRCLE BUTTONS CONTAINER */
         .circle-buttons-top, .circle-buttons-bottom {
             display: flex;
             flex-wrap: wrap;
@@ -203,7 +197,6 @@
             margin: 30px 0 40px;
         }
         
-        /* CIRCLE BUTTON STYLE */
         .circle-button {
             width: 70px;
             height: 70px;
@@ -231,7 +224,6 @@
             display: block;
         }
         
-        /* SOCIAL BUTTONS */
         .social-button {
             width: 60px;
             height: 60px;
@@ -259,7 +251,6 @@
             display: block;
         }
         
-        /* STATS GRID */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
@@ -316,7 +307,6 @@
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
-        /* VIDEOS SECTION */
         .videos-section {
             background: rgba(5, 5, 8, 0.95);
             padding: 60px 40px;
@@ -411,7 +401,6 @@
             border-radius: 15px;
         }
         
-        /* MERCH SECTION */
         .cyber-merch {
             background: rgba(5, 5, 8, 0.95);
             padding: 60px 40px;
@@ -572,7 +561,6 @@
             transform: translateY(-2px);
         }
         
-        /* ABOUT SECTION */
         .about-section {
             background: rgba(5, 5, 8, 0.95);
             padding: 60px 40px;
@@ -627,7 +615,6 @@
             border-radius: 15px;
         }
         
-        /* MUSIC CONTROL BUTTON */
         .music-control {
             position: fixed;
             bottom: 20px;
@@ -657,7 +644,6 @@
             opacity: 0.7;
         }
         
-        /* RESPONSIVE */
         @media (max-width: 768px) {
             .hologram-logo { font-size: 48px; }
             .section-title { font-size: 32px; }
@@ -682,12 +668,10 @@
     </style>
 </head>
 <body>
-    <!-- AUDIO PLAYER (hidden) -->
     <audio id="bgMusic" loop>
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg">
     </audio>
     
-    <!-- SOUND EFFECTS -->
     <audio id="hoverSound" preload="auto">
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/hover.mp3" type="audio/mpeg">
     </audio>
@@ -696,53 +680,42 @@
         <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/click.mp3" type="audio/mpeg">
     </audio>
     
-    <!-- MUSIC CONTROL BUTTON -->
     <button class="music-control" id="musicToggleBtn" title="Toggle Music">🔊</button>
     
-    <!-- HEADER -->
     <header class="cyber-header">
         <div class="hologram-logo">CRIXGAMING VR</div>
         <div class="cyber-tagline">who do you think i am 😂😂😂😂</div>
     </header>
     
     <div class="cyber-container">
-        <!-- GAME BUTTON -->
         <div class="game-button-container">
             <a href="https://crixgamingvr.vercel.app/game.html" target="_blank" style="text-decoration: none;">
                 <button class="game-button">🎮 PLAY FLAPPY CRIX</button>
             </a>
         </div>
         
-        <!-- VIDEO PLAYER -->
         <section class="video-player-section">
             <h2 class="section-title">🎬 FEATURED VIDEO</h2>
             <div class="video-player-container">
                 <video id="crixVideo" class="crix-video" controls loop>
                     <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/video.mp4" type="video/mp4">
-                    Your browser does not support the video tag.
                 </video>
             </div>
         </section>
         
-        <!-- CIRCLE BUTTONS - TOP (Channel Icons) - UPDATED -->
-        <div class="circle-buttons-top" id="channelButtons">
-            <!-- Will be populated by JavaScript -->
-        </div>
+        <div class="circle-buttons-top" id="channelButtons"></div>
         
-        <!-- LIVE STATS -->
         <div class="stats-grid">
             <div class="cyber-stat">
                 <div class="stat-icon" style="font-size: 40px;">👁️</div>
                 <div class="stat-display" id="subCount">--</div>
                 <div class="stat-label">SUBS</div>
             </div>
-            
             <div class="cyber-stat">
                 <div class="stat-icon" style="font-size: 40px;">▶️</div>
                 <div class="stat-display" id="videoCount">--</div>
                 <div class="stat-label">VIDEOS</div>
             </div>
-            
             <div class="cyber-stat">
                 <div class="stat-icon" style="font-size: 40px;">🔍</div>
                 <div class="stat-display" id="viewCount">--</div>
@@ -750,60 +723,42 @@
             </div>
         </div>
         
-        <!-- LATEST VIDEOS SECTION -->
         <section class="videos-section">
             <h2 class="section-title">📺 LATEST UPLOADS</h2>
-            
-            <div class="video-grid" id="videoGrid">
-                <!-- Videos will be loaded here -->
-            </div>
+            <div class="video-grid" id="videoGrid"></div>
         </section>
         
-        <!-- MERCH SECTION -->
         <section class="cyber-merch">
             <div class="merch-header">
                 <img class="merch-favicon" id="merchFavicon" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png" alt="MERCH" onerror="this.style.display='none'">
                 <h2 class="section-title">🛒 CYBER MERCH</h2>
                 <img class="merch-favicon" id="merchFavicon2" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png" alt="MERCH" onerror="this.style.display='none'">
             </div>
-            
-            <div class="hologram-grid" id="productGrid">
-                <!-- Products will be generated -->
-            </div>
+            <div class="hologram-grid" id="productGrid"></div>
         </section>
         
-        <!-- CIRCLE BUTTONS - BOTTOM (Social Icons) -->
-        <div class="circle-buttons-bottom" id="socialButtons">
-            <!-- Will be populated by JavaScript -->
-        </div>
+        <div class="circle-buttons-bottom" id="socialButtons"></div>
         
-        <!-- ABOUT SECTION -->
         <section class="about-section">
             <h2 class="section-title">📖 ABOUT CRIX</h2>
-            
             <div class="about-content">
                 <p><span class="highlight">CRIXGAMING VR</span> started on <span class="date">January 19, 2024</span> with <span class="highlight">CRIX SMP</span>. After getting a Meta Quest 2 and discovering Gorilla Tag, everything changed!</p>
-                
                 <p>On <span class="date">April 12, 2025</span>, <span class="highlight">CRIXGAMING VR</span> was born. First livestream: <span class="date">October 15, 2025</span>. Hit <span class="date milestone">1,000 subscribers on February 11, 2026</span>! Now streaming Gorilla Tag on SteamVR.</p>
-                
                 <p>Thanks for being part of the journey! 🎮</p>
             </div>
         </section>
     </div>
     
-    <!-- JAVASCRIPT - UPDATED WITH CRIX YAPS -->
     <script>
-        // ========== CHANNEL ICONS - UPDATED ==========
+        // ========== CHANNEL ICONS - REMOVED CRIX GAMES ==========
         const channelIcons = [
             { name: "CRIXGAMING VR", file: "crixgamingvr.png", url: "https://www.youtube.com/@CRIXGAMINGVR" },
             { name: "CRIX SMP", file: "crixsmp.png", url: "https://www.youtube.com/@CRIXMC123" },
             { name: "CRIX REACTS", file: "crixreacts.png", url: "https://www.youtube.com/@CRIXREACTS123" },
             { name: "CRIX YAPS", file: "crixpodcasts.png", url: "https://www.youtube.com/@CRIXYAPS" },
-            { name: "CRIX GAMES", file: "crixgames.png", url: "https://www.youtube.com/@CRIXGAMESYT" },
             { name: "CRIXBLOX", file: "crixblox.png", url: "https://www.youtube.com/@CRIXBLOX" }
         ];
         
-        // ========== SOCIAL ICONS ==========
         const socialIcons = [
             { name: "TikTok", icon: "📱", file: "tiktok.png", url: "https://tiktok.com/@crixgaming_vr" },
             { name: "Twitter", icon: "🐦", file: "twitter.png", url: "https://x.com/CRIXGAMINGVR" },
@@ -813,7 +768,6 @@
             { name: "Xbox", icon: "🎯", file: "xbox.png", url: "https://xbox.com/en-AU/play/user/NVR CRIX447" }
         ];
 
-        // ========== PRODUCT DATA ==========
         const products = [
             { name: "CRIXGAMING VR BUCKET HAT", description: "Official bucket hat", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif", priceUSD: 24.99 },
             { name: "CRIX ARMY TANK TOP", description: "Military-style tank top", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-army-tank-top", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif", priceUSD: 19.99 },
@@ -829,7 +783,6 @@
             { name: "CRIXGAMING VR BASEBALL CAP", description: "Baseball cap", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png", priceUSD: 21.99 }
         ];
 
-        // ========== CURRENCY DATA ==========
         const currencies = {
             US: { code: "USD", symbol: "$", rate: 1.0 }, AU: { code: "AUD", symbol: "A$", rate: 1.52 },
             GB: { code: "GBP", symbol: "£", rate: 0.79 }, EU: { code: "EUR", symbol: "€", rate: 0.92 },
@@ -838,13 +791,11 @@
             IN: { code: "INR", symbol: "₹", rate: 83 }, KR: { code: "KRW", symbol: "₩", rate: 1300 }
         };
 
-        // ========== STATE ==========
         let currentCurrency = 'USD';
         let currencySymbol = '$';
         let currencyRate = 1.0;
         let musicMuted = false;
 
-        // ========== DOM ELEMENTS ==========
         const productGrid = document.getElementById('productGrid');
         const videoGrid = document.getElementById('videoGrid');
         const channelButtons = document.getElementById('channelButtons');
@@ -856,7 +807,6 @@
         const clickSound = document.getElementById('clickSound');
         const musicToggle = document.getElementById('musicToggleBtn');
 
-        // ========== SOUND FUNCTIONS ==========
         function playHoverSound() {
             hoverSound.currentTime = 0;
             hoverSound.volume = 0.3;
@@ -869,19 +819,15 @@
             clickSound.play().catch(e => console.log('Click sound blocked'));
         }
 
-        // ========== MUSIC CONTROL ==========
         function setupMusic() {
             bgMusic.volume = 0.3;
-            
             const playPromise = bgMusic.play();
             
             if (playPromise !== undefined) {
                 playPromise.then(() => {
-                    console.log('✅ Music playing');
                     musicMuted = false;
                     musicToggle.innerHTML = '🔊';
                 }).catch(() => {
-                    console.log('⚠️ Autoplay blocked - click button to start');
                     musicMuted = true;
                     musicToggle.innerHTML = '🔇';
                     musicToggle.classList.add('muted');
@@ -906,29 +852,13 @@
             musicToggle.addEventListener('mouseenter', playHoverSound);
         }
 
-        // ========== YOUTUBE DATA FETCHING ==========
         const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
         const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
         
         const hardcodedVideos = [
-            {
-                videoId: 'dQw4w9WgXcQ',
-                title: '[UPDATED] how to get the bark mod menu [100% LEGAL]',
-                date: 'Mar 16, 2026',
-                channelUrl: 'https://youtube.com/@CRIXGAMINGVR'
-            },
-            {
-                videoId: 'dQw4w9WgXcQ',
-                title: '🔴 GORILLA TAG LIVE | MINIGMAES FT. VTgtag 🔴',
-                date: 'Mar 15, 2026',
-                channelUrl: 'https://youtube.com/@CRIXGAMINGVR'
-            },
-            {
-                videoId: 'dQw4w9WgXcQ',
-                title: '🔴 MINECRAFT LIVE | WORKING ON RP REALM 🔴',
-                date: 'Mar 15, 2026',
-                channelUrl: 'https://youtube.com/@CRIXGAMINGVR'
-            }
+            { videoId: 'dQw4w9WgXcQ', title: '[UPDATED] how to get the bark mod menu [100% LEGAL]', date: 'Mar 16, 2026', channelUrl: 'https://youtube.com/@CRIXGAMINGVR' },
+            { videoId: 'dQw4w9WgXcQ', title: '🔴 GORILLA TAG LIVE | MINIGMAES FT. VTgtag 🔴', date: 'Mar 15, 2026', channelUrl: 'https://youtube.com/@CRIXGAMINGVR' },
+            { videoId: 'dQw4w9WgXcQ', title: '🔴 MINECRAFT LIVE | WORKING ON RP REALM 🔴', date: 'Mar 15, 2026', channelUrl: 'https://youtube.com/@CRIXGAMINGVR' }
         ];
 
         async function fetchYouTubeData() {
@@ -949,9 +879,7 @@
                 }
                 
                 await fetchLatestVideos();
-                
             } catch (error) {
-                console.log('YouTube API error, using fallback');
                 document.getElementById('subCount').textContent = '1,15K';
                 document.getElementById('videoCount').textContent = '154';
                 document.getElementById('viewCount').textContent = '52,78K';
@@ -986,21 +914,18 @@
                     displayFallbackVideos();
                 }
             } catch (error) {
-                console.log('Error fetching videos, using fallback');
                 displayFallbackVideos();
             }
         }
 
         function displayVideos(videos) {
             videoGrid.innerHTML = '';
-            
             videos.forEach(item => {
                 const snippet = item.snippet;
                 const videoId = snippet.resourceId.videoId;
                 const title = snippet.title;
                 const thumbnail = snippet.thumbnails.medium?.url || snippet.thumbnails.default?.url || `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`;
                 const date = new Date(snippet.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                
                 const videoCard = createVideoCard(videoId, title, thumbnail, date);
                 videoGrid.appendChild(videoCard);
             });
@@ -1008,7 +933,6 @@
 
         function displayFallbackVideos() {
             videoGrid.innerHTML = '';
-            
             hardcodedVideos.forEach(video => {
                 const thumbnail = `https://img.youtube.com/vi/${video.videoId}/mqdefault.jpg`;
                 const videoCard = createVideoCard(video.videoId, video.title, thumbnail, video.date, video.channelUrl);
@@ -1019,27 +943,16 @@
         function createVideoCard(videoId, title, thumbnail, date, channelUrl) {
             const card = document.createElement('div');
             card.className = 'video-card';
-            
-            if (channelUrl && videoId === 'dQw4w9WgXcQ') {
-                card.onclick = () => window.open(channelUrl, '_blank');
-            } else {
-                card.onclick = () => window.open(`https://youtube.com/watch?v=${videoId}`, '_blank');
-            }
-            
-            const thumbnailHtml = videoId !== 'dQw4w9WgXcQ' 
-                ? `<img class="video-thumbnail" src="${thumbnail}" alt="${title}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${videoId}/mqdefault.jpg'">`
-                : `<div style="color: var(--matrix-green); font-size: 48px; display: flex; align-items: center; justify-content: center; height: 100%;">▶️</div>`;
-            
+            card.onclick = () => window.open(channelUrl || `https://youtube.com/watch?v=${videoId}`, '_blank');
             card.innerHTML = `
                 <div class="video-thumbnail-container">
-                    ${thumbnailHtml}
+                    <img class="video-thumbnail" src="${thumbnail}" alt="${title}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${videoId}/mqdefault.jpg'">
                 </div>
                 <div class="video-info">
                     <div class="video-date">${date}</div>
                     <div class="video-title">${title}</div>
                 </div>
             `;
-            
             return card;
         }
 
@@ -1049,24 +962,20 @@
             return num.toString();
         }
 
-        // ========== CURRENCY DETECTION ==========
         async function detectUserCurrency() {
             try {
                 const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
                 let countryCode = 'US';
-                
                 if (timezone.includes('Australia/')) countryCode = 'AU';
                 else if (timezone.includes('Europe/London')) countryCode = 'GB';
                 else if (timezone.includes('Europe/')) countryCode = 'EU';
                 else if (timezone.includes('Asia/Tokyo')) countryCode = 'JP';
                 else if (timezone.includes('Asia/Ho_Chi_Minh')) countryCode = 'VN';
-                
                 try {
                     const response = await fetch('https://ipapi.co/json/');
                     const data = await response.json();
                     if (data.country_code) countryCode = data.country_code;
                 } catch (e) {}
-                
                 if (currencies[countryCode]) {
                     currentCurrency = currencies[countryCode].code;
                     currencySymbol = currencies[countryCode].symbol;
@@ -1078,7 +987,6 @@
             generateAllProducts();
         }
 
-        // ========== PRODUCTS ==========
         function generateAllProducts() {
             productGrid.innerHTML = '';
             products.forEach(product => productGrid.appendChild(createProductElement(product)));
@@ -1088,7 +996,6 @@
             const el = document.createElement('div');
             el.className = 'hologram-product';
             const price = (product.priceUSD * currencyRate).toFixed(2);
-            
             el.innerHTML = `
                 <div class="product-image-container">
                     <img class="product-image" src="${product.image}" alt="${product.name}" loading="lazy">
@@ -1100,28 +1007,23 @@
                     <a href="${product.link}" target="_blank" class="buy-button">[ BUY ]</a>
                 </div>
             `;
-            
             const buyBtn = el.querySelector('.buy-button');
             buyBtn.addEventListener('mouseenter', playHoverSound);
             buyBtn.addEventListener('click', playClickSound);
-            
             return el;
         }
 
-        // ========== CREATE BUTTONS ==========
         function createChannelButtons() {
             channelButtons.innerHTML = '';
             channelIcons.forEach((channel) => {
                 const btn = document.createElement('div');
                 btn.className = 'circle-button';
                 btn.title = channel.name;
-                
                 btn.addEventListener('mouseenter', playHoverSound);
                 btn.addEventListener('click', (e) => {
                     playClickSound();
                     window.open(channel.url, '_blank');
                 });
-                
                 const img = document.createElement('img');
                 img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${channel.file}`;
                 img.alt = channel.name;
@@ -1129,7 +1031,6 @@
                     this.style.display = 'none';
                     btn.innerHTML = '🎬';
                 };
-                
                 btn.appendChild(img);
                 channelButtons.appendChild(btn);
             });
@@ -1141,13 +1042,11 @@
                 const btn = document.createElement('div');
                 btn.className = 'social-button';
                 btn.title = social.name;
-                
                 btn.addEventListener('mouseenter', playHoverSound);
                 btn.addEventListener('click', (e) => {
                     playClickSound();
                     window.open(social.url, '_blank');
                 });
-                
                 const img = document.createElement('img');
                 img.src = `https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${social.file}`;
                 img.alt = social.name;
@@ -1155,16 +1054,12 @@
                     this.style.display = 'none';
                     btn.innerHTML = social.icon;
                 };
-                
                 btn.appendChild(img);
                 socialButtons.appendChild(btn);
             });
         }
 
-        // ========== INITIALIZE ==========
         async function initialize() {
-            console.log('🚀 CRIXGAMING VR - UPDATED WITH CRIX YAPS');
-            
             createChannelButtons();
             createSocialButtons();
             setupMusic();
