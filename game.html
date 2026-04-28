@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FLAPPY CRIX • CRIXGAMING VR</title>
     
+    <!-- Favicon - FIXED with proper path -->
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+    
     <style>
         @font-face {
             font-family: 'CRIX Pixel';
@@ -23,7 +26,7 @@
         }
         
         body {
-            font-family: 'CRIX Pixel', 'Courier New', 'Lucida Console', 'Monaco', monospace;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
             background: #0A0A0F;
             min-height: 100vh;
             display: flex;
@@ -233,6 +236,56 @@
             font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
+        /* ACHIEVEMENT POPUP - SITE NOTIFICATION */
+        .achievement-popup {
+            position: fixed;
+            top: 20px;
+            right: -300px;
+            background: linear-gradient(135deg, #1a1a2e, #0a0a1a);
+            border-left: 4px solid gold;
+            border-radius: 12px;
+            padding: 12px 20px;
+            min-width: 250px;
+            z-index: 20000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            transition: right 0.3s ease-out;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+        }
+        
+        .achievement-popup.show {
+            right: 20px;
+        }
+        
+        .achievement-popup-icon {
+            font-size: 32px;
+        }
+        
+        .achievement-popup-content {
+            flex: 1;
+        }
+        
+        .achievement-popup-title {
+            font-size: 12px;
+            color: gold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .achievement-popup-name {
+            font-size: 14px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .achievement-popup-desc {
+            font-size: 10px;
+            color: #aaa;
+        }
+        
+        /* MODALS */
         .store-modal, .locker-modal, .achievements-modal {
             display: none;
             position: fixed;
@@ -469,10 +522,22 @@
             .stat-value { font-size: 12px; }
             .action-btn, .game-btn { padding: 6px 12px; font-size: 10px; min-width: 70px; }
             .game-title { font-size: 26px; }
+            .achievement-popup { min-width: 200px; padding: 8px 15px; }
+            .achievement-popup-icon { font-size: 24px; }
         }
     </style>
 </head>
 <body>
+    <!-- ACHIEVEMENT POPUP CONTAINER -->
+    <div id="achievementPopup" class="achievement-popup">
+        <div class="achievement-popup-icon">🏆</div>
+        <div class="achievement-popup-content">
+            <div class="achievement-popup-title">ACHIEVEMENT UNLOCKED!</div>
+            <div class="achievement-popup-name" id="popupAchievementName"></div>
+            <div class="achievement-popup-desc" id="popupAchievementDesc"></div>
+        </div>
+    </div>
+    
     <div class="game-container">
         <div class="game-header">
             <div class="game-title">FLAPPY CRIX</div>
@@ -530,78 +595,27 @@
     </div>
     
     <!-- MODALS -->
-    <div class="store-modal" id="storeModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">🛒 STORE</div>
-                <button class="modal-close" id="closeStoreBtn">✕</button>
-            </div>
-            <div class="store-tabs">
-                <button class="store-tab active" id="tabPowerupsStore">⚡ POWER-UPS</button>
-                <button class="store-tab" id="tabCosmeticsStore">👕 COSMETICS</button>
-            </div>
-            <div id="storePowerups"><div class="store-grid" id="powerupsStoreGrid"></div></div>
-            <div id="storeCosmetics" style="display:none;"><div class="store-grid" id="cosmeticsStoreGrid"></div></div>
-        </div>
-    </div>
+    <div class="store-modal" id="storeModal"><div class="modal-content"><div class="modal-header"><div class="modal-title">🛒 STORE</div><button class="modal-close" id="closeStoreBtn">✕</button></div><div class="store-tabs"><button class="store-tab active" id="tabPowerupsStore">⚡ POWER-UPS</button><button class="store-tab" id="tabCosmeticsStore">👕 COSMETICS</button></div><div id="storePowerups"><div class="store-grid" id="powerupsStoreGrid"></div></div><div id="storeCosmetics" style="display:none;"><div class="store-grid" id="cosmeticsStoreGrid"></div></div></div></div>
     
-    <div class="locker-modal" id="lockerModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">👕 LOCKER</div>
-                <button class="modal-close" id="closeLockerBtn">✕</button>
-            </div>
-            <div class="locker-balance" id="lockerBalance">🪙 0</div>
-            <div class="locker-preview">
-                <canvas id="previewCanvas" width="120" height="120" class="preview-canvas"></canvas>
-                <div class="preview-info">
-                    <div class="preview-title" id="previewTitle">YOUR DRIP</div>
-                    <div class="preview-equip">
-                        <button class="equip-btn" id="unequipHat">🧢 UNEQUIP HAT</button>
-                        <button class="equip-btn" id="unequipShirt">👕 UNEQUIP SHIRT</button>
-                    </div>
-                </div>
-            </div>
-            <div class="locker-section">
-                <div class="locker-section-title">🧢 HATS</div>
-                <div class="locker-grid" id="lockerHats"></div>
-            </div>
-            <div class="locker-section">
-                <div class="locker-section-title">👕 SHIRTS</div>
-                <div class="locker-grid" id="lockerShirts"></div>
-            </div>
-        </div>
-    </div>
+    <div class="locker-modal" id="lockerModal"><div class="modal-content"><div class="modal-header"><div class="modal-title">👕 LOCKER</div><button class="modal-close" id="closeLockerBtn">✕</button></div><div class="locker-balance" id="lockerBalance">🪙 0</div><div class="locker-preview"><canvas id="previewCanvas" width="120" height="120" class="preview-canvas"></canvas><div class="preview-info"><div class="preview-title" id="previewTitle">YOUR DRIP</div><div class="preview-equip"><button class="equip-btn" id="unequipHat">🧢 UNEQUIP HAT</button><button class="equip-btn" id="unequipShirt">👕 UNEQUIP SHIRT</button></div></div></div><div class="locker-section"><div class="locker-section-title">🧢 HATS</div><div class="locker-grid" id="lockerHats"></div></div><div class="locker-section"><div class="locker-section-title">👕 SHIRTS</div><div class="locker-grid" id="lockerShirts"></div></div></div></div>
     
-    <div class="achievements-modal" id="achievementsModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <div class="modal-title">🏆 ACHIEVEMENTS</div>
-                <button class="modal-close" id="closeAchievementsBtn">✕</button>
-            </div>
-            <div class="achievements-grid" id="achievementsGrid"></div>
-        </div>
-    </div>
+    <div class="achievements-modal" id="achievementsModal"><div class="modal-content"><div class="modal-header"><div class="modal-title">🏆 ACHIEVEMENTS</div><button class="modal-close" id="closeAchievementsBtn">✕</button></div><div class="achievements-grid" id="achievementsGrid"></div></div></div>
     
     <div id="eventOverlay" class="event-overlay" style="display:none;"></div>
     <div id="boomOverlay" class="boom-overlay" style="display:none;"></div>
-    <div class="victory-overlay" id="victoryOverlay">
-        <div class="victory-title">🎉 VICTORY! 🎉</div>
-        <div class="victory-message" id="victoryMessage"></div>
-        <button class="victory-restart" id="victoryRestart">PLAY AGAIN</button>
-    </div>
+    <div class="victory-overlay" id="victoryOverlay"><div class="victory-title">🎉 VICTORY! 🎉</div><div class="victory-message" id="victoryMessage"></div><button class="victory-restart" id="victoryRestart">PLAY AGAIN</button></div>
     
     <!-- AUDIO -->
-    <audio id="jumpSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3" type="audio/mpeg"></audio>
-    <audio id="deathSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3" type="audio/mpeg"></audio>
-    <audio id="coinSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3" type="audio/mpeg"></audio>
-    <audio id="selectSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3" type="audio/mpeg"></audio>
-    <audio id="powerupSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3" type="audio/mpeg"></audio>
-    <audio id="victorySound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3" type="audio/mpeg"></audio>
-    <audio id="sixtySevenSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3" type="audio/mpeg"></audio>
-    <audio id="boomSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3" type="audio/mpeg"></audio>
-    <audio id="achSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3" type="audio/mpeg"></audio>
-    <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3" type="audio/mpeg"></audio>
+    <audio id="jumpSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
+    <audio id="deathSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
+    <audio id="coinSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
+    <audio id="selectSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
+    <audio id="powerupSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
+    <audio id="victorySound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
+    <audio id="sixtySevenSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
+    <audio id="boomSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
+    <audio id="achSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
+    <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
     
     <script>
         // DOM elements
@@ -636,8 +650,6 @@
         // Images
         const coinImage = new Image(); 
         coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
-        coinImage.onload = () => { console.log('Coin GIF loaded'); drawGame(); };
-        
         const birdImage = new Image(); 
         birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
@@ -678,7 +690,7 @@
         const achSound = document.getElementById('achSound');
         const bgMusic = document.getElementById('bgMusic');
         
-        // Set volume for all sounds
+        // Set volume
         if (jumpSound) jumpSound.volume = 0.4;
         if (deathSound) deathSound.volume = 0.5;
         if (coinSound) coinSound.volume = 0.3;
@@ -689,6 +701,20 @@
         if (boomSound) boomSound.volume = 0.6;
         if (achSound) achSound.volume = 0.4;
         if (bgMusic) bgMusic.volume = 0.3;
+        
+        // Achievement Popup
+        const popup = document.getElementById('achievementPopup');
+        const popupName = document.getElementById('popupAchievementName');
+        const popupDesc = document.getElementById('popupAchievementDesc');
+        
+        function showAchievementPopup(achievement) {
+            popupName.textContent = achievement.name;
+            popupDesc.textContent = achievement.desc;
+            popup.classList.add('show');
+            setTimeout(() => {
+                popup.classList.remove('show');
+            }, 4000);
+        }
         
         // Local storage
         function saveToLocal() { 
@@ -756,7 +782,7 @@
                 pipes.push({ x: canvas.width, top: topHeight, bottom: topHeight + pipeGap, scored: false });
             }
             
-            // Spawn coins - FIXED: more reliable
+            // Spawn coins
             let coinRate = cheats.coinlord ? 30 : 60;
             if (frameCount % coinRate === 0) {
                 let coinY = Math.random() * (canvas.height - 100) + 50;
@@ -829,7 +855,7 @@
                 ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom); 
             }
             
-            // Coins - Animated GIF
+            // Coins
             for (let c of coins) { 
                 if (!c.collected) {
                     if (coinImage.complete && coinImage.naturalWidth > 0) {
@@ -839,9 +865,6 @@
                         ctx.beginPath();
                         ctx.arc(c.x + 10, c.y + 10, 10, 0, Math.PI * 2);
                         ctx.fill();
-                        ctx.fillStyle = '#FF6B35';
-                        ctx.font = '12px monospace';
-                        ctx.fillText('🪙', c.x + 5, c.y + 15);
                     }
                 }
             }
@@ -916,7 +939,7 @@
                 bgMusic.currentTime = 0;
                 bgMusic.play().catch(e=>console.log('Music error'));
             }
-            // Play select sound for start button
+            // Play select sound for start button - NOT achievement sound
             if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
             checkAchievements();
         }
@@ -943,14 +966,45 @@
         
         function checkAchievements() {
             let unlocked = false;
-            if (!achievements[0].unlocked && gamesPlayed >= 1) { achievements[0].unlocked = true; unlocked = true; }
-            if (!achievements[1].unlocked) { achievements[1].progress = Math.min(coinCount, 100); if (coinCount >= 100) { achievements[1].unlocked = true; unlocked = true; } }
-            if (!achievements[2].unlocked && score >= 50) { achievements[2].unlocked = true; unlocked = true; }
-            if (!achievements[3].unlocked && score >= 100) { achievements[3].unlocked = true; unlocked = true; }
-            if (!achievements[4].unlocked && hasTriggered67) { achievements[4].unlocked = true; unlocked = true; }
-            if (!achievements[5].unlocked && hasTriggered1000) { achievements[5].unlocked = true; unlocked = true; }
+            let unlockedAchievement = null;
+            
+            if (!achievements[0].unlocked && gamesPlayed >= 1) { 
+                achievements[0].unlocked = true; 
+                unlocked = true;
+                unlockedAchievement = achievements[0];
+            }
+            if (!achievements[1].unlocked) { 
+                achievements[1].progress = Math.min(coinCount, 100); 
+                if (coinCount >= 100) { 
+                    achievements[1].unlocked = true; 
+                    unlocked = true;
+                    if (!unlockedAchievement) unlockedAchievement = achievements[1];
+                } 
+            }
+            if (!achievements[2].unlocked && score >= 50) { 
+                achievements[2].unlocked = true; 
+                unlocked = true;
+                if (!unlockedAchievement) unlockedAchievement = achievements[2];
+            }
+            if (!achievements[3].unlocked && score >= 100) { 
+                achievements[3].unlocked = true; 
+                unlocked = true;
+                if (!unlockedAchievement) unlockedAchievement = achievements[3];
+            }
+            if (!achievements[4].unlocked && hasTriggered67) { 
+                achievements[4].unlocked = true; 
+                unlocked = true;
+                if (!unlockedAchievement) unlockedAchievement = achievements[4];
+            }
+            if (!achievements[5].unlocked && hasTriggered1000) { 
+                achievements[5].unlocked = true; 
+                unlocked = true;
+                if (!unlockedAchievement) unlockedAchievement = achievements[5];
+            }
+            
             if (unlocked) { 
                 if (achSound) achSound.play().catch(e=>console.log('Ach sound error'));
+                if (unlockedAchievement) showAchievementPopup(unlockedAchievement);
                 updateAchievementCount(); 
                 saveToLocal();
             }
@@ -1133,12 +1187,12 @@
         document.getElementById('cheatInput').addEventListener('input', (e) => {
             let code = e.target.value;
             if(code.length === 4) {
-                if(code === '6969') { cheats.godmode = !cheats.godmode; alert(cheats.godmode ? 'Godmode ON' : 'Godmode OFF'); updateCheatIndicators(); }
-                if(code === '1337') { cheats.coinlord = !cheats.coinlord; alert(cheats.coinlord ? 'Coin Lord ON' : 'Coin Lord OFF'); updateCheatIndicators(); if(gameRunning) resetGame(); }
-                if(code === '0420') { cheats.slowmo = !cheats.slowmo; alert(cheats.slowmo ? 'Slow Mo ON' : 'Slow Mo OFF'); updateCheatIndicators(); gameSpeed = cheats.slowmo ? 1.5 : 2.5; if(gameRunning) resetGame(); }
-                if(code === '8008') { cheats.bigbird = !cheats.bigbird; alert(cheats.bigbird ? 'Big Bird ON' : 'Big Bird OFF'); updateCheatIndicators(); updatePreview(); if(gameRunning) resetGame(); }
+                if(code === '6969') { cheats.godmode = !cheats.godmode; if(selectSound) selectSound.play(); updateCheatIndicators(); }
+                if(code === '1337') { cheats.coinlord = !cheats.coinlord; if(selectSound) selectSound.play(); updateCheatIndicators(); if(gameRunning) resetGame(); }
+                if(code === '0420') { cheats.slowmo = !cheats.slowmo; if(selectSound) selectSound.play(); updateCheatIndicators(); gameSpeed = cheats.slowmo ? 1.5 : 2.5; if(gameRunning) resetGame(); }
+                if(code === '8008') { cheats.bigbird = !cheats.bigbird; if(selectSound) selectSound.play(); updateCheatIndicators(); updatePreview(); if(gameRunning) resetGame(); }
                 if(code === '2468') { let x2 = powerups.find(p=>p.id==='x2coins'); if(!x2.active) buyPowerup('x2coins'); }
-                if(code === '9999') { coinCount += 50; updateCoinDisplay(); alert('+50 coins!'); saveToLocal(); }
+                if(code === '9999') { coinCount += 50; updateCoinDisplay(); if(selectSound) selectSound.play(); saveToLocal(); }
                 e.target.value = '';
             }
         });
