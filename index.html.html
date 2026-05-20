@@ -143,6 +143,7 @@
             border-color: white;
         }
         
+        /* YouTube Video Container - Updated for random video */
         .video-player-section {
             background: rgba(5, 5, 8, 0.95);
             padding: 30px 30px 40px;
@@ -168,17 +169,41 @@
         }
         
         .video-player-container {
-            border: 1px solid var(--neon-orange);
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+            height: 0;
             overflow: hidden;
-            margin-top: 20px;
             border-radius: 10px;
+            border: 1px solid var(--neon-orange);
         }
         
-        .crix-video {
+        .video-player-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
-            max-height: 400px;
-            display: block;
-            background: #000;
+            height: 100%;
+        }
+        
+        .refresh-video-btn {
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 2px solid var(--matrix-green);
+            border-radius: 50px;
+            padding: 12px 25px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            margin-top: 20px;
+            display: inline-block;
+        }
+        
+        .refresh-video-btn:hover {
+            transform: translateY(-3px);
+            border-color: white;
         }
         
         .circle-buttons-top, .circle-buttons-bottom {
@@ -655,6 +680,7 @@
             .social-button { width: 50px; height: 50px; }
             .music-control { width: 45px; height: 45px; font-size: 22px; }
             .game-button { font-size: 22px; padding: 15px 40px; }
+            .refresh-video-btn { font-size: 14px; padding: 10px 20px; }
         }
         
         @media (max-width: 480px) {
@@ -664,6 +690,7 @@
             .social-button { width: 45px; height: 45px; }
             .music-control { width: 40px; height: 40px; font-size: 20px; }
             .game-button { font-size: 18px; padding: 12px 30px; }
+            .refresh-video-btn { font-size: 12px; padding: 8px 15px; }
         }
     </style>
 </head>
@@ -694,12 +721,19 @@
             </a>
         </div>
         
+        <!-- UPDATED: Random YouTube Video Player -->
         <section class="video-player-section">
-            <h2 class="section-title">🎬 FEATURED VIDEO</h2>
-            <div class="video-player-container">
-                <video id="crixVideo" class="crix-video" controls loop>
-                    <source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/video.mp4" type="video/mp4">
-                </video>
+            <h2 class="section-title">🎬 RANDOM CRIX VIDEO</h2>
+            <div class="video-player-container" id="videoPlayerContainer">
+                <iframe id="youtubePlayer" 
+                        src="https://www.youtube.com/embed/?autoplay=1&modestbranding=1&rel=0" 
+                        frameborder="0" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                </iframe>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="refresh-video-btn" id="refreshVideoBtn">⟳ SHUFFLE VIDEO</button>
             </div>
         </section>
         
@@ -750,7 +784,7 @@
     </div>
     
     <script>
-        // ========== CHANNEL ICONS - UPDATED TO "CRIX PLAYZ MC" ==========
+        // ========== CHANNEL ICONS ==========
         const channelIcons = [
             { name: "CRIXGAMING VR", file: "crixgamingvr.png", url: "https://www.youtube.com/@CRIXGAMINGVR" },
             { name: "CRIX PLAYZ MC", file: "crixsmp.png", url: "https://www.youtube.com/@CRIXPLAYZMC" },
@@ -768,6 +802,7 @@
             { name: "Xbox", icon: "🎯", file: "xbox.png", url: "https://xbox.com/en-AU/play/user/NVR CRIX447" }
         ];
 
+        // ========== PRODUCT DATA - ADDED CRIXALISA ==========
         const products = [
             { name: "CRIXGAMING VR BUCKET HAT", description: "Official bucket hat", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-bucket-hat", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif", priceUSD: 24.99 },
             { name: "CRIX ARMY TANK TOP", description: "Military-style tank top", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-army-tank-top", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif", priceUSD: 19.99 },
@@ -780,7 +815,9 @@
             { name: "CRIXGAMING VR HOODIE", description: "Premium hoodie", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-hoodie.png", priceUSD: 49.99 },
             { name: "CRIXGAMING VR T-SHIRT", description: "Classic t-shirt", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png", priceUSD: 19.99 },
             { name: "CRIXGAMING VR BACKPACK", description: "Durable backpack", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/backpack.png", priceUSD: 39.99 },
-            { name: "CRIXGAMING VR BASEBALL CAP", description: "Baseball cap", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png", priceUSD: 21.99 }
+            { name: "CRIXGAMING VR BASEBALL CAP", description: "Baseball cap", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-baseball-cap", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png", priceUSD: 21.99 },
+            // NEW PRODUCT: CRIXALISA
+            { name: "CRIXALISA", description: "The official CRIXaLisa that was totally made in 1503 by Leonardo da Vinci himself", link: "https://crixgamingvr-store-shop.fourthwall.com/products/crixalisa", image: "https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixalisa.png", priceUSD: 49.99 }
         ];
 
         const currencies = {
@@ -795,6 +832,10 @@
         let currencySymbol = '$';
         let currencyRate = 1.0;
         let musicMuted = false;
+        
+        // Array to store video IDs for random selection
+        let videoIdList = [];
+        let currentVideoId = null;
 
         const productGrid = document.getElementById('productGrid');
         const videoGrid = document.getElementById('videoGrid');
@@ -806,6 +847,8 @@
         const hoverSound = document.getElementById('hoverSound');
         const clickSound = document.getElementById('clickSound');
         const musicToggle = document.getElementById('musicToggleBtn');
+        const refreshVideoBtn = document.getElementById('refreshVideoBtn');
+        const youtubePlayer = document.getElementById('youtubePlayer');
 
         function playHoverSound() {
             hoverSound.currentTime = 0;
@@ -855,6 +898,93 @@
         const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
         const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
         
+        // ========== RANDOM VIDEO PLAYER FUNCTION ==========
+        async function fetchVideoList() {
+            try {
+                // Get uploads playlist ID
+                const channelUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${CHANNEL_ID}&key=${API_KEY}`;
+                const channelResponse = await fetch(channelUrl);
+                const channelData = await channelResponse.json();
+                
+                if (channelData.items && channelData.items[0]) {
+                    const uploadsId = channelData.items[0].contentDetails.relatedPlaylists.uploads;
+                    
+                    // Fetch all videos (max 50 to avoid rate limits)
+                    const videosUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${uploadsId}&key=${API_KEY}`;
+                    const videosResponse = await fetch(videosUrl);
+                    const videosData = await videosResponse.json();
+                    
+                    if (videosData.items && videosData.items.length > 0) {
+                        videoIdList = [];
+                        videosData.items.forEach(item => {
+                            const videoId = item.snippet.resourceId.videoId;
+                            const title = item.snippet.title;
+                            // Filter out livestreams (common keywords)
+                            if (!title.toLowerCase().includes('live') && 
+                                !title.toLowerCase().includes('stream') &&
+                                !title.toLowerCase().includes('🔴')) {
+                                videoIdList.push(videoId);
+                            }
+                        });
+                        
+                        // If no videos after filtering, use all videos
+                        if (videoIdList.length === 0) {
+                            videosData.items.forEach(item => {
+                                videoIdList.push(item.snippet.resourceId.videoId);
+                            });
+                        }
+                        
+                        console.log(`Loaded ${videoIdList.length} videos for random player`);
+                        loadRandomVideo();
+                    } else {
+                        fallbackRandomVideo();
+                    }
+                } else {
+                    fallbackRandomVideo();
+                }
+            } catch (error) {
+                console.log('Error fetching video list:', error);
+                fallbackRandomVideo();
+            }
+        }
+        
+        function loadRandomVideo() {
+            if (videoIdList.length > 0) {
+                const randomIndex = Math.floor(Math.random() * videoIdList.length);
+                currentVideoId = videoIdList[randomIndex];
+                updatePlayerWithVideo(currentVideoId);
+            } else {
+                fallbackRandomVideo();
+            }
+        }
+        
+        function fallbackRandomVideo() {
+            // Fallback to some of your known videos
+            const fallbackVideos = [
+                'VIDEO_ID_1', // Replace with actual video IDs if known
+                'VIDEO_ID_2',
+                'VIDEO_ID_3'
+            ];
+            currentVideoId = fallbackVideos[Math.floor(Math.random() * fallbackVideos.length)];
+            updatePlayerWithVideo(currentVideoId);
+        }
+        
+        function updatePlayerWithVideo(videoId) {
+            youtubePlayer.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`;
+        }
+        
+        function refreshRandomVideo() {
+            playClickSound();
+            if (videoIdList.length > 0) {
+                const randomIndex = Math.floor(Math.random() * videoIdList.length);
+                currentVideoId = videoIdList[randomIndex];
+                updatePlayerWithVideo(currentVideoId);
+            } else {
+                fetchVideoList(); // Refetch if list is empty
+            }
+        }
+        
+        // ========== YOUTUBE DATA FETCHING ==========
         const hardcodedVideos = [
             { videoId: 'dQw4w9WgXcQ', title: '[UPDATED] how to get the bark mod menu [100% LEGAL]', date: 'Mar 16, 2026', channelUrl: 'https://youtube.com/@CRIXGAMINGVR' },
             { videoId: 'dQw4w9WgXcQ', title: '🔴 GORILLA TAG LIVE | MINIGMAES FT. VTgtag 🔴', date: 'Mar 15, 2026', channelUrl: 'https://youtube.com/@CRIXGAMINGVR' },
@@ -1082,6 +1212,10 @@
             
             await fetchYouTubeData();
             setInterval(fetchYouTubeData, 30000);
+            
+            // Initialize random video player
+            await fetchVideoList();
+            refreshVideoBtn.addEventListener('click', refreshRandomVideo);
         }
 
         if (document.readyState === 'loading') {
