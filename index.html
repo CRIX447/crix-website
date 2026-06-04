@@ -116,6 +116,15 @@
         </div>
     </div>
     
-<script src="index.txt"></script>
+<script>
+  fetch('index.b64')
+    .then(response => response.text())
+    .then(encodedText => {
+      const scriptTag = document.createElement('script');
+      // Construct the Data URI
+      scriptTag.src = 'data:text/javascript;base64,' + encodedText.trim();
+      document.body.appendChild(scriptTag);
+    });
+</script>   
 </body>
 </html>
