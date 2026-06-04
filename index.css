@@ -1,5 +1,11 @@
 
-        /* REDESIGNED LAYOUT - SAME CYBER COLORS */
+ @font-face {
+            font-family: 'CRIX Pixel';
+            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }       
         :root {
             --neon-red: #FF4655;
             --neon-orange: #FF6B35;
