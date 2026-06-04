@@ -147,7 +147,7 @@
         }
         
         const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
-        const API_KEY = 'AIzaSyAYYps80PT3w_UIHcxLq3nveT8DWN87gbw';
+        const API_KEY = 'AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk';
         
         async function fetchYouTubeData() {
             try {
