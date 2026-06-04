@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CRIX PARTNERS • CRIXGAMING VR</title>
+    
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+    
+    <style>
+        @font-face {
+            font-family: 'CRIX Pixel';
+            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+        }
+        
+        :root {
+            --neon-red: #FF4655;
+            --neon-orange: #FF6B35;
+            --matrix-green: #00CC7A;
+            --dark-bg: #0A0A0F;
+            --grid-color: rgba(255, 70, 85, 0.08);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            background: var(--dark-bg);
+            color: white;
+            background-image: 
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 50px 20px;
+            background: rgba(5,5,8,0.95);
+            border-bottom: 3px solid var(--neon-red);
+            margin-bottom: 40px;
+        }
+        
+        .logo {
+            font-size: 48px;
+            font-weight: bold;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-transform: uppercase;
+            letter-spacing: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 30px;
+        }
+        
+        .partner-card {
+            background: rgba(5,5,8,0.9);
+            border: 2px solid var(--neon-red);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        .partner-logo {
+            flex: 0 0 200px;
+            text-align: center;
+        }
+        
+        .partner-logo img {
+            max-width: 100%;
+            border-radius: 20px;
+            border: 2px solid var(--matrix-green);
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+        }
+        
+        .partner-info {
+            flex: 1;
+        }
+        
+        .partner-name {
+            font-size: 32px;
+            color: var(--neon-orange);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        
+        .partner-description {
+            color: #ccc;
+            line-height: 1.8;
+            margin-bottom: 20px;
+        }
+        
+        .partner-services {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .service-tag {
+            background: rgba(255,107,53,0.2);
+            border: 1px solid var(--neon-orange);
+            border-radius: 30px;
+            padding: 5px 15px;
+            font-size: 12px;
+            color: var(--neon-orange);
+        }
+        
+        .partner-link {
+            display: inline-block;
+            background: linear-gradient(45deg, var(--neon-red), var(--neon-orange));
+            color: white;
+            border: 1px solid var(--matrix-green);
+            border-radius: 50px;
+            padding: 12px 30px;
+            text-decoration: none;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+        
+        .partner-link:hover {
+            transform: translateY(-3px);
+            border-color: white;
+        }
+        
+        .business-email {
+            text-align: center;
+            margin: 40px 0;
+            padding: 30px;
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--neon-orange);
+            border-radius: 30px;
+        }
+        
+        .email-link {
+            color: var(--matrix-green);
+            font-size: 24px;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+            padding: 10px 20px;
+            border: 1px solid var(--matrix-green);
+            border-radius: 50px;
+            transition: all 0.3s;
+        }
+        
+        .email-link:hover {
+            background: rgba(0,255,157,0.1);
+            transform: scale(1.05);
+        }
+        
+        .back-btn {
+            display: inline-block;
+            background: transparent;
+            color: var(--matrix-green);
+            border: 2px solid var(--neon-red);
+            border-radius: 50px;
+            padding: 12px 30px;
+            text-decoration: none;
+            margin: 20px 0;
+            transition: all 0.3s;
+        }
+        
+        .back-btn:hover {
+            border-color: var(--matrix-green);
+            color: var(--neon-orange);
+        }
+        
+        @media (max-width: 768px) {
+            .partner-card { flex-direction: column; text-align: center; padding: 25px; }
+            .partner-logo { flex: 0 0 auto; }
+            .partner-name { font-size: 24px; }
+            .email-link { font-size: 18px; }
+            .logo { font-size: 32px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="logo">CRIXGAMING VR</div>
+        <div style="font-size: 16px; color: var(--matrix-green);">🤝 OFFICIAL PARTNERS</div>
+    </div>
+    
+    <div class="container">
+        <!-- SOFTWAVE STUDIOS PARTNER CARD -->
+        <div class="partner-card">
+            <div class="partner-logo">
+                <img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/softwave_logo.png" alt="SoftWave Studios" onerror="this.src='https://placehold.co/200x200/FF4655/white?text=SoftWave'">
+            </div>
+            <div class="partner-info">
+                <div class="partner-name">🎮 SoftWave Studios</div>
+                <div class="partner-description">
+                    SoftWave Studios is a creative technology and digital media company focused on bringing ideas to life through modern entertainment and software solutions.
+                </div>
+                <div class="partner-services">
+                    <span class="service-tag">🎮 Game Development</span>
+                    <span class="service-tag">📹 Video Content</span>
+                    <span class="service-tag">🔴 Live Streaming</span>
+                    <span class="service-tag">🌐 Web Design</span>
+                    <span class="service-tag">💻 Software Dev</span>
+                    <span class="service-tag">🤝 Partnerships</span>
+                    <span class="service-tag">🖥️ IT Solutions</span>
+                    <span class="service-tag">📚 Digital Resources</span>
+                </div>
+                <a href="https://softwavestudios.vercel.app" target="_blank" class="partner-link">🌐 VISIT WEBSITE</a>
+            </div>
+        </div>
+        
+        <!-- BUSINESS EMAIL SECTION -->
+        <div class="business-email">
+            <div style="font-size: 20px; color: var(--neon-orange); margin-bottom: 10px;">📧 BUSINESS INQUIRIES</div>
+            <div style="color: #ccc; margin-bottom: 15px;">Interested in becoming a partner? Contact us at:</div>
+            <a href="mailto:crixgaming51@hotmail.com" class="email-link">✉️ crixgaming51@hotmail.com</a>
+        </div>
+        
+        <div style="text-align: center;">
+            <a href="https://crixgamingvr.vercel.app" class="back-btn">← BACK TO MAIN SITE</a>
+        </div>
+    </div>
+</body>
+</html>
