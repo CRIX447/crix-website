@@ -620,7 +620,7 @@
             try {
                 await db.collection('users').doc(currentUser.uid).set({ 
                     displayName: currentUser.displayName || currentUser.email.split('@')[0],
-                    highScore, coinCount, 
+                    highScore, coinCount, gamesPlayed,
                     owned: cosmetics.filter(c=>c.owned).map(c=>c.id), 
                     equipped: { hat: cosmetics.find(c=>c.type==='hat'&&c.equipped)?.id||null, shirt: cosmetics.find(c=>c.type==='shirt'&&c.equipped)?.id||null }, 
                     achievements: achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))
@@ -637,7 +637,8 @@
                 if(doc.exists){ 
                     let d=doc.data(); 
                     highScore = d.highScore || 0; 
-                    coinCount = d.coinCount || 0; 
+                    coinCount = d.coinCount || 0;
+                    gamesPlayed = d.gamesPlayed || 0;
                     const name = d.displayName || currentUser.displayName || currentUser.email.split('@')[0];
                     document.getElementById('userName').textContent = name;
                     document.getElementById('userAvatar').innerHTML = name.charAt(0).toUpperCase();
@@ -664,7 +665,8 @@
         
         function saveToLocal() { 
             localStorage.setItem('flappyCrixHighScore', highScore); 
-            localStorage.setItem('flappyCrixCoins', coinCount); 
+            localStorage.setItem('flappyCrixCoins', coinCount);
+            localStorage.setItem('flappyCrixGamesPlayed', gamesPlayed);
             localStorage.setItem('flappyCrixOwned', JSON.stringify(cosmetics.filter(c=>c.owned).map(c=>c.id))); 
             localStorage.setItem('flappyCrixEquipped', JSON.stringify({ hat: cosmetics.find(c=>c.type==='hat'&&c.equipped)?.id || null, shirt: cosmetics.find(c=>c.type==='shirt'&&c.equipped)?.id || null })); 
             localStorage.setItem('flappyAchievements', JSON.stringify(achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))));
@@ -672,7 +674,8 @@
         
         function loadFromLocal() { 
             highScore = parseInt(localStorage.getItem('flappyCrixHighScore')) || 0; 
-            coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0; 
+            coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0;
+            gamesPlayed = parseInt(localStorage.getItem('flappyCrixGamesPlayed')) || 0;
             let owned = JSON.parse(localStorage.getItem('flappyCrixOwned')||'[]'); 
             cosmetics.forEach(c=>c.owned = owned.includes(c.id)); 
             let eq = JSON.parse(localStorage.getItem('flappyCrixEquipped')||'{}'); 
@@ -791,7 +794,10 @@
         googleBtn.onclick=async()=>{ try{ await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); authModalEl.classList.remove('active'); selectSound.play(); } catch(e){ authErrorSpan.textContent=e.message; } }; 
         window.onclick=(e)=>{ if(e.target===authModalEl) authModalEl.classList.remove('active'); };
         
-        loadFromLocal(); drawGame();
+        // DO NOT call loadFromLocal() unconditionally here.
+        // onAuthStateChanged handles all loading. Only fall back if Firebase is unavailable.
+        if(!auth) { loadFromLocal(); }
+        drawGame();
     </script>
 </body>
 </html>
