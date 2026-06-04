@@ -5,18 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FLAPPY CRIX • CRIXGAMING VR</title>
     
-    <!-- Favicon - FIXED with proper path -->
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
     
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    
     <style>
-        @font-face {
-            font-family: 'CRIX Pixel';
-            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
-            font-weight: normal;
-            font-style: normal;
-            font-display: swap;
-        }
-        
         * {
             margin: 0;
             padding: 0;
@@ -26,7 +23,7 @@
         }
         
         body {
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            font-family: 'Courier New', monospace;
             background: #0A0A0F;
             min-height: 100vh;
             display: flex;
@@ -40,13 +37,122 @@
         }
         
         .game-container {
-            max-width: 480px;
+            max-width: 500px;
             width: 100%;
             background: rgba(5, 5, 8, 0.95);
             border: 2px solid #FF4655;
             border-radius: 20px;
             padding: 15px;
         }
+        
+        /* Auth Modal */
+        .auth-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.95);
+            z-index: 20000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .auth-modal.active { display: flex; }
+        
+        .auth-container {
+            background: #0A0A0F;
+            border: 2px solid #FF4655;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .auth-title {
+            font-size: 24px;
+            color: #FF6B35;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+        }
+        
+        .auth-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid #FF6B35;
+            border-radius: 30px;
+            color: white;
+            font-family: monospace;
+        }
+        
+        .auth-btn {
+            background: linear-gradient(45deg, #FF4655, #FF6B35);
+            color: white;
+            border: 1px solid #00CC7A;
+            border-radius: 30px;
+            padding: 12px;
+            width: 100%;
+            margin: 10px 0;
+            cursor: pointer;
+            font-family: monospace;
+            font-weight: bold;
+        }
+        
+        .auth-switch {
+            color: #00CC7A;
+            cursor: pointer;
+            margin-top: 10px;
+            display: inline-block;
+        }
+        
+        .auth-error {
+            color: #FF4655;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        
+        /* User Section */
+        .user-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.3);
+            padding: 8px 12px;
+            border-radius: 40px;
+            margin-bottom: 15px;
+            border: 1px solid #FF6B35;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .user-info { display: flex; align-items: center; gap: 8px; }
+        .user-avatar {
+            width: 35px; height: 35px;
+            border-radius: 50%;
+            background: #FF6B35;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            border: 1px solid white;
+        }
+        .user-name { font-size: 12px; color: white; }
+        .login-btn, .logout-btn {
+            background: linear-gradient(45deg, #FF4655, #FF6B35);
+            color: white;
+            border: 1px solid #00CC7A;
+            border-radius: 30px;
+            padding: 6px 15px;
+            font-size: 11px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: monospace;
+        }
+        .save-status { font-size: 10px; color: #00CC7A; display: flex; align-items: center; gap: 4px; }
         
         .game-header {
             text-align: center;
@@ -56,25 +162,13 @@
         }
         
         .game-title {
-            font-size: 32px;
+            font-size: 28px;
             font-weight: bold;
             background: linear-gradient(45deg, #FF4655, #FF6B35);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             text-transform: uppercase;
             letter-spacing: 2px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        .game-subtitle {
-            font-size: 10px;
-            color: #00CC7A;
-            background: rgba(0,0,0,0.4);
-            padding: 4px 12px;
-            display: inline-block;
-            border-radius: 30px;
-            border: 1px solid #FF6B35;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         .canvas-wrapper {
@@ -114,20 +208,8 @@
             cursor: pointer;
         }
         
-        .stat-label {
-            font-size: 9px;
-            color: #ccc;
-            text-transform: uppercase;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        .stat-value {
-            font-size: 14px;
-            font-weight: bold;
-            color: #FF6B35;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
+        .stat-label { font-size: 9px; color: #ccc; text-transform: uppercase; }
+        .stat-value { font-size: 14px; font-weight: bold; color: #FF6B35; }
         #coinCount { color: gold; }
         
         .cheat-indicators, .active-powerups {
@@ -143,9 +225,7 @@
             border-radius: 20px;
             padding: 3px 10px;
             font-size: 10px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
-        
         .cheat-badge.godmode { border: 1px solid #FF4655; color: #FF4655; }
         .cheat-badge.coinlord { border: 1px solid gold; color: gold; }
         .cheat-badge.slowmo { border: 1px solid #00CC7A; color: #00CC7A; }
@@ -170,32 +250,23 @@
             font-size: 12px;
             font-weight: bold;
             cursor: pointer;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            font-family: monospace;
             min-width: 90px;
         }
-        
-        .game-btn.secondary {
-            background: linear-gradient(45deg, #00CC7A, #0099CC);
-        }
-        
-        .action-btn:hover, .game-btn:hover {
-            transform: scale(1.02);
-        }
+        .game-btn.secondary { background: linear-gradient(45deg, #00CC7A, #0099CC); }
         
         .cheat-container {
             text-align: center;
             margin: 8px 0;
             opacity: 0.25;
         }
-        
         .cheat-container:focus-within { opacity: 1; }
-        
         .cheat-input {
             background: rgba(0,0,0,0.7);
             border: 1px solid #FF6B35;
             border-radius: 30px;
             padding: 6px 12px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            font-family: monospace;
             color: #00CC7A;
             width: 110px;
             text-align: center;
@@ -211,81 +282,12 @@
             border: 1px solid #FF6B35;
             border-radius: 12px;
         }
-        
-        .instructions p {
-            color: #ccc;
-            font-size: 10px;
-            margin: 2px 0;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
+        .instructions p { color: #ccc; font-size: 10px; margin: 2px 0; }
         .highlight { color: #FF6B35; }
         
-        .back-link {
-            text-align: center;
-            margin-top: 12px;
-        }
+        .back-link { text-align: center; margin-top: 12px; }
+        .back-link a { color: #00CC7A; text-decoration: none; font-size: 11px; padding: 5px 15px; border: 1px solid #FF4655; border-radius: 30px; }
         
-        .back-link a {
-            color: #00CC7A;
-            text-decoration: none;
-            font-size: 11px;
-            padding: 5px 15px;
-            border: 1px solid #FF4655;
-            border-radius: 30px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        /* ACHIEVEMENT POPUP - SITE NOTIFICATION */
-        .achievement-popup {
-            position: fixed;
-            top: 20px;
-            right: -300px;
-            background: linear-gradient(135deg, #1a1a2e, #0a0a1a);
-            border-left: 4px solid gold;
-            border-radius: 12px;
-            padding: 12px 20px;
-            min-width: 250px;
-            z-index: 20000;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
-            transition: right 0.3s ease-out;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
-        .achievement-popup.show {
-            right: 20px;
-        }
-        
-        .achievement-popup-icon {
-            font-size: 32px;
-        }
-        
-        .achievement-popup-content {
-            flex: 1;
-        }
-        
-        .achievement-popup-title {
-            font-size: 12px;
-            color: gold;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        
-        .achievement-popup-name {
-            font-size: 14px;
-            color: white;
-            font-weight: bold;
-        }
-        
-        .achievement-popup-desc {
-            font-size: 10px;
-            color: #aaa;
-        }
-        
-        /* MODALS */
         .store-modal, .locker-modal, .achievements-modal {
             display: none;
             position: fixed;
@@ -298,9 +300,7 @@
             padding: 15px;
             overflow-y: auto;
         }
-        
         .store-modal.active, .locker-modal.active, .achievements-modal.active { display: block; }
-        
         .modal-content {
             max-width: 450px;
             margin: 20px auto;
@@ -309,40 +309,18 @@
             border-radius: 20px;
             padding: 15px;
         }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 15px;
-            border-bottom: 1px solid gold;
-            padding-bottom: 8px;
-        }
-        
-        .modal-title {
-            font-size: 20px;
-            color: gold;
-            text-transform: uppercase;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
-        }
-        
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid gold; padding-bottom: 8px; }
+        .modal-title { font-size: 20px; color: gold; text-transform: uppercase; }
         .modal-close {
             background: transparent;
             border: 1px solid #FF4655;
             color: #FF4655;
             font-size: 20px;
-            width: 35px;
-            height: 35px;
+            width: 35px; height: 35px;
             border-radius: 50%;
             cursor: pointer;
         }
-        
-        .store-tabs {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        
+        .store-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; }
         .store-tab {
             background: transparent;
             border: 1px solid #FF6B35;
@@ -351,11 +329,8 @@
             border-radius: 30px;
             cursor: pointer;
             font-size: 12px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
-        
         .store-tab.active { background: gold; color: black; border-color: gold; }
-        
         .store-grid, .locker-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
@@ -363,7 +338,6 @@
             max-height: 350px;
             overflow-y: auto;
         }
-        
         .store-item, .locker-item {
             background: rgba(20,20,30,0.9);
             border: 1px solid #FF6B35;
@@ -373,11 +347,9 @@
             cursor: pointer;
             position: relative;
         }
-        
         .store-item img, .locker-item img { width: 50px; height: 50px; object-fit: contain; }
-        .store-item-name { font-size: 10px; color: white; font-family: 'CRIX Pixel', 'Courier New', monospace; }
-        .store-item-price { font-size: 13px; color: gold; margin: 5px 0; font-family: 'CRIX Pixel', 'Courier New', monospace; }
-        
+        .store-item-name { font-size: 10px; color: white; }
+        .store-item-price { font-size: 13px; color: gold; margin: 5px 0; }
         .store-buy-btn {
             background: linear-gradient(45deg, #FF4655, #FF6B35);
             color: white;
@@ -387,9 +359,7 @@
             cursor: pointer;
             width: 100%;
             font-size: 10px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
-        
         .locker-preview {
             display: flex;
             gap: 15px;
@@ -401,11 +371,9 @@
             flex-wrap: wrap;
             justify-content: center;
         }
-        
         .preview-canvas { width: 80px; height: 80px; border: 1px solid gold; border-radius: 8px; }
         .preview-info { text-align: center; }
-        .preview-title { font-size: 12px; color: gold; font-family: 'CRIX Pixel', 'Courier New', monospace; }
-        
+        .preview-title { font-size: 12px; color: gold; }
         .equip-btn {
             background: #00CC7A;
             color: black;
@@ -415,35 +383,27 @@
             cursor: pointer;
             font-size: 10px;
             margin: 3px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
-        
         .locker-section-title {
             font-size: 13px;
             color: #FF6B35;
             margin: 10px 0 8px;
             text-transform: uppercase;
             text-align: center;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
-        
         .locker-item.equipped { border-color: #00CC7A; }
-        
         .equipped-badge {
             position: absolute;
-            top: -4px;
-            right: -4px;
+            top: -4px; right: -4px;
             background: #00CC7A;
             color: black;
             border-radius: 50%;
-            width: 16px;
-            height: 16px;
+            width: 16px; height: 16px;
             font-size: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        
         .locker-balance {
             text-align: center;
             font-size: 14px;
@@ -452,16 +412,13 @@
             padding: 8px;
             border: 1px solid gold;
             border-radius: 30px;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
-        
         .achievements-grid {
             display: grid;
             gap: 10px;
             max-height: 450px;
             overflow-y: auto;
         }
-        
         .achievement-item {
             background: rgba(20,20,30,0.9);
             border: 1px solid #FF6B35;
@@ -471,30 +428,23 @@
             gap: 10px;
             align-items: center;
         }
-        
         .achievement-item.unlocked { border-color: gold; background: rgba(255,215,0,0.1); }
         .achievement-icon { font-size: 30px; }
-        .achievement-name { font-size: 12px; color: white; font-family: 'CRIX Pixel', 'Courier New', monospace; }
-        .achievement-desc { font-size: 9px; color: #aaa; font-family: 'CRIX Pixel', 'Courier New', monospace; }
-        
+        .achievement-name { font-size: 12px; color: white; }
+        .achievement-desc { font-size: 9px; color: #aaa; }
         .event-overlay, .boom-overlay {
             position: fixed;
-            top: 50%;
-            left: 50%;
+            top: 50%; left: 50%;
             transform: translate(-50%, -50%);
             z-index: 15000;
             pointer-events: none;
         }
-        
         .event-gif, .boom-gif { max-width: 150px; }
-        
         .victory-overlay {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background: rgba(0,0,0,0.95);
             z-index: 20000;
             align-items: center;
@@ -502,10 +452,9 @@
             flex-direction: column;
             text-align: center;
         }
-        
         .victory-overlay.active { display: flex; }
-        .victory-title { font-size: 32px; color: gold; margin-bottom: 15px; font-family: 'CRIX Pixel', 'Courier New', monospace; }
-        .victory-message { font-family: 'CRIX Pixel', 'Courier New', monospace; color: white; margin-bottom: 20px; }
+        .victory-title { font-size: 32px; color: gold; margin-bottom: 15px; }
+        .victory-message { color: white; margin-bottom: 20px; }
         .victory-restart {
             background: linear-gradient(45deg, #FF4655, #FF6B35);
             color: white;
@@ -514,57 +463,62 @@
             padding: 12px 30px;
             margin-top: 20px;
             cursor: pointer;
-            font-family: 'CRIX Pixel', 'Courier New', monospace;
         }
         
         @media (max-width: 450px) {
             .stats-grid { gap: 4px; }
             .stat-value { font-size: 12px; }
             .action-btn, .game-btn { padding: 6px 12px; font-size: 10px; min-width: 70px; }
-            .game-title { font-size: 26px; }
-            .achievement-popup { min-width: 200px; padding: 8px 15px; }
-            .achievement-popup-icon { font-size: 24px; }
+            .game-title { font-size: 22px; }
         }
     </style>
 </head>
 <body>
-    <!-- ACHIEVEMENT POPUP CONTAINER -->
-    <div id="achievementPopup" class="achievement-popup">
-        <div class="achievement-popup-icon">🏆</div>
-        <div class="achievement-popup-content">
-            <div class="achievement-popup-title">ACHIEVEMENT UNLOCKED!</div>
-            <div class="achievement-popup-name" id="popupAchievementName"></div>
-            <div class="achievement-popup-desc" id="popupAchievementDesc"></div>
+    <!-- AUTH MODAL -->
+    <div class="auth-modal" id="authModal">
+        <div class="auth-container">
+            <div class="auth-title" id="authTitle">SIGN IN</div>
+            <div id="authForm">
+                <input type="email" id="authEmail" class="auth-input" placeholder="Email" autocomplete="email">
+                <input type="password" id="authPassword" class="auth-input" placeholder="Password" autocomplete="current-password">
+                <input type="text" id="authUsername" class="auth-input" placeholder="Display Name (for new accounts)" style="display:none;">
+                <button class="auth-btn" id="authSubmitBtn">SIGN IN</button>
+                <button class="auth-btn" id="googleSignInBtn">🔑 SIGN IN WITH GOOGLE</button>
+            </div>
+            <div id="authSwitch" class="auth-switch">Need an account? SIGN UP</div>
+            <div id="authError" class="auth-error"></div>
         </div>
     </div>
     
     <div class="game-container">
-        <div class="game-header">
-            <div class="game-title">FLAPPY CRIX</div>
-            <div class="game-subtitle">tap • collect • drip</div>
+        <!-- USER SECTION -->
+        <div class="user-section">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">👤</div>
+                <div class="user-name" id="userName">Not Logged In</div>
+            </div>
+            <div class="save-status"><span>💾</span> <span id="saveStatusText">Local</span></div>
+            <button class="login-btn" id="loginBtn">🔑 SIGN IN</button>
+            <button class="logout-btn" id="logoutBtn" style="display:none;">🚪 SIGN OUT</button>
         </div>
         
+        <!-- HEADER -->
+        <div class="game-header">
+            <div class="game-title">FLAPPY CRIX</div>
+            <div class="game-subtitle" style="font-size:10px; color:#00CC7A;">tap • collect • drip</div>
+        </div>
+        
+        <!-- CANVAS -->
         <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="gameCanvas" width="400" height="600"></canvas>
         </div>
         
+        <!-- STATS -->
         <div class="stats-grid">
-            <div class="cyber-stat" id="achievementsBtn">
-                <div class="stat-label">🏆 ACHIEVEMENTS</div>
-                <div class="stat-value" id="achievementCount">0/6</div>
-            </div>
-            <div class="cyber-stat">
-                <div class="stat-label">COINS</div>
-                <div class="stat-value" id="coinCount">🪙 0</div>
-            </div>
-            <div class="cyber-stat">
-                <div class="stat-label">HIGH</div>
-                <div class="stat-value" id="highScore">0</div>
-            </div>
-            <div class="cyber-stat">
-                <div class="stat-label">MULT</div>
-                <div class="stat-value" id="coinMultiplier">1x</div>
-            </div>
+            <div class="cyber-stat" id="achievementsBtn"><div class="stat-label">🏆 ACHIEVEMENTS</div><div class="stat-value" id="achievementCount">0/6</div></div>
+            <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
+            <div class="cyber-stat"><div class="stat-label">HIGH</div><div class="stat-value" id="highScore">0</div></div>
+            <div class="cyber-stat"><div class="stat-label">MULT</div><div class="stat-value" id="coinMultiplier">1x</div></div>
         </div>
         
         <div class="cheat-indicators" id="cheatIndicators"></div>
@@ -575,9 +529,7 @@
             <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
         </div>
         
-        <div class="cheat-container">
-            <input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" inputmode="numeric">
-        </div>
+        <div class="cheat-container"><input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" inputmode="numeric"></div>
         
         <div class="game-controls">
             <button class="game-btn" id="startGameBtn">▶ START</button>
@@ -586,15 +538,13 @@
         
         <div class="instructions">
             <p><span class="highlight">⬆️ TAP/SPACE</span> to jump • <span class="highlight">🪙 COLLECT COINS</span></p>
-            <p><span class="highlight">🏆 UNLOCK ACHIEVEMENTS</span></p>
+            <p><span class="highlight">🏆 UNLOCK ACHIEVEMENTS</span> • <span class="highlight">🔑 SIGN IN TO SAVE</span></p>
         </div>
         
-        <div class="back-link">
-            <a href="https://crixgamingvr.vercel.app" target="_blank">← BACK TO MAIN SITE</a>
-        </div>
+        <div class="back-link"><a href="https://crixgamingvr.vercel.app" target="_blank">← BACK TO MAIN SITE</a></div>
     </div>
     
-    <!-- MODALS -->
+    <!-- MODALS (Store, Locker, Achievements) -->
     <div class="store-modal" id="storeModal"><div class="modal-content"><div class="modal-header"><div class="modal-title">🛒 STORE</div><button class="modal-close" id="closeStoreBtn">✕</button></div><div class="store-tabs"><button class="store-tab active" id="tabPowerupsStore">⚡ POWER-UPS</button><button class="store-tab" id="tabCosmeticsStore">👕 COSMETICS</button></div><div id="storePowerups"><div class="store-grid" id="powerupsStoreGrid"></div></div><div id="storeCosmetics" style="display:none;"><div class="store-grid" id="cosmeticsStoreGrid"></div></div></div></div>
     
     <div class="locker-modal" id="lockerModal"><div class="modal-content"><div class="modal-header"><div class="modal-title">👕 LOCKER</div><button class="modal-close" id="closeLockerBtn">✕</button></div><div class="locker-balance" id="lockerBalance">🪙 0</div><div class="locker-preview"><canvas id="previewCanvas" width="120" height="120" class="preview-canvas"></canvas><div class="preview-info"><div class="preview-title" id="previewTitle">YOUR DRIP</div><div class="preview-equip"><button class="equip-btn" id="unequipHat">🧢 UNEQUIP HAT</button><button class="equip-btn" id="unequipShirt">👕 UNEQUIP SHIRT</button></div></div></div><div class="locker-section"><div class="locker-section-title">🧢 HATS</div><div class="locker-grid" id="lockerHats"></div></div><div class="locker-section"><div class="locker-section-title">👕 SHIRTS</div><div class="locker-grid" id="lockerShirts"></div></div></div></div>
@@ -606,23 +556,42 @@
     <div class="victory-overlay" id="victoryOverlay"><div class="victory-title">🎉 VICTORY! 🎉</div><div class="victory-message" id="victoryMessage"></div><button class="victory-restart" id="victoryRestart">PLAY AGAIN</button></div>
     
     <!-- AUDIO -->
-    <audio id="jumpSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
-    <audio id="deathSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
-    <audio id="coinSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
-    <audio id="selectSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
-    <audio id="powerupSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
-    <audio id="victorySound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
-    <audio id="sixtySevenSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
-    <audio id="boomSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
-    <audio id="achSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
-    <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
+    <audio id="jumpSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
+    <audio id="deathSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
+    <audio id="coinSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
+    <audio id="selectSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
+    <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
+    <audio id="victorySound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
+    <audio id="sixtySevenSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
+    <audio id="boomSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
+    <audio id="achSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
+    <audio id="bgMusic" loop><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
     
     <script>
-        // DOM elements
+        // ========== FIREBASE CONFIG ==========
+        const firebaseConfig = {
+            apiKey: "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
+            authDomain: "flappy-crix.firebaseapp.com",
+            projectId: "flappy-crix",
+            storageBucket: "flappy-crix.firebasestorage.app",
+            messagingSenderId: "543002752038",
+            appId: "1:543002752038:web:70c45999a25647313062e7"
+        };
+        
+        let auth, db, currentUser = null;
+        try { 
+            firebase.initializeApp(firebaseConfig); 
+            auth = firebase.auth(); 
+            db = firebase.firestore(); 
+        } catch(e) { console.log('Firebase error:', e); }
+        
+        // ========== DOM ELEMENTS ==========
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
+        const previewCanvas = document.getElementById('previewCanvas');
+        const previewCtx = previewCanvas.getContext('2d');
         
-        // Game state
+        // ========== GAME STATE ==========
         let gameRunning = false;
         let animationId = null;
         let highScore = 0;
@@ -633,10 +602,8 @@
         let hasTriggered67 = false;
         let hasTriggered1000 = false;
         
-        // Cheats
         let cheats = { godmode: false, coinlord: false, slowmo: false, bigbird: false };
         
-        // Game objects
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5, visible: true };
         let pipes = [];
         let coins = [];
@@ -648,19 +615,16 @@
         let gameSpeed = 2.5;
         
         // Images
-        const coinImage = new Image(); 
-        coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
-        const birdImage = new Image(); 
-        birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
+        const coinImage = new Image(); coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        const birdImage = new Image(); birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
-        // Powerups
+        // Powerups & Cosmetics (simplified for brevity - same as before)
         let powerups = [
             { id: 'x2coins', name: '2X COINS', price: 100, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins for 30s' },
             { id: 'shield', name: 'SHIELD', price: 75, duration: 20, active: false, timeLeft: 0, timer: null, desc: 'Invincible for 20s' },
             { id: 'magnet', name: 'MAGNET', price: 60, duration: 15, active: false, timeLeft: 0, timer: null, desc: 'Coins attract for 15s' }
         ];
         
-        // Cosmetics
         let cosmetics = [
             { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 50, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif', owned: false, equipped: false },
             { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 45, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png', owned: false, equipped: false },
@@ -668,7 +632,6 @@
             { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 35, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png', owned: false, equipped: false }
         ];
         
-        // Achievements
         let achievements = [
             { id: 'first', name: 'FIRST FLIGHT', desc: 'Play your first game', icon: '🐣', unlocked: false, progress: 0, target: 1 },
             { id: 'collector', name: 'COIN COLLECTOR', desc: 'Collect 100 coins', icon: '🪙', unlocked: false, progress: 0, target: 100 },
@@ -678,7 +641,6 @@
             { id: 'legend', name: 'LEGEND', desc: 'Reach level 1000', icon: '👑', unlocked: false, progress: 0, target: 1 }
         ];
         
-        // Sounds
         const jumpSound = document.getElementById('jumpSound');
         const deathSound = document.getElementById('deathSound');
         const coinSound = document.getElementById('coinSound');
@@ -690,33 +652,64 @@
         const achSound = document.getElementById('achSound');
         const bgMusic = document.getElementById('bgMusic');
         
-        // Set volume
-        if (jumpSound) jumpSound.volume = 0.4;
-        if (deathSound) deathSound.volume = 0.5;
-        if (coinSound) coinSound.volume = 0.3;
-        if (selectSound) selectSound.volume = 0.3;
-        if (powerupSound) powerupSound.volume = 0.4;
-        if (victorySound) victorySound.volume = 0.5;
-        if (sixtySevenSound) sixtySevenSound.volume = 0.5;
-        if (boomSound) boomSound.volume = 0.6;
-        if (achSound) achSound.volume = 0.4;
-        if (bgMusic) bgMusic.volume = 0.3;
+        // ========== AUTH MODAL ==========
+        const authModal = document.getElementById('authModal');
+        const authTitle = document.getElementById('authTitle');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const authUsername = document.getElementById('authUsername');
+        const authSubmitBtn = document.getElementById('authSubmitBtn');
+        const googleSignInBtn = document.getElementById('googleSignInBtn');
+        const authSwitch = document.getElementById('authSwitch');
+        const authError = document.getElementById('authError');
+        let isLoginMode = true;
         
-        // Achievement Popup
-        const popup = document.getElementById('achievementPopup');
-        const popupName = document.getElementById('popupAchievementName');
-        const popupDesc = document.getElementById('popupAchievementDesc');
+        function showAuthModal() { authModal.classList.add('active'); }
+        function hideAuthModal() { authModal.classList.remove('active'); authError.textContent = ''; authEmail.value = ''; authPassword.value = ''; authUsername.value = ''; authUsername.style.display = 'none'; }
         
-        function showAchievementPopup(achievement) {
-            popupName.textContent = achievement.name;
-            popupDesc.textContent = achievement.desc;
-            popup.classList.add('show');
-            setTimeout(() => {
-                popup.classList.remove('show');
-            }, 4000);
-        }
+        authSwitch.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            authTitle.textContent = isLoginMode ? 'SIGN IN' : 'SIGN UP';
+            authSubmitBtn.textContent = isLoginMode ? 'SIGN IN' : 'SIGN UP';
+            authSwitch.textContent = isLoginMode ? 'Need an account? SIGN UP' : 'Already have an account? SIGN IN';
+            authUsername.style.display = isLoginMode ? 'none' : 'block';
+            authError.textContent = '';
+        });
         
-        // Local storage
+        authSubmitBtn.addEventListener('click', async () => {
+            const email = authEmail.value.trim();
+            const password = authPassword.value.trim();
+            const displayName = authUsername.value.trim();
+            if (!email || !password) { authError.textContent = 'Please enter email and password'; return; }
+            if (!isLoginMode && !displayName) { authError.textContent = 'Please enter a display name'; return; }
+            try {
+                if (isLoginMode) {
+                    await auth.signInWithEmailAndPassword(email, password);
+                } else {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await userCredential.user.updateProfile({ displayName: displayName });
+                    await userCredential.user.reload();
+                }
+                hideAuthModal();
+                selectSound.play();
+            } catch(error) {
+                authError.textContent = error.message;
+            }
+        });
+        
+        googleSignInBtn.addEventListener('click', async () => {
+            try {
+                const provider = new firebase.auth.GoogleAuthProvider();
+                const result = await auth.signInWithPopup(provider);
+                // Google users already have a display name from their Google account
+                hideAuthModal();
+                selectSound.play();
+            } catch(error) {
+                authError.textContent = error.message;
+            }
+        });
+        
+        // ========== AUTH STATE ==========
         function saveToLocal() { 
             localStorage.setItem('flappyCrixHighScore', highScore); 
             localStorage.setItem('flappyCrixCoins', coinCount); 
@@ -738,7 +731,82 @@
             updatePreview(); 
         }
         
-        // Game functions
+        async function saveToCloud() { 
+            if(!currentUser||!db) return; 
+            const displayName = currentUser.displayName || currentUser.email.split('@')[0];
+            await db.collection('users').doc(currentUser.uid).set({ 
+                displayName: displayName,
+                highScore, coinCount, 
+                owned: cosmetics.filter(c=>c.owned).map(c=>c.id), 
+                equipped: { hat: cosmetics.find(c=>c.type==='hat'&&c.equipped)?.id||null, shirt: cosmetics.find(c=>c.type==='shirt'&&c.equipped)?.id||null }, 
+                achievements 
+            }, { merge: true }); 
+            document.getElementById('saveStatusText').textContent = 'Saved'; 
+            setTimeout(()=>{ document.getElementById('saveStatusText').textContent = 'Cloud'; }, 2000); 
+        }
+        
+        async function loadFromCloud() { 
+            if(!currentUser||!db) return; 
+            let doc = await db.collection('users').doc(currentUser.uid).get(); 
+            if(doc.exists){ 
+                let d=doc.data(); 
+                highScore=d.highScore||0; 
+                coinCount=d.coinCount||0; 
+                // Set user display name from cloud or fallback
+                if (d.displayName) {
+                    document.getElementById('userName').textContent = d.displayName;
+                    document.getElementById('userAvatar').innerHTML = d.displayName.charAt(0).toUpperCase();
+                } else {
+                    const name = currentUser.displayName || currentUser.email.split('@')[0];
+                    document.getElementById('userName').textContent = name;
+                    document.getElementById('userAvatar').innerHTML = name.charAt(0).toUpperCase();
+                }
+                cosmetics.forEach(c=>c.owned=(d.owned||[]).includes(c.id)); 
+                if(d.equipped){ 
+                    cosmetics.forEach(c=>{ 
+                        if(c.type==='hat' && d.equipped.hat===c.id) c.equipped=true; 
+                        if(c.type==='shirt' && d.equipped.shirt===c.id) c.equipped=true; 
+                    }); 
+                } 
+                if(d.achievements) d.achievements.forEach(a=>{ 
+                    let ach=achievements.find(x=>x.id===a.id); 
+                    if(ach){ ach.unlocked=a.unlocked; ach.progress=a.progress; } 
+                }); 
+                document.getElementById('highScore').textContent = highScore; 
+                updateCoinDisplay(); 
+                updateAchievementCount(); 
+                updateLockerDisplay(); 
+                updatePreview(); 
+                document.getElementById('saveStatusText').textContent = 'Cloud'; 
+            } else await saveToCloud(); 
+        }
+        
+        if (auth) {
+            auth.onAuthStateChanged((user) => {
+                currentUser = user;
+                if (user) {
+                    const name = user.displayName || user.email.split('@')[0];
+                    document.getElementById('userName').textContent = name;
+                    document.getElementById('userAvatar').innerHTML = name.charAt(0).toUpperCase();
+                    document.getElementById('loginBtn').style.display = 'none';
+                    document.getElementById('logoutBtn').style.display = 'block';
+                    document.getElementById('saveStatusText').textContent = 'Cloud';
+                    loadFromCloud();
+                } else {
+                    document.getElementById('userName').textContent = 'Not Logged In';
+                    document.getElementById('userAvatar').innerHTML = '👤';
+                    document.getElementById('loginBtn').style.display = 'block';
+                    document.getElementById('logoutBtn').style.display = 'none';
+                    document.getElementById('saveStatusText').textContent = 'Local';
+                    loadFromLocal();
+                }
+            });
+        } else { loadFromLocal(); }
+        
+        document.getElementById('loginBtn').addEventListener('click', showAuthModal);
+        document.getElementById('logoutBtn').addEventListener('click', async () => { await auth.signOut(); selectSound.play(); });
+        
+        // ========== GAME FUNCTIONS ==========
         function resetGame() {
             bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5, visible: true };
             pipes = [];
@@ -749,62 +817,46 @@
             hasTriggered67 = false;
             hasTriggered1000 = false;
             gameSpeed = cheats.slowmo ? 1.5 : 2.5;
-            if (document.getElementById('gameScore')) document.getElementById('gameScore').textContent = '0';
+            document.getElementById('gameScore')?.setAttribute('value', '0');
         }
         
         function updateGame() {
             if (gameOver || !gameRunning) return;
-            
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode;
-            
-            // Bird physics
             bird.velocity += bird.gravity;
             bird.y += bird.velocity;
             
-            // Boundaries
             if (!shieldActive) {
                 if (bird.y < 10 || bird.y > canvas.height - 10) { 
-                    gameOver = true; 
-                    if (deathSound) deathSound.play().catch(e=>console.log('Death sound error'));
-                    if (bgMusic && !musicMuted) bgMusic.pause();
-                    updateHighScore(); 
-                    return;
+                    gameOver = true; deathSound.play(); if (bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); return;
                 }
             } else {
                 if (bird.y < 10) { bird.y = 10; bird.velocity = Math.abs(bird.velocity) * 0.5; }
                 if (bird.y > canvas.height - 10) { bird.y = canvas.height - 10; bird.velocity = -Math.abs(bird.velocity) * 0.5; }
             }
             
-            // Spawn pipes
             let pipeRate = cheats.slowmo ? 180 : 120;
             if (frameCount % pipeRate === 0) {
                 let topHeight = Math.random() * (canvas.height - pipeGap - 150) + 70;
                 pipes.push({ x: canvas.width, top: topHeight, bottom: topHeight + pipeGap, scored: false });
             }
             
-            // Spawn coins
-            let coinRate = cheats.coinlord ? 30 : 60;
+            let coinRate = cheats.coinlord ? 25 : 50;
             if (frameCount % coinRate === 0) {
                 let coinY = Math.random() * (canvas.height - 100) + 50;
                 coins.push({ x: canvas.width, y: coinY, collected: false });
             }
             
-            // Update pipes
             for (let i = 0; i < pipes.length; i++) {
                 pipes[i].x -= gameSpeed;
                 if (!shieldActive && bird.x + 15 > pipes[i].x && bird.x - 15 < pipes[i].x + pipeWidth) {
                     if (bird.y - 15 < pipes[i].top || bird.y + 15 > pipes[i].bottom) {
-                        gameOver = true; 
-                        if (deathSound) deathSound.play().catch(e=>console.log('Death sound error'));
-                        if (bgMusic && !musicMuted) bgMusic.pause();
-                        updateHighScore(); 
-                        return;
+                        gameOver = true; deathSound.play(); if (bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); return;
                     }
                 }
                 if (pipes[i].x + pipeWidth < bird.x && !pipes[i].scored) {
-                    score++; 
-                    pipes[i].scored = true;
-                    if (document.getElementById('gameScore')) document.getElementById('gameScore').textContent = score;
+                    score++; pipes[i].scored = true;
+                    document.getElementById('gameScore')?.setAttribute('value', score);
                     if (score === 67 && !hasTriggered67) trigger67();
                     if (score === 1000 && !hasTriggered1000) trigger1000();
                     checkAchievements();
@@ -812,374 +864,142 @@
                 if (pipes[i].x + pipeWidth < 0) pipes.splice(i--, 1);
             }
             
-            // Update coins
             for (let i = 0; i < coins.length; i++) {
                 coins[i].x -= gameSpeed;
-                
-                // Coin collision
-                if (!coins[i].collected && 
-                    bird.x + 15 > coins[i].x && 
-                    bird.x - 15 < coins[i].x + 20 &&
-                    bird.y + 15 > coins[i].y && 
-                    bird.y - 15 < coins[i].y + 20) {
+                if (!coins[i].collected && bird.x + 15 > coins[i].x && bird.x - 15 < coins[i].x + 20 &&
+                    bird.y + 15 > coins[i].y && bird.y - 15 < coins[i].y + 20) {
                     coins[i].collected = true;
                     coinCount += coinMultiplier;
-                    if (coinSound) coinSound.play().catch(e=>console.log('Coin sound error'));
+                    coinSound.play();
                     updateCoinDisplay();
                     checkAchievements();
-                    saveToLocal();
+                    if (currentUser) saveToCloud(); else saveToLocal();
                 }
                 if (coins[i].x + 20 < 0) coins.splice(i--, 1);
             }
-            
             frameCount++;
         }
         
         function drawGame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // Grid
             ctx.strokeStyle = 'rgba(255,70,85,0.08)';
             ctx.lineWidth = 1;
-            for (let i = 0; i < canvas.width; i += 50) { 
-                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); 
-            }
-            for (let i = 0; i < canvas.height; i += 50) { 
-                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); 
-            }
-            
-            // Pipes
+            for (let i = 0; i < canvas.width; i += 50) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke(); }
+            for (let i = 0; i < canvas.height; i += 50) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(canvas.width, i); ctx.stroke(); }
             ctx.fillStyle = '#00CC7A';
-            for (let p of pipes) { 
-                ctx.fillRect(p.x, 0, pipeWidth, p.top); 
-                ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom); 
-            }
-            
-            // Coins
-            for (let c of coins) { 
-                if (!c.collected) {
-                    if (coinImage.complete && coinImage.naturalWidth > 0) {
-                        ctx.drawImage(coinImage, c.x, c.y, 20, 20);
-                    } else {
-                        ctx.fillStyle = 'gold';
-                        ctx.beginPath();
-                        ctx.arc(c.x + 10, c.y + 10, 10, 0, Math.PI * 2);
-                        ctx.fill();
-                    }
-                }
-            }
-            
-            // Bird
+            for (let p of pipes) { ctx.fillRect(p.x, 0, pipeWidth, p.top); ctx.fillRect(p.x, p.bottom, pipeWidth, canvas.height - p.bottom); }
+            for (let c of coins) { if (!c.collected && coinImage.complete) ctx.drawImage(coinImage, c.x, c.y, 20, 20); }
             if (bird.visible) {
-                ctx.save(); 
-                ctx.translate(bird.x, bird.y);
+                ctx.save(); ctx.translate(bird.x, bird.y);
                 let rot = Math.min(Math.max(bird.velocity * 0.1, -0.5), 0.5);
                 ctx.rotate(rot);
-                if (birdImage.complete && birdImage.naturalWidth > 0) {
-                    ctx.drawImage(birdImage, -15, -15, 30, 30);
-                } else {
-                    ctx.fillStyle = '#FF6B35';
-                    ctx.fillRect(-15, -15, 30, 30);
-                    ctx.fillStyle = 'white';
-                    ctx.fillRect(-8, -10, 5, 5);
-                    ctx.fillRect(3, -10, 5, 5);
-                }
-                // Cosmetics
+                if (birdImage.complete) ctx.drawImage(birdImage, -15, -15, 30, 30);
                 const shirt = cosmetics.find(c => c.type === 'shirt' && c.equipped);
-                if (shirt) { 
-                    let img = new Image(); 
-                    img.src = shirt.image; 
-                    ctx.drawImage(img, -15, -15, 30, 30); 
-                }
+                if (shirt) { let img = new Image(); img.src = shirt.image; ctx.drawImage(img, -15, -15, 30, 30); }
                 const hat = cosmetics.find(c => c.type === 'hat' && c.equipped);
-                if (hat) { 
-                    let img = new Image(); 
-                    img.src = hat.image; 
-                    ctx.drawImage(img, -15, -20, 30, 30); 
-                }
+                if (hat) { let img = new Image(); img.src = hat.image; ctx.drawImage(img, -15, -20, 30, 30); }
                 ctx.restore();
             }
-            
-            // UI Text
             if (!gameOver && gameRunning) {
-                ctx.fillStyle = '#FF6B35'; 
-                ctx.font = '20px "CRIX Pixel", "Courier New", monospace'; 
-                ctx.textAlign = 'center';
+                ctx.fillStyle = '#FF6B35'; ctx.font = '16px monospace'; ctx.textAlign = 'center';
                 ctx.fillText(`SCORE: ${score}`, canvas.width/2, 50);
             }
             if (gameOver) {
-                ctx.fillStyle = '#FF4655'; 
-                ctx.font = '24px "CRIX Pixel", "Courier New", monospace'; 
-                ctx.textAlign = 'center';
+                ctx.fillStyle = '#FF4655'; ctx.font = '20px monospace'; ctx.textAlign = 'center';
                 ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2);
-                ctx.font = '14px "CRIX Pixel", "Courier New", monospace'; 
-                ctx.fillText('Press START', canvas.width/2, canvas.height/2 + 40);
+                ctx.font = '12px monospace'; ctx.fillText('Press START', canvas.width/2, canvas.height/2 + 40);
             }
         }
         
-        function gameLoop() {
-            if (gameRunning) {
-                updateGame();
-                drawGame();
-                animationId = requestAnimationFrame(gameLoop);
-            }
-        }
+        function gameLoop() { if (gameRunning) { updateGame(); drawGame(); animationId = requestAnimationFrame(gameLoop); } }
         
         function startGame() {
-            if (gameRunning) {
-                if (animationId) cancelAnimationFrame(animationId);
-                resetGame();
-            }
+            if (gameRunning && animationId) cancelAnimationFrame(animationId);
+            resetGame();
             gameRunning = true;
             gameOver = false;
             gamesPlayed++;
-            if (animationId) cancelAnimationFrame(animationId);
             animationId = requestAnimationFrame(gameLoop);
-            if (!musicMuted && bgMusic) {
-                bgMusic.currentTime = 0;
-                bgMusic.play().catch(e=>console.log('Music error'));
-            }
-            // Play select sound for start button - NOT achievement sound
-            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
+            if (!musicMuted && bgMusic) { bgMusic.currentTime = 0; bgMusic.play().catch(e=>console.log('Music error')); }
+            selectSound.play();
             checkAchievements();
         }
         
-        function jump() {
-            if (!gameRunning || gameOver) return;
-            bird.velocity = bird.jump;
-            if (jumpSound) jumpSound.play().catch(e=>console.log('Jump sound error'));
-        }
+        function jump() { if (!gameRunning || gameOver) return; bird.velocity = bird.jump; jumpSound.play(); }
         
-        function updateHighScore() {
-            if (score > highScore) { 
-                highScore = score; 
-                document.getElementById('highScore').textContent = highScore; 
-                saveToLocal();
-            }
-        }
+        function updateHighScore() { if (score > highScore) { highScore = score; document.getElementById('highScore').textContent = highScore; if (currentUser) saveToCloud(); else saveToLocal(); } }
         
         // Helper functions
-        function updateCoinDisplay() { 
-            document.getElementById('coinCount').innerHTML = `🪙 ${coinCount}`; 
-            if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
-        }
+        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `🪙 ${coinCount}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; }
         
         function checkAchievements() {
             let unlocked = false;
-            let unlockedAchievement = null;
-            
-            if (!achievements[0].unlocked && gamesPlayed >= 1) { 
-                achievements[0].unlocked = true; 
-                unlocked = true;
-                unlockedAchievement = achievements[0];
-            }
-            if (!achievements[1].unlocked) { 
-                achievements[1].progress = Math.min(coinCount, 100); 
-                if (coinCount >= 100) { 
-                    achievements[1].unlocked = true; 
-                    unlocked = true;
-                    if (!unlockedAchievement) unlockedAchievement = achievements[1];
-                } 
-            }
-            if (!achievements[2].unlocked && score >= 50) { 
-                achievements[2].unlocked = true; 
-                unlocked = true;
-                if (!unlockedAchievement) unlockedAchievement = achievements[2];
-            }
-            if (!achievements[3].unlocked && score >= 100) { 
-                achievements[3].unlocked = true; 
-                unlocked = true;
-                if (!unlockedAchievement) unlockedAchievement = achievements[3];
-            }
-            if (!achievements[4].unlocked && hasTriggered67) { 
-                achievements[4].unlocked = true; 
-                unlocked = true;
-                if (!unlockedAchievement) unlockedAchievement = achievements[4];
-            }
-            if (!achievements[5].unlocked && hasTriggered1000) { 
-                achievements[5].unlocked = true; 
-                unlocked = true;
-                if (!unlockedAchievement) unlockedAchievement = achievements[5];
-            }
-            
-            if (unlocked) { 
-                if (achSound) achSound.play().catch(e=>console.log('Ach sound error'));
-                if (unlockedAchievement) showAchievementPopup(unlockedAchievement);
-                updateAchievementCount(); 
-                saveToLocal();
-            }
+            if (!achievements[0].unlocked && gamesPlayed >= 1) { achievements[0].unlocked = true; unlocked = true; }
+            if (!achievements[1].unlocked) { achievements[1].progress = Math.min(coinCount, 100); if (coinCount >= 100) { achievements[1].unlocked = true; unlocked = true; } }
+            if (!achievements[2].unlocked && score >= 50) { achievements[2].unlocked = true; unlocked = true; }
+            if (!achievements[3].unlocked && score >= 100) { achievements[3].unlocked = true; unlocked = true; }
+            if (!achievements[4].unlocked && hasTriggered67) { achievements[4].unlocked = true; unlocked = true; }
+            if (!achievements[5].unlocked && hasTriggered1000) { achievements[5].unlocked = true; unlocked = true; }
+            if (unlocked) { achSound.play(); updateAchievementCount(); if (currentUser) saveToCloud(); else saveToLocal(); }
         }
         
-        function updateAchievementCount() { 
-            let u = achievements.filter(a => a.unlocked).length; 
-            document.getElementById('achievementCount').textContent = `${u}/${achievements.length}`; 
-        }
+        function updateAchievementCount() { let u = achievements.filter(a => a.unlocked).length; document.getElementById('achievementCount').textContent = `${u}/${achievements.length}`; }
         
-        function updateCheatIndicators() { 
-            let html = ''; 
-            if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>';
-            if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>';
-            if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>';
-            if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>';
-            document.getElementById('cheatIndicators').innerHTML = html;
-        }
+        function updateCheatIndicators() { let html = ''; if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>'; if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>'; if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>'; if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>'; document.getElementById('cheatIndicators').innerHTML = html; }
         
-        function updateActivePowerups() { 
-            let active = powerups.filter(p => p.active); 
-            let html = ''; 
-            active.forEach(p => { html += `<div class="powerup-badge">${p.name} <span class="powerup-timer">${p.timeLeft}s</span></div>`; });
-            document.getElementById('activePowerups').innerHTML = html;
-        }
+        function updateActivePowerups() { let active = powerups.filter(p => p.active); let html = ''; active.forEach(p => { html += `<div class="powerup-badge">${p.name} <span class="powerup-timer">${p.timeLeft}s</span></div>`; }); document.getElementById('activePowerups').innerHTML = html; }
         
-        function trigger67() { 
-            hasTriggered67 = true; 
-            if (sixtySevenSound) sixtySevenSound.play().catch(e=>console.log('67 sound error'));
-            let ov = document.getElementById('eventOverlay'); 
-            ov.style.display = 'block'; 
-            ov.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" class="event-gif">'; 
-            setTimeout(() => { ov.style.display = 'none'; ov.innerHTML = ''; }, 3000); 
-        }
+        function trigger67() { hasTriggered67 = true; sixtySevenSound.play(); let ov = document.getElementById('eventOverlay'); ov.style.display = 'block'; ov.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" class="event-gif">'; setTimeout(() => { ov.style.display = 'none'; ov.innerHTML = ''; }, 3000); }
         
-        function trigger1000() { 
-            hasTriggered1000 = true; 
-            gameRunning = false; 
-            if (animationId) cancelAnimationFrame(animationId);
-            let boom = document.getElementById('boomOverlay'); 
-            boom.style.display = 'flex'; 
-            boom.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="boom-gif">'; 
-            if (boomSound) boomSound.play().catch(e=>console.log('Boom sound error'));
-            setTimeout(() => { 
-                boom.style.display = 'none'; 
-                let msg = Object.values(cheats).some(v=>v) ? 'YOU DID IT! ...AND MAYBE USED SOME HELP? 😈\nThanks for playing!' : 'VICTORY! YOU CONQUERED FLAPPY CRIX!\nThanks for playing!'; 
-                document.getElementById('victoryMessage').innerHTML = msg; 
-                document.getElementById('victoryOverlay').classList.add('active'); 
-                if (victorySound) victorySound.play().catch(e=>console.log('Victory sound error'));
-            }, 2000);
-        }
+        function trigger1000() { hasTriggered1000 = true; gameRunning = false; if (animationId) cancelAnimationFrame(animationId); let boom = document.getElementById('boomOverlay'); boom.style.display = 'flex'; boom.innerHTML = '<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" class="boom-gif">'; boomSound.play(); setTimeout(() => { boom.style.display = 'none'; let msg = Object.values(cheats).some(v=>v) ? 'YOU DID IT! ...AND MAYBE USED SOME HELP? 😈\nThanks for playing!' : 'VICTORY! YOU CONQUERED FLAPPY CRIX!\nThanks for playing!'; document.getElementById('victoryMessage').innerHTML = msg; document.getElementById('victoryOverlay').classList.add('active'); victorySound.play(); }, 2000); }
         
-        // UI functions
+        // UI Functions
         function updateStoreDisplay() { 
-            let phtml = ''; 
-            powerups.forEach(p => { phtml += `<div class="store-item"><div class="store-item-name">⚡ ${p.name}</div><div class="store-item-desc">${p.desc}</div><div class="store-item-price">🪙 ${p.price}</div><button class="store-buy-btn" onclick="buyPowerup('${p.id}')" ${p.active ? 'disabled' : ''}>${p.active ? 'ACTIVE' : 'BUY'}</button></div>`; }); 
-            document.getElementById('powerupsStoreGrid').innerHTML = phtml; 
-            let chtml = ''; 
-            cosmetics.forEach(c => { chtml += `<div class="store-item ${c.owned ? 'owned' : ''}"><img src="${c.image}"><div class="store-item-name">${c.name}</div><div class="store-item-price">🪙 ${c.price}</div><button class="store-buy-btn" onclick="buyCosmetic('${c.id}')" ${c.owned ? 'disabled' : ''}>${c.owned ? 'OWNED' : 'BUY'}</button></div>`; }); 
-            document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
+            let phtml = ''; powerups.forEach(p => { phtml += `<div class="store-item"><div class="store-item-name">⚡ ${p.name}</div><div class="store-item-desc">${p.desc}</div><div class="store-item-price">🪙 ${p.price}</div><button class="store-buy-btn" onclick="buyPowerup('${p.id}')" ${p.active ? 'disabled' : ''}>${p.active ? 'ACTIVE' : 'BUY'}</button></div>`; }); document.getElementById('powerupsStoreGrid').innerHTML = phtml; 
+            let chtml = ''; cosmetics.forEach(c => { chtml += `<div class="store-item ${c.owned ? 'owned' : ''}"><img src="${c.image}"><div class="store-item-name">${c.name}</div><div class="store-item-price">🪙 ${c.price}</div><button class="store-buy-btn" onclick="buyCosmetic('${c.id}')" ${c.owned ? 'disabled' : ''}>${c.owned ? 'OWNED' : 'BUY'}</button></div>`; }); document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
         }
         
         function updateLockerDisplay() { 
-            let hatsHtml = ''; 
-            cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div class="locker-item ${h.equipped ? 'equipped' : ''}" onclick="equipItem('${h.id}')"><img src="${h.image}"><div class="locker-item-name">${h.name}</div>${h.equipped ? '<div class="equipped-badge">✓</div>' : ''}</div>`; }); 
-            document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="grid-column:1/-1; text-align:center;">No hats owned</div>'; 
-            let shirtsHtml = ''; 
-            cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div class="locker-item ${s.equipped ? 'equipped' : ''}" onclick="equipItem('${s.id}')"><img src="${s.image}"><div class="locker-item-name">${s.name}</div>${s.equipped ? '<div class="equipped-badge">✓</div>' : ''}</div>`; }); 
-            document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="grid-column:1/-1; text-align:center;">No shirts owned</div>'; 
-            document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
+            let hatsHtml = ''; cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div class="locker-item ${h.equipped ? 'equipped' : ''}" onclick="equipItem('${h.id}')"><img src="${h.image}"><div class="locker-item-name">${h.name}</div>${h.equipped ? '<div class="equipped-badge">✓</div>' : ''}</div>`; }); document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="grid-column:1/-1; text-align:center;">No hats owned</div>'; 
+            let shirtsHtml = ''; cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div class="locker-item ${s.equipped ? 'equipped' : ''}" onclick="equipItem('${s.id}')"><img src="${s.image}"><div class="locker-item-name">${s.name}</div>${s.equipped ? '<div class="equipped-badge">✓</div>' : ''}</div>`; }); document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="grid-column:1/-1; text-align:center;">No shirts owned</div>'; document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
         }
         
         function updatePreview() { 
-            let previewCtx = document.getElementById('previewCanvas').getContext('2d');
-            previewCtx.clearRect(0,0,120,120); 
-            previewCtx.fillStyle = '#0A0A0F'; 
-            previewCtx.fillRect(0,0,120,120); 
-            previewCtx.save(); 
-            previewCtx.translate(60,60); 
-            let size = cheats.bigbird ? 45 : 35; 
-            if(birdImage.complete && birdImage.naturalWidth > 0) previewCtx.drawImage(birdImage, -size/2, -size/2, size, size); 
-            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
-            if(shirt){ let img=new Image(); img.src=shirt.image; previewCtx.drawImage(img, -size/2, -size/2, size, size); } 
-            let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
-            if(hat){ let img=new Image(); img.src=hat.image; previewCtx.drawImage(img, -size/2, -size/2-5, size, size); } 
-            previewCtx.restore(); 
-            document.getElementById('previewTitle').textContent = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP EQUIPPED'; 
+            previewCtx.clearRect(0,0,120,120); previewCtx.fillStyle = '#0A0A0F'; previewCtx.fillRect(0,0,120,120); previewCtx.save(); previewCtx.translate(60,60); let size = cheats.bigbird ? 45 : 35; if(birdImage.complete) previewCtx.drawImage(birdImage, -size/2, -size/2, size, size); let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); if(shirt){ let img=new Image(); img.src=shirt.image; previewCtx.drawImage(img, -size/2, -size/2, size, size); } let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); if(hat){ let img=new Image(); img.src=hat.image; previewCtx.drawImage(img, -size/2, -size/2-5, size, size); } previewCtx.restore(); document.getElementById('previewTitle').textContent = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP EQUIPPED'; 
         }
         
         window.buyPowerup = function(id) { 
-            let p = powerups.find(p=>p.id===id); 
-            if(!p||p.active||coinCount<p.price) return; 
-            coinCount -= p.price; 
-            updateCoinDisplay(); 
-            p.active = true; 
-            p.timeLeft = p.duration; 
-            if (powerupSound) powerupSound.play().catch(e=>console.log('Powerup sound error'));
-            if(id==='x2coins') coinMultiplier=2; 
-            let interval = setInterval(()=>{ 
-                p.timeLeft--; 
-                if(p.timeLeft<=0){ 
-                    p.active=false; 
-                    clearInterval(interval); 
-                    if(id==='x2coins') coinMultiplier=1; 
-                    updateActivePowerups(); 
-                    saveToLocal();
-                } 
-                updateActivePowerups(); 
-            }, 1000); 
-            updateActivePowerups(); 
-            updateStoreDisplay(); 
-            saveToLocal();
+            let p = powerups.find(p=>p.id===id); if(!p||p.active||coinCount<p.price) return; coinCount -= p.price; updateCoinDisplay(); p.active = true; p.timeLeft = p.duration; powerupSound.play(); if(id==='x2coins') coinMultiplier=2; let interval = setInterval(()=>{ p.timeLeft--; if(p.timeLeft<=0){ p.active=false; clearInterval(interval); if(id==='x2coins') coinMultiplier=1; updateActivePowerups(); if(currentUser) saveToCloud(); else saveToLocal(); } updateActivePowerups(); }, 1000); updateActivePowerups(); updateStoreDisplay(); if(currentUser) saveToCloud(); else saveToLocal(); 
         };
         
         window.buyCosmetic = function(id) { 
-            let c = cosmetics.find(c=>c.id===id); 
-            if(!c||c.owned||coinCount<c.price) return; 
-            coinCount -= c.price; 
-            c.owned = true; 
-            updateCoinDisplay(); 
-            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
-            updateStoreDisplay(); 
-            updateLockerDisplay(); 
-            saveToLocal();
+            let c = cosmetics.find(c=>c.id===id); if(!c||c.owned||coinCount<c.price) return; coinCount -= c.price; c.owned = true; updateCoinDisplay(); selectSound.play(); updateStoreDisplay(); updateLockerDisplay(); if(currentUser) saveToCloud(); else saveToLocal(); 
         };
         
         window.equipItem = function(id) { 
-            let item = cosmetics.find(c=>c.id===id); 
-            if(!item||!item.owned) return; 
-            cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); 
-            item.equipped=true; 
-            updateLockerDisplay(); 
-            updatePreview(); 
-            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
-            saveToLocal();
+            let item = cosmetics.find(c=>c.id===id); if(!item||!item.owned) return; cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); item.equipped=true; updateLockerDisplay(); updatePreview(); selectSound.play(); if(currentUser) saveToCloud(); else saveToLocal(); 
         };
         
-        // Event listeners
-        document.getElementById('startGameBtn').addEventListener('click', startGame);
+        // Setup Music
+        bgMusic.volume = 0.3;
+        musicMuted = true;
         document.getElementById('musicToggleBtn').addEventListener('click', () => { 
-            musicMuted = !musicMuted; 
-            if(!musicMuted && bgMusic) {
-                bgMusic.currentTime = 0;
-                bgMusic.play().catch(e=>console.log('Music error')); 
-            } else if (bgMusic) {
-                bgMusic.pause(); 
-            }
-            if (selectSound) selectSound.play().catch(e=>console.log('Select sound error'));
+            musicMuted = !musicMuted; if(!musicMuted) bgMusic.play().catch(e=>console.log('Music error')); else bgMusic.pause(); selectSound.play(); 
         });
+        
+        // Event Listeners
+        document.getElementById('startGameBtn').addEventListener('click', startGame);
         document.getElementById('storeBtn').addEventListener('click', () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); });
         document.getElementById('closeStoreBtn').addEventListener('click', () => { document.getElementById('storeModal').classList.remove('active'); });
         document.getElementById('lockerBtn').addEventListener('click', () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); });
         document.getElementById('closeLockerBtn').addEventListener('click', () => { document.getElementById('lockerModal').classList.remove('active'); });
         document.getElementById('achievementsBtn').addEventListener('click', () => { 
-            let g = document.getElementById('achievementsGrid'); 
-            let h = ''; 
-            achievements.forEach(a => { 
-                h += `<div class="achievement-item ${a.unlocked ? 'unlocked' : ''}"><div class="achievement-icon">${a.icon}</div><div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div>${a.target>1&&!a.unlocked?`<div class="achievement-progress">${a.progress}/${a.target}</div>`:''}</div>${a.unlocked?'<div>✓</div>':''}</div>`; 
-            }); 
-            g.innerHTML = h; 
-            document.getElementById('achievementsModal').classList.add('active'); 
+            let g = document.getElementById('achievementsGrid'); let h = ''; achievements.forEach(a => { h += `<div class="achievement-item ${a.unlocked ? 'unlocked' : ''}"><div class="achievement-icon">${a.icon}</div><div><div class="achievement-name">${a.name}</div><div class="achievement-desc">${a.desc}</div>${a.target>1&&!a.unlocked?`<div class="achievement-progress">${a.progress}/${a.target}</div>`:''}</div>${a.unlocked?'<div>✓</div>':''}</div>`; }); g.innerHTML = h; document.getElementById('achievementsModal').classList.add('active'); 
         });
         document.getElementById('closeAchievementsBtn').addEventListener('click', () => { document.getElementById('achievementsModal').classList.remove('active'); });
-        document.getElementById('unequipHat').addEventListener('click', () => { 
-            let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
-            if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); saveToLocal(); } 
-        });
-        document.getElementById('unequipShirt').addEventListener('click', () => { 
-            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
-            if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); saveToLocal(); } 
-        });
-        document.getElementById('victoryRestart').addEventListener('click', () => { 
-            document.getElementById('victoryOverlay').classList.remove('active'); 
-            startGame(); 
-        });
+        document.getElementById('unequipHat').addEventListener('click', () => { let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); if(currentUser) saveToCloud(); else saveToLocal(); } });
+        document.getElementById('unequipShirt').addEventListener('click', () => { let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); if(currentUser) saveToCloud(); else saveToLocal(); } });
+        document.getElementById('victoryRestart').addEventListener('click', () => { document.getElementById('victoryOverlay').classList.remove('active'); startGame(); });
         document.getElementById('canvasWrapper').addEventListener('click', jump);
         document.getElementById('canvasWrapper').addEventListener('touchstart', (e) => { e.preventDefault(); jump(); });
         document.addEventListener('keydown', (e) => { if(e.key === ' ' || e.key === 'Space') { e.preventDefault(); jump(); } });
@@ -1187,34 +1007,20 @@
         document.getElementById('cheatInput').addEventListener('input', (e) => {
             let code = e.target.value;
             if(code.length === 4) {
-                if(code === '6969') { cheats.godmode = !cheats.godmode; if(selectSound) selectSound.play(); updateCheatIndicators(); }
-                if(code === '1337') { cheats.coinlord = !cheats.coinlord; if(selectSound) selectSound.play(); updateCheatIndicators(); if(gameRunning) resetGame(); }
-                if(code === '0420') { cheats.slowmo = !cheats.slowmo; if(selectSound) selectSound.play(); updateCheatIndicators(); gameSpeed = cheats.slowmo ? 1.5 : 2.5; if(gameRunning) resetGame(); }
-                if(code === '8008') { cheats.bigbird = !cheats.bigbird; if(selectSound) selectSound.play(); updateCheatIndicators(); updatePreview(); if(gameRunning) resetGame(); }
+                if(code === '6969') { cheats.godmode = !cheats.godmode; selectSound.play(); updateCheatIndicators(); }
+                if(code === '1337') { cheats.coinlord = !cheats.coinlord; selectSound.play(); updateCheatIndicators(); if(gameRunning) resetGame(); }
+                if(code === '0420') { cheats.slowmo = !cheats.slowmo; selectSound.play(); updateCheatIndicators(); gameSpeed = cheats.slowmo ? 1.5 : 2.5; if(gameRunning) resetGame(); }
+                if(code === '8008') { cheats.bigbird = !cheats.bigbird; selectSound.play(); updateCheatIndicators(); updatePreview(); if(gameRunning) resetGame(); }
                 if(code === '2468') { let x2 = powerups.find(p=>p.id==='x2coins'); if(!x2.active) buyPowerup('x2coins'); }
-                if(code === '9999') { coinCount += 50; updateCoinDisplay(); if(selectSound) selectSound.play(); saveToLocal(); }
+                if(code === '9999') { coinCount += 50; updateCoinDisplay(); selectSound.play(); if(currentUser) saveToCloud(); else saveToLocal(); }
                 e.target.value = '';
             }
         });
         
-        document.getElementById('tabPowerupsStore').addEventListener('click', () => { 
-            document.getElementById('tabPowerupsStore').classList.add('active'); 
-            document.getElementById('tabCosmeticsStore').classList.remove('active'); 
-            document.getElementById('storePowerups').style.display = 'block'; 
-            document.getElementById('storeCosmetics').style.display = 'none'; 
-        });
-        document.getElementById('tabCosmeticsStore').addEventListener('click', () => { 
-            document.getElementById('tabCosmeticsStore').classList.add('active'); 
-            document.getElementById('tabPowerupsStore').classList.remove('active'); 
-            document.getElementById('storePowerups').style.display = 'none'; 
-            document.getElementById('storeCosmetics').style.display = 'block'; 
-        });
+        document.getElementById('tabPowerupsStore').addEventListener('click', () => { document.getElementById('tabPowerupsStore').classList.add('active'); document.getElementById('tabCosmeticsStore').classList.remove('active'); document.getElementById('storePowerups').style.display = 'block'; document.getElementById('storeCosmetics').style.display = 'none'; });
+        document.getElementById('tabCosmeticsStore').addEventListener('click', () => { document.getElementById('tabCosmeticsStore').classList.add('active'); document.getElementById('tabPowerupsStore').classList.remove('active'); document.getElementById('storePowerups').style.display = 'none'; document.getElementById('storeCosmetics').style.display = 'block'; });
         
-        window.addEventListener('click', (e) => { 
-            if(e.target.classList.contains('store-modal')) document.getElementById('storeModal').classList.remove('active'); 
-            if(e.target.classList.contains('locker-modal')) document.getElementById('lockerModal').classList.remove('active'); 
-            if(e.target.classList.contains('achievements-modal')) document.getElementById('achievementsModal').classList.remove('active'); 
-        });
+        window.addEventListener('click', (e) => { if(e.target.classList.contains('store-modal')) document.getElementById('storeModal').classList.remove('active'); if(e.target.classList.contains('locker-modal')) document.getElementById('lockerModal').classList.remove('active'); if(e.target.classList.contains('achievements-modal')) document.getElementById('achievementsModal').classList.remove('active'); if(e.target === authModal) hideAuthModal(); });
         
         // Create gameScore element if missing
         if (!document.getElementById('gameScore')) {
@@ -1224,11 +1030,8 @@
             document.body.appendChild(scoreSpan);
         }
         
-        // Initialize
         loadFromLocal();
         drawGame();
-        
-        console.log('Game ready - Click START to play!');
     </script>
 </body>
 </html>
