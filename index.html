@@ -94,8 +94,9 @@
         }
         
         @keyframes fadePulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.9; }
+            0% { filter: brightness(1); }
+            50% { filter: brightness(1.08); }
+            100% { filter: brightness(1); }
         }
         
         .cyber-tagline {
@@ -221,24 +222,13 @@
         }
         
         .about-section::after {
-            content: '▼▲▼▲▼';
-            position: absolute;
-            bottom: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--matrix-green);
-            font-size: 20px;
-            letter-spacing: 8px;
-            background: var(--dark-bg);
-            padding: 0 20px;
-            border: 1px solid var(--neon-orange);
-            border-radius: 30px;
+            content: none;
         }
         
         .section-title {
             font-size: 42px;
             text-align: center;
-            margin-bottom: 40px;
+            margin-bottom: 50px;
             color: var(--neon-orange);
             text-transform: uppercase;
             letter-spacing: 4px;
@@ -262,7 +252,6 @@
             color: #ccc;
             font-size: 16px;
             line-height: 1.8;
-            text-align: justify;
         }
         
         .about-content p {
@@ -412,18 +401,7 @@
         }
         
         .videos-section::after {
-            content: '▶▶▶';
-            position: absolute;
-            bottom: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--matrix-green);
-            font-size: 20px;
-            letter-spacing: 8px;
-            background: var(--dark-bg);
-            padding: 0 20px;
-            border: 1px solid var(--neon-orange);
-            border-radius: 30px;
+            content: none;
         }
         
         .video-tabs {
@@ -459,7 +437,7 @@
         .video-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 30px;
+            gap: 25px;
         }
         
         .video-card {
@@ -533,18 +511,7 @@
         }
         
         .merch-section::after {
-            content: '▲▼▲▼▲';
-            position: absolute;
-            bottom: -15px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: var(--matrix-green);
-            font-size: 20px;
-            letter-spacing: 8px;
-            background: var(--dark-bg);
-            padding: 0 20px;
-            border: 1px solid var(--neon-orange);
-            border-radius: 30px;
+            content: none;
         }
         
         .merch-header {
@@ -689,7 +656,7 @@
             .section-title { font-size: 32px; }
             .hero-title { font-size: 36px; }
             .game-button { font-size: 18px; padding: 12px 30px; }
-            .video-grid { grid-template-columns: 1fr; }
+            .video-grid { grid-template-columns: repeat(2, 1fr); }
             .hero-section { flex-direction: column; text-align: center; }
             .about-section { padding: 40px 25px; }
             .channel-card { padding: 10px 20px; }
@@ -704,6 +671,7 @@
             .hero-title { font-size: 28px; }
             .stat-number { font-size: 24px; }
             .video-tab { padding: 6px 15px; font-size: 12px; }
+            .video-grid { grid-template-columns: 1fr; }
             .product-name { font-size: 14px; }
             .partner-btn { font-size: 14px; padding: 10px 20px; }
         }
@@ -734,7 +702,7 @@
         <div class="hero-section">
             <div class="hero-content">
                 <div class="hero-title">⚡ PLAY FLAPPY CRIX ⚡</div>
-                <div class="hero-description">Flap your way through obstacles, collect coins, unlock achievements, and compete for the highest score! The ultimate CRIX arcade experience awaits.</div>
+                <div class="hero-description">Dodge pipes, grab coins, unlock cheats, and see how far you can get. Built by CRIX, played by everyone who thinks they can beat his high score.</div>
                 <a href="https://crixgamingvr.vercel.app/game.html" target="_blank" class="game-button">🎮 PLAY NOW</a>
             </div>
             <div class="hero-stats">
@@ -994,9 +962,9 @@
                 }
             } catch (error) {
                 console.log('API error, using fallback');
-                document.getElementById('subCount').textContent = '1,15K';
+                document.getElementById('subCount').textContent = '1.15K';
                 document.getElementById('videoCount').textContent = '154';
-                document.getElementById('viewCount').textContent = '52,78K';
+                document.getElementById('viewCount').textContent = '52.78K';
                 useFallbackVideos();
             }
         }
@@ -1073,8 +1041,8 @@
         }
         
         function formatNumber(num) {
-            if (num >= 1000000) return (num/1000000).toFixed(2).replace('.', ',') + 'M';
-            if (num >= 1000) return (num/1000).toFixed(2).replace('.', ',') + 'K';
+            if (num >= 1000000) return (num/1000000).toFixed(2) + 'M';
+            if (num >= 1000) return (num/1000).toFixed(2) + 'K';
             return num.toString();
         }
         
