@@ -7,7 +7,7 @@
 // 1. IP WHITELIST CONFIGURATION (edit this array)
 // ============================================================
 const ALLOWED_IPS = [
-    '127.0.0.1',
+    '120.158.13.134',
     '::1',
     '192.168.1.100',
     '203.0.113.5',
@@ -16,7 +16,7 @@ const ALLOWED_IPS = [
 ];
 
 // Local development hosts (always allowed)
-const LOCAL_DEV = ['localhost', '127.0.0.1', ''];
+const LOCAL_DEV = ['localhost', '120.158.13.134', ''];
 
 // ============================================================
 // 2. DOM REFERENCES
