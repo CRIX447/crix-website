@@ -101,14 +101,20 @@
             <div class="video-grid" id="videoGrid"></div>
         </section>
 
-        <!-- ===== FANART SECTION ===== -->
-        <section class="fanart-section">
+        <!-- ===== FANART SECTION - SCROLLABLE ===== -->
+        <section class="fanart-section" id="fanartSection">
             <h2 class="section-title">🎨 FAN ART</h2>
-            <div class="fanart-grid" id="fanartGrid">
-                <!-- rendered by fanart.js -->
-            </div>
-            <div style="text-align:center; margin-top:30px;">
-                <a href="fanart.html" class="game-button" style="font-size:18px; padding:12px 35px;">🎨 VIEW FULL GALLERY</a>
+            <div class="fanart-scroll-container">
+                <div class="fanart-scroll-wrapper" id="fanartWrapper">
+                    <div class="fanart-scroll-track" id="fanartTrack">
+                        <!-- 100 fanart cards will be injected by JavaScript -->
+                    </div>
+                </div>
+                <div class="fanart-controls">
+                    <button class="fanart-control-btn" id="scrollLeft">◀</button>
+                    <span class="fanart-counter" id="fanartCounter">1 / 100</span>
+                    <button class="fanart-control-btn" id="scrollRight">▶</button>
+                </div>
             </div>
         </section>
         
@@ -128,6 +134,5 @@
     </div>
     
 <script src="index.js"></script>
-<script src="fanart.js"></script>
 </body>
 </html>
