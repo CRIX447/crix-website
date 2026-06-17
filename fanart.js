@@ -1,16 +1,15 @@
 /**
  * fanart.js - CRIXGAMING VR Fanart Module
  * Handles fanart display on the main page
- * Images should be stored in /fanart/ folder
+ * Images should be stored in /img/ folder
  */
 
 // ============================================================
 // CONFIGURATION
 // ============================================================
 const FANART_CONFIG = {
-    // How many images to show at once (auto-calculated based on screen size)
     // Image folder path
-    imagePath: 'fanart/',
+    imagePath: 'img/',
     // File extension
     imageExt: 'png',
     // Total number of fanart images
@@ -147,7 +146,7 @@ class FanartGallery {
             img.onload = () => {
                 loadedCount++;
                 if (loadedCount === this.images.length - this.imageErrors.length) {
-                    console.log(`✅ Loaded ${loadedCount} fanart images`);
+                    console.log(`✅ Loaded ${loadedCount} fanart images from img/ folder`);
                 }
             };
             
@@ -158,12 +157,6 @@ class FanartGallery {
             card.appendChild(img);
             card.appendChild(number);
             this.track.appendChild(card);
-        }
-        
-        // Update total count in counter
-        const totalDisplay = document.querySelector('.fanart-total');
-        if (totalDisplay) {
-            totalDisplay.textContent = this.totalCards;
         }
     }
     
@@ -278,7 +271,7 @@ let fanartGallery = null;
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('fanartTrack')) {
         fanartGallery = new FanartGallery();
-        console.log('🎨 Fanart gallery initialized');
+        console.log('🎨 Fanart gallery initialized (images from img/ folder)');
     }
 });
 
