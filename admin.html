@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>CRIX · Admin Panel</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png" />
+    <link rel="stylesheet" href="admin.css" />
+</head>
+<body>
+    <div class="admin-container" id="adminContainer">
+        <div class="admin-header">
+            <h1>⚡ ADMIN PANEL</h1>
+            <p>🔐 IP‑whitelisted · upload fanart</p>
+        </div>
+
+        <div class="admin-status" id="statusMessage">🛡️ checking access ...</div>
+
+        <!-- upload form -->
+        <div class="upload-area" id="uploadArea">
+            <label for="fileInput">📤 CHOOSE IMAGE</label>
+            <input type="file" id="fileInput" accept="image/*" />
+            <span class="file-name" id="fileName">no file selected</span>
+        </div>
+
+        <div class="admin-actions">
+            <button class="admin-btn" id="uploadBtn">🚀 UPLOAD</button>
+            <button class="admin-btn secondary" id="refreshBtn">⟳ REFRESH</button>
+        </div>
+
+        <!-- gallery preview -->
+        <div class="gallery-preview">
+            <h3>📸 current fanart</h3>
+            <div class="preview-grid" id="previewGrid">
+                <div class="preview-empty">loading ...</div>
+            </div>
+        </div>
+
+        <div class="footer-note">
+            <a href="index.html">← back to main page</a> · 
+            <span id="ipDisplay">IP: --</span>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
