@@ -8,7 +8,7 @@
         ];
         
         const socials = [
-            { name: "TikTok", icon: "tiktok.png", url: "https://tiktok.com/@crixgaming_vr" },
+            { name: "TikTok", icon: "tiktok.png", url: "https://tiktok.com/@crixgamingvr" },
             { name: "Twitter", icon: "twitter.png", url: "https://x.com/CRIXGAMINGVR" },
             { name: "Instagram", icon: "instagram.png", url: "https://instagram.com/crixgaming_vr" },
             { name: "Twitch", icon: "twitch.png", url: "https://twitch.tv/crix_gaming_vr" },
