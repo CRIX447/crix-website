@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>CRIXGAMING VR</title>
+    <!-- Open Graph / Link Preview -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://crixgamingvr.vercel.app">
+    <meta property="og:site_name" content="CRIXGAMING VR">
+    <meta property="og:title" content="CRIXGAMING VR">
+    <meta property="og:description" content="The official CRIXGAMING VR hub. Watch videos, grab merch, play Flappy Crix, and explore all of CRIX's content.">
+    <meta property="og:image" content="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="CRIXGAMING VR">
+    <meta name="twitter:description" content="The official CRIXGAMING VR hub. Watch videos, grab merch, play Flappy Crix, and explore all of CRIX's content.">
+    <meta name="twitter:image" content="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png">
     <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
     <link rel="prefetch" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
@@ -519,7 +532,7 @@ const products = [
     { name: "STICKERS", desc: "Vinyl sticker set", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-stickers", image: "stickers.avif", price: 5.00 },
     { name: "MUG", desc: "Ceramic mug", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mug", image: "new-mug.png", price: 11.00 },
     { name: "POSTER", desc: "High-quality poster", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crix-poster", image: "poster.avif", price: 15.00 },
-    { name: "FACE MASK", desc: "Comfortable face mask", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask", image: "new-face-mask.png", price: 12.00 },
+    { name: "FACE MASK", desc: "Comfortable face mask", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-face-mask", image: "face-mask.avif", price: 12.00 },
     { name: "HOODIE", desc: "Premium hoodie", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-mens-hoodie", image: "new-hoodie.png", price: 59.00 },
     { name: "T-SHIRT", desc: "Classic t-shirt", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-t-shirt", image: "new-t-shirt.png", price: 26.00 },
     { name: "BACKPACK", desc: "Durable backpack", link: "https://crixgamingvr-store-shop.fourthwall.com/en-aud/products/crixgaming-vr-backpack", image: "backpack.png", price: 35.00 },
@@ -577,7 +590,8 @@ function renderProducts() {
         const price = (product.price * currencyRate).toFixed(2);
         const card = document.createElement('div');
         card.className = 'product-card';
-        card.innerHTML = `<img class="product-image" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${product.image}" alt="${product.name}" loading="lazy"><div class="product-info"><div class="product-name">${product.name}</div><div class="product-price">${currencySymbol}${price}</div><a href="${product.link}" target="_blank" class="product-buy">🛒 BUY</a></div>`;
+        const imgBase = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/' + product.image.replace(/\.[^.]+$/, '');
+        card.innerHTML = `<img class="product-image" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/${product.image}" alt="${product.name}" loading="lazy" onerror="var b=this.dataset.base,exts=['.png','.avif','.jpg','.webp'],i=parseInt(this.dataset.tried||'0')+1;this.dataset.tried=i;if(i<exts.length)this.src=b+exts[i];else this.style.opacity='0.2';" data-base="${imgBase}"><div class="product-info"><div class="product-name">${product.name}</div><div class="product-price">${currencySymbol}${price}</div><a href="${product.link}" target="_blank" class="product-buy">🛒 BUY</a></div>`;
         const buyBtn = card.querySelector('.product-buy');
         buyBtn.addEventListener('mouseenter', playHoverSound);
         buyBtn.addEventListener('click', playClickSound);
