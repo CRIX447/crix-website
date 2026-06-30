@@ -27,7 +27,32 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
     
     <!-- Photon Realtime SDK (for multiplayer) -->
-    <script src="https://cdn.jsdelivr.net/npm/photon-javascript@1.0.6/dist/Photon-Javascript_SDK.min.js"></script>
+    <script>
+        window.__photonSdkStatus = { loaded: false, attemptedUrls: [], failedUrls: [] };
+        (function loadPhotonSdk(urls, index) {
+            if (index >= urls.length) {
+                console.error('[Photon] SDK failed to load from all sources:', window.__photonSdkStatus.failedUrls, '— this is almost always an ad-blocker or content-blocker extension. Try disabling it for this site, or check Opera\'s shield icon in the address bar.');
+                return;
+            }
+            const url = urls[index];
+            window.__photonSdkStatus.attemptedUrls.push(url);
+            const s = document.createElement('script');
+            s.src = url;
+            s.onload = function () {
+                window.__photonSdkStatus.loaded = true;
+                console.log('[Photon] SDK loaded successfully from:', url);
+            };
+            s.onerror = function () {
+                window.__photonSdkStatus.failedUrls.push(url);
+                console.warn('[Photon] SDK failed from:', url, '— trying next source...');
+                loadPhotonSdk(urls, index + 1);
+            };
+            document.head.appendChild(s);
+        })([
+            'https://cdn.jsdelivr.net/npm/photon-javascript@1.0.6/dist/Photon-Javascript_SDK.min.js',
+            'https://unpkg.com/photon-javascript@1.0.6/dist/Photon-Javascript_SDK.min.js'
+        ], 0);
+    </script>
     
     <style>
         @font-face {
@@ -1517,9 +1542,26 @@
                 return;
             }
             if (typeof Photon === 'undefined') {
-                console.error('[Photon] SDK script did not load. Check your network/ad-blocker, or that the CDN script tag in <head> loaded successfully (see Network tab for Photon-Javascript_SDK.min.js).');
-                mpShowDiagnostic('⚠️ Multiplayer SDK failed to load. Check your connection or ad-blocker.');
-                mpSetStatusDot('offline');
+                // SDK script is injected dynamically and loads async, so it may simply not be ready yet.
+                // Poll briefly before concluding it actually failed (vs. just being slow/blocked).
+                const status = window.__photonSdkStatus || { attemptedUrls: [], failedUrls: [] };
+                const allSourcesFailed = status.failedUrls.length > 0 && status.failedUrls.length === status.attemptedUrls.length && status.attemptedUrls.length >= 2;
+                if (allSourcesFailed) {
+                    console.error('[Photon] SDK failed to load from every source — this is almost certainly an ad-blocker or content-blocker. Tried:', status.failedUrls, '. In Opera, click the shield icon in the address bar and check if scripts were blocked for this site.');
+                    mpShowDiagnostic('⚠️ Multiplayer SDK was blocked — likely by an ad-blocker (Opera\'s built-in blocker, uBlock, etc). Try disabling it for this site and reload.');
+                    mpSetStatusDot('offline');
+                    return;
+                }
+                if (!window.__photonSdkRetryCount) window.__photonSdkRetryCount = 0;
+                window.__photonSdkRetryCount++;
+                if (window.__photonSdkRetryCount > 40) { // ~8 seconds at 200ms intervals
+                    console.error('[Photon] SDK never became available after waiting — giving up. Status:', status);
+                    mpShowDiagnostic('⚠️ Multiplayer SDK failed to load. Check your connection or ad-blocker, then refresh.');
+                    mpSetStatusDot('offline');
+                    return;
+                }
+                mpShowDiagnostic('🔄 Loading multiplayer SDK...');
+                setTimeout(initPhoton, 200);
                 return;
             }
             try {
