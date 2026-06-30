@@ -437,6 +437,18 @@
         .mp-status-dot.connecting { background: gold; animation: pulse 1s infinite; }
         .mp-status-dot.online { background: var(--green); box-shadow: 0 0 6px var(--green); }
         @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .mp-diagnostic-banner {
+            background: rgba(255,70,85,0.12);
+            border: 2px solid var(--red);
+            border-bottom: 4px solid rgba(150,20,35,0.6);
+            border-radius: 14px;
+            padding: 8px 12px;
+            margin: 4px 0 8px;
+            font-size: 11px;
+            color: #FFB3BA;
+            text-align: center;
+            line-height: 1.5;
+        }
 
         /* ---- MULTIPLAYER MODAL ---- */
         .mp-modal {
@@ -451,14 +463,22 @@
         }
         .mp-modal.active { display: block; }
         .mp-modal-content {
-            max-width: 460px;
+            max-width: 720px;
+            width: 95%;
             margin: 20px auto;
             background: #0F0F17;
             border: 3px solid var(--red);
             border-bottom: 6px solid rgba(150,20,35,0.7);
             border-radius: 26px;
-            padding: 18px;
+            padding: 24px 28px;
             box-shadow: 5px 5px 0 rgba(0,0,0,0.6);
+        }
+        @media (min-width: 760px) {
+            .mp-room-list { max-height: 320px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            .mp-mode-grid { gap: 14px; }
+            .mp-mode-card { padding: 16px 10px; }
+            .mp-mode-icon { font-size: 30px; }
+            .mp-player-list { max-height: 260px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         }
         .mp-section-title { font-size: 13px; color: var(--orange); font-weight: 700; text-transform: uppercase; margin: 14px 0 8px; letter-spacing: 0.5px; }
         .mp-input {
@@ -800,6 +820,7 @@
         <button class="mp-banner-btn" id="multiplayerBtn">
             🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
         </button>
+        <div class="mp-diagnostic-banner" id="mpDiagnosticBanner" style="display:none;"></div>
         
         <div class="cheat-container"><input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" inputmode="numeric"></div>
         
@@ -1003,11 +1024,16 @@
         async function loadAppConfig() {
             try {
                 const res = await fetch('api.json');
-                const json = await res.json();
-                if (json.firebase) appConfig.firebase = json.firebase;
-                if (json.photon) appConfig.photon = json.photon;
+                if (!res.ok) {
+                    console.error('[Config] api.json returned HTTP ' + res.status + ' — check that api.json is actually deployed at the site root (same folder as game.html).');
+                } else {
+                    const json = await res.json();
+                    if (json.firebase) appConfig.firebase = json.firebase;
+                    if (json.photon) appConfig.photon = json.photon;
+                    console.log('[Config] api.json loaded successfully. Photon appId present:', !!(json.photon && json.photon.appId && json.photon.appId !== 'REPLACE_WITH_YOUR_PHOTON_APP_ID'));
+                }
             } catch (e) {
-                console.warn('api.json not found or invalid, using fallback config', e);
+                console.error('[Config] Failed to fetch or parse api.json — using built-in fallback config (Photon will be disabled). Error:', e);
             }
             try {
                 firebase.initializeApp(appConfig.firebase);
@@ -1472,19 +1498,35 @@
             dot.classList.add(state);
         }
 
+        function mpShowDiagnostic(msg) {
+            const banner = document.getElementById('mpDiagnosticBanner');
+            if (!banner) return;
+            banner.textContent = msg;
+            banner.style.display = 'block';
+        }
+        function mpHideDiagnostic() {
+            const banner = document.getElementById('mpDiagnosticBanner');
+            if (banner) banner.style.display = 'none';
+        }
+
         function initPhoton() {
             if (!appConfig.photon || !appConfig.photon.appId || appConfig.photon.appId === 'REPLACE_WITH_YOUR_PHOTON_APP_ID') {
-                console.warn('Photon App ID not configured in api.json — multiplayer disabled.');
+                console.error('[Photon] No App ID found in api.json — multiplayer cannot start. Check that api.json on your LIVE site has your real Photon App ID, not the placeholder.');
+                mpShowDiagnostic('⚠️ Multiplayer not configured: api.json is missing a Photon App ID on this deployment.');
                 mpSetStatusDot('offline');
                 return;
             }
             if (typeof Photon === 'undefined') {
-                console.warn('Photon SDK failed to load — multiplayer disabled.');
+                console.error('[Photon] SDK script did not load. Check your network/ad-blocker, or that the CDN script tag in <head> loaded successfully (see Network tab for Photon-Javascript_SDK.min.js).');
+                mpShowDiagnostic('⚠️ Multiplayer SDK failed to load. Check your connection or ad-blocker.');
                 mpSetStatusDot('offline');
                 return;
             }
             try {
                 mpSetStatusDot('connecting');
+                mpShowDiagnostic('🔄 Connecting to multiplayer servers...');
+                console.log('[Photon] Initializing with appId:', appConfig.photon.appId.slice(0, 8) + '...', 'region:', appConfig.photon.region || 'us');
+
                 photonClient = new Photon.LoadBalancing.LoadBalancingClient(
                     Photon.ConnectionProtocol.Wss,
                     appConfig.photon.appId,
@@ -1493,13 +1535,19 @@
 
                 photonClient.onStateChange = function (state) {
                     const S = Photon.LoadBalancing.LoadBalancingClient.State;
+                    const stateName = Object.keys(S).find(k => S[k] === state) || state;
+                    console.log('[Photon] State changed:', stateName);
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
                         mpSetStatusDot('online');
+                        mpHideDiagnostic();
                         mpRefreshRoomList();
                     } else if (state === S.Disconnected) {
                         mpConnected = false;
                         mpSetStatusDot('offline');
+                        mpShowDiagnostic('⚠️ Disconnected from multiplayer. Check console for [Photon] State changed logs.');
+                    } else if (state === S.ConnectingToGameserver || state === S.ConnectingToMasterserver || state === S.ConnectingToNameServer) {
+                        mpShowDiagnostic('🔄 Connecting (' + stateName + ')...');
                     }
                 };
 
@@ -1514,7 +1562,8 @@
                 photonClient.onEvent = function (code, content, actorNr) { mpHandleEvent(code, content, actorNr); };
 
                 photonClient.onError = function (errCode, errMsg) {
-                    console.warn('Photon error', errCode, errMsg);
+                    console.error('[Photon] Connection error — code:', errCode, 'message:', errMsg, '. Common causes: wrong App ID, App ID is for Quantum/Fusion instead of Realtime, App ID disabled/over quota, or wrong region.');
+                    mpShowDiagnostic('⚠️ Multiplayer error: ' + (errMsg || ('code ' + errCode)) + ' — check browser console for details.');
                     mpSetStatusDot('offline');
                 };
 
@@ -1522,7 +1571,8 @@
                 photonClient.myActor().setName(mpGetDisplayName());
                 photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
             } catch (e) {
-                console.warn('Photon init failed', e);
+                console.error('[Photon] init threw an exception:', e);
+                mpShowDiagnostic('⚠️ Multiplayer failed to initialize: ' + e.message);
                 mpSetStatusDot('offline');
             }
         }
