@@ -396,6 +396,74 @@ body {
 .footer a { color: var(--matrix-green); text-decoration: none; transition: color 0.2s; }
 .footer a:hover { color: var(--neon-orange); }
 
+/* ---- EMAIL PICKER MODAL ---- */
+.email-modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+}
+.email-modal.active { display: flex; }
+.email-modal-content {
+    background: var(--darker-bg);
+    border: 3px solid var(--neon-red);
+    border-bottom: 6px solid rgba(150,20,35,0.7);
+    border-radius: 22px;
+    padding: 22px;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: var(--cartoon-shadow);
+}
+.email-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    color: var(--neon-orange);
+    font-size: 16px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+.email-modal-close {
+    background: rgba(255,70,85,0.15);
+    border: 2px solid var(--neon-red);
+    border-bottom: 4px solid rgba(150,20,35,0.6);
+    color: var(--neon-red);
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.1s;
+}
+.email-modal-close:hover { transform: translateY(-1px); }
+.email-modal-close:active { transform: translateY(1px); border-bottom-width: 2px; }
+.email-modal-body { display: flex; flex-direction: column; gap: 8px; }
+.email-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(255,107,53,0.06);
+    border: 2px solid var(--neon-orange);
+    border-bottom: 4px solid var(--cyber-orange);
+    border-radius: 30px;
+    padding: 10px 16px;
+    color: white;
+    text-decoration: none;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.1s;
+    font-family: inherit;
+}
+.email-option:hover { transform: translateY(-2px); border-color: var(--matrix-green); border-bottom-color: #007744; }
+.email-option:active { transform: translateY(1px); border-bottom-width: 2px; }
+.email-option-copy { background: rgba(0,204,122,0.06); border-color: var(--matrix-green); border-bottom-color: #007744; width: 100%; text-align: left; }
+
 /* ---- RESPONSIVE ---- */
 @media (max-width: 768px) {
     .cyber-container { padding: 0 18px; }
@@ -504,7 +572,24 @@ body {
 
         <div class="footer">
             <p>© 2024-2026 CRIXGAMING VR. All systems operational.</p>
-            <p style="margin-top:10px;"><a href="https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all" target="_blank">🛍️ OFFICIAL STORE</a> &nbsp;|&nbsp; <a href="mailto:cgvrbusiness@outlook.com">📧 BUSINESS INQUIRIES</a></p>
+            <p style="margin-top:10px;"><a href="https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all" target="_blank">🛍️ OFFICIAL STORE</a> &nbsp;|&nbsp; <a href="#" id="businessEmailLink">📧 BUSINESS INQUIRIES</a></p>
+        </div>
+    </div>
+
+    <!-- EMAIL PICKER MODAL -->
+    <div class="email-modal" id="emailModal">
+        <div class="email-modal-content">
+            <div class="email-modal-header">
+                <span>📧 OPEN WITH</span>
+                <button class="email-modal-close" id="emailModalClose">✕</button>
+            </div>
+            <div class="email-modal-body">
+                <a class="email-option" id="emailOptDefault" href="#"><span>✉️</span> Default Mail App</a>
+                <a class="email-option" id="emailOptGmail" href="#" target="_blank"><span>📨</span> Gmail</a>
+                <a class="email-option" id="emailOptOutlook" href="#" target="_blank"><span>📩</span> Outlook</a>
+                <a class="email-option" id="emailOptYahoo" href="#" target="_blank"><span>📮</span> Yahoo Mail</a>
+                <button class="email-option email-option-copy" id="emailOptCopy"><span>📋</span> Copy Address</button>
+            </div>
         </div>
     </div>
 
@@ -623,8 +708,21 @@ function renderSocials() {
         socialsGrid.appendChild(card);
     });
 }
-const CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
-const API_KEY = 'AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk';
+let CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
+let API_KEY = 'AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk';
+let siteConfig = null;
+async function loadConfig() {
+    try {
+        const res = await fetch('api.json');
+        siteConfig = await res.json();
+        if (siteConfig.youtube) {
+            CHANNEL_ID = siteConfig.youtube.channelId || CHANNEL_ID;
+            API_KEY = siteConfig.youtube.apiKey || API_KEY;
+        }
+    } catch (e) {
+        console.log('api.json not found, using built-in fallback keys');
+    }
+}
 async function fetchYouTubeData() {
     try {
         const statsRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${CHANNEL_ID}&key=${API_KEY}`);
@@ -716,13 +814,55 @@ function setupMerchClicks() {
         el.addEventListener('click', () => { playClickSound(); window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'); });
     });
 }
+const BUSINESS_EMAIL = 'cgvrbusiness@outlook.com';
+function setupEmailPicker() {
+    const link = document.getElementById('businessEmailLink');
+    const modal = document.getElementById('emailModal');
+    const closeBtn = document.getElementById('emailModalClose');
+    const optDefault = document.getElementById('emailOptDefault');
+    const optGmail = document.getElementById('emailOptGmail');
+    const optOutlook = document.getElementById('emailOptOutlook');
+    const optYahoo = document.getElementById('emailOptYahoo');
+    const optCopy = document.getElementById('emailOptCopy');
+
+    const subject = encodeURIComponent('Business Inquiry');
+    optDefault.href = `mailto:${BUSINESS_EMAIL}?subject=${subject}`;
+    optGmail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${BUSINESS_EMAIL}&su=${subject}`;
+    optOutlook.href = `https://outlook.live.com/mail/0/deeplink/compose?to=${BUSINESS_EMAIL}&subject=${subject}`;
+    optYahoo.href = `https://compose.mail.yahoo.com/?to=${BUSINESS_EMAIL}&subject=${subject}`;
+
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        playClickSound();
+        modal.classList.add('active');
+    });
+    closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+    [optDefault, optGmail, optOutlook, optYahoo].forEach(opt => {
+        opt.addEventListener('click', () => { playClickSound(); modal.classList.remove('active'); });
+    });
+    optCopy.addEventListener('click', () => {
+        playClickSound();
+        navigator.clipboard?.writeText(BUSINESS_EMAIL).then(() => {
+            optCopy.querySelector('span').textContent = '✅';
+            optCopy.lastChild.textContent = ' Copied!';
+            setTimeout(() => { optCopy.querySelector('span').textContent = '📋'; optCopy.lastChild.textContent = ' Copy Address'; }, 1500);
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = BUSINESS_EMAIL; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+        });
+    });
+}
 async function init() {
+    await loadConfig();
     renderChannels();
     renderSocials();
     setupMusic();
     await detectCurrency();
     setupMerchClicks();
     setupTabs();
+    setupEmailPicker();
     await fetchYouTubeData();
     setInterval(fetchYouTubeData, 60000);
 }
