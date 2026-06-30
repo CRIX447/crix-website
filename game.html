@@ -676,6 +676,71 @@
         }
         .mp-chat-godmode-banner.active { display: block; }
 
+        /* ---- LOBBY CHAT ---- */
+        .mp-lobby-chat-log {
+            height: 110px; overflow-y: auto; background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,107,53,0.3); border-radius: 12px;
+            padding: 8px; font-size: 10px; color: #ddd;
+            display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px;
+        }
+        .mp-lobby-chat-log .sys { color: #666; font-style: italic; }
+        .mp-lobby-chat-log .msg strong { color: var(--orange); }
+        .mp-lobby-chat-row { display: flex; gap: 6px; }
+        .mp-lobby-chat-input {
+            flex: 1; background: rgba(0,0,0,0.5); border: 2px solid var(--orange);
+            border-bottom: 3px solid rgba(150,60,0,0.6); border-radius: 30px;
+            padding: 7px 14px; color: white; font-size: 12px; font-family: inherit;
+        }
+        .mp-lobby-chat-input:focus { outline: none; border-color: var(--green); }
+        .mp-lobby-chat-send {
+            background: linear-gradient(135deg, var(--red), var(--orange));
+            border: 2px solid rgba(255,255,255,0.15); border-bottom: 3px solid rgba(0,0,0,0.4);
+            border-radius: 50%; width: 34px; height: 34px; color: white;
+            font-size: 14px; cursor: pointer; flex-shrink: 0; font-family: inherit;
+            transition: all 0.1s;
+        }
+        .mp-lobby-chat-send:hover { transform: translateY(-1px); }
+        .mp-lobby-chat-send:active { transform: translateY(1px); }
+        /* ---- COLOUR PICKER ---- */
+        .mp-colour-grid { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+        .mp-colour-swatch {
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            border: 3px solid transparent; transition: all 0.1s;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+        }
+        .mp-colour-swatch.selected { border-color: white; transform: scale(1.2); }
+        .mp-colour-swatch:hover { transform: scale(1.1); }
+        /* ---- MODE SELECT ---- */
+        .mp-mode-select {
+            background: rgba(0,0,0,0.6); border: 2px solid var(--orange);
+            border-bottom: 3px solid rgba(150,60,0,0.6); border-radius: 20px;
+            color: white; padding: 4px 10px; font-family: inherit; font-size: 11px;
+            cursor: pointer;
+        }
+        .mp-mode-select:focus { outline: none; border-color: var(--green); }
+        /* ---- REPORT / ADMIN ---- */
+        .mp-player-report-btn {
+            background: rgba(255,70,85,0.1); border: 1px solid var(--red);
+            color: var(--red); font-size: 10px; padding: 3px 8px;
+            border-radius: 20px; cursor: pointer; font-weight: 700;
+            font-family: inherit; margin-left: 4px;
+        }
+        .mp-player-report-btn:hover { background: rgba(255,70,85,0.25); }
+        .admin-report-card {
+            background: rgba(0,0,0,0.4); border: 1px solid rgba(255,107,53,0.3);
+            border-radius: 12px; padding: 10px 12px; margin-bottom: 8px;
+        }
+        .admin-report-card .rname { font-size: 12px; font-weight: bold; color: white; }
+        .admin-report-card .rmeta { font-size: 10px; color: #999; margin: 3px 0 6px; }
+        .admin-report-card .radmin-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+        .admin-action-btn {
+            background: rgba(0,0,0,0.4); border: 1px solid var(--orange);
+            border-radius: 20px; padding: 4px 12px; font-size: 10px;
+            color: white; cursor: pointer; font-family: inherit; font-weight: 700;
+        }
+        .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
+        .admin-action-btn.success { border-color: var(--green); color: var(--green); }
+
         /* ---- BACK LINK ---- */
         .back-link { text-align: center; margin-top: 12px; }
 
@@ -906,11 +971,31 @@
                 <button class="modal-close" id="closeMpBtn">✕</button>
             </div>
 
+            <!-- SIGN-IN GATE -->
+            <div id="mpViewSignInRequired" style="display:none;text-align:center;padding:30px 0;">
+                <div style="font-size:32px;margin-bottom:12px;">🔑</div>
+                <div style="color:#ccc;font-size:14px;margin-bottom:18px;">You need an account to play multiplayer.</div>
+                <button class="mp-btn-primary" id="mpSignInGateBtn" style="margin:0 auto;max-width:200px;">SIGN IN / SIGN UP</button>
+            </div>
+
+            <!-- PROFILE SETUP -->
+            <div id="mpViewProfile" style="display:none;">
+                <div class="mp-section-title">👤 YOUR PROFILE</div>
+                <input type="text" class="mp-input" id="mpDisplayNameInput" placeholder="Your display name" maxlength="20" style="letter-spacing:1px;margin-bottom:8px;">
+                <div class="mp-section-title">🎨 YOUR BIRD COLOUR</div>
+                <div class="mp-colour-grid" id="mpColourGrid"></div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="mp-btn-secondary" id="mpProfileBackBtn">← BACK</button>
+                    <button class="mp-btn-primary" id="mpProfileSaveBtn">SAVE & CONTINUE</button>
+                </div>
+            </div>
+
             <!-- VIEW: BROWSE / HOME -->
             <div id="mpViewHome">
-                <div style="display:flex;gap:8px;margin-bottom:8px;">
-                    <button class="mp-btn-primary" id="mpCreateRoomBtn">➕ CREATE ROOM</button>
-                    <button class="mp-btn-secondary" id="mpJoinByCodeBtn">🔑 JOIN BY CODE</button>
+                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                    <button class="mp-btn-primary" id="mpCreateRoomBtn">➕ CREATE</button>
+                    <button class="mp-btn-secondary" id="mpJoinByCodeBtn">🔑 JOIN CODE</button>
+                    <button class="mp-btn-secondary" id="mpEditProfileBtn" style="background:linear-gradient(135deg,#444,#222);">👤 PROFILE</button>
                 </div>
                 <div class="mp-section-title">🌍 PUBLIC LOBBIES</div>
                 <div class="mp-room-list" id="mpRoomList"><div class="mp-empty-state">Connecting...</div></div>
@@ -934,23 +1019,14 @@
                 <input type="text" class="mp-input" id="mpRoomNameInput" placeholder="MY LOBBY" maxlength="16" style="text-transform:none;letter-spacing:1px;">
                 <div class="mp-section-title">GAME MODE</div>
                 <div class="mp-mode-grid">
-                    <div class="mp-mode-card selected" data-mode="freemode">
-                        <div class="mp-mode-icon">🕊️</div>
-                        <div class="mp-mode-name">Freemode</div>
-                    </div>
-                    <div class="mp-mode-card" data-mode="race">
-                        <div class="mp-mode-icon">🏁</div>
-                        <div class="mp-mode-name">Race</div>
-                    </div>
-                    <div class="mp-mode-card" data-mode="lastone">
-                        <div class="mp-mode-icon">💀</div>
-                        <div class="mp-mode-name">Last One<br>Standing</div>
-                    </div>
+                    <div class="mp-mode-card selected" data-mode="freemode"><div class="mp-mode-icon">🕊️</div><div class="mp-mode-name">Freemode</div></div>
+                    <div class="mp-mode-card" data-mode="race"><div class="mp-mode-icon">🏁</div><div class="mp-mode-name">Race to 100</div></div>
+                    <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
                 </div>
                 <div class="mp-section-title">PRIVACY</div>
                 <div class="mp-privacy-row">
-                    <button class="mp-privacy-btn selected" id="mpPrivacyPublic" data-privacy="public">🌍 PUBLIC</button>
-                    <button class="mp-privacy-btn" id="mpPrivacyInvite" data-privacy="invite">🔒 INVITE ONLY</button>
+                    <button class="mp-privacy-btn selected" id="mpPrivacyPublic">🌍 PUBLIC</button>
+                    <button class="mp-privacy-btn" id="mpPrivacyInvite">🔒 INVITE ONLY</button>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:10px;">
                     <button class="mp-btn-secondary" id="mpCreateBackBtn">← BACK</button>
@@ -970,24 +1046,83 @@
                 <div class="mp-host-controls" id="mpHostControls" style="display:none;">
                     <div class="mp-host-controls-label">👑 HOST CONTROLS</div>
                     <div class="mp-toggle-row">
-                        <span>Lobby visibility: <strong id="mpVisibilityLabel">Public</strong></span>
+                        <span>Lobby: <strong id="mpVisibilityLabel">Public</strong></span>
                         <div class="mp-toggle-switch" id="mpVisibilityToggle"></div>
                     </div>
-                    <div class="mp-toggle-row">
-                        <span>Public chat enabled</span>
-                        <div class="mp-toggle-switch active" id="mpChatToggleSwitch"></div>
+                    <div class="mp-toggle-row" style="margin-top:6px;">
+                        <span>Game Mode:</span>
+                        <select class="mp-mode-select" id="mpHostModeSelect">
+                            <option value="freemode">🕊️ Freemode</option>
+                            <option value="race">🏁 Race to 100</option>
+                            <option value="lastone">💀 Last One Standing</option>
+                        </select>
                     </div>
                 </div>
 
-                <div class="mp-lobby-actions">
-                    <button class="mp-btn-primary" id="mpStartMatchBtn">▶ START MATCH</button>
+                <!-- LOBBY CHAT -->
+                <div class="mp-section-title" style="margin-top:14px;">💬 LOBBY CHAT</div>
+                <div class="mp-lobby-chat-log" id="mpLobbyChatLog"></div>
+                <div class="mp-lobby-chat-row">
+                    <input type="text" class="mp-lobby-chat-input" id="mpLobbyChatInput" placeholder="Say something..." maxlength="100">
+                    <button class="mp-lobby-chat-send" id="mpLobbyChatSend">→</button>
+                </div>
+
+                <div class="mp-lobby-actions" style="margin-top:10px;">
+                    <button class="mp-btn-primary" id="mpStartMatchBtn" style="display:none;">▶ START</button>
                     <button class="mp-btn-danger" id="mpLeaveLobbyBtn">LEAVE</button>
                 </div>
-                <div class="mp-lobby-sub" id="mpWaitingForHostMsg" style="display:none;margin-top:8px;">Waiting for host to start the match...</div>
+                <div class="mp-lobby-sub" id="mpWaitingForHostMsg" style="margin-top:8px;">Waiting for host to start...</div>
             </div>
         </div>
     </div>
-    
+
+    <!-- REPORT MODAL -->
+    <div class="mp-modal" id="mpReportModal" style="z-index:35000;">
+        <div class="mp-modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <div class="modal-title">🚨 REPORT PLAYER</div>
+                <button class="modal-close" id="closeReportBtn">✕</button>
+            </div>
+            <div style="color:#aaa;font-size:12px;margin-bottom:10px;">Reporting: <strong id="reportTargetName" style="color:white;"></strong></div>
+            <select class="mp-input" id="reportReason" style="margin-bottom:10px;letter-spacing:0;text-transform:none;cursor:pointer;">
+                <option value="">Select a reason...</option>
+                <option value="cheating">Cheating / Exploiting</option>
+                <option value="harassment">Harassment / Toxic chat</option>
+                <option value="spam">Spam / Flooding chat</option>
+                <option value="inappropriate_name">Inappropriate name</option>
+                <option value="other">Other</option>
+            </select>
+            <textarea id="reportDetails" class="mp-input" placeholder="Additional details (optional)" maxlength="300" style="border-radius:14px;height:70px;resize:none;letter-spacing:0;text-transform:none;padding:10px 16px;width:100%;margin-bottom:10px;"></textarea>
+            <button class="mp-btn-danger" id="mpSubmitReportBtn" style="width:100%;">SUBMIT REPORT</button>
+            <div class="auth-error" id="reportError" style="text-align:center;margin-top:6px;"></div>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL MODAL -->
+    <div class="mp-modal" id="mpAdminModal" style="z-index:40000;">
+        <div class="mp-modal-content" style="max-width:700px;">
+            <div class="modal-header">
+                <div class="modal-title">🛡️ ADMIN PANEL</div>
+                <button class="modal-close" id="closeAdminBtn">✕</button>
+            </div>
+            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+                <button class="store-tab active" data-admin-tab="reports" id="adminTabReports">🚨 REPORTS</button>
+                <button class="store-tab" data-admin-tab="players" id="adminTabPlayers">👥 PLAYERS</button>
+                <button class="store-tab" data-admin-tab="bans" id="adminTabBans">🔨 BANS</button>
+            </div>
+            <div id="adminTabContent" style="min-height:200px;max-height:420px;overflow-y:auto;"></div>
+        </div>
+    </div>
+
+    <!-- SPECTATE OVERLAY (Last One Standing) -->
+    <div id="mpSpectateOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.97);z-index:20000;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
+        <div style="font-size:22px;color:#FF4655;margin-bottom:8px;">💀 YOU DIED</div>
+        <div style="font-size:14px;color:#ccc;margin-bottom:20px;">Spectating remaining players</div>
+        <canvas id="spectateCanvas" width="340" height="280" style="border:2px solid #FF6B35;border-radius:14px;background:#0a0a1a;max-width:95vw;"></canvas>
+        <div id="spectateAlivePlayers" style="margin-top:12px;font-size:12px;color:#ccc;"></div>
+        <div style="margin-top:16px;font-size:11px;color:#777;">Match will end when only one player remains</div>
+    </div>
+
     <!-- OVERLAYS -->
     <div id="eventOverlay" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15000;pointer-events:none;display:none;"></div>
     <div id="boomOverlay" style="position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15000;pointer-events:none;display:none;"></div>
@@ -1459,185 +1594,187 @@
         // =====================================================================
         // ===================  MULTIPLAYER (PHOTON REALTIME)  ===================
         // =====================================================================
-        // Event codes used over Photon's raiseEvent channel
-        const MP_EV = {
-            POSITION: 1,      // {x,y,vel,score,dead}
-            JUMP: 2,           // visual-only flap, no payload needed beyond sender
-            DEATH: 3,          // {finalScore}
-            SCORE: 4,          // {score}
-            CHAT: 5,           // {text}
-            TYPING: 6,         // {typing:true/false} -> grants godmode while true
-            KICK: 7,           // {targetActor}
-            HOST_SETTINGS: 8,  // {chatEnabled, visibility}
-            MATCH_START: 9,    // {mode}
-            MATCH_END: 10,     // {results:[{actor,name,score}]}
-            RACE_FINISH: 11    // {actor, time}
-        };
-        const MP_MODES = {
-            freemode: { label: 'Freemode', icon: '🕊️', desc: 'Free play, respawns are on. No win condition — just vibes.' },
-            race: { label: 'Race', icon: '🏁', desc: 'First to the score target wins. No respawns.' },
-            lastone: { label: 'Last One Standing', icon: '💀', desc: 'No respawns. Last bird flying wins.' }
-        };
-        const MP_MAX_PLAYERS = 8;
-        const MP_RACE_TARGET_SCORE = 30;
 
+        // Admin IP whitelist — only this IP can open the admin panel
+        const ADMIN_IP_WHITELIST = ['120.158.13.134'];
+        let userPublicIP = null;
+
+        // Event codes
+        const MP_EV = {
+            POSITION: 1, DEATH: 3, SCORE: 4,
+            CHAT: 5, TYPING: 6, KICK: 7,
+            HOST_SETTINGS: 8, MATCH_START: 9, MATCH_END: 10,
+            LOBBY_CHAT: 11, HOST_MODE_CHANGE: 12,
+            COLOUR_UPDATE: 13, NAME_UPDATE: 14
+        };
+        const MP_RACE_TARGET = 100;
+        const PLAYER_COLOURS = ['#FF6B35','#FF4655','#00CC7A','#4285F4','#FFD700','#FF69B4','#9B59B6','#E67E22','#1ABC9C','#E74C3C','#3498DB','#2ECC71'];
+
+        // State
         let photonClient = null;
         let mpConnected = false;
-        let mpCurrentRoom = null; // {name, code, mode, isPublic, hostActor}
+        let mpCurrentRoom = null;
         let mpIsHost = false;
-        let mpPlayers = {}; // actorNr -> {name, photoURL, score, dead, x, y, isHost}
+        let mpPlayers = {};         // actorNr -> {name, colour, score, dead, x, y, vel}
         let mpLocalActor = null;
-        let mpHostChatEnabled = true;
-        let mpChatGodmodeActive = false;
-        let mpTypingTimeout = null;
         let mpMatchActive = false;
         let mpMatchMode = 'freemode';
-        let mpKickedFlag = false;
+        let mpChatGodmodeActive = false;
+        let mpTypingTimeout = null;
+        let mpSpectating = false;
         let mpPositionSendCounter = 0;
+        let mpSpectateCtx = null;
+        let mpSpectateAnimId = null;
 
-        function mpGenRoomCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-            let code = '';
-            for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
-            return code;
+        // Player profile (persisted locally)
+        let mpProfile = JSON.parse(localStorage.getItem('crix_mp_profile') || '{}');
+        // {displayName, colour}
+
+        function mpSaveProfile() {
+            localStorage.setItem('crix_mp_profile', JSON.stringify(mpProfile));
         }
 
+        function mpGetDisplayName() {
+            if (mpProfile.displayName) return mpProfile.displayName;
+            if (currentUser) return currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Player');
+            return 'Player' + Math.floor(Math.random() * 9999);
+        }
+
+        function mpGetColour() {
+            return mpProfile.colour || PLAYER_COLOURS[0];
+        }
+
+        function setPhotonNickname(name) {
+            if (photonClient) {
+                try { photonClient.myActor().setName(name); } catch(e) {}
+            }
+        }
+
+        // ----- STATUS DOT -----
         function mpSetStatusDot(state) {
             const dot = document.getElementById('mpStatusDot');
             if (!dot) return;
-            dot.classList.remove('offline', 'connecting', 'online');
+            dot.classList.remove('offline','connecting','online');
             dot.classList.add(state);
         }
-
         function mpShowDiagnostic(msg) {
-            const banner = document.getElementById('mpDiagnosticBanner');
-            if (!banner) return;
-            banner.textContent = msg;
-            banner.style.display = 'block';
+            const b = document.getElementById('mpDiagnosticBanner');
+            if (b) { b.textContent = msg; b.style.display = 'block'; }
         }
         function mpHideDiagnostic() {
-            const banner = document.getElementById('mpDiagnosticBanner');
-            if (banner) banner.style.display = 'none';
+            const b = document.getElementById('mpDiagnosticBanner');
+            if (b) b.style.display = 'none';
         }
 
+        // ----- COLOUR GRID -----
+        function mpRenderColourGrid() {
+            const grid = document.getElementById('mpColourGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            PLAYER_COLOURS.forEach(c => {
+                const sw = document.createElement('div');
+                sw.className = 'mp-colour-swatch' + (c === mpGetColour() ? ' selected' : '');
+                sw.style.background = c;
+                sw.dataset.colour = c;
+                sw.onclick = () => {
+                    mpProfile.colour = c;
+                    grid.querySelectorAll('.mp-colour-swatch').forEach(s => s.classList.toggle('selected', s.dataset.colour === c));
+                };
+                grid.appendChild(sw);
+            });
+        }
+
+        // ----- ACCOUNT GATE -----
+        function mpCheckAccountAndOpen() {
+            if (!currentUser) {
+                mpShowView('mpViewSignInRequired');
+                document.getElementById('mpModal').classList.add('active');
+                return false;
+            }
+            return true;
+        }
+
+        // ----- PHOTON INIT -----
         function initPhoton() {
             if (!appConfig.photon || !appConfig.photon.appId || appConfig.photon.appId === 'REPLACE_WITH_YOUR_PHOTON_APP_ID') {
-                console.error('[Photon] No App ID found in api.json — multiplayer cannot start. Check that api.json on your LIVE site has your real Photon App ID, not the placeholder.');
-                mpShowDiagnostic('⚠️ Multiplayer not configured: api.json is missing a Photon App ID on this deployment.');
-                mpSetStatusDot('offline');
-                return;
+                mpShowDiagnostic('⚠️ Multiplayer not configured: api.json is missing a Photon App ID.');
+                mpSetStatusDot('offline'); return;
             }
             if (typeof Photon === 'undefined') {
-                console.error('[Photon] window.Photon is undefined. This means photon-realtime-browser.js either failed to load (404 — check it was uploaded to the same folder as game.html) or threw an error while executing (check the Console tab above this message for a red stack trace).');
-                mpShowDiagnostic('⚠️ Multiplayer SDK is missing. Make sure photon-realtime-browser.js is uploaded in the same folder as game.html, then refresh.');
-                mpSetStatusDot('offline');
-                return;
+                mpShowDiagnostic('⚠️ Multiplayer SDK is missing. Make sure photon-realtime-browser.js is in the same folder as game.html.');
+                mpSetStatusDot('offline'); return;
             }
             try {
                 mpSetStatusDot('connecting');
-                mpShowDiagnostic('🔄 Connecting to multiplayer servers...');
-                console.log('[Photon] Initializing with appId:', appConfig.photon.appId.slice(0, 8) + '...', 'region:', appConfig.photon.region || 'us');
-
+                mpHideDiagnostic();
                 photonClient = new Photon.LoadBalancing.LoadBalancingClient(
                     Photon.ConnectionProtocol.Wss,
                     appConfig.photon.appId,
                     appConfig.photon.appVersion || '1.0'
                 );
-
-                photonClient.onStateChange = function (state) {
+                photonClient.onStateChange = function(state) {
                     const S = Photon.LoadBalancing.LoadBalancingClient.State;
-                    const stateName = Photon.LoadBalancing.LoadBalancingClient.StateToName(state) || state;
-                    console.log('[Photon] State changed:', stateName);
+                    const name = Photon.LoadBalancing.LoadBalancingClient.StateToName(state) || state;
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
                         mpSetStatusDot('online');
                         mpHideDiagnostic();
-                        mpRefreshRoomList();
+                        mpRenderRoomList();
                     } else if (state === S.Disconnected) {
                         mpConnected = false;
                         mpSetStatusDot('offline');
-                        mpShowDiagnostic('⚠️ Disconnected from multiplayer. Check console for [Photon] State changed logs.');
-                    } else if (state === S.ConnectingToGameserver || state === S.ConnectingToMasterserver || state === S.ConnectingToNameServer) {
-                        mpShowDiagnostic('🔄 Connecting (' + stateName + ')...');
                     }
                 };
-
-                photonClient.onRoomListUpdate = function () { mpRenderRoomList(); };
-                photonClient.onRoomList = function () { mpRenderRoomList(); };
-
-                photonClient.onActorJoin = function (actor) { mpHandleActorJoin(actor); };
-                photonClient.onActorLeave = function (actor) { mpHandleActorLeave(actor); };
-
-                photonClient.onJoinRoom = function (createdByMe) { mpHandleJoinedRoom(createdByMe); };
-
-                photonClient.onEvent = function (code, content, actorNr) { mpHandleEvent(code, content, actorNr); };
-
-                photonClient.onError = function (errCode, errMsg) {
-                    console.error('[Photon] Connection error — code:', errCode, 'message:', errMsg, '. Common causes: wrong App ID, App ID is for Quantum/Fusion instead of Realtime, App ID disabled/over quota, or wrong region.');
-                    mpShowDiagnostic('⚠️ Multiplayer error: ' + (errMsg || ('code ' + errCode)) + ' — check browser console for details.');
+                photonClient.onRoomList = function() { mpRenderRoomList(); };
+                photonClient.onRoomListUpdate = function() { mpRenderRoomList(); };
+                photonClient.onActorJoin = function(actor) { mpHandleActorJoin(actor); };
+                photonClient.onActorLeave = function(actor) { mpHandleActorLeave(actor); };
+                photonClient.onJoinRoom = function(createdByMe) { mpHandleJoinedRoom(createdByMe); };
+                photonClient.onEvent = function(code, content, actorNr) { mpHandleEvent(code, content, actorNr); };
+                photonClient.onError = function(errCode, errMsg) {
+                    mpShowDiagnostic('⚠️ Multiplayer error ' + errCode + ': ' + errMsg);
                     mpSetStatusDot('offline');
                 };
-
-                photonClient.setCustomAuthentication = photonClient.setCustomAuthentication || function(){};
                 photonClient.myActor().setName(mpGetDisplayName());
                 photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
-            } catch (e) {
-                console.error('[Photon] init threw an exception:', e);
-                mpShowDiagnostic('⚠️ Multiplayer failed to initialize: ' + e.message);
+            } catch(e) {
+                mpShowDiagnostic('⚠️ Multiplayer failed: ' + e.message);
                 mpSetStatusDot('offline');
             }
         }
 
-        function mpGetDisplayName() {
-            if (currentUser) return currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Player');
-            return 'Guest' + Math.floor(Math.random() * 9000 + 1000);
-        }
-
-        function setPhotonNickname(name) {
-            if (photonClient && photonClient.myActor()) {
-                try { photonClient.myActor().setName(name); } catch (e) {}
-            }
-        }
-
-        // ----- ROOM LIST / BROWSER -----
-        function mpRefreshRoomList() {
-            const listEl = document.getElementById('mpRoomList');
-            if (!mpConnected) { listEl.innerHTML = '<div class="mp-empty-state">Connecting to multiplayer...</div>'; return; }
-            listEl.innerHTML = '<div class="mp-empty-state">Loading lobbies...</div>';
-            mpRenderRoomList();
-        }
-
+        // ----- ROOM LIST -----
         function mpRenderRoomList() {
             const listEl = document.getElementById('mpRoomList');
-            if (!photonClient) return;
-            const rooms = photonClient.availableRooms ? photonClient.availableRooms() : [];
-            const publicRooms = rooms.filter(r => {
-                const props = r.getCustomProperties ? r.getCustomProperties() : (r.customProperties || {});
-                return props && props.isPublic !== false;
+            if (!listEl) return;
+            if (!mpConnected || !photonClient) {
+                listEl.innerHTML = '<div class="mp-empty-state">Connecting to multiplayer...</div>';
+                return;
+            }
+            const rooms = photonClient.availableRooms() || [];
+            const pub = rooms.filter(r => {
+                const p = r.getCustomProperties ? r.getCustomProperties() : {};
+                return p.isPublic !== false && r.isOpen !== false;
             });
-            if (!publicRooms.length) {
-                listEl.innerHTML = '<div class="mp-empty-state">No public lobbies right now.<br>Create one!</div>';
+            if (!pub.length) {
+                listEl.innerHTML = '<div class="mp-empty-state">No public lobbies. Be the first — create one!</div>';
                 return;
             }
             listEl.innerHTML = '';
-            publicRooms.forEach(r => {
-                const props = r.getCustomProperties ? r.getCustomProperties() : (r.customProperties || {});
-                const name = props.roomName || r.name;
-                const mode = MP_MODES[props.mode] ? MP_MODES[props.mode].label : 'Freemode';
-                const icon = MP_MODES[props.mode] ? MP_MODES[props.mode].icon : '🕊️';
-                const playerCount = r.playerCount || 0;
-                const maxPlayers = r.maxPlayers || MP_MAX_PLAYERS;
+            pub.forEach(r => {
+                const p = r.getCustomProperties ? r.getCustomProperties() : {};
+                const modes = {freemode:'🕊️',race:'🏁',lastone:'💀'};
                 const item = document.createElement('div');
                 item.className = 'mp-room-item';
-                item.innerHTML = `<div><div class="mp-room-name">${icon} ${mpEscapeHtml(name)}</div><div class="mp-room-meta">${mode} • ${playerCount}/${maxPlayers} players</div></div><div class="mp-room-join-tag">JOIN</div>`;
+                item.innerHTML = `<div><div class="mp-room-name">${modes[p.mode]||'🕊️'} ${mpEsc(p.roomName||r.name)}</div><div class="mp-room-meta">${p.mode||'freemode'} · ${r.playerCount||0}/${r.maxPlayers||8}</div></div><div class="mp-room-join-tag">JOIN</div>`;
                 item.onclick = () => mpJoinRoomByName(r.name);
                 listEl.appendChild(item);
             });
         }
 
-        function mpEscapeHtml(str) {
+        function mpEsc(str) {
             const d = document.createElement('div');
-            d.textContent = str;
+            d.textContent = String(str);
             return d.innerHTML;
         }
 
@@ -1646,45 +1783,28 @@
         let mpSelectedPrivacy = 'public';
 
         function mpCreateRoom() {
-            const nameInput = document.getElementById('mpRoomNameInput').value.trim();
-            const roomDisplayName = nameInput || (mpGetDisplayName() + "'s Lobby");
-            const code = mpGenRoomCode();
+            if (!mpConnected) { alert('Not connected yet. Wait for the status dot to turn green.'); return; }
+            const name = document.getElementById('mpRoomNameInput').value.trim() || (mpGetDisplayName() + "'s Lobby");
+            const code = Array.from({length:4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
             const roomId = 'crix_' + code;
-
-            if (!photonClient || !mpConnected) {
-                alert('Not connected to multiplayer yet — try again in a moment.');
-                return;
-            }
-
-            const roomOptions = {
-                maxPlayers: MP_MAX_PLAYERS,
-                isVisible: mpSelectedPrivacy === 'public',
-                isOpen: true,
-                customGameProperties: {
-                    roomName: roomDisplayName,
-                    mode: mpSelectedMode,
-                    isPublic: mpSelectedPrivacy === 'public',
-                    code: code,
-                    chatEnabled: true
-                },
-                propsListedInLobby: ['roomName', 'mode', 'isPublic']
-            };
-
-            mpMatchMode = mpSelectedMode;
-            mpHostChatEnabled = true;
-
             try {
-                photonClient.createRoom(roomId, roomOptions);
-            } catch (e) {
-                console.warn('createRoom failed', e);
-                alert('Could not create room. Check your Photon App ID in api.json.');
-            }
+                photonClient.createRoom(roomId, {
+                    maxPlayers: 8,
+                    isVisible: mpSelectedPrivacy === 'public',
+                    isOpen: true,
+                    customGameProperties: {
+                        roomName: name, mode: mpSelectedMode,
+                        isPublic: mpSelectedPrivacy === 'public', code: code
+                    },
+                    propsListedInLobby: ['roomName','mode','isPublic']
+                });
+                mpMatchMode = mpSelectedMode;
+            } catch(e) { alert('Could not create room: ' + e.message); }
         }
 
         function mpJoinRoomByName(roomName) {
-            if (!photonClient || !mpConnected) return;
-            try { photonClient.joinRoom(roomName); }
-            catch (e) { console.warn('joinRoom failed', e); }
+            if (!mpConnected) return;
+            try { photonClient.joinRoom(roomName); } catch(e) { console.warn('joinRoom failed', e); }
         }
 
         function mpJoinByCode() {
@@ -1692,153 +1812,201 @@
             const errEl = document.getElementById('mpJoinError');
             if (code.length !== 4) { errEl.textContent = 'Enter a 4-character code'; return; }
             errEl.textContent = '';
-            const roomId = 'crix_' + code;
-            if (!photonClient || !mpConnected) { errEl.textContent = 'Not connected yet'; return; }
-            try {
-                photonClient.joinRoom(roomId);
-            } catch (e) {
-                errEl.textContent = 'Room not found';
-            }
+            if (!mpConnected) { errEl.textContent = 'Not connected yet'; return; }
+            try { photonClient.joinRoom('crix_' + code); }
+            catch(e) { errEl.textContent = 'Room not found or full'; }
         }
 
+        // ----- JOINED ROOM -----
         function mpHandleJoinedRoom(createdByMe) {
             const room = photonClient.myRoom();
             const props = room.getCustomProperties ? room.getCustomProperties() : {};
+            mpLocalActor = photonClient.myActor().actorNr;
+
+            // Correct API: myRoomMasterActorNr() instead of isMasterClient()
+            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
+            mpIsHost = createdByMe || (mpLocalActor === masterNr);
+
             mpCurrentRoom = {
                 name: room.name,
-                code: props.code || room.name.replace('crix_', ''),
+                code: props.code || room.name.replace('crix_',''),
                 roomDisplayName: props.roomName || room.name,
                 mode: props.mode || 'freemode',
                 isPublic: props.isPublic !== false
             };
             mpMatchMode = mpCurrentRoom.mode;
-            mpLocalActor = photonClient.myActor().actorNr;
-            mpIsHost = createdByMe || photonClient.myActor().actorNr === room.getMasterClientId?.() || photonClient.isMasterClient?.();
-            mpKickedFlag = false;
 
-            // seed local player record
+            // Seed players using correct API: myRoomActorsArray()
             mpPlayers = {};
-            const actors = room.getActorsArray ? room.getActorsArray() : Object.values(room.actors || {});
+            const actors = photonClient.myRoomActorsArray ? photonClient.myRoomActorsArray() : [];
             actors.forEach(a => {
                 mpPlayers[a.actorNr] = {
-                    name: a.getName ? a.getName() : ('Player' + a.actorNr),
-                    score: 0, dead: false, x: 100, y: 300,
-                    isHost: a.actorNr === (room.masterClientId || photonClient.myActor().actorNr)
+                    name: a.name || ('Player' + a.actorNr),
+                    colour: PLAYER_COLOURS[a.actorNr % PLAYER_COLOURS.length],
+                    score: 0, dead: false, x: 100, y: 300, vel: 0,
+                    isHost: a.actorNr === masterNr
                 };
             });
-            // Always trust photonClient.isMasterClient() if available for "is host"
-            try { mpIsHost = photonClient.isMasterClient(); } catch (e) {}
 
+            // Broadcast our own name/colour to others
+            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour() });
+
+            document.getElementById('mpModal').classList.add('active');
             mpShowLobbyView();
             mpRenderLobby();
-            document.getElementById('mpModal').classList.add('active');
         }
 
         function mpHandleActorJoin(actor) {
             if (!mpCurrentRoom) return;
-            mpPlayers[actor.actorNr] = { name: actor.getName ? actor.getName() : ('Player' + actor.actorNr), score: 0, dead: false, x: 100, y: 300, isHost: false };
+            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
+            mpPlayers[actor.actorNr] = {
+                name: actor.name || ('Player' + actor.actorNr),
+                colour: PLAYER_COLOURS[actor.actorNr % PLAYER_COLOURS.length],
+                score: 0, dead: false, x: 100, y: 300, vel: 0,
+                isHost: actor.actorNr === masterNr
+            };
+            mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             mpRenderLobby();
-            mpChatAppendSystem(`${actor.getName ? actor.getName() : 'A player'} joined the lobby.`);
         }
 
         function mpHandleActorLeave(actor) {
             if (!mpCurrentRoom) return;
-            const wasName = mpPlayers[actor.actorNr]?.name || 'A player';
+            const name = mpPlayers[actor.actorNr]?.name || 'A player';
             delete mpPlayers[actor.actorNr];
+            mpLobbyChatAppend(null, `${mpEsc(name)} left`, true);
+            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
+            mpIsHost = mpLocalActor === masterNr;
             mpRenderLobby();
-            mpChatAppendSystem(`${wasName} left.`);
-            try { mpIsHost = photonClient.isMasterClient(); } catch (e) {}
-            mpRenderLobby();
+            if (mpMatchActive && mpMatchMode === 'lastone') mpCheckMatchEndCondition();
+        }
+
+        // ----- RAISE EVENT (correct options format) -----
+        function mpRaiseEvent(code, content, options) {
+            if (!photonClient || !photonClient.isJoinedToRoom()) return;
+            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+            const opts = options || { receivers: RC.Others };
+            photonClient.raiseEvent(code, content, opts);
         }
 
         // ----- LOBBY UI -----
-        function mpShowView(viewId) {
-            ['mpViewHome', 'mpViewJoinCode', 'mpViewCreate', 'mpViewLobby'].forEach(id => {
-                document.getElementById(id).style.display = (id === viewId) ? 'block' : 'none';
+        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreate','mpViewLobby'];
+        function mpShowView(id) {
+            MP_VIEWS.forEach(v => {
+                const el = document.getElementById(v);
+                if (el) el.style.display = v === id ? 'block' : 'none';
             });
         }
-        function mpShowLobbyView() { mpShowView('mpViewLobby'); document.getElementById('mpModalTitle').textContent = '🎮 LOBBY'; }
+        function mpShowLobbyView() {
+            mpShowView('mpViewLobby');
+            document.getElementById('mpModalTitle').textContent = '🎮 LOBBY';
+        }
 
         function mpRenderLobby() {
             if (!mpCurrentRoom) return;
             document.getElementById('mpLobbyCode').textContent = mpCurrentRoom.code;
-            document.getElementById('mpLobbySub').innerHTML = `${mpEscapeHtml(mpCurrentRoom.roomDisplayName)} • ${MP_MODES[mpCurrentRoom.mode]?.icon || ''} ${MP_MODES[mpCurrentRoom.mode]?.label || 'Freemode'}`;
+            const modes = {freemode:'🕊️ Freemode', race:'🏁 Race to 100', lastone:'💀 Last One Standing'};
+            document.getElementById('mpLobbySub').innerHTML = mpEsc(mpCurrentRoom.roomDisplayName) + ' · ' + (modes[mpCurrentRoom.mode] || 'Freemode');
             const count = Object.keys(mpPlayers).length;
             document.getElementById('mpPlayerCount').textContent = count;
 
             const listEl = document.getElementById('mpPlayerList');
             listEl.innerHTML = '';
-            Object.entries(mpPlayers).forEach(([actorNr, p]) => {
+            Object.entries(mpPlayers).forEach(([nr, p]) => {
+                const isMe = parseInt(nr) === mpLocalActor;
                 const row = document.createElement('div');
                 row.className = 'mp-player-row';
-                const isMe = parseInt(actorNr) === mpLocalActor;
-                row.innerHTML = `<div class="mp-player-avatar">${(p.name||'?').charAt(0).toUpperCase()}</div><div class="mp-player-name">${mpEscapeHtml(p.name)}${isMe ? ' (you)' : ''}</div>${p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : ''}`;
+                row.innerHTML =
+                    `<div class="mp-player-avatar" style="background:${p.colour||'#FF4655'}">${(p.name||'?').charAt(0).toUpperCase()}</div>` +
+                    `<div class="mp-player-name">${mpEsc(p.name)}${isMe?' <span style="color:#888;font-size:9px;">(you)</span>':''}</div>` +
+                    (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
                 if (mpIsHost && !isMe) {
-                    const kickBtn = document.createElement('button');
-                    kickBtn.className = 'mp-player-kick-btn';
-                    kickBtn.textContent = 'KICK';
-                    kickBtn.onclick = () => mpKickPlayer(parseInt(actorNr));
-                    row.appendChild(kickBtn);
+                    const kb = document.createElement('button');
+                    kb.className = 'mp-player-kick-btn';
+                    kb.textContent = 'KICK';
+                    kb.onclick = () => mpKickPlayer(parseInt(nr));
+                    row.appendChild(kb);
+                }
+                if (!isMe) {
+                    const rb = document.createElement('button');
+                    rb.className = 'mp-player-report-btn';
+                    rb.textContent = '🚨';
+                    rb.title = 'Report ' + p.name;
+                    rb.onclick = () => mpOpenReport(parseInt(nr), p.name);
+                    row.appendChild(rb);
                 }
                 listEl.appendChild(row);
             });
 
-            document.getElementById('mpHostControls').style.display = mpIsHost ? 'block' : 'none';
-            document.getElementById('mpWaitingForHostMsg').style.display = mpIsHost ? 'none' : 'block';
-            document.getElementById('mpStartMatchBtn').style.display = mpIsHost ? 'block' : 'none';
+            const hostCtrl = document.getElementById('mpHostControls');
+            hostCtrl.style.display = mpIsHost ? 'block' : 'none';
             if (mpIsHost) {
                 document.getElementById('mpVisibilityLabel').textContent = mpCurrentRoom.isPublic ? 'Public' : 'Invite Only';
-                document.getElementById('mpVisibilityToggle').classList.toggle('active', mpCurrentRoom.isPublic);
-                document.getElementById('mpChatToggleSwitch').classList.toggle('active', mpHostChatEnabled);
+                const sel = document.getElementById('mpHostModeSelect');
+                if (sel) sel.value = mpCurrentRoom.mode;
             }
+            document.getElementById('mpStartMatchBtn').style.display = mpIsHost ? '' : 'none';
+            document.getElementById('mpWaitingForHostMsg').style.display = mpIsHost ? 'none' : '';
         }
 
+        // ----- LOBBY CHAT -----
+        function mpLobbyChatAppend(fromName, text, isSystem) {
+            const log = document.getElementById('mpLobbyChatLog');
+            if (!log) return;
+            const el = document.createElement('div');
+            el.className = isSystem ? 'sys' : 'msg';
+            el.innerHTML = isSystem ? mpEsc(text) : `<strong>${mpEsc(fromName)}:</strong> ${mpEsc(text)}`;
+            log.appendChild(el);
+            log.scrollTop = log.scrollHeight;
+        }
+
+        // ----- HOST ACTIONS -----
         function mpKickPlayer(actorNr) {
             if (!mpIsHost) return;
-            photonClient.raiseEvent(MP_EV.KICK, { targetActor: actorNr }, { targetActors: [actorNr] });
-            // give the event a tick to land, then forcibly remove if Photon allows (master client can call actor leave on some setups)
-            setTimeout(() => { mpRenderLobby(); }, 300);
+            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+            photonClient.raiseEvent(MP_EV.KICK, { targetActor: actorNr }, { receivers: RC.All });
         }
 
         function mpToggleVisibility() {
             if (!mpIsHost) return;
             mpCurrentRoom.isPublic = !mpCurrentRoom.isPublic;
             try {
+                if (photonClient.myRoom().setIsVisible) photonClient.myRoom().setIsVisible(mpCurrentRoom.isPublic);
                 photonClient.myRoom().setCustomProperties({ isPublic: mpCurrentRoom.isPublic });
-                photonClient.myRoom().setIsVisible && photonClient.myRoom().setIsVisible(mpCurrentRoom.isPublic);
-            } catch (e) {}
+            } catch(e) {}
             mpRenderLobby();
         }
 
-        function mpToggleChatEnabled() {
+        function mpHostChangeMode(newMode) {
             if (!mpIsHost) return;
-            mpHostChatEnabled = !mpHostChatEnabled;
-            photonClient.raiseEvent(MP_EV.HOST_SETTINGS, { chatEnabled: mpHostChatEnabled });
+            mpCurrentRoom.mode = newMode;
+            mpMatchMode = newMode;
+            try { photonClient.myRoom().setCustomProperties({ mode: newMode }); } catch(e) {}
+            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+            photonClient.raiseEvent(MP_EV.HOST_MODE_CHANGE, { mode: newMode }, { receivers: RC.Others });
             mpRenderLobby();
         }
 
         function mpLeaveLobby() {
-            if (photonClient) { try { photonClient.leaveRoom(); } catch (e) {} }
-            mpCurrentRoom = null;
-            mpPlayers = {};
-            mpIsHost = false;
-            mpMatchActive = false;
+            try { photonClient && photonClient.leaveRoom(); } catch(e) {}
+            mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
+            mpMatchActive = false; mpSpectating = false;
             mpEndMatchUI();
             document.getElementById('mpModal').classList.remove('active');
             mpShowView('mpViewHome');
             document.getElementById('mpModalTitle').textContent = '🌐 MULTIPLAYER';
         }
 
-        // ----- MATCH START / END -----
+        // ----- MATCH FLOW -----
         function mpStartMatch() {
             if (!mpIsHost) return;
-            photonClient.raiseEvent(MP_EV.MATCH_START, { mode: mpCurrentRoom.mode });
-            mpBeginMatchLocally(mpCurrentRoom.mode);
+            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+            photonClient.raiseEvent(MP_EV.MATCH_START, { mode: mpCurrentRoom.mode }, { receivers: RC.All });
         }
 
         function mpBeginMatchLocally(mode) {
             mpMatchMode = mode;
             mpMatchActive = true;
+            mpSpectating = false;
             Object.values(mpPlayers).forEach(p => { p.score = 0; p.dead = false; });
             document.getElementById('mpModal').classList.remove('active');
             document.getElementById('mpHud').classList.add('active');
@@ -1847,53 +2015,52 @@
         }
 
         function mpOnLocalStart() {
-            // called whenever startGame() runs locally — used to refresh HUD text
             if (mpCurrentRoom && mpMatchActive) mpUpdateHud();
         }
 
         function mpReportDeath() {
             if (!mpCurrentRoom || !mpMatchActive) return;
             if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].dead = true;
-            photonClient.raiseEvent(MP_EV.DEATH, { finalScore: score });
+            mpRaiseEvent(MP_EV.DEATH, { finalScore: score });
             if (mpMatchMode === 'freemode') {
-                // respawns on in freemode — auto restart after a beat
+                // Respawns on in freemode
                 setTimeout(() => { if (mpMatchActive) startGame(); }, 1200);
-            } else {
-                mpCheckMatchEndCondition();
+            } else if (mpMatchMode === 'lastone') {
+                // Enter spectate mode
+                mpEnterSpectate();
             }
             mpUpdateHud();
+            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
+            if (mpLocalActor === masterNr) mpCheckMatchEndCondition();
         }
 
         function mpReportScore(s) {
             if (!mpCurrentRoom || !mpMatchActive) return;
             if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].score = s;
-            photonClient.raiseEvent(MP_EV.SCORE, { score: s });
-            if (mpMatchMode === 'race' && s >= MP_RACE_TARGET_SCORE) {
-                photonClient.raiseEvent(MP_EV.RACE_FINISH, { time: Date.now() });
-                mpFinishRace(mpLocalActor);
+            mpRaiseEvent(MP_EV.SCORE, { score: s });
+            if (mpMatchMode === 'race' && s >= MP_RACE_TARGET) {
+                // Won the race
+                const results = Object.entries(mpPlayers)
+                    .map(([a,p]) => ({actor: parseInt(a), name: p.name, score: p.score}))
+                    .sort((a,b) => b.score - a.score);
+                const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor: mpLocalActor }, { receivers: RC.All });
+                mpShowMatchOver(results, mpLocalActor);
             }
             mpUpdateHud();
         }
 
-        function mpFinishRace(winnerActor) {
-            if (!mpIsHost) return;
-            const results = Object.entries(mpPlayers).map(([a, p]) => ({ actor: parseInt(a), name: p.name, score: p.score }))
-                .sort((a, b) => b.score - a.score);
-            photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor });
-            mpShowMatchOver(results, winnerActor);
-        }
-
         function mpCheckMatchEndCondition() {
-            if (!mpIsHost) return;
-            if (mpMatchMode === 'lastone') {
-                const alive = Object.entries(mpPlayers).filter(([a, p]) => !p.dead);
-                if (alive.length <= 1) {
-                    const results = Object.entries(mpPlayers).map(([a, p]) => ({ actor: parseInt(a), name: p.name, score: p.score }))
-                        .sort((a, b) => b.score - a.score);
-                    const winnerActor = alive.length === 1 ? parseInt(alive[0][0]) : null;
-                    photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor });
-                    mpShowMatchOver(results, winnerActor);
-                }
+            if (mpMatchMode !== 'lastone') return;
+            const alive = Object.entries(mpPlayers).filter(([,p]) => !p.dead);
+            if (alive.length <= 1) {
+                const results = Object.entries(mpPlayers)
+                    .map(([a,p]) => ({actor:parseInt(a), name:p.name, score:p.score}))
+                    .sort((a,b) => b.score - a.score);
+                const winnerActor = alive.length === 1 ? parseInt(alive[0][0]) : null;
+                const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor }, { receivers: RC.All });
+                mpShowMatchOver(results, winnerActor);
             }
         }
 
@@ -1901,15 +2068,65 @@
             mpMatchActive = false;
             gameRunning = false;
             if (animationId) cancelAnimationFrame(animationId);
-            document.getElementById('mpHud').classList.remove('active');
-            document.getElementById('mpChatToggleBtn').classList.remove('active');
-            document.getElementById('mpChatPanel').classList.remove('active');
+            mpEndMatchUI();
             const overlay = document.getElementById('mpMatchOverOverlay');
-            const winnerName = winnerActor && mpPlayers[winnerActor] ? mpPlayers[winnerActor].name : null;
-            document.getElementById('mpMatchOverTitle').textContent = winnerName ? `🏆 ${winnerName} WINS!` : '🏆 MATCH OVER';
-            const resultsHtml = results.map((r, i) => `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.1);"><span>${i + 1}. ${mpEscapeHtml(r.name)}</span><span style="color:gold;">${r.score}</span></div>`).join('');
-            document.getElementById('mpMatchOverResults').innerHTML = resultsHtml;
+            const winner = winnerActor && mpPlayers[winnerActor];
+            document.getElementById('mpMatchOverTitle').textContent = winner ? '🏆 ' + winner.name + ' WINS!' : '🏆 MATCH OVER';
+            document.getElementById('mpMatchOverResults').innerHTML = results.map((r,i) =>
+                `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+                    <span>${i+1}. ${mpEsc(r.name)}</span><span style="color:gold">${r.score}</span>
+                </div>`).join('');
             overlay.style.display = 'flex';
+        }
+
+        // ----- SPECTATE (Last One Standing) -----
+        function mpEnterSpectate() {
+            mpSpectating = true;
+            gameRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            const overlay = document.getElementById('mpSpectateOverlay');
+            overlay.style.display = 'flex';
+            const canvas = document.getElementById('spectateCanvas');
+            mpSpectateCtx = canvas.getContext('2d');
+            mpDrawSpectate();
+        }
+
+        function mpDrawSpectate() {
+            if (!mpSpectating) return;
+            const ctx = mpSpectateCtx;
+            if (!ctx) return;
+            ctx.clearRect(0, 0, 340, 280);
+            ctx.fillStyle = '#0a0a1a';
+            ctx.fillRect(0, 0, 340, 280);
+            // Scale from game coords (400x600) to spectate canvas (340x280)
+            const sx = 340/400, sy = 280/600;
+            // Draw players
+            Object.entries(mpPlayers).forEach(([nr, p]) => {
+                if (p.dead) return;
+                ctx.save();
+                ctx.translate(p.x * sx, p.y * sy);
+                if (birdImage.complete) {
+                    ctx.globalAlpha = 0.9;
+                    ctx.drawImage(birdImage, -10, -10, 20, 20);
+                }
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = p.colour || '#FF6B35';
+                ctx.font = '8px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText(p.name, 0, -14);
+                ctx.textAlign = 'left';
+                ctx.restore();
+            });
+            const alive = Object.values(mpPlayers).filter(p => !p.dead);
+            const alivEl = document.getElementById('spectateAlivePlayers');
+            if (alivEl) alivEl.textContent = 'Still alive: ' + (alive.map(p => p.name).join(', ') || 'None');
+            mpSpectateAnimId = requestAnimationFrame(mpDrawSpectate);
+        }
+
+        function mpExitSpectate() {
+            mpSpectating = false;
+            if (mpSpectateAnimId) cancelAnimationFrame(mpSpectateAnimId);
+            document.getElementById('mpSpectateOverlay').style.display = 'none';
         }
 
         function mpEndMatchUI() {
@@ -1917,46 +2134,64 @@
             document.getElementById('mpChatToggleBtn').classList.remove('active');
             document.getElementById('mpChatPanel').classList.remove('active');
             document.getElementById('mpGodmodeBanner').classList.remove('active');
-            document.getElementById('mpMatchOverOverlay').style.display = 'none';
+            document.getElementById('mpSpectateOverlay').style.display = 'none';
+            if (mpSpectateAnimId) cancelAnimationFrame(mpSpectateAnimId);
+            mpSpectating = false;
         }
 
+        // ----- HUD -----
         function mpUpdateHud() {
             const hud = document.getElementById('mpHud');
             if (!mpCurrentRoom) return;
-            const modeLabel = MP_MODES[mpMatchMode]?.label || 'Freemode';
-            let rows = `<div class="mp-hud-row"><strong>${MP_MODES[mpMatchMode]?.icon || ''} ${modeLabel}</strong></div>`;
-            Object.values(mpPlayers).sort((a, b) => b.score - a.score).slice(0, 5).forEach(p => {
-                rows += `<div class="mp-hud-row">${p.dead ? '💀' : '🐦'} ${mpEscapeHtml(p.name)}: ${p.score}</div>`;
+            const icons = {freemode:'🕊️', race:'🏁', lastone:'💀'};
+            let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}</strong></div>`;
+            Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
+                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${mpEsc(p.name)}: ${p.score}</div>`;
             });
             hud.innerHTML = rows;
         }
 
-        // ----- POSITION SYNC -----
+        // ----- POSITION SYNC (correct receiver group) -----
         function mpSyncPosition() {
-            if (!mpCurrentRoom || !mpMatchActive) return;
+            if (!mpCurrentRoom || !mpMatchActive || mpSpectating) return;
             mpPositionSendCounter++;
-            if (mpPositionSendCounter % 2 !== 0) return; // throttle to ~30/s instead of 60/s
-            if (mpPlayers[mpLocalActor]) { mpPlayers[mpLocalActor].x = bird.x; mpPlayers[mpLocalActor].y = bird.y; }
-            photonClient.raiseEvent(MP_EV.POSITION, { x: bird.x, y: bird.y, vel: bird.velocity, score: score, dead: gameOver });
+            if (mpPositionSendCounter % 2 !== 0) return;
+            if (mpPlayers[mpLocalActor]) {
+                mpPlayers[mpLocalActor].x = bird.x;
+                mpPlayers[mpLocalActor].y = bird.y;
+                mpPlayers[mpLocalActor].vel = bird.velocity;
+            }
+            mpRaiseEvent(MP_EV.POSITION, { x: bird.x, y: bird.y, vel: bird.velocity, score, dead: gameOver });
         }
 
-        function mpSendJump() {
-            if (!mpCurrentRoom || !mpMatchActive) return;
-            photonClient.raiseEvent(MP_EV.JUMP, {});
-        }
-
+        // ----- DRAW OTHER PLAYERS (with name and colour) -----
         function mpDrawOtherPlayers(context) {
             if (!mpCurrentRoom || !mpMatchActive) return;
-            Object.entries(mpPlayers).forEach(([actorNr, p]) => {
-                if (parseInt(actorNr) === mpLocalActor || p.dead) return;
+            Object.entries(mpPlayers).forEach(([nr, p]) => {
+                if (parseInt(nr) === mpLocalActor) return;
+                const birdSize = 26;
                 context.save();
-                context.globalAlpha = 0.85;
+                context.globalAlpha = p.dead ? 0.25 : 0.9;
                 context.translate(p.x || 100, p.y || 300);
-                if (birdImage.complete) context.drawImage(birdImage, -13, -13, 26, 26);
-                context.font = '9px "CrixCustom", monospace';
+                // Tint a circle behind the bird in the player's colour
+                context.beginPath();
+                context.arc(0, 0, birdSize/2+2, 0, Math.PI*2);
+                context.fillStyle = p.colour || '#FF6B35';
+                context.globalAlpha = p.dead ? 0.1 : 0.35;
+                context.fill();
+                context.globalAlpha = p.dead ? 0.25 : 0.9;
+                if (birdImage.complete) context.drawImage(birdImage, -birdSize/2, -birdSize/2, birdSize, birdSize);
+                // Name tag
+                context.font = 'bold 9px "CrixCustom", monospace';
                 context.textAlign = 'center';
-                context.fillStyle = '#FFD966';
-                context.fillText(p.name, 0, -20);
+                context.fillStyle = p.colour || '#FFD966';
+                context.globalAlpha = p.dead ? 0.3 : 1;
+                context.fillText(p.name || 'Player', 0, -birdSize/2 - 5);
+                if (p.dead) {
+                    context.fillStyle = '#FF4655';
+                    context.font = '10px monospace';
+                    context.fillText('💀', 0, 6);
+                }
                 context.textAlign = 'left';
                 context.restore();
             });
@@ -1965,17 +2200,15 @@
         // ----- EVENT HANDLING -----
         function mpHandleEvent(code, content, actorNr) {
             const p = mpPlayers[actorNr];
-            switch (code) {
+            switch(code) {
                 case MP_EV.POSITION:
-                    if (p) { p.x = content.x; p.y = content.y; p.score = content.score; p.dead = content.dead; }
-                    break;
-                case MP_EV.JUMP:
-                    // purely cosmetic flap pulse — no state needed, drawOtherPlayers already shows live position
+                    if (p) { p.x = content.x; p.y = content.y; p.vel = content.vel; p.score = content.score; p.dead = content.dead; }
                     break;
                 case MP_EV.DEATH:
                     if (p) { p.dead = true; p.score = content.finalScore; }
                     mpUpdateHud();
-                    if (mpIsHost) mpCheckMatchEndCondition();
+                    const masterNr2 = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
+                    if (mpLocalActor === masterNr2 && mpMatchMode === 'lastone') mpCheckMatchEndCondition();
                     break;
                 case MP_EV.SCORE:
                     if (p) p.score = content.score;
@@ -1984,25 +2217,14 @@
                 case MP_EV.CHAT:
                     mpChatAppendMessage(p ? p.name : ('Player' + actorNr), content.text);
                     break;
-                case MP_EV.TYPING:
-                    if (p) p.typing = content.typing;
+                case MP_EV.LOBBY_CHAT:
+                    mpLobbyChatAppend(p ? p.name : ('Player' + actorNr), content.text, false);
                     break;
                 case MP_EV.KICK:
                     if (content.targetActor === mpLocalActor) {
-                        mpKickedFlag = true;
                         alert('You were removed from the lobby by the host.');
                         mpLeaveLobby();
                     }
-                    break;
-                case MP_EV.HOST_SETTINGS:
-                    mpHostChatEnabled = content.chatEnabled;
-                    if (!mpHostChatEnabled) {
-                        document.getElementById('mpChatPanel').classList.remove('active');
-                        document.getElementById('mpChatToggleBtn').style.opacity = '0.4';
-                    } else {
-                        document.getElementById('mpChatToggleBtn').style.opacity = '1';
-                    }
-                    mpRenderLobby();
                     break;
                 case MP_EV.MATCH_START:
                     mpBeginMatchLocally(content.mode);
@@ -2010,60 +2232,253 @@
                 case MP_EV.MATCH_END:
                     mpShowMatchOver(content.results, content.winnerActor);
                     break;
-                case MP_EV.RACE_FINISH:
-                    // host already resolves race finish via mpFinishRace on its own side
+                case MP_EV.HOST_MODE_CHANGE:
+                    if (mpCurrentRoom) { mpCurrentRoom.mode = content.mode; mpMatchMode = content.mode; }
+                    mpRenderLobby();
+                    mpLobbyChatAppend(null, 'Host changed mode to ' + content.mode, true);
+                    break;
+                case MP_EV.NAME_UPDATE:
+                    if (p) { p.name = content.name; if (content.colour) p.colour = content.colour; }
+                    mpRenderLobby();
+                    break;
+                case MP_EV.COLOUR_UPDATE:
+                    if (p && content.colour) p.colour = content.colour;
+                    break;
+                case MP_EV.TYPING:
+                    if (p) p.typing = content.typing;
                     break;
             }
         }
 
-        // ----- PUBLIC CHAT WITH TYPING-GODMODE -----
+        // ----- IN-GAME CHAT (with typing godmode) -----
         function mpChatAppendSystem(text) {
             const log = document.getElementById('mpChatLog');
-            const entry = document.createElement('div');
-            entry.className = 'mp-chat-log-entry';
-            entry.style.color = '#888';
-            entry.style.fontStyle = 'italic';
-            entry.textContent = text;
-            log.appendChild(entry);
+            if (!log) return;
+            const el = document.createElement('div');
+            el.className = 'mp-chat-log-entry';
+            el.style.cssText = 'color:#888;font-style:italic';
+            el.textContent = text;
+            log.appendChild(el);
             log.scrollTop = log.scrollHeight;
         }
-
         function mpChatAppendMessage(name, text) {
             const log = document.getElementById('mpChatLog');
-            const entry = document.createElement('div');
-            entry.className = 'mp-chat-log-entry';
-            entry.innerHTML = `<strong>${mpEscapeHtml(name)}:</strong> ${mpEscapeHtml(text)}`;
-            log.appendChild(entry);
+            if (!log) return;
+            const el = document.createElement('div');
+            el.className = 'mp-chat-log-entry';
+            el.innerHTML = `<strong>${mpEsc(name)}:</strong> ${mpEsc(text)}`;
+            log.appendChild(el);
             log.scrollTop = log.scrollHeight;
         }
-
         function mpSetTypingGodmode(isTyping) {
-            if (!mpHostChatEnabled) return;
             mpChatGodmodeActive = isTyping;
             document.getElementById('mpGodmodeBanner').classList.toggle('active', isTyping);
-            photonClient && photonClient.raiseEvent(MP_EV.TYPING, { typing: isTyping });
+            mpRaiseEvent(MP_EV.TYPING, { typing: isTyping });
         }
 
-        // ----- WIRE UP DOM EVENTS -----
+        // ----- REPORTING -----
+        let mpReportTarget = null;
+        function mpOpenReport(actorNr, playerName) {
+            mpReportTarget = { actorNr, playerName };
+            document.getElementById('reportTargetName').textContent = playerName;
+            document.getElementById('reportReason').value = '';
+            document.getElementById('reportDetails').value = '';
+            document.getElementById('reportError').textContent = '';
+            document.getElementById('mpReportModal').classList.add('active');
+        }
+        async function mpSubmitReport() {
+            const reason = document.getElementById('reportReason').value;
+            const details = document.getElementById('reportDetails').value.trim();
+            const errEl = document.getElementById('reportError');
+            if (!reason) { errEl.textContent = 'Please select a reason.'; return; }
+            if (!mpReportTarget) return;
+            try {
+                if (db && currentUser) {
+                    await db.collection('reports').add({
+                        reportedName: mpReportTarget.playerName,
+                        reportedActorNr: mpReportTarget.actorNr,
+                        reporterUid: currentUser.uid,
+                        reporterName: mpGetDisplayName(),
+                        reason, details,
+                        roomCode: mpCurrentRoom?.code || 'unknown',
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        status: 'pending'
+                    });
+                    document.getElementById('mpReportModal').classList.remove('active');
+                    mpReportTarget = null;
+                    alert('Report submitted. Thank you.');
+                } else {
+                    errEl.textContent = 'You must be signed in to submit reports.';
+                }
+            } catch(e) {
+                errEl.textContent = 'Failed to submit: ' + e.message;
+            }
+        }
+
+        // ----- ADMIN PANEL -----
+        async function mpFetchUserIP() {
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                userPublicIP = data.ip;
+            } catch(e) { userPublicIP = null; }
+        }
+
+        function mpIsAdmin() {
+            return userPublicIP && ADMIN_IP_WHITELIST.includes(userPublicIP);
+        }
+
+        async function mpOpenAdmin() {
+            if (!mpIsAdmin()) return; // Fully hidden if IP doesn't match
+            document.getElementById('mpAdminModal').classList.add('active');
+            mpLoadAdminTab('reports');
+        }
+
+        async function mpLoadAdminTab(tab) {
+            const content = document.getElementById('adminTabContent');
+            document.querySelectorAll('[data-admin-tab]').forEach(b =>
+                b.classList.toggle('active', b.dataset.adminTab === tab));
+            content.innerHTML = '<div style="color:#888;padding:20px;text-align:center;">Loading...</div>';
+            try {
+                if (tab === 'reports') {
+                    const snap = await db.collection('reports').orderBy('timestamp','desc').limit(50).get();
+                    if (snap.empty) { content.innerHTML = '<div class="mp-empty-state">No reports yet.</div>'; return; }
+                    content.innerHTML = '';
+                    snap.forEach(doc => {
+                        const r = doc.data();
+                        const ts = r.timestamp?.toDate ? r.timestamp.toDate().toLocaleString() : 'Unknown time';
+                        const card = document.createElement('div');
+                        card.className = 'admin-report-card';
+                        card.innerHTML = `
+                            <div class="rname">🚨 ${mpEsc(r.reportedName)} — ${mpEsc(r.reason)}</div>
+                            <div class="rmeta">By ${mpEsc(r.reporterName)} · ${ts} · Room: ${mpEsc(r.roomCode)} · Status: <strong style="color:${r.status==='pending'?'#FFB347':r.status==='resolved'?'#00CC7A':'#FF4655'}">${r.status}</strong></div>
+                            ${r.details ? `<div style="font-size:11px;color:#bbb;margin-bottom:6px;">"${mpEsc(r.details)}"</div>` : ''}
+                            <div class="radmin-btns">
+                                <button class="admin-action-btn success" onclick="mpAdminResolve('${doc.id}')">✓ RESOLVE</button>
+                                <button class="admin-action-btn danger" onclick="mpAdminBanByName('${mpEsc(r.reportedName)}','${doc.id}')">🔨 BAN</button>
+                                <button class="admin-action-btn" onclick="mpAdminDismiss('${doc.id}')">✕ DISMISS</button>
+                            </div>`;
+                        content.appendChild(card);
+                    });
+                } else if (tab === 'bans') {
+                    const snap = await db.collection('bans').orderBy('timestamp','desc').limit(50).get();
+                    if (snap.empty) { content.innerHTML = '<div class="mp-empty-state">No bans.</div>'; return; }
+                    content.innerHTML = '';
+                    snap.forEach(doc => {
+                        const b = doc.data();
+                        const ts = b.timestamp?.toDate ? b.timestamp.toDate().toLocaleString() : '?';
+                        const card = document.createElement('div');
+                        card.className = 'admin-report-card';
+                        card.innerHTML = `
+                            <div class="rname">🔨 ${mpEsc(b.name)}</div>
+                            <div class="rmeta">Banned ${ts} · Reason: ${mpEsc(b.reason||'Manual ban')}</div>
+                            <div class="radmin-btns">
+                                <button class="admin-action-btn success" onclick="mpAdminUnban('${doc.id}')">UNBAN</button>
+                            </div>`;
+                        content.appendChild(card);
+                    });
+                } else if (tab === 'players') {
+                    const snap = await db.collection('users').orderBy('highScore','desc').limit(50).get();
+                    if (snap.empty) { content.innerHTML = '<div class="mp-empty-state">No players yet.</div>'; return; }
+                    content.innerHTML = '';
+                    snap.forEach(doc => {
+                        const u = doc.data();
+                        const card = document.createElement('div');
+                        card.className = 'admin-report-card';
+                        card.innerHTML = `
+                            <div class="rname">👤 ${mpEsc(u.displayName||'Unknown')} · Score: ${u.highScore||0}</div>
+                            <div class="rmeta">UID: ${doc.id}</div>
+                            <div class="radmin-btns">
+                                <button class="admin-action-btn danger" onclick="mpAdminBanByName('${mpEsc(u.displayName||'')}','')">🔨 BAN</button>
+                            </div>`;
+                        content.appendChild(card);
+                    });
+                }
+            } catch(e) {
+                content.innerHTML = '<div class="mp-empty-state">Error: ' + mpEsc(e.message) + '</div>';
+            }
+        }
+
+        window.mpAdminResolve = async function(docId) {
+            await db.collection('reports').doc(docId).update({ status: 'resolved' });
+            mpLoadAdminTab('reports');
+        };
+        window.mpAdminDismiss = async function(docId) {
+            await db.collection('reports').doc(docId).update({ status: 'dismissed' });
+            mpLoadAdminTab('reports');
+        };
+        window.mpAdminBanByName = async function(name, reportDocId) {
+            if (!confirm('Ban ' + name + '?')) return;
+            await db.collection('bans').add({ name, reason: 'Admin ban', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            if (reportDocId) await db.collection('reports').doc(reportDocId).update({ status: 'resolved' });
+            mpLoadAdminTab('reports');
+        };
+        window.mpAdminUnban = async function(docId) {
+            await db.collection('bans').doc(docId).delete();
+            mpLoadAdminTab('bans');
+        };
+
+        // ----- DOM EVENT WIRING -----
         document.getElementById('multiplayerBtn').addEventListener('click', () => {
             selectSound.play();
+            if (!currentUser) {
+                mpShowView('mpViewSignInRequired');
+                document.getElementById('mpModal').classList.add('active');
+                return;
+            }
             const modal = document.getElementById('mpModal');
             modal.classList.add('active');
             if (mpCurrentRoom) { mpShowLobbyView(); mpRenderLobby(); }
-            else { mpShowView('mpViewHome'); document.getElementById('mpModalTitle').textContent = '🌐 MULTIPLAYER'; mpRefreshRoomList(); }
+            else {
+                mpShowView('mpViewHome');
+                document.getElementById('mpModalTitle').textContent = '🌐 MULTIPLAYER';
+                mpRenderRoomList();
+            }
         });
-        document.getElementById('closeMpBtn').addEventListener('click', () => {
-            document.getElementById('mpModal').classList.remove('active');
-        });
-        document.getElementById('mpModal').addEventListener('click', (e) => { if (e.target.id === 'mpModal') document.getElementById('mpModal').classList.remove('active'); });
 
+        document.getElementById('closeMpBtn').addEventListener('click', () => document.getElementById('mpModal').classList.remove('active'));
+        document.getElementById('mpModal').addEventListener('click', e => { if (e.target.id === 'mpModal') document.getElementById('mpModal').classList.remove('active'); });
+
+        document.getElementById('mpSignInGateBtn').addEventListener('click', () => {
+            document.getElementById('mpModal').classList.remove('active');
+            document.getElementById('authModal').classList.add('active');
+        });
+
+        // Home buttons
         document.getElementById('mpCreateRoomBtn').addEventListener('click', () => { mpShowView('mpViewCreate'); selectSound.play(); });
         document.getElementById('mpJoinByCodeBtn').addEventListener('click', () => { mpShowView('mpViewJoinCode'); selectSound.play(); });
+        document.getElementById('mpRefreshBtn').addEventListener('click', () => { mpRenderRoomList(); selectSound.play(); });
+        document.getElementById('mpEditProfileBtn').addEventListener('click', () => {
+            document.getElementById('mpDisplayNameInput').value = mpGetDisplayName();
+            mpRenderColourGrid();
+            mpShowView('mpViewProfile');
+        });
+
+        // Profile
+        document.getElementById('mpProfileSaveBtn').addEventListener('click', () => {
+            const name = document.getElementById('mpDisplayNameInput').value.trim();
+            if (name) mpProfile.displayName = name;
+            const sel = document.querySelector('.mp-colour-swatch.selected');
+            if (sel) mpProfile.colour = sel.dataset.colour;
+            mpSaveProfile();
+            setPhotonNickname(mpGetDisplayName());
+            if (mpCurrentRoom) {
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour() });
+                if (mpPlayers[mpLocalActor]) {
+                    mpPlayers[mpLocalActor].name = mpGetDisplayName();
+                    mpPlayers[mpLocalActor].colour = mpGetColour();
+                }
+                mpRenderLobby();
+            }
+            mpShowView('mpViewHome');
+        });
+        document.getElementById('mpProfileBackBtn').addEventListener('click', () => mpShowView('mpViewHome'));
+
+        // Join/Create
         document.getElementById('mpJoinCodeBackBtn').addEventListener('click', () => mpShowView('mpViewHome'));
         document.getElementById('mpCreateBackBtn').addEventListener('click', () => mpShowView('mpViewHome'));
-        document.getElementById('mpRefreshBtn').addEventListener('click', () => { mpRefreshRoomList(); selectSound.play(); });
         document.getElementById('mpJoinCodeConfirmBtn').addEventListener('click', mpJoinByCode);
-        document.getElementById('mpJoinCodeInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') mpJoinByCode(); });
+        document.getElementById('mpJoinCodeInput').addEventListener('keypress', e => { if (e.key === 'Enter') mpJoinByCode(); });
         document.getElementById('mpCreateConfirmBtn').addEventListener('click', () => { mpCreateRoom(); selectSound.play(); });
 
         document.querySelectorAll('.mp-mode-card').forEach(card => {
@@ -2084,57 +2499,83 @@
             document.getElementById('mpPrivacyPublic').classList.remove('selected');
         });
 
+        // Lobby
         document.getElementById('mpCopyCodeBtn').addEventListener('click', () => {
             if (!mpCurrentRoom) return;
             navigator.clipboard?.writeText(mpCurrentRoom.code).then(() => {
                 const btn = document.getElementById('mpCopyCodeBtn');
                 const orig = btn.textContent;
-                btn.textContent = '✅ COPIED';
-                setTimeout(() => { btn.textContent = orig; }, 1500);
+                btn.textContent = '✅ COPIED!';
+                setTimeout(() => btn.textContent = orig, 1500);
             });
         });
-
         document.getElementById('mpVisibilityToggle').addEventListener('click', mpToggleVisibility);
-        document.getElementById('mpChatToggleSwitch').addEventListener('click', mpToggleChatEnabled);
         document.getElementById('mpStartMatchBtn').addEventListener('click', () => { mpStartMatch(); selectSound.play(); });
         document.getElementById('mpLeaveLobbyBtn').addEventListener('click', () => { mpLeaveLobby(); selectSound.play(); });
 
+        // Host mode change
+        const hostModeSelect = document.getElementById('mpHostModeSelect');
+        if (hostModeSelect) {
+            hostModeSelect.addEventListener('change', () => { mpHostChangeMode(hostModeSelect.value); });
+        }
+
+        // Lobby chat
+        document.getElementById('mpLobbyChatSend').addEventListener('click', () => {
+            const input = document.getElementById('mpLobbyChatInput');
+            const text = input.value.trim();
+            if (!text || !mpCurrentRoom) return;
+            mpLobbyChatAppend(mpGetDisplayName() + ' (you)', text, false);
+            mpRaiseEvent(MP_EV.LOBBY_CHAT, { text: text.slice(0,100) });
+            input.value = '';
+        });
+        document.getElementById('mpLobbyChatInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('mpLobbyChatSend').click();
+        });
+
+        // Match over
         document.getElementById('mpBackToLobbyBtn').addEventListener('click', () => {
             document.getElementById('mpMatchOverOverlay').style.display = 'none';
-            if (mpCurrentRoom) {
-                mpMatchActive = false;
-                document.getElementById('mpModal').classList.add('active');
-                mpShowLobbyView();
-                mpRenderLobby();
-            }
+            if (mpCurrentRoom) { mpMatchActive = false; document.getElementById('mpModal').classList.add('active'); mpShowLobbyView(); mpRenderLobby(); }
         });
         document.getElementById('mpExitToSingleBtn').addEventListener('click', () => {
             document.getElementById('mpMatchOverOverlay').style.display = 'none';
             mpLeaveLobby();
         });
 
-        // Chat panel toggle + send + typing-godmode
+        // In-game chat
         document.getElementById('mpChatToggleBtn').addEventListener('click', () => {
             document.getElementById('mpChatPanel').classList.toggle('active');
         });
         const mpChatInputEl = document.getElementById('mpChatInput');
         mpChatInputEl.addEventListener('input', () => {
-            if (!mpHostChatEnabled) return;
             mpSetTypingGodmode(mpChatInputEl.value.length > 0);
             clearTimeout(mpTypingTimeout);
             mpTypingTimeout = setTimeout(() => mpSetTypingGodmode(false), 2500);
         });
-        mpChatInputEl.addEventListener('keypress', (e) => {
+        mpChatInputEl.addEventListener('keypress', e => {
             if (e.key === 'Enter' && mpChatInputEl.value.trim()) {
                 const text = mpChatInputEl.value.trim().slice(0, 120);
                 mpChatAppendMessage(mpGetDisplayName() + ' (you)', text);
-                photonClient && photonClient.raiseEvent(MP_EV.CHAT, { text });
+                mpRaiseEvent(MP_EV.CHAT, { text });
                 mpChatInputEl.value = '';
                 clearTimeout(mpTypingTimeout);
                 mpSetTypingGodmode(false);
             }
         });
         mpChatInputEl.addEventListener('blur', () => { clearTimeout(mpTypingTimeout); mpSetTypingGodmode(false); });
+
+        // Report modal
+        document.getElementById('closeReportBtn').addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
+        document.getElementById('mpSubmitReportBtn').addEventListener('click', mpSubmitReport);
+
+        // Admin modal
+        document.getElementById('closeAdminBtn').addEventListener('click', () => document.getElementById('mpAdminModal').classList.remove('active'));
+        document.querySelectorAll('[data-admin-tab]').forEach(btn => {
+            btn.addEventListener('click', () => mpLoadAdminTab(btn.dataset.adminTab));
+        });
+
+        // Fetch IP on load to check admin access
+        mpFetchUserIP();
 
         loadAppConfig();
         drawGame();
