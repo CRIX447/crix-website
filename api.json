@@ -1,0 +1,19 @@
+{
+  "youtube": {
+    "apiKey": "AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk",
+    "channelId": "UCjiqZo0vfIZsn8E50TrOV_g"
+  },
+  "firebase": {
+    "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
+    "authDomain": "flappy-crix.firebaseapp.com",
+    "projectId": "flappy-crix",
+    "storageBucket": "flappy-crix.firebasestorage.app",
+    "messagingSenderId": "543002752038",
+    "appId": "1:543002752038:web:70c45999a25647313062e7"
+  },
+  "photon": {
+    "appId": "REPLACE_WITH_YOUR_PHOTON_APP_ID",
+    "appVersion": "1.0",
+    "region": "us"
+  }
+}
