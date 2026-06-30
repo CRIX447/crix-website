@@ -12,8 +12,9 @@
     "appId": "1:543002752038:web:70c45999a25647313062e7"
   },
   "photon": {
-    "appId": "56ff5627-b073-412c-ac63-95fd3dc28484",
+    "appId": "30228e0d-b570-419c-bf6d-2912ba99d9fc",
     "appVersion": "1.0",
-    "region": "us"
+    "region": "us",
+    "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
   }
 }
