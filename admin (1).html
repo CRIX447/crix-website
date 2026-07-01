@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRIX Admin Panel</title>
+<link rel="icon" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Courier New',monospace;}
+body{background:#07070F;color:white;min-height:100vh;}
+:root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--dark:#0F0F17;}
+
+/* ---- GATE ---- */
+#gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:20px;text-align:center;}
+#gate h1{color:var(--red);font-size:28px;text-transform:uppercase;letter-spacing:3px;}
+#gate p{color:#888;font-size:13px;max-width:340px;line-height:1.6;}
+.gate-btn{background:linear-gradient(135deg,var(--red),var(--orange));border:2px solid rgba(255,255,255,0.15);border-bottom:5px solid rgba(0,0,0,0.4);border-radius:40px;padding:11px 30px;color:white;font-family:inherit;font-size:14px;font-weight:bold;cursor:pointer;transition:all .1s;text-transform:uppercase;}
+.gate-btn:hover{transform:translateY(-2px);}
+.gate-btn:active{transform:translateY(1px);border-bottom-width:2px;}
+
+/* ---- HEADER ---- */
+header{background:rgba(5,5,8,0.98);border-bottom:3px solid var(--red);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;}
+header h1{color:var(--red);font-size:20px;letter-spacing:3px;text-transform:uppercase;}
+.header-user{display:flex;align-items:center;gap:10px;font-size:12px;color:#aaa;}
+.header-user img{width:30px;height:30px;border-radius:50%;border:2px solid var(--orange);}
+#signOutBtn{background:rgba(255,70,85,0.15);border:1px solid var(--red);color:var(--red);border-radius:20px;padding:4px 14px;font-family:inherit;font-size:11px;cursor:pointer;}
+
+/* ---- LAYOUT ---- */
+.admin-container{max-width:1100px;margin:0 auto;padding:24px 20px;}
+.tabs{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;}
+.tab{background:rgba(0,0,0,0.4);border:2px solid var(--orange);border-bottom:4px solid rgba(150,60,0,0.6);border-radius:30px;padding:8px 20px;color:white;font-family:inherit;font-size:12px;font-weight:bold;cursor:pointer;transition:all .1s;text-transform:uppercase;}
+.tab.active{background:linear-gradient(135deg,var(--red),var(--orange));border-color:transparent;}
+.tab:hover:not(.active){transform:translateY(-1px);}
+#content{min-height:200px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--dark);border:2px solid var(--orange);border-bottom:4px solid rgba(150,60,0,0.6);border-radius:16px;padding:16px;text-align:center;}
+.stat-card .num{font-size:32px;font-weight:bold;color:var(--orange);}
+.stat-card .lbl{font-size:10px;color:#888;text-transform:uppercase;margin-top:4px;}
+
+/* ---- CARDS ---- */
+.card{background:rgba(0,0,0,0.45);border:1px solid rgba(255,107,53,0.3);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+.card-title{font-size:13px;font-weight:bold;color:white;margin-bottom:4px;}
+.card-meta{font-size:10px;color:#999;margin-bottom:8px;}
+.card-details{font-size:11px;color:#bbb;font-style:italic;margin-bottom:8px;}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:9px;font-weight:bold;text-transform:uppercase;}
+.badge-pending{background:rgba(255,165,0,0.2);color:#FFB347;border:1px solid #FFB347;}
+.badge-resolved{background:rgba(0,204,122,0.15);color:var(--green);border:1px solid var(--green);}
+.badge-dismissed{background:rgba(100,100,100,0.2);color:#888;border:1px solid #555;}
+.badge-banned{background:rgba(255,70,85,0.2);color:var(--red);border:1px solid var(--red);}
+.action-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.btn{border-radius:20px;padding:4px 14px;font-size:10px;font-weight:bold;cursor:pointer;font-family:inherit;border:1px solid;transition:all .1s;text-transform:uppercase;}
+.btn:hover{transform:translateY(-1px);}
+.btn-green{background:rgba(0,204,122,0.1);color:var(--green);border-color:var(--green);}
+.btn-red{background:rgba(255,70,85,0.1);color:var(--red);border-color:var(--red);}
+.btn-orange{background:rgba(255,107,53,0.1);color:var(--orange);border-color:var(--orange);}
+.btn-gray{background:rgba(150,150,150,0.1);color:#aaa;border-color:#555;}
+.empty{text-align:center;color:#666;padding:40px;font-size:13px;}
+.search-bar{width:100%;background:rgba(0,0,0,0.5);border:2px solid var(--orange);border-radius:30px;padding:10px 18px;color:white;font-family:inherit;font-size:13px;margin-bottom:16px;}
+.search-bar:focus{outline:none;border-color:var(--green);}
+.ip-list{display:flex;flex-direction:column;gap:8px;}
+.ip-item{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.4);border:1px solid rgba(255,107,53,0.3);border-radius:12px;padding:10px 16px;}
+.ip-item span{font-size:13px;color:var(--green);font-weight:bold;}
+.add-ip-row{display:flex;gap:8px;margin-top:12px;}
+.add-ip-input{flex:1;background:rgba(0,0,0,0.5);border:2px solid var(--orange);border-radius:30px;padding:8px 16px;color:white;font-family:inherit;font-size:13px;}
+.add-ip-input:focus{outline:none;border-color:var(--green);}
+.loading{text-align:center;color:#555;padding:30px;font-size:12px;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--dark);border:2px solid var(--green);border-radius:12px;padding:10px 18px;font-size:12px;z-index:9999;animation:slideIn .3s ease;}
+@keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<!-- ACCESS GATE -->
+<div id="gate">
+    <h1>🛡️ Admin Panel</h1>
+    <p id="gateMsg">Checking access...</p>
+    <button class="gate-btn" id="gateSignInBtn" style="display:none;">SIGN IN WITH GOOGLE</button>
+</div>
+
+<!-- MAIN PANEL (hidden until access granted) -->
+<div id="adminPanel" style="display:none;">
+    <header>
+        <h1>🛡️ CRIX ADMIN</h1>
+        <div class="header-user">
+            <img id="adminAvatar" src="" alt="" onerror="this.style.display='none'">
+            <span id="adminName"></span>
+            <button id="signOutBtn">SIGN OUT</button>
+        </div>
+    </header>
+    <div class="admin-container">
+        <div class="stats-row" id="statsRow"></div>
+        <div class="tabs">
+            <button class="tab active" data-tab="reports">🚨 REPORTS</button>
+            <button class="tab" data-tab="players">👥 PLAYERS</button>
+            <button class="tab" data-tab="bans">🔨 BANS</button>
+            <button class="tab" data-tab="ips">🌐 ADMIN IPs</button>
+        </div>
+        <input class="search-bar" id="searchBar" placeholder="🔍 Search..." oninput="filterContent()">
+        <div id="content"><div class="loading">Loading...</div></div>
+    </div>
+</div>
+
+<script>
+let db, auth, currentAdminUser = null;
+let currentTab = 'reports';
+let allData = [];
+
+async function init() {
+    // Load api.json for Firebase config
+    let fbConfig = null;
+    try {
+        const r = await fetch('api.json');
+        const j = await r.json();
+        fbConfig = j.firebase;
+    } catch(e) {}
+
+    if (!fbConfig) {
+        document.getElementById('gateMsg').textContent = 'api.json not found or unreachable.';
+        return;
+    }
+
+    firebase.initializeApp(fbConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+
+    auth.onAuthStateChanged(async user => {
+        if (!user) {
+            document.getElementById('gateMsg').textContent = 'You must sign in with an authorised Google account.';
+            document.getElementById('gateSignInBtn').style.display = '';
+            return;
+        }
+        // Check IP whitelist
+        const allowed = await checkIP();
+        if (!allowed) {
+            document.getElementById('gateMsg').textContent = '⛔ Access denied. Your IP is not on the admin whitelist.';
+            document.getElementById('gateSignInBtn').style.display = 'none';
+            return;
+        }
+        currentAdminUser = user;
+        showPanel(user);
+    });
+
+    document.getElementById('gateSignInBtn').onclick = () => {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        auth.signInWithPopup(provider).catch(e => {
+            document.getElementById('gateMsg').textContent = 'Sign-in failed: ' + e.message;
+        });
+    };
+}
+
+async function checkIP() {
+    try {
+        // Get user's public IP
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        const ipData = await ipRes.json();
+        const userIP = ipData.ip;
+        // Load ip.json whitelist
+        const ipListRes = await fetch('ip.json');
+        const ipListData = await ipListRes.json();
+        const whitelist = ipListData.adminIPs || [];
+        return whitelist.includes(userIP);
+    } catch(e) {
+        return false;
+    }
+}
+
+function showPanel(user) {
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('adminPanel').style.display = '';
+    document.getElementById('adminName').textContent = user.displayName || user.email || 'Admin';
+    if (user.photoURL) document.getElementById('adminAvatar').src = user.photoURL;
+    document.getElementById('signOutBtn').onclick = () => auth.signOut();
+    loadStats();
+    loadTab('reports');
+    document.querySelectorAll('.tab').forEach(t => t.onclick = () => { currentTab = t.dataset.tab; document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); loadTab(t.dataset.tab); });
+}
+
+async function loadStats() {
+    const row = document.getElementById('statsRow');
+    try {
+        const [reports, players, bans] = await Promise.all([
+            db.collection('reports').get(),
+            db.collection('users').get(),
+            db.collection('bans').get()
+        ]);
+        const pending = reports.docs.filter(d => d.data().status === 'pending').length;
+        row.innerHTML = [
+            {n: reports.size, l: '📋 Total Reports'},
+            {n: pending, l: '🔴 Pending'},
+            {n: players.size, l: '👥 Players'},
+            {n: bans.size, l: '🔨 Bans'},
+        ].map(s => `<div class="stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join('');
+    } catch(e) { row.innerHTML = ''; }
+}
+
+async function loadTab(tab) {
+    const content = document.getElementById('content');
+    document.getElementById('searchBar').value = '';
+    content.innerHTML = '<div class="loading">Loading...</div>';
+    allData = [];
+    if (tab === 'reports') await loadReports(content);
+    else if (tab === 'players') await loadPlayers(content);
+    else if (tab === 'bans') await loadBans(content);
+    else if (tab === 'ips') await loadIPs(content);
+}
+
+async function loadReports(content) {
+    const snap = await db.collection('reports').orderBy('timestamp','desc').limit(100).get();
+    if (snap.empty) { content.innerHTML = '<div class="empty">No reports yet. 🎉</div>'; return; }
+    allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+    renderReports(content, allData);
+}
+
+function renderReports(content, data) {
+    content.innerHTML = data.map(r => {
+        const ts = r.timestamp?.toDate ? r.timestamp.toDate().toLocaleString() : '?';
+        const badge = `<span class="badge badge-${r.status||'pending'}">${r.status||'pending'}</span>`;
+        return `<div class="card" data-search="${esc(r.reportedName)} ${esc(r.reporterName)} ${r.reason}">
+            <div class="card-title">🚨 ${esc(r.reportedName)} — ${esc(r.reason)} ${badge}</div>
+            <div class="card-meta">Reported by ${esc(r.reporterName)} · ${ts} · Room: ${esc(r.roomCode||'?')}</div>
+            ${r.details ? `<div class="card-details">"${esc(r.details)}"</div>` : ''}
+            <div class="action-row">
+                <button class="btn btn-green" onclick="resolveReport('${r.id}')">✓ RESOLVE</button>
+                <button class="btn btn-red" onclick="banPlayer('${esc(r.reportedName)}','${r.id}')">🔨 BAN</button>
+                <button class="btn btn-gray" onclick="dismissReport('${r.id}')">✕ DISMISS</button>
+            </div>
+        </div>`;
+    }).join('') || '<div class="empty">No results.</div>';
+}
+
+async function loadPlayers(content) {
+    const snap = await db.collection('users').orderBy('highScore','desc').limit(100).get();
+    if (snap.empty) { content.innerHTML = '<div class="empty">No players yet.</div>'; return; }
+    allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+    renderPlayers(content, allData);
+}
+function renderPlayers(content, data) {
+    content.innerHTML = data.map(u => `<div class="card" data-search="${esc(u.displayName)} ${u.id}">
+        <div class="card-title">👤 ${esc(u.displayName||'Unknown')}</div>
+        <div class="card-meta">UID: ${u.id} · High Score: ${u.highScore||0} · Coins: ${u.coinCount||0}</div>
+        <div class="action-row">
+            <button class="btn btn-red" onclick="banPlayer('${esc(u.displayName||'')}','')">🔨 BAN</button>
+        </div>
+    </div>`).join('') || '<div class="empty">No results.</div>';
+}
+
+async function loadBans(content) {
+    const snap = await db.collection('bans').orderBy('timestamp','desc').limit(100).get();
+    if (snap.empty) { content.innerHTML = '<div class="empty">No bans.</div>'; return; }
+    allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+    renderBans(content, allData);
+}
+function renderBans(content, data) {
+    content.innerHTML = data.map(b => {
+        const ts = b.timestamp?.toDate ? b.timestamp.toDate().toLocaleString() : '?';
+        return `<div class="card" data-search="${esc(b.name)}">
+            <div class="card-title"><span class="badge badge-banned">BANNED</span> ${esc(b.name)}</div>
+            <div class="card-meta">${ts} · Reason: ${esc(b.reason||'Manual ban')}</div>
+            <div class="action-row">
+                <button class="btn btn-green" onclick="unban('${b.id}')">✓ UNBAN</button>
+            </div>
+        </div>`;
+    }).join('') || '<div class="empty">No results.</div>';
+}
+
+async function loadIPs(content) {
+    // Load current ip.json and render with add/remove
+    let ipList = [];
+    try { const r = await fetch('ip.json'); const j = await r.json(); ipList = j.adminIPs || []; } catch(e) {}
+    content.innerHTML = `
+        <div style="color:#aaa;font-size:12px;margin-bottom:12px;">These IPs can access the admin panel. Changes here update <strong>ip.json</strong> — you must manually update the file on your server as this is a static site.</div>
+        <div class="ip-list" id="ipListEl">${ipList.map((ip,i) => `<div class="ip-item"><span>${esc(ip)}</span><button class="btn btn-red" onclick="removeIPDisplay(${i})">REMOVE</button></div>`).join('')||'<div class="empty">No IPs configured.</div>'}</div>
+        <div class="add-ip-row">
+            <input class="add-ip-input" id="newIPInput" placeholder="Enter IP address...">
+            <button class="btn btn-green" onclick="addIPDisplay()">ADD IP</button>
+        </div>
+        <div style="margin-top:14px;padding:12px;background:rgba(255,165,0,0.05);border:1px solid rgba(255,165,0,0.3);border-radius:12px;font-size:11px;color:#aaa;line-height:1.7;">
+            ⚠️ <strong style="color:#FFB347;">Important:</strong> This panel cannot directly write to <code>ip.json</code> since this is a static site without a server. After adding/removing IPs here, copy the updated list and update <code>ip.json</code> in your repository manually, then redeploy.
+        </div>`;
+    window._currentIPList = [...ipList];
+}
+
+let _ipListTemp = [];
+function removeIPDisplay(idx) {
+    window._currentIPList.splice(idx, 1);
+    renderIPList();
+}
+function addIPDisplay() {
+    const ip = document.getElementById('newIPInput').value.trim();
+    if (!ip) return;
+    if (!window._currentIPList) window._currentIPList = [];
+    if (!window._currentIPList.includes(ip)) window._currentIPList.push(ip);
+    document.getElementById('newIPInput').value = '';
+    renderIPList();
+    toast(`IP ${ip} added to list. Remember to update ip.json manually!`);
+}
+function renderIPList() {
+    const el = document.getElementById('ipListEl');
+    if (!el) return;
+    el.innerHTML = window._currentIPList.length
+        ? window._currentIPList.map((ip,i) => `<div class="ip-item"><span>${esc(ip)}</span><button class="btn btn-red" onclick="removeIPDisplay(${i})">REMOVE</button></div>`).join('')
+        : '<div class="empty">No IPs configured.</div>';
+}
+
+function filterContent() {
+    const q = document.getElementById('searchBar').value.toLowerCase();
+    document.querySelectorAll('.card[data-search]').forEach(card => {
+        card.style.display = card.dataset.search.toLowerCase().includes(q) ? '' : 'none';
+    });
+}
+
+async function resolveReport(id) {
+    await db.collection('reports').doc(id).update({ status: 'resolved' });
+    toast('Report resolved.');
+    loadTab('reports');
+}
+async function dismissReport(id) {
+    await db.collection('reports').doc(id).update({ status: 'dismissed' });
+    toast('Report dismissed.');
+    loadTab('reports');
+}
+async function banPlayer(name, reportId) {
+    if (!confirm(`Ban "${name}"?`)) return;
+    await db.collection('bans').add({ name, reason: 'Admin ban', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+    if (reportId) await db.collection('reports').doc(reportId).update({ status: 'resolved' });
+    toast(`${name} banned.`);
+    loadStats();
+    loadTab('reports');
+}
+async function unban(id) {
+    await db.collection('bans').doc(id).delete();
+    toast('Player unbanned.');
+    loadStats();
+    loadTab('bans');
+}
+function esc(str) { const d = document.createElement('div'); d.textContent = String(str||''); return d.innerHTML; }
+function toast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
