@@ -87,6 +87,7 @@
         
         .game-container {
             max-width: 500px;
+            transition: max-width 0.3s ease;
             width: 100%;
             background: rgba(5, 5, 8, 0.97);
             border: 3px solid var(--red);
@@ -285,6 +286,14 @@
             filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
         }
         
+        /* ---- MP WIDE MODE ---- */
+        .game-container.mp-wide {
+            max-width: min(820px, 98vw) !important;
+        }
+        .game-container.mp-wide canvas {
+            width: 100%;
+            height: auto;
+        }
         /* ---- CANVAS ---- */
         .canvas-wrapper {
             display: flex;
@@ -853,27 +862,6 @@
             <div id="authError" class="auth-error"></div>
         </div>
     </div>
-    
-    <!-- Phone landscape banner -->
-    <div id="rotateBanner" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:#0a0a1a;z-index:99999;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px;">
-        <div style="font-size:48px;animation:spin 2s linear infinite;">📱</div>
-        <div style="color:#FF6B35;font-size:18px;font-weight:bold;margin:16px 0 8px;font-family:monospace;">ROTATE YOUR PHONE</div>
-        <div style="color:#ccc;font-size:13px;font-family:monospace;">Flappy Crix plays best in landscape mode</div>
-    </div>
-    <style>@keyframes spin { 0%{transform:rotate(0deg)} 25%{transform:rotate(90deg)} 75%{transform:rotate(90deg)} 100%{transform:rotate(360deg)} }</style>
-    <script>
-        function checkOrientation() {
-            const banner = document.getElementById('rotateBanner');
-            if (!banner) return;
-            const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-            const isPortrait = window.innerHeight > window.innerWidth;
-            if (isMobile && isPortrait) { banner.style.display = 'flex'; }
-            else { banner.style.display = 'none'; }
-        }
-        window.addEventListener('resize', checkOrientation);
-        window.addEventListener('orientationchange', checkOrientation);
-        window.addEventListener('DOMContentLoaded', checkOrientation);
-    </script>
 
     <div class="game-container">
         <div class="user-section">
@@ -905,6 +893,9 @@
             </div>
         </div>
         
+        <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
+            <button id="hideUIBtn" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,107,53,0.4);border-radius:20px;padding:3px 12px;color:#888;font-size:10px;cursor:pointer;font-family:inherit;" title="Hide UI (H key)">👁 HIDE UI</button>
+        </div>
         <div class="stats-grid">
             <div class="cyber-stat" id="achievementsBtn"><div class="stat-label">🏆 ACHIEV</div><div class="stat-value" id="achievementCount">0/6</div></div>
             <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
@@ -1049,6 +1040,7 @@
                     <div class="mp-mode-card selected" data-mode="freemode"><div class="mp-mode-icon">🕊️</div><div class="mp-mode-name">Freemode</div></div>
                     <div class="mp-mode-card" data-mode="race"><div class="mp-mode-icon">🏁</div><div class="mp-mode-name">Race to 100</div></div>
                     <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
+                    <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon">🪙</div><div class="mp-mode-name">Coin Rush</div></div>
                 </div>
                 <div class="mp-section-title">PRIVACY</div>
                 <div class="mp-privacy-row">
@@ -1082,6 +1074,7 @@
                             <option value="freemode">🕊️ Freemode</option>
                             <option value="race">🏁 Race to 100</option>
                             <option value="lastone">💀 Last One Standing</option>
+                            <option value="coinrush">🪙 Coin Rush</option>
                         </select>
                     </div>
                     <div id="mpPermissionsPanel" style="margin-top:8px;"></div>
@@ -1234,6 +1227,8 @@
         
         const coinImage = new Image();
         coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        coinImage.style = 'display:none;position:absolute;';
+        document.body.appendChild(coinImage); // must be in DOM for gif to animate in canvas
         const birdImage = new Image(); 
         birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
@@ -1373,7 +1368,8 @@
             document.getElementById('previewTitle').innerHTML = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP'; 
         }
         
-        window.buyPowerup = function(id) { 
+        window.buyPowerup = function(id) {
+            if (mpMatchActive && mpMatchMode === 'coinrush') return; // no powerups in coinrush
             let p = powerups.find(p=>p.id===id); if(!p||p.active||coinCount<p.price) return; coinCount -= p.price; updateCoinDisplay(); p.active = true; p.timeLeft = p.duration; powerupSound.play(); if(id==='x2coins') coinMultiplier=2; let interval = setInterval(()=>{ p.timeLeft--; if(p.timeLeft<=0){ p.active=false; clearInterval(interval); if(id==='x2coins') coinMultiplier=1; updateActivePowerups(); autoSave(); } updateActivePowerups(); }, 1000); updateActivePowerups(); updateStoreDisplay(); autoSave(); 
         };
         
@@ -1420,8 +1416,17 @@
                 if (bird.y < 10) { bird.y=10; bird.velocity=Math.abs(bird.velocity)*0.5; } 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
             }
-            if(frameCount % (cheats.slowmo?180:120) ===0){ const rnd = mpCurrentRoom ? mpRng() : Math.random(); let top = rnd*(canvas.height-pipeGap-150)+70; pipes.push({x:canvas.width, top:top, bottom:top+pipeGap, scored:false}); }
-            if(frameCount % (cheats.coinlord?25:50)===0){
+            if((!mpCurrentRoom || mpIsHost) && frameCount % (cheats.slowmo?180:120) ===0){
+                const rnd = mpCurrentRoom ? mpRng() : Math.random();
+                let top = rnd*(canvas.height-pipeGap-150)+70;
+                pipes.push({x:canvas.width, top:top, bottom:top+pipeGap, scored:false});
+                // Host broadcasts pipe to guests so all see same layout
+                if (mpCurrentRoom && mpIsHost) {
+                    mpRaiseEvent(MP_EV.PIPE_SPAWN, { top: Math.round(top*10)/10, frame: frameCount });
+                }
+            }
+            const coinrushRate = mpMatchMode === 'coinrush' ? 18 : (cheats.coinlord?25:50);
+            if((!mpCurrentRoom || mpIsHost) && frameCount % coinrushRate===0){
                 // Spawn coin in safe gap area (not in pipes)
                 const lastPipe = pipes.length > 0 ? pipes[pipes.length-1] : null;
                 let coinY;
@@ -1434,6 +1439,10 @@
                     coinY = (mpCurrentRoom ? mpRng() : Math.random())*(canvas.height-100)+50;
                 }
                 coinsArr.push({x:canvas.width, y:coinY, collected:false});
+                // Host broadcasts coin to guests
+                if (mpCurrentRoom && mpIsHost) {
+                    mpRaiseEvent(MP_EV.COIN_SPAWN, { y: Math.round(coinY*10)/10, frame: frameCount });
+                }
             }
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
@@ -1453,7 +1462,17 @@
                 coinsArr[i].x-=gameSpeed; 
                 const magnetActive = powerups.find(p => p.id === 'magnet')?.active || false; 
                 if(magnetActive){ const dx = bird.x - coinsArr[i].x; const dy = bird.y - coinsArr[i].y; const dist = Math.sqrt(dx*dx+dy*dy); if(dist < 150){ coinsArr[i].x += dx * 0.08; coinsArr[i].y += dy * 0.08; } } 
-                if(!coinsArr[i].collected && bird.x+15>coinsArr[i].x && bird.x-15<coinsArr[i].x+20 && bird.y+15>coinsArr[i].y && bird.y-15<coinsArr[i].y+20){ coinsArr[i].collected=true; coinCount+=coinMultiplier; coinSound.play(); updateCoinDisplay(); checkAchievements(); autoSave(); } 
+                if(!coinsArr[i].collected && bird.x+15>coinsArr[i].x && bird.x-15<coinsArr[i].x+20 && bird.y+15>coinsArr[i].y && bird.y-15<coinsArr[i].y+20){
+                    coinsArr[i].collected=true;
+                    const multiplier = (mpMatchActive && mpMatchMode === 'coinrush') ? 1 : coinMultiplier;
+                    coinCount += multiplier;
+                    coinSound.play(); updateCoinDisplay(); checkAchievements(); autoSave();
+                    if (mpMatchActive && mpMatchMode === 'coinrush') {
+                        if (!mpCoinRushCoins[mpLocalActor]) mpCoinRushCoins[mpLocalActor] = 0;
+                        mpCoinRushCoins[mpLocalActor]++;
+                        mpRaiseEvent(MP_EV.SCORE, { score: mpCoinRushCoins[mpLocalActor] });
+                    }
+                } 
                 if(coinsArr[i].x+20<0) coinsArr.splice(i--,1); 
             } 
             frameCount++; 
@@ -1522,6 +1541,16 @@
         function jump(){ if(!gameRunning||gameOver) return; bird.velocity=bird.jump; jumpSound.play(); if (typeof mpSendJump === 'function') mpSendJump(); }
         
         // Event listeners
+        let uiHidden = false;
+        function toggleUIHide() {
+            uiHidden = !uiHidden;
+            const els = ['.stats-grid','.cheat-indicators','.active-powerups','.buttons-row','.game-controls','.instructions','.back-link','.cheat-container','.mp-banner-btn','.mp-diagnostic-banner'];
+            els.forEach(sel => { document.querySelectorAll(sel).forEach(el => { el.style.opacity = uiHidden ? '0' : ''; el.style.pointerEvents = uiHidden ? 'none' : ''; }); });
+            document.getElementById('hideUIBtn').textContent = uiHidden ? '👁 SHOW UI' : '👁 HIDE UI';
+        }
+        document.getElementById('hideUIBtn').addEventListener('click', toggleUIHide);
+        document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') toggleUIHide(); } });
+
         document.getElementById('startGameBtn').addEventListener('click', startGame);
         document.getElementById('canvasWrapper').addEventListener('click', jump);
         // Gamepad support
@@ -1743,9 +1772,14 @@
             HOST_SETTINGS: 8, MATCH_START: 9, MATCH_END: 10,
             LOBBY_CHAT: 11, HOST_MODE_CHANGE: 12,
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
-            VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18
+            VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
+            PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
+        const MP_COIN_RUSH_SECONDS = 300; // 5 minutes
+        let mpCoinRushTimer = null;
+        let mpCoinRushSecondsLeft = 0;
+        let mpCoinRushCoins = {};  // actorNr -> coins collected this match
         const PLAYER_COLOURS = ['#FF6B35','#FF4655','#00CC7A','#4285F4','#FFD700','#FF69B4','#9B59B6','#E67E22','#1ABC9C','#E74C3C','#3498DB','#2ECC71'];
 
         // State
@@ -2144,6 +2178,7 @@
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpMatchActive = false; mpSpectating = false;
+            document.querySelector('.game-container')?.classList.remove('mp-wide');
             mpEndMatchUI();
             document.getElementById('mpModal').classList.remove('active');
             mpShowView('mpViewHome');
@@ -2164,8 +2199,36 @@
             mpMatchMode = mode;
             mpMatchActive = true;
             if (seed !== undefined) window.mpSharedSeed = seed;
+            document.querySelector('.game-container')?.classList.add('mp-wide');
+            // Clear all cheats when entering multiplayer
+            cheats.godmode = false; cheats.coinlord = false; cheats.slowmo = false; cheats.bigbird = false;
+            updateCheatIndicators();
             mpSpectating = false;
             Object.values(mpPlayers).forEach(p => { p.score = 0; p.dead = false; });
+            mpCoinRushCoins = {};
+            Object.keys(mpPlayers).forEach(nr => { mpCoinRushCoins[nr] = 0; });
+            if (mode === 'coinrush') {
+                // Disable powerups in coin rush
+                powerups.forEach(pw => pw.active = false);
+                updateActivePowerups();
+                // Start timer on host
+                if (mpIsHost) {
+                    mpCoinRushSecondsLeft = MP_COIN_RUSH_SECONDS;
+                    mpCoinRushTimer = setInterval(() => {
+                        mpCoinRushSecondsLeft--;
+                        mpUpdateHud();
+                        if (mpCoinRushSecondsLeft <= 0) {
+                            clearInterval(mpCoinRushTimer);
+                            const results = Object.entries(mpCoinRushCoins)
+                                .map(([a,coins]) => ({ actor: parseInt(a), name: mpPlayers[parseInt(a)]?.name || ('Player'+a), score: coins }))
+                                .sort((a,b) => b.score-a.score);
+                            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                            photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor: results[0]?.actor || null, mode: 'coinrush' }, { receivers: RC.All });
+                            mpShowMatchOver(results, results[0]?.actor || null, 'coinrush');
+                        }
+                    }, 1000);
+                }
+            }
             document.getElementById('mpModal').classList.remove('active');
             document.getElementById('mpHud').classList.add('active');
             document.getElementById('mpChatToggleBtn').classList.add('active');
@@ -2180,9 +2243,9 @@
             if (!mpCurrentRoom || !mpMatchActive) return;
             if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].dead = true;
             mpRaiseEvent(MP_EV.DEATH, { finalScore: score });
-            if (mpMatchMode === 'freemode') {
-                // Respawns on in freemode
-                setTimeout(() => { if (mpMatchActive) startGame(); }, 1200);
+            if (mpMatchMode === 'freemode' || mpMatchMode === 'coinrush') {
+                // Respawns on in freemode and coinrush
+                setTimeout(() => { if (mpMatchActive) startGame(); }, 800);
             } else if (mpMatchMode === 'lastone') {
                 // Enter spectate mode
                 mpEnterSpectate();
@@ -2197,6 +2260,7 @@
             if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].score = s;
             mpRaiseEvent(MP_EV.SCORE, { score: s });
             if (s >= 50) mpCheckAchievement('mp_score50');
+            if (mpMatchMode === 'coinrush' && s >= 50) mpCheckAchievement('mp_coinrush');
             if (mpMatchMode === 'race' && s >= MP_RACE_TARGET) {
                 // Won the race
                 const results = Object.entries(mpPlayers)
@@ -2223,13 +2287,25 @@
             }
         }
 
-        function mpShowMatchOver(results, winnerActor) {
+        function mpShowMatchOver(results, winnerActor, endMode) {
             mpMatchActive = false;
+            if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
+            // Coinrush: award doubled coins to local player
+            if ((endMode || mpMatchMode) === 'coinrush') {
+                const myCoins = mpCoinRushCoins[mpLocalActor] || 0;
+                const award = myCoins * 2;
+                if (award > 0) {
+                    coinCount += award;
+                    updateCoinDisplay();
+                    autoSave();
+                }
+            }
             mpCheckAchievement('mp_first');
             if (winnerActor === mpLocalActor) {
                 mpCheckAchievement('mp_win');
                 if (mpMatchMode === 'race') mpCheckAchievement('mp_race');
                 if (mpMatchMode === 'lastone') mpCheckAchievement('mp_survivor');
+                if (mpMatchMode === 'coinrush') mpCheckAchievement('mp_coinrush');
             }
             gameRunning = false;
             if (animationId) cancelAnimationFrame(animationId);
@@ -2295,6 +2371,8 @@
         }
 
         function mpEndMatchUI() {
+            document.querySelector('.game-container')?.classList.remove('mp-wide');
+            if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
             document.getElementById('mpHud').classList.remove('active');
             document.getElementById('mpChatToggleBtn').classList.remove('active');
             document.getElementById('mpChatPanel').classList.remove('active');
@@ -2308,8 +2386,9 @@
         function mpUpdateHud() {
             const hud = document.getElementById('mpHud');
             if (!mpCurrentRoom) return;
-            const icons = {freemode:'🕊️', race:'🏁', lastone:'💀'};
-            let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}</strong></div>`;
+            const icons = {freemode:'🕊️', race:'🏁', lastone:'💀', coinrush:'🪙'};
+            const coinrushTimerStr = mpMatchMode === 'coinrush' ? ` ⏱️ ${Math.floor(mpCoinRushSecondsLeft/60)}:${String(mpCoinRushSecondsLeft%60).padStart(2,'0')}` : '';
+            let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}${coinrushTimerStr}</strong></div>`;
             Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
                 rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${mpEsc(p.name)}: ${p.score}</div>`;
             });
@@ -2376,7 +2455,10 @@
                     if (mpLocalActor === masterNr2 && mpMatchMode === 'lastone') mpCheckMatchEndCondition();
                     break;
                 case MP_EV.SCORE:
-                    if (p) p.score = content.score;
+                    if (p) {
+                        p.score = content.score;
+                        if (mpMatchMode === 'coinrush') mpCoinRushCoins[actorNr] = content.score;
+                    }
                     mpUpdateHud();
                     break;
                 case MP_EV.CHAT:
@@ -2395,7 +2477,7 @@
                     mpBeginMatchLocally(content.mode, content.seed);
                     break;
                 case MP_EV.MATCH_END:
-                    mpShowMatchOver(content.results, content.winnerActor);
+                    mpShowMatchOver(content.results, content.winnerActor, content.mode);
                     break;
                 case MP_EV.HOST_MODE_CHANGE:
                     if (mpCurrentRoom) { mpCurrentRoom.mode = content.mode; mpMatchMode = content.mode; }
@@ -2408,6 +2490,17 @@
                     break;
                 case MP_EV.COLOUR_UPDATE:
                     if (p && content.colour) p.colour = content.colour;
+                    break;
+                case MP_EV.PIPE_SPAWN:
+                    // Guest receives pipe from host — add it to their world
+                    if (!mpIsHost && mpMatchActive) {
+                        pipes.push({ x: canvas.width, top: content.top, bottom: content.top + pipeGap, scored: false });
+                    }
+                    break;
+                case MP_EV.COIN_SPAWN:
+                    if (!mpIsHost && mpMatchActive) {
+                        coinsArr.push({ x: canvas.width, y: content.y, collected: false });
+                    }
                     break;
                 case MP_EV.TYPING:
                     if (p) p.typing = content.typing;
@@ -2658,6 +2751,7 @@
             { id: 'mp_survivor', name: 'SURVIVOR', desc: 'Win a Last One Standing match', icon: '💀', unlocked: false },
             { id: 'mp_chat', name: 'CHATTERBOX', desc: 'Send 10 messages in multiplayer', icon: '💬', unlocked: false, progress: 0, target: 10 },
             { id: 'mp_score50', name: 'MP HALFCENTURY', desc: 'Score 50 in a multiplayer match', icon: '5️⃣0️⃣', unlocked: false },
+            { id: 'mp_coinrush', name: 'COIN MANIAC', desc: 'Collect 50 coins in a single Coin Rush match', icon: '🪙', unlocked: false },
         ];
         let mpChatCount = 0;
         function mpCheckAchievement(id, data) {
