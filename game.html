@@ -288,12 +288,9 @@
         
         /* ---- MP WIDE MODE ---- */
         .game-container.mp-wide {
-            max-width: min(820px, 98vw) !important;
+            max-width: min(860px, 98vw) !important;
         }
-        .game-container.mp-wide canvas {
-            width: 100%;
-            height: auto;
-        }
+        /* Canvas always renders at native resolution — no CSS scaling in MP */
         /* ---- CANVAS ---- */
         .canvas-wrapper {
             display: flex;
@@ -1165,16 +1162,17 @@
     </div>
     
     <!-- AUDIO -->
-    <audio id="jumpSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
-    <audio id="deathSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
-    <audio id="coinSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
-    <audio id="selectSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
+    <audio id="jumpSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
+    <audio id="deathSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
+    <audio id="coinSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
+    <audio id="selectSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
+    <audio id="failSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/fail.mp3"></audio>
     <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
-    <audio id="victorySound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
-    <audio id="sixtySevenSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
-    <audio id="boomSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
-    <audio id="achSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
-    <audio id="bgMusic" loop><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
+    <audio id="victorySound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
+    <audio id="sixtySevenSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
+    <audio id="boomSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
+    <audio id="achSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
+    <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
     
     <script>
         // ===== LOAD CONFIG FROM api.json =====
@@ -1255,7 +1253,15 @@
         ];
         
         // Audio elements
-        const jumpSound = document.getElementById('jumpSound'), deathSound = document.getElementById('deathSound'), coinSound = document.getElementById('coinSound'), selectSound = document.getElementById('selectSound'), powerupSound = document.getElementById('powerupSound'), victorySound = document.getElementById('victorySound'), sixtySevenSound = document.getElementById('sixtySevenSound'), boomSound = document.getElementById('boomSound'), achSound = document.getElementById('achSound'), bgMusic = document.getElementById('bgMusic');
+        const jumpSound = document.getElementById('jumpSound'), deathSound = document.getElementById('deathSound'), coinSound = document.getElementById('coinSound'), selectSound = document.getElementById('selectSound'), powerupSound = document.getElementById('powerupSound'), victorySound = document.getElementById('victorySound'), sixtySevenSound = document.getElementById('sixtySevenSound'), boomSound = document.getElementById('boomSound'), achSound = document.getElementById('achSound'), bgMusic = document.getElementById('bgMusic'), failSound = document.getElementById('failSound');
+        // Fix slow sound — ensure playbackRate is 1.0 on all audio elements
+        [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
+        function playSound(snd) {
+            if (!snd) return;
+            snd.currentTime = 0;
+            snd.playbackRate = 1.0;
+            snd.play().catch(() => {});
+        }
         
         // ========== SAVING SYSTEM ==========
         function autoSave() {
@@ -1391,15 +1397,9 @@
             z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
             return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
         }
-        // Actor number offset so players don't all start at x=100
-        function mpGetStartX() {
-            if (!mpCurrentRoom || !mpLocalActor) return 100;
-            const offset = (mpLocalActor % 5) * 40; // spread: 100,140,180,220,260
-            return 100 + offset;
-        }
         function resetGame() {
-            const startX = mpCurrentRoom ? mpGetStartX() : 100;
-            bird = { x: startX, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5 };
+            // All players start at x=100 — same world, same physics
+            bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5 };
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             if (mpCurrentRoom) mpRngState = (window.mpSharedSeed || 12345);
         }
@@ -1411,7 +1411,7 @@
             bird.velocity += bird.gravity; 
             bird.y += bird.velocity; 
             if (!shieldActive) { 
-                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; deathSound.play(); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
+                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
             } else { 
                 if (bird.y < 10) { bird.y=10; bird.velocity=Math.abs(bird.velocity)*0.5; } 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
@@ -1447,7 +1447,7 @@
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
                 if(!shieldActive && bird.x+15>pipes[i].x && bird.x-15<pipes[i].x+pipeWidth && (bird.y-15<pipes[i].top || bird.y+15>pipes[i].bottom)){ 
-                    gameOver=true; deathSound.play(); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; 
+                    gameOver=true; playSound(deathSound); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; 
                 } 
                 if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){ 
                     score++; pipes[i].scored=true; 
@@ -1466,7 +1466,7 @@
                     coinsArr[i].collected=true;
                     const multiplier = (mpMatchActive && mpMatchMode === 'coinrush') ? 1 : coinMultiplier;
                     coinCount += multiplier;
-                    coinSound.play(); updateCoinDisplay(); checkAchievements(); autoSave();
+                    playSound(coinSound); updateCoinDisplay(); checkAchievements(); autoSave();
                     if (mpMatchActive && mpMatchMode === 'coinrush') {
                         if (!mpCoinRushCoins[mpLocalActor]) mpCoinRushCoins[mpLocalActor] = 0;
                         mpCoinRushCoins[mpLocalActor]++;
@@ -1536,9 +1536,15 @@
         
         function gameLoop(){ if(gameRunning){ updateGame(); drawGame(); animationId=requestAnimationFrame(gameLoop); } }
         function startGame(){ if(gameRunning && animationId) cancelAnimationFrame(animationId); resetGame(); gameRunning=true; gameOver=false; gamesPlayed++; animationId=requestAnimationFrame(gameLoop); if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); } selectSound.play(); checkAchievements(); if (typeof mpOnLocalStart === 'function') mpOnLocalStart(); }
-        function updateHighScore(){ if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); } }
+        function updateHighScore(){
+            if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
+            // Play fail sound in single player (not MP — MP handles it in matchover)
+            if (!mpMatchActive && !mpCurrentRoom) {
+                setTimeout(() => playSound(failSound), 150); // short delay after deathSound
+            }
+        }
         function checkAchievements(){ let unlocked=false; if(!achievements[0].unlocked && gamesPlayed>=1){ achievements[0].unlocked=true; unlocked=true; } if(!achievements[1].unlocked){ achievements[1].progress=Math.min(coinCount,100); if(coinCount>=100){ achievements[1].unlocked=true; unlocked=true; } } if(!achievements[2].unlocked && score>=50){ achievements[2].unlocked=true; unlocked=true; } if(!achievements[3].unlocked && score>=100){ achievements[3].unlocked=true; unlocked=true; } if(!achievements[4].unlocked && hasTriggered67){ achievements[4].unlocked=true; unlocked=true; } if(!achievements[5].unlocked && hasTriggered1000){ achievements[5].unlocked=true; unlocked=true; } if(unlocked){ achSound.play(); updateAchievementCount(); autoSave(); } }
-        function jump(){ if(!gameRunning||gameOver) return; bird.velocity=bird.jump; jumpSound.play(); if (typeof mpSendJump === 'function') mpSendJump(); }
+        function jump(){ if(!gameRunning||gameOver) return; bird.velocity=bird.jump; playSound(jumpSound); if (typeof mpSendJump === 'function') mpSendJump(); }
         
         // Event listeners
         let uiHidden = false;
@@ -2179,6 +2185,8 @@
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpMatchActive = false; mpSpectating = false;
             document.querySelector('.game-container')?.classList.remove('mp-wide');
+            const gc = document.getElementById('gameCanvas');
+            if (gc) { gc.width = 400; gc.height = 600; canvas.width = 400; canvas.height = 600; pipeGap = 170; }
             mpEndMatchUI();
             document.getElementById('mpModal').classList.remove('active');
             mpShowView('mpViewHome');
@@ -2200,6 +2208,15 @@
             mpMatchActive = true;
             if (seed !== undefined) window.mpSharedSeed = seed;
             document.querySelector('.game-container')?.classList.add('mp-wide');
+            // Expand canvas resolution for wider display — more visible game area
+            const gc = document.getElementById('gameCanvas');
+            if (gc) {
+                gc.width = 560;   // wider game world, not just CSS stretch
+                gc.height = 600;
+                canvas.width = 560;
+                canvas.height = 600;
+                pipeGap = 200;    // slightly wider gap at the wider resolution
+            }
             // Clear all cheats when entering multiplayer
             cheats.godmode = false; cheats.coinlord = false; cheats.slowmo = false; cheats.bigbird = false;
             updateCheatIndicators();
@@ -2290,6 +2307,13 @@
         function mpShowMatchOver(results, winnerActor, endMode) {
             mpMatchActive = false;
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
+            // Play win or lose sound
+            if (winnerActor === mpLocalActor) {
+                playSound(victorySound);
+            } else if (winnerActor !== null) {
+                // Only play fail if there was an actual winner (not a host-end-game with no winner)
+                playSound(failSound);
+            }
             // Coinrush: award doubled coins to local player
             if ((endMode || mpMatchMode) === 'coinrush') {
                 const myCoins = mpCoinRushCoins[mpLocalActor] || 0;
@@ -2373,6 +2397,9 @@
         function mpEndMatchUI() {
             document.querySelector('.game-container')?.classList.remove('mp-wide');
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
+            // Restore canvas to single-player size
+            const gc = document.getElementById('gameCanvas');
+            if (gc) { gc.width = 400; gc.height = 600; canvas.width = 400; canvas.height = 600; pipeGap = 170; }
             document.getElementById('mpHud').classList.remove('active');
             document.getElementById('mpChatToggleBtn').classList.remove('active');
             document.getElementById('mpChatPanel').classList.remove('active');
