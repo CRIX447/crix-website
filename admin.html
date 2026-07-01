@@ -224,6 +224,18 @@ function showPanel(user) {
     document.getElementById('adminName').textContent = user.displayName || user.email || 'Admin';
     if (user.photoURL) document.getElementById('adminAvatar').src = user.photoURL;
     document.getElementById('signOutBtn').onclick = () => auth.signOut();
+
+    // Add Firestore rules reminder if needed
+    const rulesNote = document.createElement('div');
+    rulesNote.id = 'rulesNote';
+    rulesNote.style.cssText = 'background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.4);border-radius:12px;padding:10px 14px;font-size:11px;color:#aaa;margin-bottom:16px;line-height:1.7;';
+    rulesNote.innerHTML = `⚠️ <strong style="color:#FFB347;">If reports/players don't load:</strong> Your Firestore security rules must allow authenticated reads on <code>reports</code>, <code>users</code>, and <code>bans</code> collections. In the <a href="https://console.firebase.google.com" target="_blank" style="color:var(--green);">Firebase Console</a> → Firestore → Rules, add:<br>
+    <code style="background:rgba(0,0,0,0.4);padding:6px 10px;border-radius:8px;display:block;margin-top:6px;font-size:10px;white-space:pre;">match /reports/{id} { allow read, write: if request.auth != null; }
+match /users/{id} { allow read, write: if request.auth != null; }
+match /bans/{id} { allow read, write: if request.auth != null; }</code>`;
+    const statsRow = document.getElementById('statsRow');
+    statsRow.parentNode.insertBefore(rulesNote, statsRow);
+
     loadStats();
     loadTab('reports');
     document.querySelectorAll('.tab').forEach(t => t.onclick = () => { currentTab = t.dataset.tab; document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active')); t.classList.add('active'); loadTab(t.dataset.tab); });
@@ -233,21 +245,26 @@ async function loadStats() {
     const row = document.getElementById('statsRow');
     try {
         const [reports, players, bans] = await Promise.all([
-            db.collection('reports').get(),
-            db.collection('users').get(),
-            db.collection('bans').get()
+            db.collection('reports').limit(500).get(),
+            db.collection('users').limit(500).get(),
+            db.collection('bans').limit(500).get()
         ]);
-        // Check expired bans
         const now = Date.now();
-        const activeBans = bans.docs.filter(d => { const b = d.data(); return !b.expiresAt || b.expiresAt.toMillis() > now; });
-        const pending = reports.docs.filter(d => d.data().status === 'pending').length;
+        const activeBans = bans.docs.filter(d => {
+            const b = d.data();
+            return !b.expiresAt || (b.expiresAt.toMillis && b.expiresAt.toMillis() > now);
+        });
+        const pending = reports.docs.filter(d => (d.data().status || 'pending') === 'pending').length;
         row.innerHTML = [
             {n: reports.size, l: '📋 Total Reports'},
             {n: pending, l: '🔴 Pending'},
             {n: players.size, l: '👥 Players'},
             {n: activeBans.length, l: '🔨 Active Bans'},
         ].map(s => `<div class="stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join('');
-    } catch(e) { row.innerHTML = ''; }
+    } catch(e) {
+        row.innerHTML = `<div style="color:#FF4655;font-size:12px;padding:10px;">⚠️ Stats error: ${esc(e.message)} — check Firestore rules allow authenticated reads.</div>`;
+        console.error('loadStats error:', e);
+    }
 }
 
 async function loadTab(tab) {
@@ -263,11 +280,27 @@ async function loadTab(tab) {
 
 async function loadReports(content) {
     try {
-        const snap = await db.collection('reports').orderBy('timestamp','desc').limit(100).get();
+        // Don't use orderBy — avoids needing a Firestore composite index.
+        // Fetch all, sort client-side by timestamp descending.
+        const snap = await db.collection('reports').limit(200).get();
         if (snap.empty) { content.innerHTML = '<div class="empty">No reports yet. 🎉</div>'; return; }
-        allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+        allData = snap.docs
+            .map(d => ({id:d.id,...d.data()}))
+            .sort((a,b) => {
+                const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+                const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+                return tb - ta;
+            });
         renderReports(content, allData);
-    } catch(e) { content.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
+    } catch(e) {
+        content.innerHTML = `<div class="empty" style="color:#FF4655;">
+            ⚠️ Error loading reports: <strong>${esc(e.message)}</strong><br><br>
+            <span style="font-size:11px;color:#888;">This is usually a Firestore security rules issue.<br>
+            Make sure your Firestore rules allow admin reads on the <code>reports</code> collection when authenticated.</span><br><br>
+            <button class="btn btn-orange" onclick="loadTab('reports')" style="margin-top:8px;">RETRY</button>
+        </div>`;
+        console.error('loadReports error:', e);
+    }
 }
 
 function renderReports(content, data) {
@@ -291,11 +324,16 @@ function renderReports(content, data) {
 
 async function loadPlayers(content) {
     try {
-        const snap = await db.collection('users').orderBy('highScore','desc').limit(100).get();
+        const snap = await db.collection('users').limit(200).get();
         if (snap.empty) { content.innerHTML = '<div class="empty">No players yet.</div>'; return; }
-        allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+        allData = snap.docs
+            .map(d => ({id:d.id,...d.data()}))
+            .sort((a,b) => (b.highScore||0) - (a.highScore||0));
         renderPlayers(content, allData);
-    } catch(e) { content.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
+    } catch(e) {
+        content.innerHTML = `<div class="empty" style="color:#FF4655;">⚠️ Error: ${esc(e.message)}<br><button class="btn btn-orange" onclick="loadTab('players')" style="margin-top:8px;">RETRY</button></div>`;
+        console.error('loadPlayers error:', e);
+    }
 }
 
 function renderPlayers(content, data) {
@@ -313,11 +351,20 @@ function renderPlayers(content, data) {
 
 async function loadBans(content) {
     try {
-        const snap = await db.collection('bans').orderBy('timestamp','desc').limit(100).get();
+        const snap = await db.collection('bans').limit(200).get();
         if (snap.empty) { content.innerHTML = '<div class="empty">No bans.</div>'; return; }
-        allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+        allData = snap.docs
+            .map(d => ({id:d.id,...d.data()}))
+            .sort((a,b) => {
+                const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+                const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+                return tb - ta;
+            });
         renderBans(content, allData);
-    } catch(e) { content.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
+    } catch(e) {
+        content.innerHTML = `<div class="empty" style="color:#FF4655;">⚠️ Error: ${esc(e.message)}<br><button class="btn btn-orange" onclick="loadTab('bans')" style="margin-top:8px;">RETRY</button></div>`;
+        console.error('loadBans error:', e);
+    }
 }
 
 function renderBans(content, data) {
@@ -397,13 +444,19 @@ async function submitBan() {
 
 async function viewReportHistory(name) {
     try {
-        const snap = await db.collection('reports').where('reportedName', '==', name).orderBy('timestamp','desc').get();
+        const snap = await db.collection('reports').where('reportedName', '==', name).limit(50).get();
         const content = document.getElementById('content');
         if (snap.empty) { toast('No reports found for ' + name); return; }
-        const data = snap.docs.map(d => ({id:d.id,...d.data()}));
+        const data = snap.docs
+            .map(d => ({id:d.id,...d.data()}))
+            .sort((a,b) => {
+                const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
+                const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
+                return tb - ta;
+            });
         renderReports(content, data);
         toast(`Showing ${data.length} report(s) for ${name}`);
-    } catch(e) { toast('Error: ' + e.message); }
+    } catch(e) { toast('Error: ' + e.message); console.error(e); }
 }
 
 async function loadIPs(content) {
