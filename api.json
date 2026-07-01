@@ -16,5 +16,9 @@
     "appVersion": "1.0",
     "region": "us",
     "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
+  },
+  "discord": {
+    "clientId": "REPLACE_WITH_YOUR_DISCORD_CLIENT_ID",
+    "redirectUri": "https://crixgamingvr.vercel.app/game.html"
   }
 }
