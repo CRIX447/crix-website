@@ -69,9 +69,60 @@ header h1{color:var(--red);font-size:20px;letter-spacing:3px;text-transform:uppe
 .loading{text-align:center;color:#555;padding:30px;font-size:12px;}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--dark);border:2px solid var(--green);border-radius:12px;padding:10px 18px;font-size:12px;z-index:9999;animation:slideIn .3s ease;}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+/* ban modal */
+.ban-modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.88);z-index:9000;align-items:center;justify-content:center;padding:20px;}
+.ban-modal.open{display:flex;}
+.ban-modal-content{background:#0F0F17;border:3px solid var(--red);border-bottom:5px solid rgba(150,20,35,0.7);border-radius:22px;padding:24px;max-width:420px;width:100%;}
+.ban-modal h3{color:var(--red);text-transform:uppercase;letter-spacing:1px;font-size:15px;margin-bottom:16px;word-break:break-all;}
+.ban-field{margin-bottom:12px;}
+.ban-field label{display:block;font-size:11px;color:#aaa;text-transform:uppercase;margin-bottom:5px;}
+.ban-field select,.ban-field input,.ban-field textarea{width:100%;background:rgba(0,0,0,0.5);border:2px solid var(--orange);border-radius:12px;padding:8px 14px;color:white;font-family:inherit;font-size:13px;}
+.ban-field select:focus,.ban-field input:focus,.ban-field textarea:focus{outline:none;border-color:var(--green);}
+.ban-field textarea{height:70px;resize:none;}
+.ban-modal-btns{display:flex;gap:8px;margin-top:16px;}
 </style>
 </head>
 <body>
+
+<!-- BAN / TIMEOUT MODAL -->
+<div class="ban-modal" id="banModal">
+    <div class="ban-modal-content">
+        <h3 id="banModalTitle">BAN / TIMEOUT</h3>
+        <div class="ban-field"><label>Action Type</label>
+            <select id="banType"><option value="ban">🔨 Ban (permanent or timed)</option><option value="timeout">⏱️ Timeout (mute from game)</option></select>
+        </div>
+        <div class="ban-field"><label>Duration</label>
+            <select id="banDuration" onchange="document.getElementById('banCustomHours').style.display=this.value==='custom'?'block':'none'">
+                <option value="permanent">Permanent</option>
+                <option value="1">1 hour</option>
+                <option value="6">6 hours</option>
+                <option value="24">24 hours</option>
+                <option value="72">3 days</option>
+                <option value="168">7 days</option>
+                <option value="720">30 days</option>
+                <option value="custom">Custom...</option>
+            </select>
+            <input type="number" id="banCustomHours" placeholder="Hours" min="1" style="display:none;margin-top:6px;">
+        </div>
+        <div class="ban-field"><label>Reason</label>
+            <select id="banReason">
+                <option value="Cheating / Exploiting">Cheating / Exploiting</option>
+                <option value="Harassment / Toxic behaviour">Harassment / Toxic behaviour</option>
+                <option value="Spam / Flooding chat">Spam / Flooding chat</option>
+                <option value="Inappropriate name or content">Inappropriate name or content</option>
+                <option value="Evading a previous ban">Evading a previous ban</option>
+                <option value="Manual admin action">Manual admin action</option>
+            </select>
+        </div>
+        <div class="ban-field"><label>Notes (optional)</label>
+            <textarea id="banNotes" placeholder="Any extra context..."></textarea>
+        </div>
+        <div class="ban-modal-btns">
+            <button class="btn btn-gray" onclick="closeBanModal()" style="flex:1;padding:10px;">CANCEL</button>
+            <button class="btn btn-red" onclick="submitBan()" style="flex:2;padding:10px;font-size:13px;">APPLY</button>
+        </div>
+    </div>
+</div>
 
 <!-- ACCESS GATE -->
 <div id="gate">
@@ -186,12 +237,15 @@ async function loadStats() {
             db.collection('users').get(),
             db.collection('bans').get()
         ]);
+        // Check expired bans
+        const now = Date.now();
+        const activeBans = bans.docs.filter(d => { const b = d.data(); return !b.expiresAt || b.expiresAt.toMillis() > now; });
         const pending = reports.docs.filter(d => d.data().status === 'pending').length;
         row.innerHTML = [
             {n: reports.size, l: '📋 Total Reports'},
             {n: pending, l: '🔴 Pending'},
             {n: players.size, l: '👥 Players'},
-            {n: bans.size, l: '🔨 Bans'},
+            {n: activeBans.length, l: '🔨 Active Bans'},
         ].map(s => `<div class="stat-card"><div class="num">${s.n}</div><div class="lbl">${s.l}</div></div>`).join('');
     } catch(e) { row.innerHTML = ''; }
 }
@@ -208,86 +262,177 @@ async function loadTab(tab) {
 }
 
 async function loadReports(content) {
-    const snap = await db.collection('reports').orderBy('timestamp','desc').limit(100).get();
-    if (snap.empty) { content.innerHTML = '<div class="empty">No reports yet. 🎉</div>'; return; }
-    allData = snap.docs.map(d => ({id:d.id,...d.data()}));
-    renderReports(content, allData);
+    try {
+        const snap = await db.collection('reports').orderBy('timestamp','desc').limit(100).get();
+        if (snap.empty) { content.innerHTML = '<div class="empty">No reports yet. 🎉</div>'; return; }
+        allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+        renderReports(content, allData);
+    } catch(e) { content.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
 }
 
 function renderReports(content, data) {
+    if (!data.length) { content.innerHTML = '<div class="empty">No results.</div>'; return; }
     content.innerHTML = data.map(r => {
         const ts = r.timestamp?.toDate ? r.timestamp.toDate().toLocaleString() : '?';
         const badge = `<span class="badge badge-${r.status||'pending'}">${r.status||'pending'}</span>`;
-        return `<div class="card" data-search="${esc(r.reportedName)} ${esc(r.reporterName)} ${r.reason}">
+        return `<div class="card" data-search="${esc(r.reportedName)} ${esc(r.reporterName)} ${esc(r.reason)}">
             <div class="card-title">🚨 ${esc(r.reportedName)} — ${esc(r.reason)} ${badge}</div>
-            <div class="card-meta">Reported by ${esc(r.reporterName)} · ${ts} · Room: ${esc(r.roomCode||'?')}</div>
+            <div class="card-meta">Reported by <strong>${esc(r.reporterName)}</strong> · ${ts} · Room: ${esc(r.roomCode||'?')}</div>
             ${r.details ? `<div class="card-details">"${esc(r.details)}"</div>` : ''}
             <div class="action-row">
                 <button class="btn btn-green" onclick="resolveReport('${r.id}')">✓ RESOLVE</button>
-                <button class="btn btn-red" onclick="banPlayer('${esc(r.reportedName)}','${r.id}')">🔨 BAN</button>
+                <button class="btn btn-orange" onclick="openBanModal('${esc(r.reportedName)}','${r.id}')">🔨 BAN/TIMEOUT</button>
                 <button class="btn btn-gray" onclick="dismissReport('${r.id}')">✕ DISMISS</button>
+                <button class="btn btn-orange" onclick="viewReportHistory('${esc(r.reportedName)}')">📋 HISTORY</button>
             </div>
         </div>`;
-    }).join('') || '<div class="empty">No results.</div>';
+    }).join('');
 }
 
 async function loadPlayers(content) {
-    const snap = await db.collection('users').orderBy('highScore','desc').limit(100).get();
-    if (snap.empty) { content.innerHTML = '<div class="empty">No players yet.</div>'; return; }
-    allData = snap.docs.map(d => ({id:d.id,...d.data()}));
-    renderPlayers(content, allData);
+    try {
+        const snap = await db.collection('users').orderBy('highScore','desc').limit(100).get();
+        if (snap.empty) { content.innerHTML = '<div class="empty">No players yet.</div>'; return; }
+        allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+        renderPlayers(content, allData);
+    } catch(e) { content.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
 }
+
 function renderPlayers(content, data) {
+    if (!data.length) { content.innerHTML = '<div class="empty">No results.</div>'; return; }
     content.innerHTML = data.map(u => `<div class="card" data-search="${esc(u.displayName)} ${u.id}">
         <div class="card-title">👤 ${esc(u.displayName||'Unknown')}</div>
-        <div class="card-meta">UID: ${u.id} · High Score: ${u.highScore||0} · Coins: ${u.coinCount||0}</div>
+        <div class="card-meta">UID: <code>${esc(u.id)}</code> · High Score: <strong>${u.highScore||0}</strong> · Coins: ${u.coinCount||0} · Games: ${u.gamesPlayed||0}</div>
+        ${u.photoURL ? `<div style="margin:4px 0;"><img src="${esc(u.photoURL)}" style="width:28px;height:28px;border-radius:50%;border:1px solid #555;"></div>` : ''}
         <div class="action-row">
-            <button class="btn btn-red" onclick="banPlayer('${esc(u.displayName||'')}','')">🔨 BAN</button>
+            <button class="btn btn-orange" onclick="openBanModal('${esc(u.displayName||'?')}','','${esc(u.id)}')">🔨 BAN/TIMEOUT</button>
+            <button class="btn btn-orange" onclick="viewReportHistory('${esc(u.displayName||'')}')">📋 REPORT HISTORY</button>
         </div>
-    </div>`).join('') || '<div class="empty">No results.</div>';
+    </div>`).join('');
 }
 
 async function loadBans(content) {
-    const snap = await db.collection('bans').orderBy('timestamp','desc').limit(100).get();
-    if (snap.empty) { content.innerHTML = '<div class="empty">No bans.</div>'; return; }
-    allData = snap.docs.map(d => ({id:d.id,...d.data()}));
-    renderBans(content, allData);
+    try {
+        const snap = await db.collection('bans').orderBy('timestamp','desc').limit(100).get();
+        if (snap.empty) { content.innerHTML = '<div class="empty">No bans.</div>'; return; }
+        allData = snap.docs.map(d => ({id:d.id,...d.data()}));
+        renderBans(content, allData);
+    } catch(e) { content.innerHTML = `<div class="empty">Error: ${esc(e.message)}</div>`; }
 }
+
 function renderBans(content, data) {
+    const now = Date.now();
+    if (!data.length) { content.innerHTML = '<div class="empty">No results.</div>'; return; }
     content.innerHTML = data.map(b => {
         const ts = b.timestamp?.toDate ? b.timestamp.toDate().toLocaleString() : '?';
-        return `<div class="card" data-search="${esc(b.name)}">
-            <div class="card-title"><span class="badge badge-banned">BANNED</span> ${esc(b.name)}</div>
-            <div class="card-meta">${ts} · Reason: ${esc(b.reason||'Manual ban')}</div>
+        const isActive = !b.expiresAt || b.expiresAt.toMillis() > now;
+        const expStr = b.expiresAt
+            ? (isActive ? `⏱️ Expires ${b.expiresAt.toDate().toLocaleString()}` : '✅ Expired')
+            : '♾️ Permanent';
+        const btype = b.type === 'timeout' ? '⏱️ TIMEOUT' : '🔨 BAN';
+        return `<div class="card" data-search="${esc(b.name)} ${esc(b.reason)}">
+            <div class="card-title">
+                <span class="badge badge-${isActive?'banned':'dismissed'}">${btype}</span>
+                ${esc(b.name)}
+            </div>
+            <div class="card-meta">
+                Issued: ${ts} · ${expStr}<br>
+                Reason: <em>${esc(b.reason||'Manual action')}</em>
+                ${b.uid ? ` · UID: <code>${esc(b.uid)}</code>` : ''}
+            </div>
             <div class="action-row">
-                <button class="btn btn-green" onclick="unban('${b.id}')">✓ UNBAN</button>
+                ${isActive ? `<button class="btn btn-green" onclick="unban('${b.id}')">✓ UNBAN/UNTIMEOUT</button>` : ''}
+                <button class="btn btn-orange" onclick="openBanModal('${esc(b.name)}','','${esc(b.uid||'')}')">EDIT</button>
             </div>
         </div>`;
-    }).join('') || '<div class="empty">No results.</div>';
+    }).join('');
+}
+
+// ---- BAN MODAL ----
+let _banModalTarget = { name: '', reportId: '', uid: '' };
+
+function openBanModal(name, reportId, uid) {
+    _banModalTarget = { name: name || '', reportId: reportId || '', uid: uid || '' };
+    document.getElementById('banModalTitle').textContent = 'BAN / TIMEOUT: ' + (name || 'Player');
+    document.getElementById('banReason').value = '';
+    document.getElementById('banDuration').value = 'permanent';
+    document.getElementById('banCustomHours').style.display = 'none';
+    document.getElementById('banCustomHours').value = '24';
+    document.getElementById('banType').value = 'ban';
+    document.getElementById('banModal').style.display = 'flex';
+}
+
+function closeBanModal() { document.getElementById('banModal').style.display = 'none'; }
+
+async function submitBan() {
+    const reason = document.getElementById('banReason').value.trim() || 'Admin action';
+    const duration = document.getElementById('banDuration').value;
+    const type = document.getElementById('banType').value;
+    const { name, reportId, uid } = _banModalTarget;
+
+    let expiresAt = null;
+    if (duration !== 'permanent') {
+        const hours = duration === 'custom' ? parseInt(document.getElementById('banCustomHours').value) || 24 : parseInt(duration);
+        expiresAt = new Date(Date.now() + hours * 3600000);
+    }
+
+    const banDoc = {
+        name,
+        uid: uid || null,
+        reason,
+        type,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+        expiresAt: expiresAt ? firebase.firestore.Timestamp.fromDate(expiresAt) : null
+    };
+
+    try {
+        await db.collection('bans').add(banDoc);
+        if (reportId) await db.collection('reports').doc(reportId).update({ status: 'resolved' });
+        closeBanModal();
+        toast(`${type === 'timeout' ? 'Timeout' : 'Ban'} applied to ${name}.`);
+        loadStats();
+        loadTab(currentTab);
+    } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function viewReportHistory(name) {
+    try {
+        const snap = await db.collection('reports').where('reportedName', '==', name).orderBy('timestamp','desc').get();
+        const content = document.getElementById('content');
+        if (snap.empty) { toast('No reports found for ' + name); return; }
+        const data = snap.docs.map(d => ({id:d.id,...d.data()}));
+        renderReports(content, data);
+        toast(`Showing ${data.length} report(s) for ${name}`);
+    } catch(e) { toast('Error: ' + e.message); }
 }
 
 async function loadIPs(content) {
-    // Load current ip.json and render with add/remove
     let ipList = [];
     try { const r = await fetch('ip.json'); const j = await r.json(); ipList = j.adminIPs || []; } catch(e) {}
     content.innerHTML = `
-        <div style="color:#aaa;font-size:12px;margin-bottom:12px;">These IPs can access the admin panel. Changes here update <strong>ip.json</strong> — you must manually update the file on your server as this is a static site.</div>
+        <div style="color:#aaa;font-size:12px;margin-bottom:12px;">Admin IPs loaded from <code>ip.json</code>. This file must be manually updated in your repository and redeployed to take effect on the live site.</div>
         <div class="ip-list" id="ipListEl">${ipList.map((ip,i) => `<div class="ip-item"><span>${esc(ip)}</span><button class="btn btn-red" onclick="removeIPDisplay(${i})">REMOVE</button></div>`).join('')||'<div class="empty">No IPs configured.</div>'}</div>
         <div class="add-ip-row">
-            <input class="add-ip-input" id="newIPInput" placeholder="Enter IP address...">
-            <button class="btn btn-green" onclick="addIPDisplay()">ADD IP</button>
+            <input class="add-ip-input" id="newIPInput" placeholder="e.g. 120.158.13.134">
+            <button class="btn btn-green" onclick="addIPDisplay()">ADD</button>
+        </div>
+        <div style="margin-top:12px;">
+            <button class="btn btn-orange" onclick="copyIPJSON()">📋 COPY ip.json</button>
+            <span style="color:#666;font-size:10px;margin-left:8px;">Then paste into your ip.json file and redeploy</span>
         </div>
         <div style="margin-top:14px;padding:12px;background:rgba(255,165,0,0.05);border:1px solid rgba(255,165,0,0.3);border-radius:12px;font-size:11px;color:#aaa;line-height:1.7;">
-            ⚠️ <strong style="color:#FFB347;">Important:</strong> This panel cannot directly write to <code>ip.json</code> since this is a static site without a server. After adding/removing IPs here, copy the updated list and update <code>ip.json</code> in your repository manually, then redeploy.
+            ⚠️ Static site limitation: IP changes cannot be saved automatically. Use the copy button above to get the updated JSON, then update <code>ip.json</code> in your GitHub repo and redeploy on Vercel.
         </div>`;
     window._currentIPList = [...ipList];
 }
 
-let _ipListTemp = [];
-function removeIPDisplay(idx) {
-    window._currentIPList.splice(idx, 1);
-    renderIPList();
+function copyIPJSON() {
+    const json = JSON.stringify({ adminIPs: window._currentIPList || [], _note: "Add IPs here to grant admin panel access." }, null, 2);
+    navigator.clipboard?.writeText(json).then(() => toast('ip.json copied to clipboard!')).catch(() => toast('Copy failed — select and copy manually:\n' + json));
 }
+
+let _ipListTemp = [];
+function removeIPDisplay(idx) { window._currentIPList.splice(idx, 1); renderIPList(); }
 function addIPDisplay() {
     const ip = document.getElementById('newIPInput').value.trim();
     if (!ip) return;
@@ -295,12 +440,12 @@ function addIPDisplay() {
     if (!window._currentIPList.includes(ip)) window._currentIPList.push(ip);
     document.getElementById('newIPInput').value = '';
     renderIPList();
-    toast(`IP ${ip} added to list. Remember to update ip.json manually!`);
+    toast(`IP ${ip} added. Click "COPY ip.json" and update your repository.`);
 }
 function renderIPList() {
     const el = document.getElementById('ipListEl');
     if (!el) return;
-    el.innerHTML = window._currentIPList.length
+    el.innerHTML = window._currentIPList?.length
         ? window._currentIPList.map((ip,i) => `<div class="ip-item"><span>${esc(ip)}</span><button class="btn btn-red" onclick="removeIPDisplay(${i})">REMOVE</button></div>`).join('')
         : '<div class="empty">No IPs configured.</div>';
 }
@@ -322,17 +467,9 @@ async function dismissReport(id) {
     toast('Report dismissed.');
     loadTab('reports');
 }
-async function banPlayer(name, reportId) {
-    if (!confirm(`Ban "${name}"?`)) return;
-    await db.collection('bans').add({ name, reason: 'Admin ban', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-    if (reportId) await db.collection('reports').doc(reportId).update({ status: 'resolved' });
-    toast(`${name} banned.`);
-    loadStats();
-    loadTab('reports');
-}
 async function unban(id) {
     await db.collection('bans').doc(id).delete();
-    toast('Player unbanned.');
+    toast('Player unbanned/untimeout.');
     loadStats();
     loadTab('bans');
 }
@@ -341,7 +478,7 @@ function toast(msg) {
     const t = document.createElement('div');
     t.className = 'toast'; t.textContent = msg;
     document.body.appendChild(t);
-    setTimeout(() => t.remove(), 2500);
+    setTimeout(() => t.remove(), 3000);
 }
 
 init();
