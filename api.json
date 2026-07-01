@@ -19,6 +19,6 @@
   },
   "discord": {
     "clientId": "1521661170438635644",
-    "redirectUri": "https://discord.com/oauth2/authorize?client_id=1521661170438635644&response_type=code&redirect_uri=https%3A%2F%2Fcrixgamingvr.vercel.app%2Fgame.html&scope=guilds.join+identify+email"
+    "redirectUri": "https://discord.com/oauth2/authorize?client_id=1521661170438635644&response_type=code&redirect_uri=https%3A%2F%2Fcrixgamingvr.vercel.app%2Fgame.html&scope=guilds.join"
   }
 }
