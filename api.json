@@ -19,6 +19,6 @@
   },
   "discord": {
     "clientId": "1491621999683047604",
-    "redirectUri": ""
+    "redirectUri": "https://crixgamingvr.vercel.app/game.html"
   }
 }
