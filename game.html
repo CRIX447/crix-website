@@ -1175,6 +1175,24 @@
     <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
     
     <script>
+        // CanvasRenderingContext2D.roundRect polyfill for older browsers
+        if (!CanvasRenderingContext2D.prototype.roundRect) {
+            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+                r = Math.min(r, w/2, h/2);
+                this.moveTo(x+r, y);
+                this.lineTo(x+w-r, y);
+                this.arcTo(x+w, y, x+w, y+r, r);
+                this.lineTo(x+w, y+h-r);
+                this.arcTo(x+w, y+h, x+w-r, y+h, r);
+                this.lineTo(x+r, y+h);
+                this.arcTo(x, y+h, x, y+h-r, r);
+                this.lineTo(x, y+r);
+                this.arcTo(x, y, x+r, y, r);
+                this.closePath();
+                return this;
+            };
+        }
+
         // ===== LOAD CONFIG FROM api.json =====
         const FALLBACK_FIREBASE_CONFIG = {
             apiKey: "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
@@ -1538,10 +1556,8 @@
         function startGame(){ if(gameRunning && animationId) cancelAnimationFrame(animationId); resetGame(); gameRunning=true; gameOver=false; gamesPlayed++; animationId=requestAnimationFrame(gameLoop); if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); } selectSound.play(); checkAchievements(); if (typeof mpOnLocalStart === 'function') mpOnLocalStart(); }
         function updateHighScore(){
             if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
-            // Play fail sound in single player (not MP — MP handles it in matchover)
-            if (!mpMatchActive && !mpCurrentRoom) {
-                setTimeout(() => playSound(failSound), 150); // short delay after deathSound
-            }
+            // Note: fail sound only plays at end of MP match, not on individual deaths.
+            // Victory sound plays in single player only on score=1000 (handled in updateGame).
         }
         function checkAchievements(){ let unlocked=false; if(!achievements[0].unlocked && gamesPlayed>=1){ achievements[0].unlocked=true; unlocked=true; } if(!achievements[1].unlocked){ achievements[1].progress=Math.min(coinCount,100); if(coinCount>=100){ achievements[1].unlocked=true; unlocked=true; } } if(!achievements[2].unlocked && score>=50){ achievements[2].unlocked=true; unlocked=true; } if(!achievements[3].unlocked && score>=100){ achievements[3].unlocked=true; unlocked=true; } if(!achievements[4].unlocked && hasTriggered67){ achievements[4].unlocked=true; unlocked=true; } if(!achievements[5].unlocked && hasTriggered1000){ achievements[5].unlocked=true; unlocked=true; } if(unlocked){ achSound.play(); updateAchievementCount(); autoSave(); } }
         function jump(){ if(!gameRunning||gameOver) return; bird.velocity=bird.jump; playSound(jumpSound); if (typeof mpSendJump === 'function') mpSendJump(); }
@@ -1641,6 +1657,8 @@
 
         function setupAuthAfterConfig() {
             if (!auth) { loadFromLocal(); return; }
+            // Handle Discord OAuth callback now that Firebase is ready
+            handleDiscordCallback();
             auth.onAuthStateChanged((user) => {
                 currentUser = user;
                 if (user) {
@@ -1690,53 +1708,68 @@
         const discordSignInBtnEl = document.getElementById('discordSignInBtn');
         async function handleDiscordCallback() {
             const hash = window.location.hash;
-            if (!hash.includes('access_token')) return;
+            if (!hash || !hash.includes('access_token')) return;
             const params = new URLSearchParams(hash.slice(1));
             const token = params.get('access_token');
             if (!token) return;
-            window.location.hash = ''; // clean URL
+            // Clean URL without triggering navigation
+            try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e) {}
+            console.log('[Discord] Access token found in URL, attempting sign-in...');
             try {
+                if (!auth) { console.error('[Discord] Firebase auth not ready'); return; }
                 // Get Discord user profile
                 const res = await fetch('https://discord.com/api/users/@me', {
                     headers: { Authorization: 'Bearer ' + token }
                 });
+                if (!res.ok) throw new Error('Discord API returned ' + res.status + ' — token may have expired');
                 const discordUser = await res.json();
-                if (!discordUser.id) throw new Error('Failed to fetch Discord profile');
-                // Sign into Firebase anonymously and tag it with Discord info
-                let cred = null;
-                if (auth) {
-                    cred = await auth.signInAnonymously();
-                    const displayName = discordUser.global_name || discordUser.username;
-                    const avatar = discordUser.avatar
-                        ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
-                        : null;
-                    await cred.user.updateProfile({ displayName, photoURL: avatar });
-                    // Store Discord ID in Firestore for reference
-                    if (db) {
-                        await db.collection('users').doc(cred.user.uid).set({
-                            discordId: discordUser.id,
-                            displayName,
-                            photoURL: avatar
-                        }, { merge: true });
-                    }
-                    authModalEl.classList.remove('active');
-                    selectSound.play();
+                if (!discordUser.id) throw new Error('Discord profile fetch failed: ' + JSON.stringify(discordUser));
+                console.log('[Discord] Got profile:', discordUser.username);
+                const displayName = discordUser.global_name || discordUser.username;
+                const avatar = discordUser.avatar
+                    ? `https://cdn.discordapp.com/avatars/${discordUser.id}/${discordUser.avatar}.png`
+                    : null;
+                // Sign into Firebase anonymously and link Discord profile
+                const cred = await auth.signInAnonymously();
+                await cred.user.updateProfile({ displayName, photoURL: avatar });
+                if (db) {
+                    await db.collection('users').doc(cred.user.uid).set({
+                        discordId: discordUser.id,
+                        displayName,
+                        photoURL: avatar
+                    }, { merge: true });
                 }
+                authModalEl.classList.remove('active');
+                playSound(selectSound);
+                console.log('[Discord] Sign-in complete as:', displayName);
             } catch (e) {
-                console.warn('Discord sign-in failed:', e);
-                authErrorSpan.textContent = 'Discord sign-in failed: ' + e.message;
+                console.error('[Discord] Sign-in failed:', e);
+                if (authErrorSpan) authErrorSpan.textContent = 'Discord sign-in failed: ' + e.message;
             }
         }
-        handleDiscordCallback(); // run on page load to catch OAuth redirect
-        discordSignInBtnEl.onclick = () => {
-            const clientId = appConfig.discord?.clientId;
+        // Discord callback runs after Firebase/config is ready (called from setupAuthAfterConfig)
+        discordSignInBtnEl.onclick = async () => {
+            // Re-read api.json in case it wasn't loaded yet
+            let clientId = appConfig.discord?.clientId;
+            let redirectUri = appConfig.discord?.redirectUri;
             if (!clientId || clientId === 'REPLACE_WITH_YOUR_DISCORD_CLIENT_ID') {
-                authErrorSpan.textContent = 'Discord not configured — add clientId to api.json';
+                try {
+                    const r = await fetch('api.json');
+                    const j = await r.json();
+                    clientId = j.discord?.clientId;
+                    redirectUri = j.discord?.redirectUri;
+                    if (j.discord) appConfig.discord = j.discord;
+                } catch(e) {}
+            }
+            if (!clientId || clientId === 'REPLACE_WITH_YOUR_DISCORD_CLIENT_ID') {
+                authErrorSpan.textContent = 'Discord not configured — open api.json and add your Discord Client ID to the "discord" section';
+                console.error('[Discord] clientId not found in api.json. Check that api.json has: "discord": { "clientId": "YOUR_ID_HERE" }');
                 return;
             }
-            const redirectUri = encodeURIComponent(appConfig.discord?.redirectUri || window.location.origin + window.location.pathname);
+            const cleanRedirect = redirectUri || (window.location.origin + window.location.pathname.replace(/\/+$/, '') + '/game.html');
+            console.log('[Discord] Redirecting to OAuth with clientId:', clientId, 'redirectUri:', cleanRedirect);
             const scope = encodeURIComponent('identify');
-            const url = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=token&scope=${scope}`;
+            const url = `https://discord.com/api/oauth2/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(cleanRedirect)}&response_type=token&scope=${scope}`;
             window.location.href = url;
         };
 
@@ -1800,6 +1833,7 @@
         let mpChatGodmodeActive = false;
         let mpTypingTimeout = null;
         let mpSpectating = false;
+        let mpMatchOverShown = false;
         let mpPositionSendCounter = 0;
         let mpVoteKicks = {};   // {targetActor: {votes: Set, timestamp}}
         let mpPermissions = {}; // {actorNr: {canKick, canSettings}}
@@ -1903,6 +1937,15 @@
                     } else if (state === S.Disconnected) {
                         mpConnected = false;
                         mpSetStatusDot('offline');
+                        // Auto-reconnect after 3s if we were previously connected and not in a room
+                        if (!mpCurrentRoom) {
+                            setTimeout(() => {
+                                if (!mpConnected && photonClient) {
+                                    console.log('[Photon] Attempting reconnect...');
+                                    try { photonClient.connectToRegionMaster(appConfig.photon.region || 'us'); } catch(e) {}
+                                }
+                            }, 3000);
+                        }
                     }
                 };
                 photonClient.onRoomList = function() { mpRenderRoomList(); };
@@ -2001,10 +2044,26 @@
         function mpHandleJoinedRoom(createdByMe) {
             const room = photonClient.myRoom();
             const props = room.getCustomProperties ? room.getCustomProperties() : {};
-            mpLocalActor = photonClient.myActor().actorNr;
 
-            // Correct API: myRoomMasterActorNr() instead of isMasterClient()
-            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
+            // actorNr is assigned by server — read it after join, not before
+            // Try multiple sources in case one is -1
+            const myActor = photonClient.myActor();
+            mpLocalActor = (myActor.actorNr && myActor.actorNr > 0) ? myActor.actorNr : null;
+
+            // If still not set, find ourselves in the actors array
+            if (!mpLocalActor) {
+                const actors = photonClient.myRoomActorsArray ? photonClient.myRoomActorsArray() : [];
+                // The last actor in the array is typically the one who just joined
+                if (actors.length > 0) {
+                    // Find by name since we set it before joining
+                    const myName = mpGetDisplayName();
+                    const found = actors.find(a => a.name === myName);
+                    mpLocalActor = found ? found.actorNr : actors[actors.length - 1].actorNr;
+                }
+                if (!mpLocalActor) mpLocalActor = 1; // fallback
+            }
+
+            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : 1;
             mpIsHost = createdByMe || (mpLocalActor === masterNr);
 
             mpCurrentRoom = {
@@ -2020,13 +2079,27 @@
             mpPlayers = {};
             const actors = photonClient.myRoomActorsArray ? photonClient.myRoomActorsArray() : [];
             actors.forEach(a => {
-                mpPlayers[a.actorNr] = {
-                    name: a.name || ('Player' + a.actorNr),
-                    colour: PLAYER_COLOURS[a.actorNr % PLAYER_COLOURS.length],
-                    score: 0, dead: false, x: 100, y: 300, vel: 0,
-                    isHost: a.actorNr === masterNr
+                const nr = a.actorNr;
+                mpPlayers[nr] = {
+                    name: a.name || ('Player' + nr),
+                    colour: PLAYER_COLOURS[nr % PLAYER_COLOURS.length],
+                    score: 0, dead: false,
+                    x: 100, y: 300, vel: 0,    // raw received position
+                    rx: 100, ry: 300, rvel: 0, // rendered (interpolated) position
+                    isHost: nr === masterNr
                 };
             });
+            // Ensure local player entry exists under the correct actorNr
+            if (!mpPlayers[mpLocalActor]) {
+                mpPlayers[mpLocalActor] = {
+                    name: mpGetDisplayName(),
+                    colour: mpGetColour(),
+                    score: 0, dead: false,
+                    x: 100, y: 300, vel: 0,
+                    rx: 100, ry: 300, rvel: 0,
+                    isHost: mpIsHost
+                };
+            }
 
             // Broadcast our own name/colour to others
             mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour() });
@@ -2038,12 +2111,15 @@
 
         function mpHandleActorJoin(actor) {
             if (!mpCurrentRoom) return;
-            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
-            mpPlayers[actor.actorNr] = {
-                name: actor.name || ('Player' + actor.actorNr),
-                colour: PLAYER_COLOURS[actor.actorNr % PLAYER_COLOURS.length],
-                score: 0, dead: false, x: 100, y: 300, vel: 0,
-                isHost: actor.actorNr === masterNr
+            const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : 1;
+            const nr = actor.actorNr;
+            mpPlayers[nr] = {
+                name: actor.name || ('Player' + nr),
+                colour: PLAYER_COLOURS[nr % PLAYER_COLOURS.length],
+                score: 0, dead: false,
+                x: 100, y: 300, vel: 0,
+                rx: 100, ry: 300,   // interpolated render position
+                isHost: nr === masterNr
             };
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             mpRenderLobby();
@@ -2062,10 +2138,15 @@
 
         // ----- RAISE EVENT (correct options format) -----
         function mpRaiseEvent(code, content, options) {
-            if (!photonClient || !photonClient.isJoinedToRoom()) return;
-            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
-            const opts = options || { receivers: RC.Others };
-            photonClient.raiseEvent(code, content, opts);
+            if (!photonClient) return;
+            if (!photonClient.isJoinedToRoom()) return;
+            try {
+                const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                const opts = options || { receivers: RC.Others };
+                photonClient.raiseEvent(code, content, opts);
+            } catch(e) {
+                console.warn('[Photon] raiseEvent failed for code', code, e.message);
+            }
         }
 
         // ----- LOBBY UI -----
@@ -2183,7 +2264,7 @@
         function mpLeaveLobby() {
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
-            mpMatchActive = false; mpSpectating = false;
+            mpMatchActive = false; mpSpectating = false; mpMatchOverShown = false;
             document.querySelector('.game-container')?.classList.remove('mp-wide');
             const gc = document.getElementById('gameCanvas');
             if (gc) { gc.width = 400; gc.height = 600; canvas.width = 400; canvas.height = 600; pipeGap = 170; }
@@ -2206,6 +2287,7 @@
         function mpBeginMatchLocally(mode, seed) {
             mpMatchMode = mode;
             mpMatchActive = true;
+            mpMatchOverShown = false;
             if (seed !== undefined) window.mpSharedSeed = seed;
             document.querySelector('.game-container')?.classList.add('mp-wide');
             // Expand canvas resolution for wider display — more visible game area
@@ -2261,7 +2343,8 @@
             if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].dead = true;
             mpRaiseEvent(MP_EV.DEATH, { finalScore: score });
             if (mpMatchMode === 'freemode' || mpMatchMode === 'coinrush') {
-                // Respawns on in freemode and coinrush
+                // Respawns on in freemode and coinrush — reset the match-over flag so respawn works
+                mpMatchOverShown = false;
                 setTimeout(() => { if (mpMatchActive) startGame(); }, 800);
             } else if (mpMatchMode === 'lastone') {
                 // Enter spectate mode
@@ -2291,6 +2374,7 @@
         }
 
         function mpCheckMatchEndCondition() {
+            if (mpMatchOverShown) return; // already ended
             if (mpMatchMode !== 'lastone') return;
             const alive = Object.entries(mpPlayers).filter(([,p]) => !p.dead);
             if (alive.length <= 1) {
@@ -2305,6 +2389,8 @@
         }
 
         function mpShowMatchOver(results, winnerActor, endMode) {
+            if (mpMatchOverShown) return; // prevent duplicate calls
+            mpMatchOverShown = true;
             mpMatchActive = false;
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
             // Play win or lose sound
@@ -2426,43 +2512,92 @@
         function mpSyncPosition() {
             if (!mpCurrentRoom || !mpMatchActive || mpSpectating) return;
             mpPositionSendCounter++;
-            if (mpPositionSendCounter % 4 !== 0) return;
+            // Send every 2nd frame (~30/s) — balance between smoothness and bandwidth
+            if (mpPositionSendCounter % 2 !== 0) return;
+            // Update local player's own entry in mpPlayers
             if (mpPlayers[mpLocalActor]) {
                 mpPlayers[mpLocalActor].x = bird.x;
                 mpPlayers[mpLocalActor].y = bird.y;
+                mpPlayers[mpLocalActor].rx = bird.x;
+                mpPlayers[mpLocalActor].ry = bird.y;
                 mpPlayers[mpLocalActor].vel = bird.velocity;
             }
-            mpRaiseEvent(MP_EV.POSITION, { x: Math.round(bird.x*10)/10, y: Math.round(bird.y*10)/10, v: Math.round(bird.velocity*100)/100, s: score, d: gameOver?1:0 });
+            // Send compressed payload
+            // Send position — use RC.All so sender also receives confirmation
+            // (helps debug) but normally Others is fine
+            mpRaiseEvent(MP_EV.POSITION, {
+                x: Math.round(bird.x * 10) / 10,
+                y: Math.round(bird.y * 10) / 10,
+                v: Math.round(bird.velocity * 100) / 100,
+                s: score,
+                d: gameOver ? 1 : 0
+            });
         }
 
-        // ----- DRAW OTHER PLAYERS (with name and colour) -----
+        // ----- DRAW OTHER PLAYERS with interpolation -----
         function mpDrawOtherPlayers(context) {
             if (!mpCurrentRoom || !mpMatchActive) return;
+            const LERP = 0.35; // interpolation factor — higher = snappier, lower = smoother
             Object.entries(mpPlayers).forEach(([nr, p]) => {
-                if (parseInt(nr) === mpLocalActor) return;
+                const actorNr = parseInt(nr);
+                if (actorNr === mpLocalActor) return;
+
+                // Interpolate rendered position toward received target
+                if (p.rx === undefined) { p.rx = p.x ?? 100; p.ry = p.y ?? 300; }
+                p.rx += ((p.x ?? p.rx) - p.rx) * LERP;
+                p.ry += ((p.y ?? p.ry) - p.ry) * LERP;
+
                 const birdSize = 26;
+                const alpha = p.dead ? 0.25 : 0.9;
+
                 context.save();
-                context.globalAlpha = p.dead ? 0.25 : 0.9;
-                context.translate(p.x || 100, p.y || 300);
-                // Tint a circle behind the bird in the player's colour
+                context.translate(p.rx, p.ry);
+
+                // Rotate slightly based on velocity for natural arc
+                const rot = Math.min(Math.max((p.vel || 0) * 0.08, -0.45), 0.45);
+                context.rotate(rot);
+
+                // Colour ring behind bird
                 context.beginPath();
-                context.arc(0, 0, birdSize/2+2, 0, Math.PI*2);
+                context.arc(0, 0, birdSize/2 + 3, 0, Math.PI * 2);
                 context.fillStyle = p.colour || '#FF6B35';
-                context.globalAlpha = p.dead ? 0.1 : 0.35;
+                context.globalAlpha = p.dead ? 0.08 : 0.3;
                 context.fill();
-                context.globalAlpha = p.dead ? 0.25 : 0.9;
-                if (birdImage.complete) context.drawImage(birdImage, -birdSize/2, -birdSize/2, birdSize, birdSize);
-                // Name tag
-                context.font = 'bold 9px "CrixCustom", monospace';
-                context.textAlign = 'center';
-                context.fillStyle = p.colour || '#FFD966';
-                context.globalAlpha = p.dead ? 0.3 : 1;
-                context.fillText(p.name || 'Player', 0, -birdSize/2 - 5);
-                if (p.dead) {
-                    context.fillStyle = '#FF4655';
-                    context.font = '10px monospace';
-                    context.fillText('💀', 0, 6);
+
+                // Bird sprite
+                context.globalAlpha = alpha;
+                if (birdImage.naturalWidth > 0) {
+                    context.drawImage(birdImage, -birdSize/2, -birdSize/2, birdSize, birdSize);
+                } else {
+                    // Fallback circle if image not loaded
+                    context.beginPath();
+                    context.arc(0, 0, birdSize/2, 0, Math.PI*2);
+                    context.fillStyle = p.colour || '#FF6B35';
+                    context.fill();
                 }
+
+                // Name tag above bird
+                context.rotate(-rot); // un-rotate for text
+                context.font = 'bold 9px monospace';
+                context.textAlign = 'center';
+                context.globalAlpha = p.dead ? 0.3 : 1;
+
+                // Text background pill
+                const nameText = p.name || 'Player';
+                const textW = context.measureText(nameText).width;
+                context.fillStyle = 'rgba(0,0,0,0.55)';
+                context.beginPath();
+                context.roundRect(-textW/2 - 3, -birdSize/2 - 17, textW + 6, 13, 4);
+                context.fill();
+
+                context.fillStyle = p.colour || '#FFD966';
+                context.fillText(nameText, 0, -birdSize/2 - 7);
+
+                if (p.dead) {
+                    context.font = '11px monospace';
+                    context.fillText('💀', 0, 5);
+                }
+
                 context.textAlign = 'left';
                 context.restore();
             });
@@ -2473,7 +2608,16 @@
             const p = mpPlayers[actorNr];
             switch(code) {
                 case MP_EV.POSITION:
-                    if (p) { p.x = content.x; p.y = content.y; p.vel = content.v; p.score = content.s; p.dead = !!content.d; }
+                    if (p) {
+                        // Store target position for interpolation
+                        p.x = content.x;   // target x
+                        p.y = content.y;   // target y
+                        p.vel = content.v;
+                        p.score = content.s;
+                        p.dead = !!content.d;
+                        // If rx/ry not set yet, snap immediately
+                        if (p.rx === undefined) { p.rx = content.x; p.ry = content.y; }
+                    }
                     break;
                 case MP_EV.DEATH:
                     if (p) { p.dead = true; p.score = content.finalScore; }
@@ -2921,10 +3065,12 @@
         // Match over
         document.getElementById('mpBackToLobbyBtn').addEventListener('click', () => {
             document.getElementById('mpMatchOverOverlay').style.display = 'none';
+            mpMatchOverShown = false;
             if (mpCurrentRoom) { mpMatchActive = false; document.getElementById('mpModal').classList.add('active'); mpShowLobbyView(); mpRenderLobby(); }
         });
         document.getElementById('mpExitToSingleBtn').addEventListener('click', () => {
             document.getElementById('mpMatchOverOverlay').style.display = 'none';
+            mpMatchOverShown = false;
             mpLeaveLobby();
         });
 
