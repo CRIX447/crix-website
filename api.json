@@ -17,10 +17,10 @@
     "region": "us",
     "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
   },
+  
   "discord": {
     "clientId": "1521661170438635644",
-    "redirectUri": "https://crixgamingvr.com/flappycrix"
+    "redirectUri": "https://crixgamingvr.com/flappycrix",
     "clientsecret": "mgfHflpUxhKahllf5RHseoVJjD6KV9nq"
   }
 }
- heres te generated url put it where it needs to be put https://discord.com/oauth2/authorize?client_id=1521661170438635644&response_type=code&redirect_uri=https%3A%2F%2Fcrixgamingvr.com%2Fflappycrix&scope=identify
