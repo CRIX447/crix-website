@@ -20,7 +20,7 @@
   
   "discord": {
     "clientId": "1521661170438635644",
-    "redirectUri": "https://crixgamingvr.com/flappycrix/games.html",
+    "redirectUri": "https://crixgamingvr.com/flappycrix/game.html",
     "clientsecret": "mgfHflpUxhKahllf5RHseoVJjD6KV9nq"
   }
 }
