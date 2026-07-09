@@ -5,7 +5,7 @@
   },
   "firebase": {
     "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
-    "authDomain": "crixgamingvr.com",
+    "authDomain": "app.crixgamingvr.com",
     "projectId": "flappy-crix",
     "storageBucket": "flappy-crix.firebasestorage.app",
     "messagingSenderId": "543002752038",
