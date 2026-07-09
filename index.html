@@ -6,7 +6,7 @@
     <title>CRIXGAMING VR</title>
     <!-- Open Graph / Link Preview -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://crixgamingvr.vercel.app">
+    <meta property="og:url" content="https://crixgamingvr.com">
     <meta property="og:site_name" content="CRIXGAMING VR">
     <meta property="og:title" content="CRIXGAMING VR">
     <meta property="og:description" content="The official CRIXGAMING VR hub. Watch videos, grab merch, play Flappy Crix, and explore all of CRIX's content.">
@@ -512,7 +512,7 @@ body {
             <div class="hero-content">
                 <div class="hero-title">⚡ PLAY FLAPPY CRIX ⚡</div>
                 <div class="hero-description">Dodge pipes, grab coins, unlock cheats, and see how far you can get. Built by CRIX, played by everyone who thinks they can beat his high score.</div>
-                <a href="flappycrix/game.html" target="_blank" class="game-button">🎮 PLAY NOW</a>
+                <a href="https://crixgamingvr.com/flappycrix" target="_blank" class="game-button">🎮 PLAY NOW</a>
             </div>
             <div class="hero-stats">
                 <div class="stat-row">
@@ -564,7 +564,7 @@ body {
         <section class="merch-section">
             <div class="merch-header">
                 <img class="merch-favicon" id="merchFavicon" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png" alt="MERCH" onerror="this.style.display='none'">
-                <h2 class="section-title" style="margin-bottom: 0;">🛒 CYBER MERCH</h2>
+                <h2 class="section-title" style="margin-bottom: 0;">🛒 CRIXGAMING VR SHOP</h2>
                 <img class="merch-favicon" id="merchFavicon2" src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/merchfavicon.png" alt="MERCH" onerror="this.style.display='none'">
             </div>
             <div class="products-grid" id="productsGrid"></div>
@@ -572,7 +572,7 @@ body {
 
         <div class="footer">
             <p>© 2024-2026 CRIXGAMING VR. All systems operational.</p>
-            <p style="margin-top:10px;"><a href="https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all" target="_blank">🛍️ OFFICIAL STORE</a> &nbsp;|&nbsp; <a href="#" id="businessEmailLink">📧 BUSINESS INQUIRIES</a></p>
+            <p style="margin-top:10px;"><a href="https://shop.crixgamingvr.com" target="_blank">🛍️ CRIXGAMING VR SHOP</a> &nbsp;|&nbsp; <a href="#" id="businessEmailLink">📧 BUSINESS INQUIRIES</a></p>
         </div>
     </div>
 
@@ -708,8 +708,10 @@ function renderSocials() {
         socialsGrid.appendChild(card);
     });
 }
-let CHANNEL_ID = 'UCjiqZo0vfIZsn8E50TrOV_g';
-let API_KEY = 'AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk';
+let CHANNEL_ID = '';
+let API_KEY = '';
+// Keys loaded from api.json at runtime — restrict this key in Google Cloud Console
+// to only allow requests from crixgamingvr.com for security
 let siteConfig = null;
 async function loadConfig() {
     try {
@@ -811,10 +813,10 @@ function setupMerchClicks() {
     [merchFavicon, merchFavicon2].forEach(el => {
         if (!el) return;
         el.addEventListener('mouseenter', playHoverSound);
-        el.addEventListener('click', () => { playClickSound(); window.open('https://crixgamingvr-store-shop.fourthwall.com/en-aud/collections/all', '_blank'); });
+        el.addEventListener('click', () => { playClickSound(); window.open('https://shop.crixgamingvr.com', '_blank'); });
     });
 }
-const BUSINESS_EMAIL = 'cgvrbusiness@outlook.com';
+const BUSINESS_EMAIL = 'cgvr@crixgamingvr.com';
 function setupEmailPicker() {
     const link = document.getElementById('businessEmailLink');
     const modal = document.getElementById('emailModal');
