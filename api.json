@@ -19,7 +19,8 @@
   },
   "discord": {
     "clientId": "1521661170438635644",
-    "redirectUri": "https://crixgamingvr.vercel.app/game.html"
+    "redirectUri": "https://crixgamingvr.com/flappycrix"
     "clientsecret": "mgfHflpUxhKahllf5RHseoVJjD6KV9nq"
   }
 }
+ heres te generated url put it where it needs to be put https://discord.com/oauth2/authorize?client_id=1521661170438635644&response_type=code&redirect_uri=https%3A%2F%2Fcrixgamingvr.com%2Fflappycrix&scope=identify
