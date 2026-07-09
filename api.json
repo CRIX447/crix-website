@@ -5,7 +5,7 @@
   },
   "firebase": {
     "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
-    "authDomain": "flappy-crix.firebaseapp.com",
+    "authDomain": "crixgamingvr.com",
     "projectId": "flappy-crix",
     "storageBucket": "flappy-crix.firebasestorage.app",
     "messagingSenderId": "543002752038",
@@ -17,10 +17,8 @@
     "region": "us",
     "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
   },
-  
   "discord": {
-    "clientId": "1521661170438635644",
-    "redirectUri": "https://crixgamingvr.com/flappycrix/game.html",
-    "clientsecret": "mgfHflpUxhKahllf5RHseoVJjD6KV9nq"
+    "clientId": "REPLACE_WITH_YOUR_DISCORD_CLIENT_ID",
+    "redirectUri": "https://crixgamingvr.com/flappycrix"
   }
 }
