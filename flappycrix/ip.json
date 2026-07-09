@@ -1,6 +1,0 @@
-{
-  "adminIPs": [
-    "120.158.13.134"
-  ],
-  "_note": "Add IPs to adminIPs array to grant admin panel access. Remove an IP to revoke access. Deployed to same folder as game.html."
-}
