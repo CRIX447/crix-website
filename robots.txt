@@ -33,3 +33,4 @@ User-agent: *
 Disallow: 
 Disallow: /cgi-bin/
 Sitemap: https://crixgamingvr.com/sitemaps.xml
+    
