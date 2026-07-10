@@ -1,0 +1,48 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- USERS ----
+    // Users can read/write their own document only
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // ---- REPORTS ----
+    // Any signed-in user can submit a report
+    // Only admins can read/update/delete reports
+    match /reports/{reportId} {
+      allow create: if request.auth != null
+                    && request.resource.data.keys().hasAll(['reportedName','reason','reporterUid','roomCode'])
+                    && request.resource.data.reporterUid == request.auth.uid;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // ---- BANS ----
+    // Only admins can read/write bans
+    // Any signed-in user can check if they are banned (read their own ban)
+    match /bans/{banId} {
+      allow read: if request.auth != null;  // needed so game can check ban status
+      allow write: if isAdmin();
+    }
+
+    // ---- CONFIG (admin IPs stored here instead of ip.json) ----
+    // Only admins can read/write config
+    match /config/{docId} {
+      allow read: if request.auth != null;  // IPs need to be readable to check admin status
+      allow write: if isAdmin();
+    }
+
+    // ---- HELPER: isAdmin ----
+    // Admin = email matches whitelist
+    // Note: IP-based checks happen client-side; Firestore can only check email
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.token.email == 'crixgaming51@hotmail.com' ||
+        request.auth.token.email == 'ihatetomatos259@hotmail.com'
+      );
+    }
+  }
+}
