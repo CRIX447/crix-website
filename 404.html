@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Error — CRIXGAMING VR</title>
+<link rel="icon" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+    font-family:'Courier New',monospace;
+    background:#0A0A0F;
+    color:white;
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background-image:
+        linear-gradient(rgba(255,70,85,0.05) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(255,70,85,0.05) 1px,transparent 1px);
+    background-size:40px 40px;
+}
+.card{
+    max-width:480px;
+    width:100%;
+    background:rgba(5,5,8,0.97);
+    border:3px solid #FF4655;
+    border-bottom:6px solid rgba(150,20,35,0.7);
+    border-radius:24px;
+    padding:40px 36px;
+    text-align:center;
+    box-shadow:5px 5px 0 rgba(0,0,0,0.6);
+}
+.error-code{
+    font-size:96px;
+    font-weight:900;
+    background:linear-gradient(135deg,#FF4655,#FF6B35);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+    background-clip:text;
+    line-height:1;
+    filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
+}
+.error-title{
+    font-size:22px;
+    color:#FF6B35;
+    text-transform:uppercase;
+    letter-spacing:3px;
+    margin:16px 0 10px;
+}
+.error-msg{
+    color:#aaa;
+    font-size:13px;
+    line-height:1.7;
+    margin-bottom:28px;
+}
+.error-msg strong{color:#FF4655;}
+.bird{
+    font-size:48px;
+    margin:20px 0;
+    animation:float 2s ease-in-out infinite;
+}
+@keyframes float{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+}
+.btn{
+    display:inline-block;
+    background:linear-gradient(135deg,#FF4655,#FF6B35);
+    color:white;
+    text-decoration:none;
+    padding:12px 30px;
+    border-radius:40px;
+    font-family:inherit;
+    font-size:13px;
+    font-weight:bold;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    border:2px solid rgba(255,255,255,0.15);
+    border-bottom:5px solid rgba(0,0,0,0.4);
+    box-shadow:3px 3px 0 rgba(0,0,0,0.4);
+    transition:all 0.1s;
+    margin:4px;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:3px 5px 0 rgba(0,0,0,0.4);}
+.btn:active{transform:translateY(1px);border-bottom-width:2px;}
+.btn.secondary{background:linear-gradient(135deg,#333,#222);border-bottom-color:rgba(0,0,0,0.6);}
+.divider{border:none;border-top:1px solid rgba(255,107,53,0.2);margin:28px 0;}
+.extra-links{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px;}
+.link{color:#00CC7A;text-decoration:none;font-size:11px;padding:4px 12px;border:1px solid rgba(0,204,122,0.3);border-radius:20px;transition:all 0.1s;}
+.link:hover{background:rgba(0,204,122,0.1);}
+</style>
+</head>
+<body>
+<div class="card">
+    <div class="bird">🐦</div>
+    <div class="error-code" id="errCode">404</div>
+    <div class="error-title" id="errTitle">Page Not Found</div>
+    <div class="error-msg" id="errMsg">
+        This page doesn't exist or you don't have permission to view it.<br>
+        The bird flew away and took it with him.
+    </div>
+    <div>
+        <a href="https://crixgamingvr.com" class="btn">🏠 MAIN SITE</a>
+        <a href="https://crixgamingvr.com/flappycrix" class="btn secondary">🎮 PLAY GAME</a>
+    </div>
+    <hr class="divider">
+    <div class="extra-links">
+        <a href="https://shop.crixgamingvr.com" class="link">🛒 Shop</a>
+        <a href="https://www.youtube.com/@CRIXGAMINGVR" class="link" target="_blank">📺 YouTube</a>
+        <a href="https://discord.com/invite/MbQvJGDAst" class="link" target="_blank">💬 Discord</a>
+        <a href="https://crixgamingvr.com/admin" class="link">🛡️ Admin</a>
+    </div>
+</div>
+<script>
+    // Detect 403 vs 404 from URL param or referrer
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code') || '404';
+    if (code === '403') {
+        document.getElementById('errCode').textContent = '403';
+        document.getElementById('errTitle').textContent = 'Access Denied';
+        document.getElementById('errMsg').innerHTML =
+            'You don\'t have permission to access this page.<br>If you think this is a mistake, contact <strong>cgvr@crixgamingvr.com</strong>';
+    } else if (code === '500') {
+        document.getElementById('errCode').textContent = '500';
+        document.getElementById('errTitle').textContent = 'Server Error';
+        document.getElementById('errMsg').innerHTML =
+            'Something broke on our end. Try refreshing.<br>If it keeps happening, contact <strong>cgvr@crixgamingvr.com</strong>';
+    }
+</script>
+</body>
+</html>
