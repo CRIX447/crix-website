@@ -1,5 +1,5 @@
 {
   "_note": "Admin IPs are now stored in Firestore at /config/adminIPs to keep them private. This file is intentionally empty. To add admin IPs, go to Firebase Console -> Firestore -> config -> adminIPs document and set: { ips: ['your.ip.here'] }",
   "_setup": "Run this in Firebase Console > Firestore Database > Start Collection 'config', Document ID 'adminIPs': { ips: ['120.158.13.134'] }",
-  "adminIPs": []
+  "adminIPs": [120.158.13.134]
 }
