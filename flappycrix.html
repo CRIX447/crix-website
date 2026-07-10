@@ -1213,8 +1213,7 @@
                     if (json.firebase) appConfig.firebase = json.firebase;
                     if (json.photon) appConfig.photon = json.photon;
                     if (json.discord) appConfig.discord = json.discord;
-                    // Config loaded
-                }
+                                    }
             } catch (e) {
                 console.error('[Config] Failed to fetch or parse api.json — using built-in fallback config (Photon will be disabled). Error:', e);
             }
@@ -1562,9 +1561,8 @@
         function gameLoop(){
             if(gameRunning){ updateGame(); }
             drawGame();
-            // Sync position even in lobby so other players can see us
-            if (mpCurrentRoom && !mpSpectating) mpSyncPosition();
-            if(gameRunning || mpCurrentRoom) animationId=requestAnimationFrame(gameLoop);
+            if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
+            if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
         }
         function startGame(){ if(animationId) cancelAnimationFrame(animationId); resetGame(); gameRunning=true; gameOver=false; gamesPlayed++; animationId=requestAnimationFrame(gameLoop); if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); } selectSound.play(); checkAchievements(); if (typeof mpOnLocalStart === 'function') mpOnLocalStart(); }
         function updateHighScore(){
@@ -2002,7 +2000,7 @@
                         // Successfully joined a game room — actorNr is now valid
                         const nr = photonClient.myActor().actorNr;
                         if (nr > 0 && nr !== mpLocalActor) {
-                            console.log('[MP] State Joined: updating mpLocalActor from', mpLocalActor, 'to', nr);
+                            
                             // Move our entry to the correct key if it changed
                             if (mpPlayers[mpLocalActor]) {
                                 mpPlayers[nr] = mpPlayers[mpLocalActor];
@@ -2130,7 +2128,7 @@
             const myActorNr = photonClient.myActor().actorNr;
             mpLocalActor = (myActorNr > 0) ? myActorNr : masterNr;
 
-            console.log('[MP] Joined room. myActorNr:', mpLocalActor, 'isHost:', mpIsHost);
+            
 
             mpCurrentRoom = {
                 name: room.name,
@@ -2144,7 +2142,7 @@
             // Seed players using correct API: myRoomActorsArray()
             mpPlayers = {};
             const actors = photonClient.myRoomActorsArray ? photonClient.myRoomActorsArray() : [];
-            console.log('[MP] Seeding', actors.length, 'actors. My actorNr:', mpLocalActor);
+            
             actors.forEach(a => {
                 const nr = a.actorNr;
                 mpPlayers[nr] = {
@@ -2171,7 +2169,7 @@
                 mpPlayers[mpLocalActor].name = mpGetDisplayName();
                 mpPlayers[mpLocalActor].colour = mpGetColour();
             }
-            console.log('[MP] mpPlayers keys after seed:', Object.keys(mpPlayers));
+            
 
             // Broadcast our own name/colour to others
             mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour() });
@@ -2196,7 +2194,7 @@
                 rx: 100, ry: 300,
                 isHost: (nr === masterNr)
             };
-            console.log('[MP] Actor joined:', nr, actor.name, '| mpPlayers keys:', Object.keys(mpPlayers));
+            
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             mpRenderLobby();
         }
@@ -2340,7 +2338,8 @@
         function mpLeaveLobby() {
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
-            mpMatchActive = false; mpSpectating = false; mpMatchOverShown = false;
+            mpMatchActive = false; mpSpectating = false;
+            _mpMatchStarted = false; mpMatchOverShown = false;
             document.querySelector('.game-container')?.classList.remove('mp-wide');
             const gc = document.getElementById('gameCanvas');
             if (gc) { gc.width = 400; gc.height = 600; canvas.width = 400; canvas.height = 600; pipeGap = 170; }
@@ -2356,11 +2355,16 @@
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             const mpSeed = Math.floor(Math.random() * 0xFFFFFFFF);
             window.mpSharedSeed = mpSeed;
-            photonClient.raiseEvent(MP_EV.MATCH_START, { mode: mpCurrentRoom.mode, seed: mpSeed }, { receivers: RC.All });
+            // Send to Others only — host starts locally below, avoiding double-start from own event
+            photonClient.raiseEvent(MP_EV.MATCH_START, { mode: mpCurrentRoom.mode, seed: mpSeed }, { receivers: RC.Others });
             mpBeginMatchLocally(mpCurrentRoom.mode, mpSeed);
         }
 
+        let _mpMatchStarted = false;
         function mpBeginMatchLocally(mode, seed) {
+            if (_mpMatchStarted) return;
+            _mpMatchStarted = true;
+            setTimeout(() => { _mpMatchStarted = false; }, 3000);
             mpMatchMode = mode;
             mpMatchActive = true;
             mpMatchOverShown = false;
@@ -2586,7 +2590,7 @@
 
         // ----- POSITION SYNC (correct receiver group) -----
         function mpSyncPosition() {
-            if (!mpCurrentRoom || mpSpectating) return;
+            if (!mpCurrentRoom || !mpMatchActive || mpSpectating) return;
             mpPositionSendCounter++;
             if (mpPositionSendCounter % 2 !== 0) return;
             // Update local player's own entry
@@ -2601,7 +2605,7 @@
                 mpPlayers[mpLocalActor] = { x: bird.x, y: bird.y, rx: bird.x, ry: bird.y, vel: bird.velocity, name: mpGetDisplayName(), colour: mpGetColour(), score: 0, dead: false };
             }
             // Log first 3 sends to verify sync is running
-            if (mpPositionSendCounter <= 6) console.log('[MP] Sending pos y=' + Math.round(bird.y) + ' actorNr=' + mpLocalActor);
+            
             // Send compressed payload
             // Send position — use RC.All so sender also receives confirmation
             // (helps debug) but normally Others is fine
@@ -2756,13 +2760,13 @@
                     if (p && content.colour) p.colour = content.colour;
                     break;
                 case MP_EV.PIPE_SPAWN:
-                    // Guest receives pipe from host — add it to their world
-                    if (!mpIsHost && mpMatchActive) {
+                    // Guests only — host already added this pipe locally
+                    if (!mpIsHost && mpMatchActive && gameRunning) {
                         pipes.push({ x: canvas.width, top: content.top, bottom: content.top + pipeGap, scored: false });
                     }
                     break;
                 case MP_EV.COIN_SPAWN:
-                    if (!mpIsHost && mpMatchActive) {
+                    if (!mpIsHost && mpMatchActive && gameRunning) {
                         coinsArr.push({ x: canvas.width, y: content.y, collected: false });
                     }
                     break;
@@ -3143,7 +3147,7 @@
             if (!mpIsHost && !mpHasPerm(mpLocalActor,'canSettings')) return;
             const results = Object.entries(mpPlayers).map(([a,p]) => ({actor:parseInt(a),name:p.name,score:p.score})).sort((a,b)=>b.score-a.score);
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
-            photonClient.raiseEvent(MP_EV.HOST_END_GAME, { results }, { receivers: RC.All });
+            photonClient.raiseEvent(MP_EV.HOST_END_GAME, { results }, { receivers: RC.Others });
             mpShowMatchOver(results, null);
         });
         document.getElementById('mpLeaveLobbyBtn').addEventListener('click', () => { mpLeaveLobby(); selectSound.play(); });
