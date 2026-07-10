@@ -40,7 +40,7 @@ service cloud.firestore {
     // Note: IP-based checks happen client-side; Firestore can only check email
     function isAdmin() {
       return request.auth != null && (
-        request.auth.token.email == 'crixgaming51@hotmail.com' ||
+        request.auth.token.email == 'crixgamingvr@gmail.com' ||
         request.auth.token.email == 'ihatetomatos259@hotmail.com'
       );
     }
