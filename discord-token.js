@@ -44,9 +44,9 @@ export default async function handler(req) {
     }
 
     // Read secrets from Vercel environment variables (never exposed to browser)
-    const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-    const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
-    const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://crixgamingvr.com/flappycrix';
+    const CLIENT_ID = process.env.1521661170438635644;
+    const CLIENT_SECRET = process.env.a7drUAm_7CDUwSP8DQfNVCVUKAVeiNgR;
+    const REDIRECT_URI = process.env.https://crixgamingvr.com/flappycrix || 'https://crixgamingvr.com/flappycrix';
 
     if (!CLIENT_ID || !CLIENT_SECRET) {
         return new Response(JSON.stringify({ error: 'Server not configured — set DISCORD_CLIENT_ID and DISCORD_CLIENT_SECRET in Vercel env vars' }), {
