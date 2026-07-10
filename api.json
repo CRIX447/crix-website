@@ -1,3 +1,4 @@
+
 {
   "youtube": {
     "apiKey": "AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk",
@@ -21,6 +22,6 @@
     "clientId": "1521661170438635644",
     "redirectUri": "https://crixgamingvr.com/flappycrix",
     "guildId": "1234567890",
-    "_note_clientSecret": "a7drUAm_7CDUwSP8DQfNVCVUKAVeiNgR"
+    "_note_clientSecret": "Client secret is NOT used in the browser. It is only needed if you add a server-side token exchange. See api/discord-token.js for the Vercel edge function."
   }
 }
