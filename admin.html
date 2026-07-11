@@ -179,18 +179,18 @@ async function init() {
 
     auth.onAuthStateChanged(async user => {
         if (!user) {
-            document.getElementById('gateMsg').textContent = 'You must sign in with an authorised Google account.';
+            document.getElementById('gateMsg').textContent = 'Sign in with your Google account to continue.';
             document.getElementById('gateSignInBtn').style.display = '';
             return;
         }
-        // Check IP whitelist
+        currentAdminUser = user;
+        document.getElementById('gateMsg').textContent = 'Checking access for ' + (user.email || user.displayName) + '...';
         const allowed = await checkIP();
         if (!allowed) {
-            document.getElementById('gateMsg').textContent = '⛔ Access denied. Your IP is not on the admin whitelist.';
+            document.getElementById('gateMsg').textContent = '⛔ Access denied. Your account (' + (user.email || 'unknown') + ') is not on the admin list.';
             document.getElementById('gateSignInBtn').style.display = 'none';
             return;
         }
-        currentAdminUser = user;
         showPanel(user);
     });
 
@@ -203,19 +203,25 @@ async function init() {
 }
 
 async function checkIP() {
+    // Check 1: email whitelist (instant, no network needed)
+    const ADMIN_EMAILS = [
+        'crixgamingvr@gmail.com',
+        'ihatetomatos259@hotmail.com'
+    ];
+    if (currentAdminUser && ADMIN_EMAILS.includes(currentAdminUser.email)) return true;
+
+    // Check 2: IP against Firestore /config/adminIPs
     try {
-        // Get user's public IP
         const ipRes = await fetch('https://api.ipify.org?format=json');
-        const ipData = await ipRes.json();
-        const userIP = ipData.ip;
-        // Load ip.json whitelist
-        const ipListRes = await fetch('ip.json');
-        const ipListData = await ipListRes.json();
-        const whitelist = ipListData.adminIPs || [];
-        return whitelist.includes(userIP);
-    } catch(e) {
-        return false;
-    }
+        const { ip } = await ipRes.json();
+        const doc = await db.collection('config').doc('adminIPs').get();
+        if (doc.exists) {
+            const ips = doc.data().ips || [];
+            if (ips.includes(ip)) return true;
+        }
+    } catch(e) {}
+
+    return false;
 }
 
 function showPanel(user) {
