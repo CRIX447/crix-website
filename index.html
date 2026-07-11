@@ -570,6 +570,42 @@ body {
             <div class="products-grid" id="productsGrid"></div>
         </section>
 
+        <!-- LIVE STREAM SECTION -->
+        <section class="videos-section" id="liveSection" style="display:none;">
+            <h2 class="section-title">🔴 LIVE NOW</h2>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;">
+                <div style="flex:2;min-width:280px;">
+                    <div id="livePlayerWrap" style="position:relative;padding-top:56.25%;background:#000;border-radius:14px;overflow:hidden;border:2px solid var(--neon-red);">
+                        <iframe id="livePlayerIframe" style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                    </div>
+                    <div id="liveStreamTitle" style="margin-top:10px;font-size:14px;color:#ccc;"></div>
+                </div>
+                <div style="flex:1;min-width:220px;">
+                    <div style="font-size:12px;color:var(--neon-orange);font-weight:bold;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">💬 LIVE CHAT</div>
+                    <iframe id="liveChatIframe" style="width:100%;height:400px;border:2px solid var(--neon-orange);border-radius:14px;background:#0a0a1a;" allowfullscreen></iframe>
+                </div>
+            </div>
+        </section>
+
+        <!-- RECENT SUBSCRIBERS -->
+        <section class="channels-section">
+            <h2 class="section-title">👥 RECENT SUPPORTERS</h2>
+            <div id="recentSubsGrid" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:16px;">
+                <div style="color:#666;font-size:12px;padding:20px;">Loading...</div>
+            </div>
+            <p style="text-align:center;margin-top:16px;font-size:11px;color:#555;">YouTube's API only shows subscriber counts, not names, for privacy reasons. The names below are from members who have made their membership public.</p>
+        </section>
+
+        <!-- BIBLE QUOTES -->
+        <section class="about-section" id="bibleSection">
+            <h2 class="section-title">✝️ DAILY WORD</h2>
+            <div id="bibleQuoteBox" style="text-align:center;max-width:700px;margin:0 auto;">
+                <div id="bibleVerse" style="font-size:18px;color:#eee;line-height:1.8;font-style:italic;margin-bottom:16px;">Loading verse...</div>
+                <div id="bibleRef" style="color:var(--neon-orange);font-size:13px;font-weight:bold;margin-bottom:20px;"></div>
+                <button id="newVerseBtn" class="game-button" style="font-size:13px;padding:10px 28px;">🙏 NEW VERSE</button>
+            </div>
+        </section>
+
         <div class="footer">
             <p>© 2024-2026 CRIXGAMING VR. All systems operational.</p>
             <p style="margin-top:10px;"><a href="https://shop.crixgamingvr.com" target="_blank">🛍️ CRIXGAMING VR SHOP</a> &nbsp;|&nbsp; <a href="#" id="businessEmailLink">📧 BUSINESS INQUIRIES</a></p>
@@ -867,7 +903,131 @@ async function init() {
     setupEmailPicker();
     await fetchYouTubeData();
     setInterval(fetchYouTubeData, 60000);
+    await checkLiveStream();
+    setInterval(checkLiveStream, 120000); // check every 2 min
+    loadBibleVerse();
+    renderRecentSubs();
 }
+
+// =====================================================
+// LIVE STREAM — checks if CRIX is currently live
+// =====================================================
+async function checkLiveStream() {
+    if (!API_KEY || !CHANNEL_ID) return;
+    try {
+        const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&eventType=live&type=video&key=${API_KEY}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const liveItem = data.items && data.items[0];
+        const liveSection = document.getElementById('liveSection');
+        if (liveItem) {
+            const videoId = liveItem.id.videoId;
+            const title = liveItem.snippet.title;
+            document.getElementById('livePlayerIframe').src =
+                `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0`;
+            document.getElementById('liveChatIframe').src =
+                `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${window.location.hostname}`;
+            document.getElementById('liveStreamTitle').textContent = '🔴 ' + title;
+            liveSection.style.display = '';
+        } else {
+            liveSection.style.display = 'none';
+        }
+    } catch(e) { console.warn('Live check failed:', e); }
+}
+
+// =====================================================
+// RECENT SUBSCRIBERS — YouTube doesn't expose names
+// Show last commenters on latest video as a proxy
+// =====================================================
+async function renderRecentSubs() {
+    const grid = document.getElementById('recentSubsGrid');
+    if (!API_KEY || !CHANNEL_ID) return;
+    try {
+        // Get latest video
+        const searchRes = await fetch(`https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${CHANNEL_ID}&order=date&maxResults=1&type=video&key=${API_KEY}`);
+        const searchData = await searchRes.json();
+        const videoId = searchData.items?.[0]?.id?.videoId;
+        if (!videoId) return;
+
+        // Get recent comments on that video
+        const commRes = await fetch(`https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=10&order=time&key=${API_KEY}`);
+        const commData = await commRes.json();
+        if (!commData.items?.length) {
+            grid.innerHTML = '<div style="color:#666;font-size:12px;">No recent comments found.</div>';
+            return;
+        }
+        grid.innerHTML = commData.items.map(item => {
+            const c = item.snippet.topLevelComment.snippet;
+            const avatar = c.authorProfileImageUrl;
+            const name = c.authorDisplayName;
+            const time = new Date(c.publishedAt).toLocaleDateString();
+            return `<div style="background:rgba(10,10,15,0.8);border:2px solid var(--neon-orange);border-bottom:4px solid var(--cyber-orange);border-radius:50px;padding:8px 16px;display:flex;align-items:center;gap:10px;box-shadow:2px 2px 0 rgba(0,0,0,0.4);">
+                <img src="${avatar}" style="width:32px;height:32px;border-radius:50%;border:2px solid var(--matrix-green);" onerror="this.style.display='none'">
+                <span style="font-size:12px;color:white;">${name}</span>
+                <span style="font-size:10px;color:#666;">${time}</span>
+            </div>`;
+        }).join('');
+    } catch(e) {
+        grid.innerHTML = '<div style="color:#666;font-size:12px;">Could not load recent activity.</div>';
+    }
+}
+
+// =====================================================
+// BIBLE QUOTES — free API, no key needed
+// =====================================================
+const BIBLE_BOOKS = [
+    'John 3:16', 'Psalm 23:1', 'Philippians 4:13', 'Romans 8:28',
+    'Jeremiah 29:11', 'Isaiah 40:31', 'Proverbs 3:5-6', 'Matthew 6:33',
+    'Joshua 1:9', 'Romans 15:13', 'Psalm 46:1', 'Galatians 5:22-23',
+    'Matthew 5:16', '2 Timothy 1:7', 'Psalm 121:1-2', 'Hebrews 11:1',
+    'Romans 5:8', '1 Corinthians 13:4-7', 'Ephesians 2:8-9', 'Psalm 27:1'
+];
+
+async function loadBibleVerse() {
+    const verseEl = document.getElementById('bibleVerse');
+    const refEl = document.getElementById('bibleRef');
+    if (!verseEl) return;
+
+    // Pick a verse based on today's date so it changes daily
+    const dayIndex = new Date().getDate() % BIBLE_BOOKS.length;
+    const ref = BIBLE_BOOKS[dayIndex];
+    const encoded = encodeURIComponent(ref);
+
+    verseEl.textContent = 'Loading...';
+    try {
+        const res = await fetch(`https://bible-api.com/${encoded}?translation=kjv`);
+        const data = await res.json();
+        if (data.text) {
+            verseEl.textContent = '"' + data.text.trim().replace(/\n/g, ' ') + '"';
+            refEl.textContent = '— ' + data.reference;
+        }
+    } catch(e) {
+        // Fallback to a hardcoded verse if API fails
+        verseEl.textContent = '"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."';
+        refEl.textContent = '— John 3:16 (KJV)';
+    }
+}
+
+document.getElementById('newVerseBtn')?.addEventListener('click', async () => {
+    const verseEl = document.getElementById('bibleVerse');
+    const refEl = document.getElementById('bibleRef');
+    // Pick a random verse
+    const ref = BIBLE_BOOKS[Math.floor(Math.random() * BIBLE_BOOKS.length)];
+    verseEl.textContent = 'Loading...';
+    refEl.textContent = '';
+    try {
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(ref)}?translation=kjv`);
+        const data = await res.json();
+        if (data.text) {
+            verseEl.textContent = '"' + data.text.trim().replace(/\n/g, ' ') + '"';
+            refEl.textContent = '— ' + data.reference;
+        }
+    } catch(e) {
+        verseEl.textContent = '"I can do all things through Christ which strengtheneth me."';
+        refEl.textContent = '— Philippians 4:13 (KJV)';
+    }
+});
+
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
 </script>
