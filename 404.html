@@ -5,10 +5,18 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Error — CRIXGAMING VR</title>
 <link rel="icon" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <style>
+@font-face {
+    font-family: 'CrixFont';
+    src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
+    font-display: swap;
+}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{
-    font-family:'Courier New',monospace;
+    font-family:'CrixFont','Nunito','Courier New',monospace;
     background:#0A0A0F;
     color:white;
     min-height:100vh;
@@ -40,7 +48,6 @@ body{
     -webkit-text-fill-color:transparent;
     background-clip:text;
     line-height:1;
-    filter:drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
 }
 .error-title{
     font-size:22px;
@@ -114,7 +121,6 @@ body{
     </div>
 </div>
 <script>
-    // Detect 403 vs 404 from URL param or referrer
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code') || '404';
     if (code === '403') {
