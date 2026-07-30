@@ -1,7 +1,7 @@
 {
   "_note": "Add fan art here. 'file' is the filename inside your repo's img/fanmail/ folder. 'author' is shown on hover on the main site.",
   "fanmail": [
-    { "file": "fanart1.png", "author": "Nassiens" },
+    { "file": "https://github.com/CRIX447/crix-website/blob/main/img/fanart1.png", "author": "Nassiens" },
     { "file": "example2.png", "author": "ExampleUser2" }
   ]
 }
