@@ -1,9 +1,16 @@
-
 {
   "youtube": {
     "apiKey": "AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk",
-    "channelId": "UCjiqZo0vfIZsn8E50TrOV_g"
+    "channelId": "UCjiqZo0vfIZsn8E50TrOV_g",
+    "_note": "channelId above is the main channel (CRIXGAMING VR), used for the hero stats. All channels below share this same apiKey by default — add an 'apiKey' field to any entry in 'channels' to give it its own key/quota instead."
   },
+  "channels": [
+    { "handle": "@CRIXGAMINGVR",   "name": "CRIXGAMING VR" },
+    { "handle": "@CRIXPLAYZMC",    "name": "CRIX PLAYZ MC" },
+    { "handle": "@CRIXREACTS123",  "name": "CRIX REACTS" },
+    { "handle": "@CRIXYAPS",       "name": "CRIX YAPS" },
+    { "handle": "@CRIXGAMINGVR2",  "name": "CRIXGAMING VR 2" }
+  ],
   "firebase": {
     "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
     "authDomain": "app.crixgamingvr.com",
@@ -19,7 +26,7 @@
     "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
   },
   "discord": {
-    "clientId": "1521661170438635644",
+    "clientId": "PASTE_YOUR_DISCORD_CLIENT_ID_HERE",
     "redirectUri": "https://crixgamingvr.com/flappycrix",
     "guildId": "1234567890",
     "_note_clientSecret": "Client secret is NOT used in the browser. It is only needed if you add a server-side token exchange. See api/discord-token.js for the Vercel edge function."
