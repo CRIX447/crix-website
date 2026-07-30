@@ -184,11 +184,11 @@ async function init() {
             return;
         }
         currentAdminUser = user;
-        document.getElementById('gateMsg').textContent = 'Checking access for ' + (user.email || user.displayName) + '...';
+        document.getElementById('gateMsg').textContent = 'Checking access...';
         const allowed = await checkIP();
         if (!allowed) {
-            document.getElementById('gateMsg').textContent = '⛔ Access denied. Your account (' + (user.email || 'unknown') + ') is not on the admin list.';
-            document.getElementById('gateSignInBtn').style.display = 'none';
+            // Don't reveal that an admin panel exists — send unauthorized visitors to 404
+            window.location.replace('/404?code=404');
             return;
         }
         showPanel(user);
@@ -291,13 +291,18 @@ async function loadReports(content) {
         // Fetch all, sort client-side by timestamp descending.
         const snap = await db.collection('reports').limit(200).get();
         if (snap.empty) { content.innerHTML = '<div class="empty">No reports yet. 🎉</div>'; return; }
+        const now = Date.now();
         allData = snap.docs
             .map(d => ({id:d.id,...d.data()}))
+            // Hide reports past their expiresAt even if Firestore's TTL
+            // sweep hasn't physically deleted them yet (can lag up to 24h)
+            .filter(r => !r.expiresAt || (r.expiresAt.toMillis ? r.expiresAt.toMillis() : Infinity) > now)
             .sort((a,b) => {
                 const ta = a.timestamp?.toMillis ? a.timestamp.toMillis() : 0;
                 const tb = b.timestamp?.toMillis ? b.timestamp.toMillis() : 0;
                 return tb - ta;
             });
+        if (!allData.length) { content.innerHTML = '<div class="empty">No active reports. 🎉</div>'; return; }
         renderReports(content, allData);
     } catch(e) {
         content.innerHTML = `<div class="empty" style="color:#FF4655;">
