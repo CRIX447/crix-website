@@ -1,7 +1,7 @@
 {
   "_note": "Add fan art here. 'file' is the filename inside your repo's img/fanmail/ folder. 'author' is shown on hover on the main site.",
   "fanmail": [
-    { "file": "example1.png", "author": "ExampleUser1" },
+    { "file": "fanart1.png", "author": "Nassiens" },
     { "file": "example2.png", "author": "ExampleUser2" }
   ]
 }
