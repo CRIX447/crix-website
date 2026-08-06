@@ -26,7 +26,7 @@
     "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
   },
   "discord": {
-    "clientId": "PASTE_YOUR_DISCORD_CLIENT_ID_HERE",
+    "clientId": "1521661170438635644",
     "redirectUri": "https://crixgamingvr.com/flappycrix",
     "guildId": "1234567890",
     "_note_clientSecret": "Client secret is NOT used in the browser. It is only needed if you add a server-side token exchange. See api/discord-token.js for the Vercel edge function."
