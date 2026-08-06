@@ -44,8 +44,8 @@ export default async function handler(req) {
     }
 
     // Read secrets from Vercel environment variables (never exposed to browser)
-    const CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-    const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET;
+    const CLIENT_ID = process.env.DISCORD_CLIENT_ID; 1521661170438635644
+    const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET; jfNbvPNlWCbnIi-bh24_sXqxVwlrs7oF
     const REDIRECT_URI = process.env.DISCORD_REDIRECT_URI || 'https://crixgamingvr.com/flappycrix';
 
     if (!CLIENT_ID || !CLIENT_SECRET) {
