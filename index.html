@@ -398,7 +398,6 @@ body {
     letter-spacing: 0.5px; text-transform: uppercase;
 }
 .fanmail-item:hover .fanmail-item-label { opacity: 1; transform: translateY(0); }
-.fanmail-empty { color: #555; font-size: 13px; text-align: center; padding: 40px; width: 100%; }
 
 /* ── CHANNEL FILTER ─────────────────────────────────────────── */
 .channel-filter-row {
@@ -552,7 +551,7 @@ body {
     </div>
 
     <!-- FANMAIL -->
-    <div class="section" id="fanmail">
+    <div class="section" id="fanmail" style="display:none;">
         <div class="section-header">
             <span class="section-label">Community</span>
             <h2 class="section-title">Fan Art</h2>
@@ -759,13 +758,11 @@ let siteConfig = null;
 // Multi-channel video storage: { channelId: { long:[], shorts:[], live:[] } }
 let allChannelVideos = {};
 let activeChannelFilter = 'all';
-const CHANNEL_DEFS = [
-    { id: 'UCjiqZo0vfIZsn8E50TrOV_g', name: 'CRIXGAMING VR' },
-    { id: 'UCPLAYZMC_ID',             name: 'CRIX PLAYZ MC' },
-    { id: 'UCREACTS_ID',              name: 'CRIX REACTS' },
-    { id: 'UCYAPS_ID',                name: 'CRIX YAPS' },
-    { id: 'UCGAMINGVR2_ID',           name: 'CRIXGAMING VR 2' }
-];
+// Channel handles are read from api.json (see "channels" array).
+// IDs are resolved automatically at runtime via the forHandle API param —
+// no need to hunt down UC... IDs manually, and it self-heals if a handle changes.
+let CHANNEL_DEFS = [];
+const CHANNEL_ID_CACHE_KEY = 'crix_channel_id_cache_v1';
 
 async function loadConfig() {
     try {
@@ -775,21 +772,49 @@ async function loadConfig() {
             CHANNEL_ID = siteConfig.youtube.channelId || CHANNEL_ID;
             API_KEY = siteConfig.youtube.apiKey || API_KEY;
         }
-        // Load per-channel IDs from api.json if present
-        if (siteConfig.channels) {
-            siteConfig.channels.forEach((ch, i) => {
-                if (CHANNEL_DEFS[i] && ch.id) CHANNEL_DEFS[i].id = ch.id;
-            });
+        if (Array.isArray(siteConfig.channels)) {
+            CHANNEL_DEFS = siteConfig.channels.map(c => ({
+                handle: c.handle || '',
+                name: c.name || c.handle || 'Channel',
+                id: '' // resolved below
+            }));
         }
     } catch (e) {}
 }
+
+// Resolve an @handle to a channel ID using the official forHandle param.
+// Falls back to a small localStorage cache so repeat visits don't re-resolve.
+async function resolveChannelId(ch, apiKey) {
+    if (!ch.handle) return null;
+    let cache = {};
+    try { cache = JSON.parse(localStorage.getItem(CHANNEL_ID_CACHE_KEY) || '{}'); } catch(e) {}
+    if (cache[ch.handle]) return cache[ch.handle];
+
+    try {
+        const handle = ch.handle.replace(/^@/, '');
+        const res = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${handle}&key=${apiKey}`);
+        const data = await res.json();
+        const id = data.items?.[0]?.id;
+        if (id) {
+            cache[ch.handle] = id;
+            try { localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+            return id;
+        }
+    } catch(e) {}
+    return null;
+}
+
 async function fetchVideosForChannel(ch) {
     try {
-        const apiKey = (siteConfig?.youtube?.apiKey) || API_KEY;
+        const apiKey = ch.apiKey || (siteConfig?.youtube?.apiKey) || API_KEY;
+        if (!ch.id) {
+            const resolved = await resolveChannelId(ch, apiKey);
+            if (!resolved) return;
+            ch.id = resolved;
+        }
         const chanRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails,statistics&id=${ch.id}&key=${apiKey}`);
         const chanData = await chanRes.json();
         if (!chanData.items?.[0]) return;
-        // Stats (main channel only)
         if (ch.id === CHANNEL_ID) {
             const st = chanData.items[0].statistics;
             document.getElementById('subCount').textContent = formatNumber(parseInt(st.subscriberCount || 0));
@@ -817,11 +842,11 @@ async function fetchVideosForChannel(ch) {
 }
 
 async function fetchYouTubeData() {
-    const validChannels = CHANNEL_DEFS.filter(ch => ch.id && !ch.id.includes('_ID'));
-    if (!API_KEY || !validChannels.length) { useFallbackVideos(); return; }
+    if (!API_KEY || !CHANNEL_DEFS.length) { useFallbackVideos(); return; }
     try {
-        await Promise.all(validChannels.map(ch => fetchVideosForChannel(ch)));
-        buildChannelFilterUI(validChannels);
+        await Promise.all(CHANNEL_DEFS.map(ch => fetchVideosForChannel(ch)));
+        const resolved = CHANNEL_DEFS.filter(ch => ch.id);
+        buildChannelFilterUI(resolved);
         renderCurrentTab();
     } catch(e) {
         document.getElementById('subCount').textContent = '2K+';
@@ -1055,25 +1080,37 @@ document.getElementById('newVerseBtn')?.addEventListener('click', async () => {
 // ── FANMAIL ────────────────────────────────────────────────
 async function loadFanmail() {
     const track = document.getElementById('fanmailTrack');
+    const section = document.getElementById('fanmail');
     if (!track) return;
+
     let items = [];
     try {
-        const res = await fetch('fanmail.json');
-        const data = await res.json();
-        items = data.fanmail || [];
+        const res = await fetch('fanmail.txt');
+        const text = await res.text();
+        items = text
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line && !line.startsWith('#'))
+            .map(line => {
+                const [file, author] = line.split('|').map(s => s.trim());
+                return file && author ? { file, author } : null;
+            })
+            .filter(Boolean);
     } catch(e) {}
 
+    // No real entries — hide the whole section instead of showing a placeholder
     if (!items.length) {
-        track.innerHTML = '<div class="fanmail-empty">No fan art yet — be the first! Send yours to cgvr@crixgamingvr.com</div>';
+        if (section) section.style.display = 'none';
         return;
     }
+    if (section) section.style.display = '';
 
     // Duplicate items for seamless infinite scroll
     const allItems = [...items, ...items];
     track.innerHTML = allItems.map(item => `
         <div class="fanmail-item">
             <img src="img/fanmail/${item.file}" alt="Fan art by ${item.author}"
-                 onerror="this.src='https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png'">
+                 onerror="this.closest('.fanmail-item').remove()">
             <div class="fanmail-item-label">by ${item.author}</div>
         </div>
     `).join('');
