@@ -1153,6 +1153,7 @@
                     <button class="set-mini-btn" id="copyPfIdBtn">COPY</button>
                 </div>
             </div>
+            <div id="setPfWarning" style="display:none;font-size:10px;color:#FFB347;background:rgba(255,165,0,0.07);border:1px solid rgba(255,165,0,0.25);border-radius:8px;padding:8px 10px;margin:6px 0 2px;line-height:1.6;"></div>
             <div class="set-row">
                 <span class="set-label">Roles</span>
                 <span id="setRoles" style="font-size:11px;color:#888;">None</span>
@@ -1782,12 +1783,44 @@
         }
 
         function refreshSettingsUI() {
-            const pf = (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null;
+            if (!document.getElementById('setPlayFabId')) return;
+            const hasPFM = typeof PlayFabManager !== 'undefined';
+            const pf = (hasPFM && PlayFabManager.playFabId) || null;
             const el = document.getElementById('setPlayFabId');
-            if (el) el.textContent = !pf ? 'Not signed in'
-                                   : settings.pfIdVisible ? pf : '••••••••••';
             const tg = document.getElementById('togglePfIdBtn');
-            if (tg) tg.textContent = settings.pfIdVisible ? 'HIDE' : 'SHOW';
+            const cp = document.getElementById('copyPfIdBtn');
+            const warn = document.getElementById('setPfWarning');
+
+            if (pf) {
+                el.textContent = settings.pfIdVisible ? pf : '••••••••••';
+                el.style.color = '#00CC7A';
+                if (tg) { tg.style.display = ''; tg.textContent = settings.pfIdVisible ? 'HIDE' : 'SHOW'; }
+                if (cp) cp.style.display = '';
+                if (warn) warn.style.display = 'none';
+            } else {
+                // Say exactly what's wrong rather than a vague "not signed in"
+                const msg = hasPFM ? (PlayFabManager.statusMessage || 'Not connected')
+                                   : 'playfab-manager.js not loaded';
+                el.textContent = 'Unavailable';
+                el.style.color = '#777';
+                if (tg) tg.style.display = 'none';
+                if (cp) cp.style.display = 'none';
+                if (warn) {
+                    warn.style.display = 'block';
+                    let extra = '';
+                    if (hasPFM && PlayFabManager.status === 'no_title_id') {
+                        extra = '<br><span style="color:#666;">Open <code>api.json</code> and replace ' +
+                                '<code>PASTE_YOUR_PLAYFAB_TITLE_ID_HERE</code> with the Title ID from ' +
+                                'PlayFab &rarr; Title Settings &rarr; API Features.</span>';
+                    } else if (hasPFM && PlayFabManager.status === 'account_missing') {
+                        extra = '<br><span style="color:#666;">In PlayFab: Title Settings &rarr; API Features &rarr; ' +
+                                'tick <strong>Allow client to create accounts</strong>, then reload.</span>';
+                    } else if (hasPFM && PlayFabManager.status === 'no_firebase') {
+                        extra = '<br><span style="color:#666;">Sign in with Google or email first.</span>';
+                    }
+                    warn.innerHTML = '⚠️ ' + msg + extra;
+                }
+            }
 
             const r = document.getElementById('setRoles');
             if (r) r.innerHTML = myRoles.length ? myRoles.map(x => roleTagHtml([x])).join('') : 'None';
@@ -1911,8 +1944,11 @@
         // ---- PLAYFAB LOGIN + ROLE LOADING ----
         async function initPlayFabForUser(user) {
             if (typeof PlayFabManager === 'undefined') return;
+            console.log('[PlayFab] config from api.json:', appConfig.playfab);
             const ok = await PlayFabManager.init(appConfig.playfab || {});
             if (!ok) {
+                console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
+                refreshSettingsUI();
                 // PlayFab not configured yet. Allow a local role override so
                 // tags can be tested before the backend is wired up:
                 //   localStorage.setItem('crix_dev_roles', '["OWNER"]')
@@ -1928,8 +1964,9 @@
             }
             try {
                 const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
-                await PlayFabManager.login(user.uid, name);
+                const res = await PlayFabManager.login(user.uid, name);
                 myRoles = PlayFabManager.roles;
+                if (!res) console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
                 refreshSettingsUI();
                 console.log('[Roles] Loaded from PlayFab:', myRoles);
                 refreshRoleDisplay();
