@@ -913,7 +913,7 @@
         </button>
         <div class="mp-diagnostic-banner" id="mpDiagnosticBanner" style="display:none;"></div>
         
-        <div class="cheat-container"><input type="text" class="cheat-input" id="cheatInput" placeholder="????" maxlength="4" inputmode="numeric"></div>
+        
         
         <div class="game-controls">
             <button class="game-btn" id="startGameBtn">▶ START</button>
@@ -1117,22 +1117,6 @@
         </div>
     </div>
 
-    <!-- ADMIN PANEL MODAL -->
-    <div class="mp-modal" id="mpAdminModal" style="z-index:40000;">
-        <div class="mp-modal-content" style="max-width:700px;">
-            <div class="modal-header">
-                <div class="modal-title">🛡️ ADMIN PANEL</div>
-                <button class="modal-close" id="closeAdminBtn">✕</button>
-            </div>
-            <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
-                <button class="store-tab active" data-admin-tab="reports" id="adminTabReports">🚨 REPORTS</button>
-                <button class="store-tab" data-admin-tab="players" id="adminTabPlayers">👥 PLAYERS</button>
-                <button class="store-tab" data-admin-tab="bans" id="adminTabBans">🔨 BANS</button>
-            </div>
-            <div id="adminTabContent" style="min-height:200px;max-height:420px;overflow-y:auto;"></div>
-        </div>
-    </div>
-
     <!-- SPECTATE OVERLAY (Last One Standing) -->
     <div id="mpSpectateOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.97);z-index:20000;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
         <div style="font-size:22px;color:#FF4655;margin-bottom:8px;">💀 YOU DIED</div>
@@ -1226,7 +1210,6 @@
                     auth = firebase.auth();
                     db = firebase.firestore();
                     setupAuthAfterConfig();
-                    loadAdminIPs();
                 } catch(e) {
                     console.error('[Config] Firebase init failed:', e.message);
                     loadFromLocal();
@@ -1366,7 +1349,14 @@
         }
         
         // UI Functions
-        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `🪙 ${coinCount}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; document.getElementById('coinMultiplier').textContent = coinMultiplier + 'x'; }
+        function formatCoins(n) {
+            n = Math.floor(n);
+            if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
+            if (n >= 1e6) return (n/1e6).toFixed(2) + 'M';
+            if (n >= 1e3) return (n/1e3).toFixed(2) + 'K';
+            return String(n);
+        }
+        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `🪙 ${formatCoins(coinCount)}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`; document.getElementById('coinMultiplier').textContent = coinMultiplier + 'x'; }
         function updateAchievementCount() { let u = achievements.filter(a => a.unlocked).length; document.getElementById('achievementCount').textContent = `${u}/${achievements.length}`; }
         function updateCheatIndicators() { let html = ''; if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>'; if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>'; if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>'; if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>'; document.getElementById('cheatIndicators').innerHTML = html; }
         function updateActivePowerups() { let active = powerups.filter(p => p.active); let html = ''; active.forEach(p => { html += `<div class="powerup-badge">${p.name} <span style="background:#FF4655;border-radius:20px;padding:1px 5px;">${p.timeLeft}s</span></div>`; }); document.getElementById('activePowerups').innerHTML = html; }
@@ -1585,7 +1575,7 @@
         document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') toggleUIHide(); } });
 
         document.getElementById('startGameBtn').addEventListener('click', startGame);
-        document.getElementById('canvasWrapper').addEventListener('click', jump);
+        document.getElementById('canvasWrapper').addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
         // Gamepad support
         let gamepadJumped = false;
         function pollGamepad() {
@@ -1620,7 +1610,7 @@
         document.getElementById('unequipHat').onclick = () => { let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped); if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
         document.getElementById('unequipShirt').onclick = () => { let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped); if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
         document.getElementById('victoryRestart').onclick = () => { document.getElementById('victoryOverlay').style.display='none'; startGame(); };
-        document.getElementById('cheatInput').addEventListener('input', (e) => { let code=e.target.value; if(code.length===4){ if(mpMatchActive){ e.target.value=''; return; } if(code==='6969'){ cheats.godmode=!cheats.godmode; selectSound.play(); updateCheatIndicators(); } if(code==='1337'){ cheats.coinlord=!cheats.coinlord; updateCheatIndicators(); if(gameRunning) resetGame(); } if(code==='0420'){ cheats.slowmo=!cheats.slowmo; updateCheatIndicators(); gameSpeed=cheats.slowmo?1.5:2.5; if(gameRunning) resetGame(); } if(code==='8008'){ cheats.bigbird=!cheats.bigbird; updateCheatIndicators(); updatePreview(); } if(code==='9999'){ coinCount+=50; updateCoinDisplay(); selectSound.play(); autoSave(); } e.target.value=''; } });
+        
         
         // Store tab switching
         document.getElementById('tabPowerupsStore').onclick = () => { 
@@ -1850,21 +1840,6 @@
         // =====================================================================
         // ===================  MULTIPLAYER (PHOTON REALTIME)  ===================
         // =====================================================================
-
-        // Admin access: IPs loaded from Firestore /config/adminIPs (not ip.json which is public)
-        // Emails are also checked — whitelisted Google accounts get admin access too
-        let ADMIN_IP_WHITELIST = [];
-        const ADMIN_EMAIL_WHITELIST = ['crixgaming51@hotmail.com', 'ihatetomatos259@hotmail.com'];
-        let userPublicIP = null;
-        async function loadAdminIPs() {
-            if (!db) return;
-            try {
-                const doc = await db.collection('config').doc('adminIPs').get();
-                if (doc.exists && Array.isArray(doc.data().ips)) {
-                    ADMIN_IP_WHITELIST = doc.data().ips;
-                }
-            } catch(e) { /* silent — rules block non-admins from reading this */ }
-        }
 
         // Event codes
         const MP_EV = {
@@ -2836,6 +2811,9 @@
             if (!mpReportTarget) return;
             try {
                 if (db && currentUser) {
+                    // expiresAt is read by Firestore's TTL policy (set on the "reports"
+                    // collection, field "expiresAt") to auto-delete this doc after 24h.
+                    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
                     await db.collection('reports').add({
                         reportedName: mpReportTarget.playerName,
                         reportedActorNr: mpReportTarget.actorNr,
@@ -2844,6 +2822,7 @@
                         reason, details,
                         roomCode: mpCurrentRoom?.code || 'unknown',
                         timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                        expiresAt: firebase.firestore.Timestamp.fromDate(expiresAt),
                         status: 'pending'
                     });
                     document.getElementById('mpReportModal').classList.remove('active');
@@ -2857,120 +2836,9 @@
             }
         }
 
-        // ----- ADMIN PANEL -----
-        async function mpFetchUserIP() {
-            // Try multiple IP services in case one is down
-            const services = [
-                'https://api.ipify.org?format=json',
-                'https://api64.ipify.org?format=json',
-                'https://api.my-ip.io/v2/ip.json'
-            ];
-            for (const url of services) {
-                try {
-                    const res = await fetch(url);
-                    const data = await res.json();
-                    userPublicIP = data.ip || data.ip_addr;
-                    if (userPublicIP) return;
-                } catch(e) {}
-            }
-            userPublicIP = null;
-        }
-
-        function mpIsAdmin() {
-            const ipOk = userPublicIP && ADMIN_IP_WHITELIST.includes(userPublicIP);
-            const emailOk = currentUser && ADMIN_EMAIL_WHITELIST.includes(currentUser.email);
-            return ipOk || emailOk;
-        }
-
-        async function mpOpenAdmin() {
-            if (!mpIsAdmin()) return; // Fully hidden if IP doesn't match
-            document.getElementById('mpAdminModal').classList.add('active');
-            mpLoadAdminTab('reports');
-        }
-
-        async function mpLoadAdminTab(tab) {
-            const content = document.getElementById('adminTabContent');
-            document.querySelectorAll('[data-admin-tab]').forEach(b =>
-                b.classList.toggle('active', b.dataset.adminTab === tab));
-            content.innerHTML = '<div style="color:#888;padding:20px;text-align:center;">Loading...</div>';
-            try {
-                if (tab === 'reports') {
-                    const snap = await db.collection('reports').orderBy('timestamp','desc').limit(50).get();
-                    if (snap.empty) { content.innerHTML = '<div class="mp-empty-state">No reports yet.</div>'; return; }
-                    content.innerHTML = '';
-                    snap.forEach(doc => {
-                        const r = doc.data();
-                        const ts = r.timestamp?.toDate ? r.timestamp.toDate().toLocaleString() : 'Unknown time';
-                        const card = document.createElement('div');
-                        card.className = 'admin-report-card';
-                        card.innerHTML = `
-                            <div class="rname">🚨 ${mpEsc(r.reportedName)} — ${mpEsc(r.reason)}</div>
-                            <div class="rmeta">By ${mpEsc(r.reporterName)} · ${ts} · Room: ${mpEsc(r.roomCode)} · Status: <strong style="color:${r.status==='pending'?'#FFB347':r.status==='resolved'?'#00CC7A':'#FF4655'}">${r.status}</strong></div>
-                            ${r.details ? `<div style="font-size:11px;color:#bbb;margin-bottom:6px;">"${mpEsc(r.details)}"</div>` : ''}
-                            <div class="radmin-btns">
-                                <button class="admin-action-btn success" onclick="mpAdminResolve('${doc.id}')">✓ RESOLVE</button>
-                                <button class="admin-action-btn danger" onclick="mpAdminBanByName('${mpEsc(r.reportedName)}','${doc.id}')">🔨 BAN</button>
-                                <button class="admin-action-btn" onclick="mpAdminDismiss('${doc.id}')">✕ DISMISS</button>
-                            </div>`;
-                        content.appendChild(card);
-                    });
-                } else if (tab === 'bans') {
-                    const snap = await db.collection('bans').orderBy('timestamp','desc').limit(50).get();
-                    if (snap.empty) { content.innerHTML = '<div class="mp-empty-state">No bans.</div>'; return; }
-                    content.innerHTML = '';
-                    snap.forEach(doc => {
-                        const b = doc.data();
-                        const ts = b.timestamp?.toDate ? b.timestamp.toDate().toLocaleString() : '?';
-                        const card = document.createElement('div');
-                        card.className = 'admin-report-card';
-                        card.innerHTML = `
-                            <div class="rname">🔨 ${mpEsc(b.name)}</div>
-                            <div class="rmeta">Banned ${ts} · Reason: ${mpEsc(b.reason||'Manual ban')}</div>
-                            <div class="radmin-btns">
-                                <button class="admin-action-btn success" onclick="mpAdminUnban('${doc.id}')">UNBAN</button>
-                            </div>`;
-                        content.appendChild(card);
-                    });
-                } else if (tab === 'players') {
-                    const snap = await db.collection('users').orderBy('highScore','desc').limit(50).get();
-                    if (snap.empty) { content.innerHTML = '<div class="mp-empty-state">No players yet.</div>'; return; }
-                    content.innerHTML = '';
-                    snap.forEach(doc => {
-                        const u = doc.data();
-                        const card = document.createElement('div');
-                        card.className = 'admin-report-card';
-                        card.innerHTML = `
-                            <div class="rname">👤 ${mpEsc(u.displayName||'Unknown')} · Score: ${u.highScore||0}</div>
-                            <div class="rmeta">UID: ${doc.id}</div>
-                            <div class="radmin-btns">
-                                <button class="admin-action-btn danger" onclick="mpAdminBanByName('${mpEsc(u.displayName||'')}','')">🔨 BAN</button>
-                            </div>`;
-                        content.appendChild(card);
-                    });
-                }
-            } catch(e) {
-                content.innerHTML = '<div class="mp-empty-state">Error: ' + mpEsc(e.message) + '</div>';
-            }
-        }
-
-        window.mpAdminResolve = async function(docId) {
-            await db.collection('reports').doc(docId).update({ status: 'resolved' });
-            mpLoadAdminTab('reports');
-        };
-        window.mpAdminDismiss = async function(docId) {
-            await db.collection('reports').doc(docId).update({ status: 'dismissed' });
-            mpLoadAdminTab('reports');
-        };
-        window.mpAdminBanByName = async function(name, reportDocId) {
-            if (!confirm('Ban ' + name + '?')) return;
-            await db.collection('bans').add({ name, reason: 'Admin ban', timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-            if (reportDocId) await db.collection('reports').doc(reportDocId).update({ status: 'resolved' });
-            mpLoadAdminTab('reports');
-        };
-        window.mpAdminUnban = async function(docId) {
-            await db.collection('bans').doc(docId).delete();
-            mpLoadAdminTab('bans');
-        };
+        // Admin functionality lives entirely in admin.html now (single source of
+        // truth for the whitelist, TTL-aware report filtering, and 404 gating).
+        // The in-game duplicate admin panel and its whitelist were removed.
 
         // ----- VOTE KICK -----
         function mpInitiateVoteKick(targetActor, targetName) {
@@ -3208,15 +3076,6 @@
         // Report modal
         document.getElementById('closeReportBtn').addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
         document.getElementById('mpSubmitReportBtn').addEventListener('click', mpSubmitReport);
-
-        // Admin modal
-        document.getElementById('closeAdminBtn').addEventListener('click', () => document.getElementById('mpAdminModal').classList.remove('active'));
-        document.querySelectorAll('[data-admin-tab]').forEach(btn => {
-            btn.addEventListener('click', () => mpLoadAdminTab(btn.dataset.adminTab));
-        });
-
-        // Fetch IP on load to check admin access
-        mpFetchUserIP();
 
         loadAppConfig();
         drawGame();
