@@ -85,10 +85,7 @@ const PlayFabManager = (() => {
                 playFabId     = data.PlayFabId;
                 ready         = true;
 
-                // Roles live in ReadOnlyData (server-writable only, so players
-                // can't grant themselves OWNER).
-                const ro = data.InfoResultPayload?.UserReadOnlyData || {};
-                roles = ro.roles?.Value ? JSON.parse(ro.roles.Value) : [];
+                roles = this._extractRoles(data.InfoResultPayload || {});
 
                 if (displayName) this.setDisplayName(displayName).catch(() => {});
                 return data;
@@ -102,6 +99,47 @@ const PlayFabManager = (() => {
 
         async setDisplayName(name) {
             return api('/Client/UpdateUserTitleDisplayName', { DisplayName: name.slice(0, 25) });
+        },
+
+        /* ---- ROLES ------------------------------------------------
+           Roles are catalog items in the player's inventory (role_owner,
+           role_mod). Those items have NO price, so PurchaseItem can never
+           buy them — only a server-side grant can add them.
+           ReadOnlyData is still checked as a fallback so older accounts
+           set up the previous way keep working.                        */
+        _extractRoles(payload) {
+            const found = [];
+
+            // Primary source: inventory items of class "role"
+            const inv = payload.UserInventory || [];
+            inv.forEach(item => {
+                if (item.ItemId === 'role_owner') found.push('OWNER');
+                else if (item.ItemId === 'role_mod') found.push('MOD');
+            });
+
+            // Fallback: legacy ReadOnlyData roles array
+            const ro = payload.UserReadOnlyData || {};
+            if (ro.roles?.Value) {
+                try {
+                    JSON.parse(ro.roles.Value).forEach(r => {
+                        if (!found.includes(r)) found.push(r);
+                    });
+                } catch (e) {}
+            }
+            return found;
+        },
+
+        /* Re-check roles without a full re-login (after a grant). */
+        async refreshRoles() {
+            const [invData, roData] = await Promise.all([
+                api('/Client/GetUserInventory', {}),
+                api('/Client/GetUserReadOnlyData', { Keys: ['roles'] }).catch(() => ({ Data: {} }))
+            ]);
+            roles = this._extractRoles({
+                UserInventory: invData.Inventory || [],
+                UserReadOnlyData: roData.Data || {}
+            });
+            return [...roles];
         },
 
         /* ---- CURRENCY --------------------------------------------- */
