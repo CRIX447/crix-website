@@ -55,7 +55,7 @@
   },
   "voice": {
     "_setup": "Photon Voice needs its own App ID \u2014 create one at dashboard.photonengine.com and pick the 'Voice' product (NOT Realtime, that's the separate one already above).",
-    "appId": "PASTE_YOUR_PHOTON_VOICE_APP_ID_HERE",
+    "appId": "ac891a19-02cd-43dc-a6d0-7a38bb8027ae",
     "appVersion": "1.0",
     "region": "us",
     "enabled": false
