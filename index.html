@@ -754,30 +754,33 @@ function renderSocials() {
 }
 let CHANNEL_ID = '';
 let API_KEY = '';
+let MAIN_CHANNEL_HANDLE = '';
 let siteConfig = null;
 // Multi-channel video storage: { channelId: { long:[], shorts:[], live:[] } }
 let allChannelVideos = {};
 let activeChannelFilter = 'all';
-// Channel handles are read from api.json (see "channels" array).
+// Channel handles are read from youtube.txt (plain text, no JSON syntax needed).
 // IDs are resolved automatically at runtime via the forHandle API param —
 // no need to hunt down UC... IDs manually, and it self-heals if a handle changes.
 let CHANNEL_DEFS = [];
 const CHANNEL_ID_CACHE_KEY = 'crix_channel_id_cache_v1';
+
+function normalizeHandle(h) {
+    return (h || '').replace(/^@/, '').toLowerCase();
+}
 
 async function loadConfig() {
     try {
         const res = await fetch('api.json');
         siteConfig = await res.json();
         if (siteConfig.youtube) {
-            CHANNEL_ID = siteConfig.youtube.channelId || CHANNEL_ID;
             API_KEY = siteConfig.youtube.apiKey || API_KEY;
-        }
-        if (Array.isArray(siteConfig.channels)) {
-            CHANNEL_DEFS = siteConfig.channels.map(c => ({
-                handle: c.handle || '',
-                name: c.name || c.handle || 'Channel',
-                id: '' // resolved below
-            }));
+            MAIN_CHANNEL_HANDLE = siteConfig.youtube.mainChannel || MAIN_CHANNEL_HANDLE;
+            if (Array.isArray(siteConfig.youtube.channels)) {
+                CHANNEL_DEFS = siteConfig.youtube.channels
+                    .filter(c => c.handle)
+                    .map(c => ({ handle: c.handle, name: c.name || c.handle, id: '' }));
+            }
         }
     } catch (e) {}
 }
@@ -806,16 +809,18 @@ async function resolveChannelId(ch, apiKey) {
 
 async function fetchVideosForChannel(ch) {
     try {
-        const apiKey = ch.apiKey || (siteConfig?.youtube?.apiKey) || API_KEY;
+        const apiKey = ch.apiKey || API_KEY;
+        const isMain = normalizeHandle(ch.handle) === normalizeHandle(MAIN_CHANNEL_HANDLE);
         if (!ch.id) {
             const resolved = await resolveChannelId(ch, apiKey);
             if (!resolved) return;
             ch.id = resolved;
+            if (isMain) CHANNEL_ID = resolved; // used by checkLiveStream()
         }
         const chanRes = await fetch(`https://www.googleapis.com/youtube/v3/channels?part=contentDetails,statistics&id=${ch.id}&key=${apiKey}`);
         const chanData = await chanRes.json();
         if (!chanData.items?.[0]) return;
-        if (ch.id === CHANNEL_ID) {
+        if (isMain) {
             const st = chanData.items[0].statistics;
             document.getElementById('subCount').textContent = formatNumber(parseInt(st.subscriberCount || 0));
             document.getElementById('videoCount').textContent = formatNumber(parseInt(st.videoCount || 0));
