@@ -750,6 +750,21 @@
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
 
+        /* ---- SETTINGS ---- */
+        .set-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:12px; }
+        .set-row:last-child { border-bottom:none; }
+        .set-label { font-size:12px; color:#ccc; }
+        .set-hidden-val { font-size:11px; color:#00CC7A; font-family:monospace; background:rgba(0,0,0,0.4); padding:3px 8px; border-radius:5px; letter-spacing:1px; }
+        .set-mini-btn { background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.4); color:#FF6B35; font-size:9px; padding:3px 8px; border-radius:12px; cursor:pointer; font-family:inherit; font-weight:bold; }
+        .set-mini-btn:hover { background:rgba(255,107,53,0.2); }
+        .set-slider { width:120px; accent-color:#FF4655; cursor:pointer; }
+        .mention-chip { background:rgba(255,70,85,0.25); color:#FF8A94; padding:0 3px; border-radius:3px; font-weight:bold; }
+        .chat-mention-me { background:rgba(255,70,85,0.12); border-left:2px solid #FF4655; padding-left:5px; }
+        .mention-popup { position:absolute; bottom:100%; left:0; right:0; background:#0F0F17; border:2px solid #FF6B35; border-radius:10px; max-height:120px; overflow-y:auto; margin-bottom:4px; display:none; z-index:100; }
+        .mention-popup.active { display:block; }
+        .mention-opt { padding:7px 10px; font-size:11px; color:#eee; cursor:pointer; display:flex; align-items:center; gap:7px; }
+        .mention-opt:hover, .mention-opt.sel { background:rgba(255,107,53,0.15); }
+
         /* ---- BACK LINK ---- */
         .back-link { text-align: center; margin-top: 12px; }
 
@@ -885,8 +900,9 @@
             <button class="mp-chat-toggle-btn" id="mpChatToggleBtn">💬</button>
             <div class="mp-chat-panel" id="mpChatPanel">
                 <div class="mp-chat-log" id="mpChatLog"></div>
-                <div class="mp-chat-input-row">
-                    <input type="text" class="mp-chat-input" id="mpChatInput" placeholder="Say something..." maxlength="80">
+                <div class="mp-chat-input-row" style="position:relative;">
+                    <div class="mention-popup" id="mpChatMentions"></div>
+                    <input type="text" class="mp-chat-input" id="mpChatInput" placeholder="Say something... (@ to mention)" maxlength="80">
                 </div>
             </div>
         </div>
@@ -909,6 +925,7 @@
             <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
         </div>
         
+        <button class="action-btn" id="settingsBtn" style="width:100%;margin-bottom:6px;">⚙️ SETTINGS</button>
         <button class="mp-banner-btn" id="multiplayerBtn">
             🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
         </button>
@@ -1081,8 +1098,9 @@
                 <!-- LOBBY CHAT -->
                 <div class="mp-section-title" style="margin-top:14px;">💬 LOBBY CHAT</div>
                 <div class="mp-lobby-chat-log" id="mpLobbyChatLog"></div>
-                <div class="mp-lobby-chat-row">
-                    <input type="text" class="mp-lobby-chat-input" id="mpLobbyChatInput" placeholder="Say something..." maxlength="100">
+                <div class="mp-lobby-chat-row" style="position:relative;">
+                    <div class="mention-popup" id="mpLobbyChatMentions"></div>
+                    <input type="text" class="mp-lobby-chat-input" id="mpLobbyChatInput" placeholder="Say something... (@ to mention)" maxlength="100">
                     <button class="mp-lobby-chat-send" id="mpLobbyChatSend">→</button>
                 </div>
 
@@ -1115,6 +1133,66 @@
             <textarea id="reportDetails" class="mp-input" placeholder="Additional details (optional)" maxlength="300" style="border-radius:14px;height:70px;resize:none;letter-spacing:0;text-transform:none;padding:10px 16px;width:100%;margin-bottom:10px;"></textarea>
             <button class="mp-btn-danger" id="mpSubmitReportBtn" style="width:100%;">SUBMIT REPORT</button>
             <div class="auth-error" id="reportError" style="text-align:center;margin-top:6px;"></div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div class="mp-modal" id="settingsModal" style="z-index:45000;">
+        <div class="mp-modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <div class="modal-title">⚙️ SETTINGS</div>
+                <button class="modal-close" id="closeSettingsBtn">✕</button>
+            </div>
+
+            <div class="mp-section-title">👤 ACCOUNT</div>
+            <div class="set-row">
+                <span class="set-label">PlayFab ID</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <code id="setPlayFabId" class="set-hidden-val">••••••••••</code>
+                    <button class="set-mini-btn" id="togglePfIdBtn">SHOW</button>
+                    <button class="set-mini-btn" id="copyPfIdBtn">COPY</button>
+                </div>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Roles</span>
+                <span id="setRoles" style="font-size:11px;color:#888;">None</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Coins</span>
+                <span id="setCoins" style="font-size:12px;color:#FFD966;">—</span>
+            </div>
+
+            <div class="mp-section-title" style="margin-top:16px;">🎮 GAMEPLAY</div>
+            <div class="set-row">
+                <span class="set-label">Show FPS counter</span>
+                <div class="mp-toggle-switch" id="setFpsToggle"></div>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Show other players' names</span>
+                <div class="mp-toggle-switch active" id="setNamesToggle"></div>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Reduced motion</span>
+                <div class="mp-toggle-switch" id="setMotionToggle"></div>
+            </div>
+
+            <div class="mp-section-title" style="margin-top:16px;">🔊 AUDIO</div>
+            <div class="set-row">
+                <span class="set-label">Music volume</span>
+                <input type="range" id="setMusicVol" min="0" max="100" value="30" class="set-slider">
+            </div>
+            <div class="set-row">
+                <span class="set-label">Sound effects</span>
+                <input type="range" id="setSfxVol" min="0" max="100" value="100" class="set-slider">
+            </div>
+
+            <div class="mp-section-title" style="margin-top:16px;">💬 CHAT</div>
+            <div class="set-row">
+                <span class="set-label">Notify when @mentioned</span>
+                <div class="mp-toggle-switch active" id="setMentionToggle"></div>
+            </div>
+
+            <button class="mp-btn-secondary" id="resetSettingsBtn" style="width:100%;margin-top:18px;">RESET TO DEFAULTS</button>
         </div>
     </div>
 
@@ -1677,6 +1755,159 @@
             }
         }
 
+        // ================= SETTINGS =================
+        const SETTINGS_KEY = 'crix_settings_v1';
+        const DEFAULT_SETTINGS = {
+            showFps: false, showNames: true, reducedMotion: false,
+            musicVol: 30, sfxVol: 100, mentionNotify: true, pfIdVisible: false
+        };
+        let settings = { ...DEFAULT_SETTINGS };
+
+        function loadSettings() {
+            try {
+                const raw = localStorage.getItem(SETTINGS_KEY);
+                if (raw) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+            } catch(e) {}
+            applySettings();
+        }
+        function saveSettings() {
+            try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); } catch(e) {}
+            applySettings();
+        }
+        function applySettings() {
+            if (bgMusic) bgMusic.volume = settings.musicVol / 100;
+            [jumpSound,deathSound,coinSound,selectSound,powerupSound,victorySound,achSound,failSound]
+                .forEach(s => { if (s) s.volume = settings.sfxVol / 100; });
+            document.body.style.setProperty('--anim-speed', settings.reducedMotion ? '0s' : '');
+        }
+
+        function refreshSettingsUI() {
+            const pf = (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null;
+            const el = document.getElementById('setPlayFabId');
+            if (el) el.textContent = !pf ? 'Not signed in'
+                                   : settings.pfIdVisible ? pf : '••••••••••';
+            const tg = document.getElementById('togglePfIdBtn');
+            if (tg) tg.textContent = settings.pfIdVisible ? 'HIDE' : 'SHOW';
+
+            const r = document.getElementById('setRoles');
+            if (r) r.innerHTML = myRoles.length ? myRoles.map(x => roleTagHtml([x])).join('') : 'None';
+
+            const cn = document.getElementById('setCoins');
+            if (cn) cn.textContent = formatCoins(coinCount);
+
+            const map = { setFpsToggle:'showFps', setNamesToggle:'showNames',
+                          setMotionToggle:'reducedMotion', setMentionToggle:'mentionNotify' };
+            Object.entries(map).forEach(([id,key]) => {
+                const t = document.getElementById(id);
+                if (t) t.classList.toggle('active', !!settings[key]);
+            });
+            const mv = document.getElementById('setMusicVol'); if (mv) mv.value = settings.musicVol;
+            const sv = document.getElementById('setSfxVol');   if (sv) sv.value = settings.sfxVol;
+        }
+
+        function setupSettings() {
+            loadSettings();
+            document.getElementById('settingsBtn')?.addEventListener('click', () => {
+                refreshSettingsUI();
+                document.getElementById('settingsModal').classList.add('active');
+            });
+            document.getElementById('closeSettingsBtn')?.addEventListener('click', () =>
+                document.getElementById('settingsModal').classList.remove('active'));
+            document.getElementById('settingsModal')?.addEventListener('click', e => {
+                if (e.target.id === 'settingsModal') e.target.classList.remove('active');
+            });
+
+            document.getElementById('togglePfIdBtn')?.addEventListener('click', () => {
+                settings.pfIdVisible = !settings.pfIdVisible; saveSettings(); refreshSettingsUI();
+            });
+            document.getElementById('copyPfIdBtn')?.addEventListener('click', () => {
+                const pf = (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId);
+                if (!pf) return;
+                navigator.clipboard?.writeText(pf).then(() => {
+                    const b = document.getElementById('copyPfIdBtn');
+                    b.textContent = 'COPIED'; setTimeout(()=>b.textContent='COPY',1400);
+                });
+            });
+
+            const toggles = { setFpsToggle:'showFps', setNamesToggle:'showNames',
+                              setMotionToggle:'reducedMotion', setMentionToggle:'mentionNotify' };
+            Object.entries(toggles).forEach(([id,key]) => {
+                document.getElementById(id)?.addEventListener('click', () => {
+                    settings[key] = !settings[key]; saveSettings(); refreshSettingsUI();
+                });
+            });
+            document.getElementById('setMusicVol')?.addEventListener('input', e => {
+                settings.musicVol = +e.target.value; saveSettings();
+            });
+            document.getElementById('setSfxVol')?.addEventListener('input', e => {
+                settings.sfxVol = +e.target.value; saveSettings();
+            });
+            document.getElementById('resetSettingsBtn')?.addEventListener('click', () => {
+                settings = { ...DEFAULT_SETTINGS }; saveSettings(); refreshSettingsUI();
+            });
+        }
+
+        // ================= @MENTIONS =================
+        function mpPlayerNames() {
+            return Object.values(mpPlayers || {}).map(p => p.name).filter(Boolean);
+        }
+        // Wrap @names in a highlight chip; flag if the local player was mentioned
+        function renderMentions(text) {
+            const names = mpPlayerNames();
+            const me = mpGetDisplayName();
+            let mentionedMe = false;
+            const html = mpEsc(text).replace(/@([\w\-]{1,25})/g, (full, handle) => {
+                const match = names.find(n => n.toLowerCase().replace(/\s+/g,'') === handle.toLowerCase());
+                if (!match) return full;
+                if (match.toLowerCase() === me.toLowerCase()) mentionedMe = true;
+                return `<span class="mention-chip">@${mpEsc(match)}</span>`;
+            });
+            return { html, mentionedMe };
+        }
+
+        function setupMentionAutocomplete(inputEl, popupEl) {
+            if (!inputEl || !popupEl) return;
+            let sel = 0, matches = [];
+            const close = () => { popupEl.classList.remove('active'); matches = []; };
+
+            inputEl.addEventListener('input', () => {
+                const upto = inputEl.value.slice(0, inputEl.selectionStart);
+                const m = upto.match(/@([\w\-]*)$/);
+                if (!m) return close();
+                const q = m[1].toLowerCase();
+                matches = mpPlayerNames()
+                    .filter(n => n.toLowerCase().replace(/\s+/g,'').startsWith(q))
+                    .slice(0, 6);
+                if (!matches.length) return close();
+                sel = 0;
+                popupEl.innerHTML = matches.map((n,i) =>
+                    `<div class="mention-opt${i===0?' sel':''}" data-n="${mpEsc(n)}">@${mpEsc(n)}</div>`).join('');
+                popupEl.classList.add('active');
+                popupEl.querySelectorAll('.mention-opt').forEach(o =>
+                    o.addEventListener('mousedown', ev => { ev.preventDefault(); pick(o.dataset.n); }));
+            });
+
+            function pick(name) {
+                const start = inputEl.selectionStart;
+                const before = inputEl.value.slice(0, start).replace(/@([\w\-]*)$/, '@' + name.replace(/\s+/g,'') + ' ');
+                inputEl.value = before + inputEl.value.slice(start);
+                inputEl.focus();
+                close();
+            }
+
+            inputEl.addEventListener('keydown', e => {
+                if (!popupEl.classList.contains('active')) return;
+                if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    sel = (sel + (e.key === 'ArrowDown' ? 1 : -1) + matches.length) % matches.length;
+                    popupEl.querySelectorAll('.mention-opt').forEach((o,i) => o.classList.toggle('sel', i===sel));
+                } else if (e.key === 'Tab' || (e.key === 'Enter' && matches.length)) {
+                    e.preventDefault(); pick(matches[sel]);
+                } else if (e.key === 'Escape') close();
+            });
+            inputEl.addEventListener('blur', () => setTimeout(close, 120));
+        }
+
         // ---- PLAYFAB LOGIN + ROLE LOADING ----
         async function initPlayFabForUser(user) {
             if (typeof PlayFabManager === 'undefined') return;
@@ -1699,6 +1930,7 @@
                 const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
                 await PlayFabManager.login(user.uid, name);
                 myRoles = PlayFabManager.roles;
+                refreshSettingsUI();
                 console.log('[Roles] Loaded from PlayFab:', myRoles);
                 refreshRoleDisplay();
             } catch(e) {
@@ -2399,7 +2631,12 @@
                 const el = document.createElement('div');
                 el.className = isSystem ? (logId === 'mpChatLog' ? 'mp-chat-log-entry' : 'sys') : 'msg';
                 if (isSystem) { el.style.color = '#888'; el.style.fontStyle = 'italic'; el.textContent = text; }
-                else el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(fromName)}:</strong> ${mpEsc(text)}`;
+                else {
+                    const _lm = renderMentions(text);
+                    if (_lm.mentionedMe) el.classList.add('chat-mention-me');
+                    el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(fromName)}:</strong> ${_lm.html}`;
+                    if (_lm.mentionedMe && settings.mentionNotify && !String(fromName).includes('(you)')) playSound(achSound);
+                }
                 log.appendChild(el);
                 log.scrollTop = log.scrollHeight;
             });
@@ -2901,7 +3138,10 @@
                 if (!log) return;
                 const el = document.createElement('div');
                 el.className = logId === 'mpChatLog' ? 'mp-chat-log-entry' : 'msg';
-                el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(name)}:</strong> ${mpEsc(text)}`;
+                const _m = renderMentions(text);
+                if (_m.mentionedMe) el.classList.add('chat-mention-me');
+                el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(name)}:</strong> ${_m.html}`;
+                if (_m.mentionedMe && settings.mentionNotify && !name.includes('(you)')) playSound(achSound);
                 log.appendChild(el);
                 log.scrollTop = log.scrollHeight;
             });
@@ -3200,6 +3440,9 @@
         document.getElementById('closeReportBtn').addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
         document.getElementById('mpSubmitReportBtn').addEventListener('click', mpSubmitReport);
 
+        setupSettings();
+        setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
+        setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
         loadAppConfig();
         drawGame();
     </script>
