@@ -34,6 +34,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
+    <script src="playfab-manager.js"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1117,6 +1118,33 @@
         </div>
     </div>
 
+    <!-- BAN SCREEN -->
+    <div id="banScreen" style="display:none;position:fixed;inset:0;background:rgba(5,5,8,0.98);z-index:60000;align-items:center;justify-content:center;padding:24px;">
+        <div style="max-width:420px;width:100%;background:#0F0F17;border:3px solid #FF4655;border-bottom:6px solid rgba(150,20,35,0.7);border-radius:22px;padding:32px 28px;text-align:center;box-shadow:5px 5px 0 rgba(0,0,0,0.6);">
+            <div style="font-size:44px;margin-bottom:12px;">🚫</div>
+            <div style="font-size:22px;font-weight:900;color:#FF4655;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;">Banned</div>
+            <div style="font-size:13px;color:#aaa;margin-bottom:20px;">You have been banned from <strong style="color:#fff;">FLAPPY CRIX</strong> multiplayer.</div>
+
+            <div style="text-align:left;background:rgba(255,70,85,0.06);border:1px solid rgba(255,70,85,0.25);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+                <div style="font-size:10px;color:#FF6B35;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Reason</div>
+                <div id="banReasonText" style="font-size:13px;color:#eee;margin-bottom:12px;">—</div>
+                <div style="font-size:10px;color:#FF6B35;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Duration</div>
+                <div id="banDurationText" style="font-size:13px;color:#eee;margin-bottom:12px;">—</div>
+                <div id="banNoteWrap" style="display:none;">
+                    <div style="font-size:10px;color:#FF6B35;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Moderator note</div>
+                    <div id="banNoteText" style="font-size:12px;color:#bbb;font-style:italic;">—</div>
+                </div>
+            </div>
+
+            <div style="font-size:11px;color:#666;margin-bottom:18px;">You can still play single player.</div>
+            <button onclick="document.getElementById('banScreen').style.display='none'"
+                    style="background:linear-gradient(135deg,#FF4655,#FF6B35);color:#fff;border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);border-radius:30px;padding:11px 30px;font-family:inherit;font-size:13px;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">
+                Back to single player
+            </button>
+            <div style="margin-top:14px;font-size:10px;color:#555;">Think this is a mistake? Email cgvr@crixgamingvr.com</div>
+        </div>
+    </div>
+
     <!-- SPECTATE OVERLAY (Last One Standing) -->
     <div id="mpSpectateOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.97);z-index:20000;flex-direction:column;align-items:center;justify-content:center;text-align:center;">
         <div style="font-size:22px;color:#FF4655;margin-bottom:8px;">💀 YOU DIED</div>
@@ -1196,6 +1224,7 @@
                     const json = await res.json();
                     if (json.firebase) appConfig.firebase = json.firebase;
                     if (json.photon) appConfig.photon = json.photon;
+                    if (json.playfab) appConfig.playfab = json.playfab;
                     if (json.discord) appConfig.discord = json.discord;
                                     }
             } catch (e) {
@@ -1415,7 +1444,7 @@
             // All players start at x=100 — same world, same physics
             bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5 };
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
-            if (mpCurrentRoom) mpRngState = (window.mpSharedSeed || 12345);
+            mpRngState = mpCurrentRoom ? (window.mpSharedSeed >>> 0 || 12345) : 12345;
         }
         
         function updateGame() { 
@@ -1430,17 +1459,13 @@
                 if (bird.y < 10) { bird.y=10; bird.velocity=Math.abs(bird.velocity)*0.5; } 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
             }
-            if((!mpCurrentRoom || mpIsHost) && frameCount % (cheats.slowmo?180:120) ===0){
+            if(frameCount % (cheats.slowmo?180:120) ===0){
                 const rnd = mpCurrentRoom ? mpRng() : Math.random();
                 let top = rnd*(canvas.height-pipeGap-150)+70;
                 pipes.push({x:canvas.width, top:top, bottom:top+pipeGap, scored:false});
-                // Host broadcasts pipe to guests so all see same layout
-                if (mpCurrentRoom && mpIsHost) {
-                    mpRaiseEvent(MP_EV.PIPE_SPAWN, { top: Math.round(top*10)/10, frame: frameCount });
-                }
             }
-            const coinrushRate = mpMatchMode === 'coinrush' ? 18 : (cheats.coinlord?25:50);
-            if((!mpCurrentRoom || mpIsHost) && frameCount % coinrushRate===0){
+            const coinrushRate = (mpMatchActive && mpMatchMode === 'coinrush') ? 18 : (cheats.coinlord?25:50);
+            if(frameCount % coinrushRate===0){
                 // Spawn coin in safe gap area (not in pipes)
                 const lastPipe = pipes.length > 0 ? pipes[pipes.length-1] : null;
                 let coinY;
@@ -1453,10 +1478,6 @@
                     coinY = (mpCurrentRoom ? mpRng() : Math.random())*(canvas.height-100)+50;
                 }
                 coinsArr.push({x:canvas.width, y:coinY, collected:false});
-                // Host broadcasts coin to guests
-                if (mpCurrentRoom && mpIsHost) {
-                    mpRaiseEvent(MP_EV.COIN_SPAWN, { y: Math.round(coinY*10)/10, frame: frameCount });
-                }
             }
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
@@ -1656,6 +1677,71 @@
             }
         }
 
+        // ---- PLAYFAB LOGIN + ROLE LOADING ----
+        async function initPlayFabForUser(user) {
+            if (typeof PlayFabManager === 'undefined') return;
+            const ok = await PlayFabManager.init(appConfig.playfab || {});
+            if (!ok) {
+                // PlayFab not configured yet. Allow a local role override so
+                // tags can be tested before the backend is wired up:
+                //   localStorage.setItem('crix_dev_roles', '["OWNER"]')
+                try {
+                    const dev = localStorage.getItem('crix_dev_roles');
+                    if (dev) {
+                        myRoles = JSON.parse(dev);
+                        console.log('[Roles] Using local dev override:', myRoles);
+                        refreshRoleDisplay();
+                    }
+                } catch(e) {}
+                return;
+            }
+            try {
+                const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
+                await PlayFabManager.login(user.uid, name);
+                myRoles = PlayFabManager.roles;
+                console.log('[Roles] Loaded from PlayFab:', myRoles);
+                refreshRoleDisplay();
+            } catch(e) {
+                if (e.isBan) { showBanScreen(e); return; }
+                console.warn('[PlayFab] login failed:', e.message);
+            }
+        }
+
+        // Re-render anywhere a tag might show once roles arrive
+        function refreshRoleDisplay() {
+            if (mpPlayers && mpLocalActor && mpPlayers[mpLocalActor]) {
+                mpPlayers[mpLocalActor].roles = myRoles;
+            }
+            if (mpCurrentRoom) {
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles });
+                if (typeof mpRenderLobby === 'function') mpRenderLobby();
+                if (typeof mpUpdateHud === 'function') mpUpdateHud();
+            }
+        }
+
+        // ---- BAN SCREEN ----
+        function showBanScreen(banErr) {
+            const info = banErr?.raw || {};
+            const reason = info.BanReason || banErr?.banReason || 'Violation of the rules';
+            const expires = info.BanExpiration || banErr?.banExpires || null;
+            let durationText;
+            if (!expires) {
+                durationText = 'This ban is permanent.';
+            } else {
+                const ms = new Date(expires) - Date.now();
+                if (ms <= 0) durationText = 'This ban has expired — try again.';
+                else {
+                    const d = Math.floor(ms/86400000), h = Math.floor(ms%86400000/3600000), m = Math.floor(ms%3600000/60000);
+                    durationText = 'Time remaining: ' + (d?d+'d ':'') + (h?h+'h ':'') + m + 'm';
+                }
+            }
+            const el = document.getElementById('banScreen');
+            if (!el) return;
+            document.getElementById('banReasonText').textContent = reason;
+            document.getElementById('banDurationText').textContent = durationText;
+            el.style.display = 'flex';
+        }
+
         function setupAuthAfterConfig() {
             if (!auth) {
                 console.warn('[Auth] Firebase auth unavailable — check api.json has valid firebase config');
@@ -1668,6 +1754,7 @@
                 currentUser = user;
                 if (user) {
                     renderUserProfile(user);
+                    initPlayFabForUser(user);
                     document.getElementById('loginBtn').style.display = 'none';
                     document.getElementById('logoutBtn').style.display = 'block';
                     loadFromCloud();
@@ -1883,6 +1970,39 @@
 
         function mpSaveProfile() {
             localStorage.setItem('crix_mp_profile', JSON.stringify(mpProfile));
+        }
+
+        // ---- ROLE TAGS ----
+        // Roles come from PlayFab Read-Only Data (server-writable only), so a
+        // player can't grant themselves OWNER by editing anything client-side.
+        const ROLE_TAGS = {
+            OWNER: { label: 'OWNER', colour: '#FF0000' },
+            MOD:   { label: 'MOD',   colour: '#00ffd5' }
+        };
+        let myRoles = [];
+
+        // Highest-priority tag only (OWNER outranks MOD)
+        function topRole(roles) {
+            if (!roles || !roles.length) return null;
+            if (roles.includes('OWNER')) return 'OWNER';
+            if (roles.includes('MOD')) return 'MOD';
+            return null;
+        }
+        // HTML tag for lobby list / chat
+        function roleTagHtml(roles) {
+            const r = topRole(roles);
+            if (!r) return '';
+            const t = ROLE_TAGS[r];
+            return `<span style="color:${t.colour};font-weight:bold;font-size:10px;margin-right:4px;">[${t.label}]</span>`;
+        }
+        // Plain text tag for canvas name plates
+        function roleTagText(roles) {
+            const r = topRole(roles);
+            return r ? `[${ROLE_TAGS[r].label}] ` : '';
+        }
+        function roleTagColour(roles) {
+            const r = topRole(roles);
+            return r ? ROLE_TAGS[r].colour : null;
         }
 
         function mpGetDisplayName() {
@@ -2134,6 +2254,7 @@
                 mpPlayers[mpLocalActor] = {
                     name: mpGetDisplayName(),
                     colour: mpGetColour(),
+                    roles: myRoles,
                     score: 0, dead: false,
                     x: 100, y: 300, vel: 0,
                     rx: 100, ry: 300,
@@ -2143,11 +2264,12 @@
                 // Update with our real display name and colour
                 mpPlayers[mpLocalActor].name = mpGetDisplayName();
                 mpPlayers[mpLocalActor].colour = mpGetColour();
+                mpPlayers[mpLocalActor].roles = myRoles;
             }
             
 
             // Broadcast our own name/colour to others
-            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour() });
+            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles });
 
             document.getElementById('mpModal').classList.add('active');
             mpShowLobbyView();
@@ -2227,7 +2349,7 @@
                 row.className = 'mp-player-row';
                 row.innerHTML =
                     `<div class="mp-player-avatar" style="background:${p.colour||'#FF4655'}">${(p.name||'?').charAt(0).toUpperCase()}</div>` +
-                    `<div class="mp-player-name">${mpEsc(p.name)}${isMe?' <span style="color:#888;font-size:9px;">(you)</span>':''}</div>` +
+                    `<div class="mp-player-name">${roleTagHtml(p.roles)}${mpEsc(p.name)}${isMe?' <span style="color:#888;font-size:9px;">(you)</span>':''}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
                 if (mpIsHost && !isMe) {
                     const kb = document.createElement('button');
@@ -2270,14 +2392,14 @@
         }
 
         // ----- LOBBY CHAT -----
-        function mpLobbyChatAppend(fromName, text, isSystem) {
+        function mpLobbyChatAppend(fromName, text, isSystem, roles) {
             ['mpLobbyChatLog', 'mpChatLog'].forEach(logId => {
                 const log = document.getElementById(logId);
                 if (!log) return;
                 const el = document.createElement('div');
                 el.className = isSystem ? (logId === 'mpChatLog' ? 'mp-chat-log-entry' : 'sys') : 'msg';
                 if (isSystem) { el.style.color = '#888'; el.style.fontStyle = 'italic'; el.textContent = text; }
-                else el.innerHTML = `<strong>${mpEsc(fromName)}:</strong> ${mpEsc(text)}`;
+                else el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(fromName)}:</strong> ${mpEsc(text)}`;
                 log.appendChild(el);
                 log.scrollTop = log.scrollHeight;
             });
@@ -2314,6 +2436,8 @@
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpMatchActive = false; mpSpectating = false;
+            mpMatchMode = 'freemode';   // reset so coinrush rates don't leak into single player
+            coinsArr = []; pipes = [];  // clear leftover MP entities
             _mpMatchStarted = false; mpMatchOverShown = false;
             document.querySelector('.game-container')?.classList.remove('mp-wide');
             const gc = document.getElementById('gameCanvas');
@@ -2558,7 +2682,7 @@
             const coinrushTimerStr = mpMatchMode === 'coinrush' ? ` ⏱️ ${Math.floor(mpCoinRushSecondsLeft/60)}:${String(mpCoinRushSecondsLeft%60).padStart(2,'0')}` : '';
             let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}${coinrushTimerStr}</strong></div>`;
             Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
-                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${mpEsc(p.name)}: ${p.score}</div>`;
+                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p.roles)}${mpEsc(p.name)}: ${p.score}</div>`;
             });
             hud.innerHTML = rows;
         }
@@ -2646,14 +2770,15 @@
                 context.globalAlpha = p.dead ? 0.3 : 1;
 
                 // Text background pill
-                const nameText = p.name || 'Player';
+                const nameText = roleTagText(p.roles) + (p.name || 'Player');
                 const textW = context.measureText(nameText).width;
                 context.fillStyle = 'rgba(0,0,0,0.55)';
                 context.beginPath();
                 context.roundRect(-textW/2 - 3, -birdSize/2 - 17, textW + 6, 13, 4);
                 context.fill();
 
-                context.fillStyle = p.colour || '#FFD966';
+                // Tag colour takes priority over the player's chosen bird colour
+                context.fillStyle = roleTagColour(p.roles) || p.colour || '#FFD966';
                 context.fillText(nameText, 0, -birdSize/2 - 7);
 
                 if (p.dead) {
@@ -2705,10 +2830,10 @@
                     mpUpdateHud();
                     break;
                 case MP_EV.CHAT:
-                    mpChatAppendMessage(p ? p.name : ('Player' + actorNr), content.text);
+                    mpChatAppendMessage(p ? p.name : ('Player' + actorNr), content.text, p ? p.roles : []);
                     break;
                 case MP_EV.LOBBY_CHAT:
-                    mpLobbyChatAppend(p ? p.name : ('Player' + actorNr), content.text, false);
+                    mpLobbyChatAppend(p ? p.name : ('Player' + actorNr), content.text, false, p ? p.roles : []);
                     break;
                 case MP_EV.KICK:
                     if (content.targetActor === mpLocalActor) {
@@ -2728,23 +2853,19 @@
                     mpLobbyChatAppend(null, 'Host changed mode to ' + content.mode, true);
                     break;
                 case MP_EV.NAME_UPDATE:
-                    if (p) { p.name = content.name; if (content.colour) p.colour = content.colour; }
+                    if (p) {
+                        p.name = content.name;
+                        if (content.colour) p.colour = content.colour;
+                        p.roles = content.roles || [];
+                    }
                     mpRenderLobby();
                     break;
                 case MP_EV.COLOUR_UPDATE:
                     if (p && content.colour) p.colour = content.colour;
                     break;
-                case MP_EV.PIPE_SPAWN:
-                    // Guests only — host already added this pipe locally
-                    if (!mpIsHost && mpMatchActive && gameRunning) {
-                        pipes.push({ x: canvas.width, top: content.top, bottom: content.top + pipeGap, scored: false });
-                    }
-                    break;
-                case MP_EV.COIN_SPAWN:
-                    if (!mpIsHost && mpMatchActive && gameRunning) {
-                        coinsArr.push({ x: canvas.width, y: content.y, collected: false });
-                    }
-                    break;
+                // PIPE_SPAWN / COIN_SPAWN removed — every client now generates
+                // the identical map locally from the shared seed, so there is no
+                // network latency offset between players.
                 case MP_EV.TYPING:
                     if (p) p.typing = content.typing;
                     break;
@@ -2773,14 +2894,14 @@
             log.appendChild(el);
             log.scrollTop = log.scrollHeight;
         }
-        function mpChatAppendMessage(name, text) {
+        function mpChatAppendMessage(name, text, roles) {
             // Write to both in-game and lobby chat logs
             ['mpChatLog', 'mpLobbyChatLog'].forEach(logId => {
                 const log = document.getElementById(logId);
                 if (!log) return;
                 const el = document.createElement('div');
                 el.className = logId === 'mpChatLog' ? 'mp-chat-log-entry' : 'msg';
-                el.innerHTML = `<strong>${mpEsc(name)}:</strong> ${mpEsc(text)}`;
+                el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(name)}:</strong> ${mpEsc(text)}`;
                 log.appendChild(el);
                 log.scrollTop = log.scrollHeight;
             });
@@ -2921,6 +3042,8 @@
         // ----- DOM EVENT WIRING -----
         document.getElementById('multiplayerBtn').addEventListener('click', () => {
             selectSound.play();
+            // Banned players can still play single player, just not multiplayer
+            if (window.__crixBanned) { showBanScreen(window.__crixBanInfo || {}); return; }
             if (!currentUser) {
                 mpShowView('mpViewSignInRequired');
                 document.getElementById('mpModal').classList.add('active');
@@ -2963,7 +3086,7 @@
             mpSaveProfile();
             setPhotonNickname(mpGetDisplayName());
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour() });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles });
                 if (mpPlayers[mpLocalActor]) {
                     mpPlayers[mpLocalActor].name = mpGetDisplayName();
                     mpPlayers[mpLocalActor].colour = mpGetColour();
@@ -3031,7 +3154,7 @@
             const input = document.getElementById('mpLobbyChatInput');
             const text = input.value.trim();
             if (!text || !mpCurrentRoom) return;
-            mpLobbyChatAppend(mpGetDisplayName() + ' (you)', text, false);
+            mpLobbyChatAppend(mpGetDisplayName() + ' (you)', text, false, myRoles);
             mpRaiseEvent(MP_EV.LOBBY_CHAT, { text: text.slice(0,100) });
             input.value = '';
         });
@@ -3064,7 +3187,7 @@
         mpChatInputEl.addEventListener('keypress', e => {
             if (e.key === 'Enter' && mpChatInputEl.value.trim()) {
                 const text = mpChatInputEl.value.trim().slice(0, 120);
-                mpChatAppendMessage(mpGetDisplayName() + ' (you)', text);
+                mpChatAppendMessage(mpGetDisplayName() + ' (you)', text, myRoles);
                 mpRaiseEvent(MP_EV.CHAT, { text });
                 mpChatInputEl.value = '';
                 clearTimeout(mpTypingTimeout);
