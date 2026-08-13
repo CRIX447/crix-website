@@ -1145,6 +1145,35 @@
             </div>
 
             <div class="mp-section-title">👤 ACCOUNT</div>
+
+            <!-- Signed OUT -->
+            <div id="setSignedOut" style="display:none;text-align:center;padding:18px 12px;background:rgba(255,70,85,0.05);border:1px solid rgba(255,70,85,0.25);border-radius:12px;margin-bottom:12px;">
+                <div style="font-size:26px;margin-bottom:8px;">🔒</div>
+                <div style="font-size:12px;color:#ccc;margin-bottom:4px;">You need an account to get a Player ID.</div>
+                <div style="font-size:10px;color:#777;margin-bottom:14px;">Your ID stores your coins, cosmetics and stats.</div>
+                <button class="mp-btn-primary" id="setSignInBtn" style="max-width:200px;margin:0 auto;">SIGN IN / SIGN UP</button>
+            </div>
+
+            <!-- Signed IN -->
+            <div id="setSignedIn" style="display:none;">
+            <div class="set-row">
+                <span class="set-label">Signed in as</span>
+                <span id="setAccountEmail" style="font-size:11px;color:#ccc;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Email verified</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span id="setEmailVerified" style="font-size:11px;">—</span>
+                    <button class="set-mini-btn" id="verifyEmailBtn" style="display:none;">VERIFY</button>
+                </div>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Phone</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span id="setPhoneStatus" style="font-size:11px;color:#777;">Not linked</span>
+                    <button class="set-mini-btn" id="linkPhoneBtn">LINK</button>
+                </div>
+            </div>
             <div class="set-row">
                 <span class="set-label">PlayFab ID</span>
                 <div style="display:flex;align-items:center;gap:6px;">
@@ -1162,6 +1191,7 @@
                 <span class="set-label">Coins</span>
                 <span id="setCoins" style="font-size:12px;color:#FFD966;">—</span>
             </div>
+            </div><!-- /setSignedIn -->
 
             <div class="mp-section-title" style="margin-top:16px;">🎮 GAMEPLAY</div>
             <div class="set-row">
@@ -1194,6 +1224,33 @@
             </div>
 
             <button class="mp-btn-secondary" id="resetSettingsBtn" style="width:100%;margin-top:18px;">RESET TO DEFAULTS</button>
+        </div>
+    </div>
+
+    <!-- PHONE VERIFY MODAL -->
+    <div class="mp-modal" id="phoneModal" style="z-index:46000;">
+        <div class="mp-modal-content" style="max-width:360px;">
+            <div class="modal-header">
+                <div class="modal-title">📱 VERIFY PHONE</div>
+                <button class="modal-close" id="closePhoneBtn">✕</button>
+            </div>
+            <div id="phoneStep1">
+                <div style="font-size:11px;color:#999;margin-bottom:10px;line-height:1.6;">
+                    Include your country code, e.g. <code>+61412345678</code>.
+                </div>
+                <input type="tel" class="mp-input" id="phoneInput" placeholder="+61412345678" style="letter-spacing:1px;text-transform:none;">
+                <div id="recaptchaSlot" style="margin:10px 0;display:flex;justify-content:center;"></div>
+                <button class="mp-btn-primary" id="sendCodeBtn" style="width:100%;">SEND CODE</button>
+            </div>
+            <div id="phoneStep2" style="display:none;">
+                <div style="font-size:11px;color:#999;margin-bottom:10px;">Enter the 6-digit code we texted you.</div>
+                <input type="text" class="mp-input" id="phoneCodeInput" placeholder="123456" maxlength="6" style="letter-spacing:6px;text-align:center;font-size:18px;">
+                <div style="display:flex;gap:8px;margin-top:10px;">
+                    <button class="mp-btn-secondary" id="phoneBackBtn">← BACK</button>
+                    <button class="mp-btn-primary" id="confirmCodeBtn">CONFIRM</button>
+                </div>
+            </div>
+            <div class="auth-error" id="phoneError" style="text-align:center;margin-top:10px;"></div>
         </div>
     </div>
 
@@ -1784,6 +1841,48 @@
 
         function refreshSettingsUI() {
             if (!document.getElementById('setPlayFabId')) return;
+            // Signed in / out panels
+            const signedIn = !!currentUser;
+            const soEl = document.getElementById('setSignedOut');
+            const siEl = document.getElementById('setSignedIn');
+            if (soEl) soEl.style.display = signedIn ? 'none' : 'block';
+            if (siEl) siEl.style.display = signedIn ? 'block' : 'none';
+
+            if (signedIn) {
+                const em = document.getElementById('setAccountEmail');
+                if (em) em.textContent = currentUser.email || currentUser.displayName || 'Account';
+
+                // Email verification state
+                const ev = document.getElementById('setEmailVerified');
+                const vb = document.getElementById('verifyEmailBtn');
+                if (ev) {
+                    if (!currentUser.email) {
+                        ev.textContent = 'No email'; ev.style.color = '#777';
+                        if (vb) vb.style.display = 'none';
+                    } else if (currentUser.emailVerified) {
+                        ev.textContent = '✅ Verified'; ev.style.color = '#00CC7A';
+                        if (vb) vb.style.display = 'none';
+                    } else {
+                        ev.textContent = '⚠️ Not verified'; ev.style.color = '#FFB347';
+                        if (vb) vb.style.display = '';
+                    }
+                }
+                // Phone link state
+                const ph = document.getElementById('setPhoneStatus');
+                const lb = document.getElementById('linkPhoneBtn');
+                const phoneNum = currentUser.phoneNumber;
+                if (ph) {
+                    if (phoneNum) {
+                        ph.textContent = '✅ ' + phoneNum.replace(/\d(?=\d{4})/g, '•');
+                        ph.style.color = '#00CC7A';
+                        if (lb) lb.textContent = 'CHANGE';
+                    } else {
+                        ph.textContent = 'Not linked'; ph.style.color = '#777';
+                        if (lb) lb.textContent = 'LINK';
+                    }
+                }
+            }
+
             const hasPFM = typeof PlayFabManager !== 'undefined';
             const pf = (hasPFM && PlayFabManager.playFabId) || null;
             const el = document.getElementById('setPlayFabId');
@@ -1875,9 +1974,131 @@
             document.getElementById('setSfxVol')?.addEventListener('input', e => {
                 settings.sfxVol = +e.target.value; saveSettings();
             });
+            // Sign in from settings
+            document.getElementById('setSignInBtn')?.addEventListener('click', () => {
+                document.getElementById('settingsModal').classList.remove('active');
+                document.getElementById('authModal').classList.add('active');
+            });
+
+            // Resend email verification
+            document.getElementById('verifyEmailBtn')?.addEventListener('click', async () => {
+                const b = document.getElementById('verifyEmailBtn');
+                if (!currentUser) return;
+                b.textContent = 'SENDING…'; b.disabled = true;
+                try {
+                    await currentUser.sendEmailVerification({ url: 'https://crixgamingvr.com/flappycrix' });
+                    b.textContent = 'SENT ✓';
+                    setTimeout(() => { b.textContent = 'VERIFY'; b.disabled = false; }, 4000);
+                } catch (e) {
+                    b.textContent = 'FAILED'; b.disabled = false;
+                    console.warn('[Auth] verification email failed:', e.message);
+                    setTimeout(() => b.textContent = 'VERIFY', 3000);
+                }
+            });
+
+            // Phone linking
+            document.getElementById('linkPhoneBtn')?.addEventListener('click', () => {
+                if (!currentUser) return;
+                document.getElementById('phoneError').textContent = '';
+                document.getElementById('phoneStep1').style.display = '';
+                document.getElementById('phoneStep2').style.display = 'none';
+                document.getElementById('phoneModal').classList.add('active');
+                setupRecaptcha();
+            });
+            document.getElementById('closePhoneBtn')?.addEventListener('click', () =>
+                document.getElementById('phoneModal').classList.remove('active'));
+            document.getElementById('phoneBackBtn')?.addEventListener('click', () => {
+                document.getElementById('phoneStep1').style.display = '';
+                document.getElementById('phoneStep2').style.display = 'none';
+            });
+            document.getElementById('sendCodeBtn')?.addEventListener('click', sendPhoneCode);
+            document.getElementById('confirmCodeBtn')?.addEventListener('click', confirmPhoneCode);
+
             document.getElementById('resetSettingsBtn')?.addEventListener('click', () => {
                 settings = { ...DEFAULT_SETTINGS }; saveSettings(); refreshSettingsUI();
             });
+        }
+
+        // ================= PHONE VERIFICATION =================
+        // Firebase phone auth requires a reCAPTCHA verifier. We build it lazily
+        // because it must attach to a visible DOM node.
+        let recaptchaVerifier = null;
+        let phoneConfirmation = null;
+
+        function setupRecaptcha() {
+            if (recaptchaVerifier || !auth) return;
+            try {
+                recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptchaSlot', {
+                    size: 'normal',
+                    callback: () => {}
+                });
+                recaptchaVerifier.render();
+            } catch (e) {
+                console.warn('[Auth] reCAPTCHA setup failed:', e.message);
+                document.getElementById('phoneError').textContent =
+                    'Could not load reCAPTCHA. Check that your domain is authorised in Firebase.';
+            }
+        }
+
+        async function sendPhoneCode() {
+            const err = document.getElementById('phoneError');
+            const num = document.getElementById('phoneInput').value.trim();
+            err.style.color = '#FF4655';
+            if (!/^\+[1-9]\d{6,14}$/.test(num)) {
+                err.textContent = 'Enter a full number including country code, e.g. +61412345678';
+                return;
+            }
+            if (!recaptchaVerifier) { setupRecaptcha(); }
+            if (!recaptchaVerifier) { err.textContent = 'reCAPTCHA not ready — try reopening this window.'; return; }
+
+            const btn = document.getElementById('sendCodeBtn');
+            btn.disabled = true; btn.textContent = 'SENDING…';
+            try {
+                // Link to the existing account rather than replacing the sign-in method
+                phoneConfirmation = await currentUser.linkWithPhoneNumber(num, recaptchaVerifier);
+                document.getElementById('phoneStep1').style.display = 'none';
+                document.getElementById('phoneStep2').style.display = '';
+                err.textContent = '';
+            } catch (e) {
+                const msgs = {
+                    'auth/invalid-phone-number': 'That phone number is not valid.',
+                    'auth/too-many-requests': 'Too many attempts. Try again later.',
+                    'auth/provider-already-linked': 'A phone number is already linked to this account.',
+                    'auth/credential-already-in-use': 'That number is already used by another account.',
+                    'auth/operation-not-allowed': 'Phone sign-in is not enabled in Firebase yet.'
+                };
+                err.textContent = msgs[e.code] || e.message;
+                try { recaptchaVerifier.clear(); recaptchaVerifier = null; } catch(_) {}
+            } finally {
+                btn.disabled = false; btn.textContent = 'SEND CODE';
+            }
+        }
+
+        async function confirmPhoneCode() {
+            const err = document.getElementById('phoneError');
+            const code = document.getElementById('phoneCodeInput').value.trim();
+            if (!/^\d{6}$/.test(code)) { err.style.color = '#FF4655'; err.textContent = 'Enter the 6-digit code.'; return; }
+            if (!phoneConfirmation) { err.textContent = 'Request a new code.'; return; }
+
+            const btn = document.getElementById('confirmCodeBtn');
+            btn.disabled = true; btn.textContent = 'CHECKING…';
+            try {
+                await phoneConfirmation.confirm(code);
+                await currentUser.reload();
+                err.style.color = '#00CC7A';
+                err.textContent = '✅ Phone verified!';
+                refreshSettingsUI();
+                setTimeout(() => {
+                    document.getElementById('phoneModal').classList.remove('active');
+                    document.getElementById('settingsModal').classList.add('active');
+                }, 1200);
+            } catch (e) {
+                err.style.color = '#FF4655';
+                err.textContent = e.code === 'auth/invalid-verification-code'
+                    ? 'That code is not correct.' : e.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'CONFIRM';
+            }
         }
 
         // ================= @MENTIONS =================
@@ -2026,6 +2247,7 @@
                     initPlayFabForUser(user);
                     document.getElementById('loginBtn').style.display = 'none';
                     document.getElementById('logoutBtn').style.display = 'block';
+                    refreshSettingsUI();
                     loadFromCloud();
                     if (typeof setPhotonNickname === 'function') setPhotonNickname(user.displayName || (user.email ? user.email.split('@')[0] : 'Player'));
                 } else {
@@ -2035,6 +2257,9 @@
                     userAvatarEl.innerHTML = '👤';
                     document.getElementById('loginBtn').style.display = 'block';
                     document.getElementById('logoutBtn').style.display = 'none';
+                    if (typeof PlayFabManager !== 'undefined') PlayFabManager.logout();
+                    myRoles = [];
+                    refreshSettingsUI();
                     loadFromLocal();
                 }
             });
