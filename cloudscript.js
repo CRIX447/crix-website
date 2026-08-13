@@ -26,14 +26,32 @@ var MAX_GRANT_PER_CALL = 5000;    // anti-abuse ceiling on normal gameplay grant
 
 /* ---------- helpers ---------- */
 
+var ROLE_ITEMS = { OWNER: "role_owner", MOD: "role_mod" };
+
+/* Roles are catalog items in the player's inventory. Those items have no
+   price, so they can only ever arrive via a server-side grant.
+   ReadOnlyData is still read as a fallback for older accounts.          */
 function getRoles(playFabId) {
-    var res = server.GetUserReadOnlyData({
-        PlayFabId: playFabId,
-        Keys: ["roles"]
-    });
-    if (!res.Data || !res.Data.roles) return [];
-    try { return JSON.parse(res.Data.roles.Value); }
-    catch (e) { return []; }
+    var found = [];
+
+    try {
+        var inv = server.GetUserInventory({ PlayFabId: playFabId });
+        (inv.Inventory || []).forEach(function (item) {
+            if (item.ItemId === ROLE_ITEMS.OWNER && found.indexOf("OWNER") === -1) found.push("OWNER");
+            if (item.ItemId === ROLE_ITEMS.MOD   && found.indexOf("MOD")   === -1) found.push("MOD");
+        });
+    } catch (e) {}
+
+    try {
+        var res = server.GetUserReadOnlyData({ PlayFabId: playFabId, Keys: ["roles"] });
+        if (res.Data && res.Data.roles) {
+            JSON.parse(res.Data.roles.Value).forEach(function (r) {
+                if (found.indexOf(r) === -1) found.push(r);
+            });
+        }
+    } catch (e) {}
+
+    return found;
 }
 
 function isOwner(playFabId) { return getRoles(playFabId).indexOf("OWNER") !== -1; }
@@ -105,12 +123,48 @@ handlers.adminAction = function (args, context) {
 
         case "setRole": {
             if (!target) return { error: "No target" };
-            var newRoles = args.roles || [];
+            var newRoles = args.roles || [];          // e.g. ["MOD"] or [] to strip all
+            var catalog  = args.catalogVersion || "Main";
+
+            // Work out what they already hold so we only add/remove the difference
+            var current = [];
+            var inv = server.GetUserInventory({ PlayFabId: target });
+            var instanceByRole = {};
+            (inv.Inventory || []).forEach(function (item) {
+                if (item.ItemId === ROLE_ITEMS.OWNER) { current.push("OWNER"); instanceByRole.OWNER = item.ItemInstanceId; }
+                if (item.ItemId === ROLE_ITEMS.MOD)   { current.push("MOD");   instanceByRole.MOD   = item.ItemInstanceId; }
+            });
+
+            // Grant anything newly added
+            var toGrant = [];
+            newRoles.forEach(function (r) {
+                if (ROLE_ITEMS[r] && current.indexOf(r) === -1) toGrant.push(ROLE_ITEMS[r]);
+            });
+            if (toGrant.length) {
+                server.GrantItemsToUser({
+                    PlayFabId: target,
+                    CatalogVersion: catalog,
+                    ItemIds: toGrant
+                });
+            }
+
+            // Revoke anything removed
+            current.forEach(function (r) {
+                if (newRoles.indexOf(r) === -1 && instanceByRole[r]) {
+                    server.RevokeInventoryItem({
+                        PlayFabId: target,
+                        ItemInstanceId: instanceByRole[r]
+                    });
+                }
+            });
+
+            // Keep legacy ReadOnlyData in sync so nothing stale lingers
             server.UpdateUserReadOnlyData({
                 PlayFabId: target,
                 Data: { roles: JSON.stringify(newRoles) }
             });
-            return { ok: true, roles: newRoles };
+
+            return { ok: true, roles: newRoles, granted: toGrant };
         }
 
         case "ban": {
