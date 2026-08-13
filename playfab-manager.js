@@ -22,6 +22,8 @@ const PlayFabManager = (() => {
     let ready = false;
     let currencyCode = 'CN';          // overridden from api.json
     let roles = [];                   // e.g. ['OWNER'] or ['MOD']
+    let status = 'not_started';       // machine-readable state
+    let statusDetail = '';            // human-readable reason
 
     const api = (endpoint, body, useAuth = true) => {
         if (!titleId) return Promise.reject(new Error('PlayFab titleId not set'));
@@ -48,6 +50,24 @@ const PlayFabManager = (() => {
     return {
         get isReady()   { return ready; },
         get playFabId() { return playFabId; },
+        get status()    { return status; },
+        get statusDetail() { return statusDetail; },
+
+        /* One-line explanation of exactly why login isn't working,
+           so the Settings panel can tell the user what to fix. */
+        get statusMessage() {
+            switch (status) {
+                case 'ok':            return null;
+                case 'no_title_id':   return 'PlayFab not set up — add your Title ID to api.json';
+                case 'no_firebase':   return 'Sign in to the game first';
+                case 'configured':    return 'Sign in to get your Player ID';
+                case 'account_missing':
+                    return 'No PlayFab account yet — enable "Allow client to create account" in PlayFab (see below)';
+                case 'login_failed':  return 'PlayFab login failed: ' + statusDetail;
+                case 'banned':        return 'This account is banned';
+                default:              return 'PlayFab not connected';
+            }
+        },
         get roles()     { return [...roles]; },
         get currencyCode() { return currencyCode; },
 
@@ -55,10 +75,13 @@ const PlayFabManager = (() => {
         async init(config) {
             titleId = config?.titleId || null;
             currencyCode = config?.currencyCode || 'CN';
-            if (!titleId || titleId.startsWith('PASTE_')) {
-                console.warn('[PlayFab] No titleId in api.json — PlayFab features disabled.');
+            if (!titleId || titleId.startsWith('PASTE_') || titleId.trim() === '') {
+                status = 'no_title_id';
+                statusDetail = 'api.json -> playfab.titleId is still the placeholder';
+                console.warn('[PlayFab] ' + statusDetail);
                 return false;
             }
+            status = 'configured';
             return true;
         },
 
@@ -66,7 +89,12 @@ const PlayFabManager = (() => {
            customId should be stable per player. We use the Firebase UID
            so PlayFab and Firebase accounts stay linked.               */
         async login(customId, displayName) {
-            if (!titleId) return null;
+            if (!titleId) { status = 'no_title_id'; return null; }
+            if (!customId) {
+                status = 'no_firebase';
+                statusDetail = 'no Firebase UID to use as PlayFab CustomId';
+                return null;
+            }
             try {
                 const data = await api('/Client/LoginWithCustomID', {
                     TitleId: titleId,
@@ -86,13 +114,29 @@ const PlayFabManager = (() => {
                 ready         = true;
 
                 roles = this._extractRoles(data.InfoResultPayload || {});
+                status = 'ok';
+                statusDetail = '';
+                console.log('[PlayFab] Signed in. PlayFabId:', playFabId, '| roles:', roles);
 
                 if (displayName) this.setDisplayName(displayName).catch(() => {});
                 return data;
             } catch (e) {
                 // AccountBanned = 1002. Surfaced so the caller can show a ban screen.
-                if (e.playfabError === 'AccountBanned') { e.isBan = true; throw e; }
-                console.warn('[PlayFab] Login failed:', e.message);
+                if (e.playfabError === 'AccountBanned') {
+                    status = 'banned'; e.isBan = true; throw e;
+                }
+                // PlayFab disabled client-side account creation for titles made
+                // after 30 Jun 2025. Without it, a first-time login has nothing
+                // to log in to. This is by far the most common setup failure.
+                if (e.playfabError === 'AccountNotFound' ||
+                    e.errorCode === 1001 || e.errorCode === 1002) {
+                    status = 'account_missing';
+                } else {
+                    status = 'login_failed';
+                }
+                statusDetail = e.message || String(e);
+                console.error('[PlayFab] Login failed —', e.playfabError || '', e.message);
+                console.error('[PlayFab] Full response:', e.raw);
                 return null;
             }
         },
