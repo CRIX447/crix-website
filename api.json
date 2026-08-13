@@ -48,14 +48,14 @@
   },
   "playfab": {
     "_setup": "Get titleId from PlayFab Game Manager -> Title Settings -> API Features. currencyCode must exactly match the 2-character code you create under Economy -> Currency.",
-    "titleId": "17CF2A",
+    "titleId": "PASTE_YOUR_PLAYFAB_TITLE_ID_HERE",
     "currencyCode": "CN",
     "currencyDisplayName": "Coins",
     "catalogVersion": "Main"
   },
   "voice": {
     "_setup": "Photon Voice needs its own App ID \u2014 create one at dashboard.photonengine.com and pick the 'Voice' product (NOT Realtime, that's the separate one already above).",
-    "appId": "ac891a19-02cd-43dc-a6d0-7a38bb8027ae",
+    "appId": "PASTE_YOUR_PHOTON_VOICE_APP_ID_HERE",
     "appVersion": "1.0",
     "region": "us",
     "enabled": false
