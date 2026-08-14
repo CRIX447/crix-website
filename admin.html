@@ -16,7 +16,7 @@ body{background:#07070F;color:white;min-height:100vh;}
 /* ---- GATE ---- */
 #gate{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;gap:16px;padding:20px;text-align:center;}
 #gate h1{color:var(--red);font-size:28px;text-transform:uppercase;letter-spacing:3px;}
-#gate p{color:#888;font-size:13px;max-width:340px;line-height:1.6;}
+#gate p{color:#ABABAB;font-size:13px;max-width:340px;line-height:1.6;}
 .gate-btn{background:linear-gradient(135deg,var(--red),var(--orange));border:2px solid rgba(255,255,255,0.15);border-bottom:5px solid rgba(0,0,0,0.4);border-radius:40px;padding:11px 30px;color:white;font-family:inherit;font-size:14px;font-weight:bold;cursor:pointer;transition:all .1s;text-transform:uppercase;}
 .gate-btn:hover{transform:translateY(-2px);}
 .gate-btn:active{transform:translateY(1px);border-bottom-width:2px;}
@@ -38,7 +38,7 @@ header h1{color:var(--red);font-size:20px;letter-spacing:3px;text-transform:uppe
 .stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;}
 .stat-card{background:var(--dark);border:2px solid var(--orange);border-bottom:4px solid rgba(150,60,0,0.6);border-radius:16px;padding:16px;text-align:center;}
 .stat-card .num{font-size:32px;font-weight:bold;color:var(--orange);}
-.stat-card .lbl{font-size:10px;color:#888;text-transform:uppercase;margin-top:4px;}
+.stat-card .lbl{font-size:10px;color:#ABABAB;text-transform:uppercase;margin-top:4px;}
 
 /* ---- CARDS ---- */
 .card{background:rgba(0,0,0,0.45);border:1px solid rgba(255,107,53,0.3);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
@@ -48,7 +48,7 @@ header h1{color:var(--red);font-size:20px;letter-spacing:3px;text-transform:uppe
 .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:9px;font-weight:bold;text-transform:uppercase;}
 .badge-pending{background:rgba(255,165,0,0.2);color:#FFB347;border:1px solid #FFB347;}
 .badge-resolved{background:rgba(0,204,122,0.15);color:var(--green);border:1px solid var(--green);}
-.badge-dismissed{background:rgba(100,100,100,0.2);color:#888;border:1px solid #555;}
+.badge-dismissed{background:rgba(100,100,100,0.2);color:#ABABAB;border:1px solid #555;}
 .badge-banned{background:rgba(255,70,85,0.2);color:var(--red);border:1px solid var(--red);}
 .action-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
 .btn{border-radius:20px;padding:4px 14px;font-size:10px;font-weight:bold;cursor:pointer;font-family:inherit;border:1px solid;transition:all .1s;text-transform:uppercase;}
@@ -57,7 +57,7 @@ header h1{color:var(--red);font-size:20px;letter-spacing:3px;text-transform:uppe
 .btn-red{background:rgba(255,70,85,0.1);color:var(--red);border-color:var(--red);}
 .btn-orange{background:rgba(255,107,53,0.1);color:var(--orange);border-color:var(--orange);}
 .btn-gray{background:rgba(150,150,150,0.1);color:#aaa;border-color:#555;}
-.empty{text-align:center;color:#666;padding:40px;font-size:13px;}
+.empty{text-align:center;color:#969696;padding:40px;font-size:13px;}
 .search-bar{width:100%;background:rgba(0,0,0,0.5);border:2px solid var(--orange);border-radius:30px;padding:10px 18px;color:white;font-family:inherit;font-size:13px;margin-bottom:16px;}
 .search-bar:focus{outline:none;border-color:var(--green);}
 .ip-list{display:flex;flex-direction:column;gap:8px;}
@@ -66,7 +66,7 @@ header h1{color:var(--red);font-size:20px;letter-spacing:3px;text-transform:uppe
 .add-ip-row{display:flex;gap:8px;margin-top:12px;}
 .add-ip-input{flex:1;background:rgba(0,0,0,0.5);border:2px solid var(--orange);border-radius:30px;padding:8px 16px;color:white;font-family:inherit;font-size:13px;}
 .add-ip-input:focus{outline:none;border-color:var(--green);}
-.loading{text-align:center;color:#555;padding:30px;font-size:12px;}
+.loading{text-align:center;color:#8C8C8C;padding:30px;font-size:12px;}
 .toast{position:fixed;bottom:20px;right:20px;background:var(--dark);border:2px solid var(--green);border-radius:12px;padding:10px 18px;font-size:12px;z-index:9999;animation:slideIn .3s ease;}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
 /* ban modal */
@@ -307,7 +307,7 @@ async function loadReports(content) {
     } catch(e) {
         content.innerHTML = `<div class="empty" style="color:#FF4655;">
             ⚠️ Error loading reports: <strong>${esc(e.message)}</strong><br><br>
-            <span style="font-size:11px;color:#888;">This is usually a Firestore security rules issue.<br>
+            <span style="font-size:11px;color:#ABABAB;">This is usually a Firestore security rules issue.<br>
             Make sure your Firestore rules allow admin reads on the <code>reports</code> collection when authenticated.</span><br><br>
             <button class="btn btn-orange" onclick="loadTab('reports')" style="margin-top:8px;">RETRY</button>
         </div>`;
@@ -483,7 +483,7 @@ async function loadIPs(content) {
         </div>
         <div style="margin-top:12px;">
             <button class="btn btn-orange" onclick="copyIPJSON()">📋 COPY ip.json</button>
-            <span style="color:#666;font-size:10px;margin-left:8px;">Then paste into your ip.json file and redeploy</span>
+            <span style="color:#969696;font-size:10px;margin-left:8px;">Then paste into your ip.json file and redeploy</span>
         </div>
         <div style="margin-top:14px;padding:12px;background:rgba(255,165,0,0.05);border:1px solid rgba(255,165,0,0.3);border-radius:12px;font-size:11px;color:#aaa;line-height:1.7;">
             ⚠️ Static site limitation: IP changes cannot be saved automatically. Use the copy button above to get the updated JSON, then update <code>ip.json</code> in your GitHub repo and redeploy on Vercel.
