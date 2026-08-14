@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081501"></script>
-    <script src="playfab-manager.js?v=2026081501"></script>
+    <script src="filter.js?v=2026081502"></script>
+    <script src="playfab-manager.js?v=2026081502"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -3083,76 +3083,135 @@
         // Discord OAuth — implicit flow, get token, get user, sign into Firebase anonymously + store profile
         const discordSignInBtnEl = document.getElementById('discordSignInBtn');
 
-        // Process Discord OAuth implicit-grant callback (fires when page loads after redirect)
+        // Discord OAuth — authorization-code flow.
+        //
+        // The old implicit flow called signInAnonymously(), which minted a NEW
+        // Firebase uid on every login. PlayFab keys off that uid, so players
+        // lost their coins, level, rank and friends each time. The code flow
+        // returns a custom token with a stable uid ("discord:<id>"), so the
+        // same Discord account always maps to the same game account.
         async function handleDiscordCallback() {
-            const hash = window.location.hash;
-            if (!hash || !hash.includes('access_token')) return;
-            const params = new URLSearchParams(hash.slice(1));
-            const token = params.get('access_token');
-            if (!token) return;
-            // Remove hash from URL so refresh doesn't re-trigger
-            try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e) {}
-            if (authErrorSpan) { authErrorSpan.style.color = '#00CC7A'; authErrorSpan.textContent = 'Signing in with Discord...'; }
-            try {
-                if (!auth) throw new Error('Firebase auth not ready');
-                // Fetch Discord user profile using the bearer token
-                const res = await fetch('https://discord.com/api/users/@me', {
-                    headers: { Authorization: 'Bearer ' + token }
-                });
-                if (!res.ok) {
-                    const body = await res.text();
-                    throw new Error('Discord API ' + res.status + ': ' + body.slice(0, 120));
+            const params = new URLSearchParams(window.location.search);
+            const code  = params.get('code');
+            const state = params.get('state');
+            const err   = params.get('error');
+
+            if (err) {
+                cleanDiscordUrl();
+                if (authErrorSpan) {
+                    authErrorSpan.style.color = '#FF4655';
+                    authErrorSpan.textContent = err === 'access_denied'
+                        ? 'Discord sign-in cancelled.'
+                        : 'Discord error: ' + err;
                 }
-                const u = await res.json();
-                if (!u.id) throw new Error('No user ID in Discord response');
-                const displayName = u.global_name || u.username || ('User_' + u.id);
-                const photoURL = u.avatar
-                    ? 'https://cdn.discordapp.com/avatars/' + u.id + '/' + u.avatar + '.png'
-                    : 'https://cdn.discordapp.com/embed/avatars/0.png';
-                // Sign into Firebase (reuse existing session or sign in anon)
-                let fbUser = auth.currentUser;
-                if (!fbUser) { const c = await auth.signInAnonymously(); fbUser = c.user; }
-                await fbUser.updateProfile({ displayName, photoURL });
-                if (db) await db.collection('users').doc(fbUser.uid).set({
-                    discordId: u.id, discordUsername: u.username,
-                    displayName, photoURL, loginMethod: 'discord',
-                    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                }, { merge: true });
+                return;
+            }
+            if (!code) return;
+
+            // CSRF check
+            let expected = null;
+            try { expected = sessionStorage.getItem('discord_state'); } catch(e) {}
+            cleanDiscordUrl();
+            if (expected && state !== expected) {
+                console.error('[Discord] state mismatch — ignoring callback');
+                if (authErrorSpan) {
+                    authErrorSpan.style.color = '#FF4655';
+                    authErrorSpan.textContent = 'Sign-in expired. Please try again.';
+                }
+                return;
+            }
+            try { sessionStorage.removeItem('discord_state'); } catch(e) {}
+
+            if (authErrorSpan) {
+                authErrorSpan.style.color = '#00CC7A';
+                authErrorSpan.textContent = 'Signing in with Discord…';
+            }
+
+            try {
+                if (!auth) throw new Error('Firebase is not ready');
+
+                const res = await fetch('/api/discord-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code })
+                });
+                const data = await res.json().catch(() => ({}));
+
+                if (!res.ok || !data.token) {
+                    const hint = res.status === 500 && /not configured/i.test(data.error || '')
+                        ? 'Set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET and FIREBASE_SERVICE_ACCOUNT in Vercel.'
+                        : (data.detail || data.error || `Server returned ${res.status}`);
+                    throw new Error(hint);
+                }
+
+                // Stable account — same uid every time
+                await auth.signInWithCustomToken(data.token);
+
+                const p = data.profile || {};
+                if (auth.currentUser && p.displayName) {
+                    await auth.currentUser.updateProfile({
+                        displayName: p.displayName, photoURL: p.photoURL || null
+                    }).catch(() => {});
+                }
+                if (db && auth.currentUser) {
+                    await db.collection('users').doc(auth.currentUser.uid).set({
+                        discordId: p.id, discordUsername: p.username,
+                        displayName: p.displayName, photoURL: p.photoURL || null,
+                        loginMethod: 'discord',
+                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true }).catch(() => {});
+                }
+
                 authModalEl.classList.remove('active');
                 playSound(selectSound);
                 if (authErrorSpan) { authErrorSpan.style.color = ''; authErrorSpan.textContent = ''; }
-                console.log('[Discord] Signed in as', displayName);
-                // Auto-join CRIX Discord server using the invite link
-                try {
-                    // Open invite in background tab — Discord handles the join flow
-                    const inviteUrl = 'https://discord.com/invite/MbQvJGDAst';
-                    window.open(inviteUrl, '_blank', 'noopener,width=480,height=600');
-                } catch(jErr) { /* non-fatal */ }
-            } catch(e) {
-                console.error('[Discord] Sign-in error:', e);
-                if (authErrorSpan) { authErrorSpan.style.color = '#FF4655'; authErrorSpan.textContent = 'Discord error: ' + e.message; }
+                console.log('[Discord] signed in as', p.displayName, '| uid: discord:' + p.id);
+
+            } catch (e) {
+                console.error('[Discord] sign-in failed:', e);
+                if (authErrorSpan) {
+                    authErrorSpan.style.color = '#FF4655';
+                    authErrorSpan.textContent = 'Discord sign-in failed: ' + e.message;
+                }
             }
         }
 
+        function cleanDiscordUrl() {
+            try {
+                const u = new URL(window.location.href);
+                ['code','state','error','error_description'].forEach(k => u.searchParams.delete(k));
+                history.replaceState(null, '', u.pathname + (u.search || '') + u.hash);
+            } catch(e) {}
+        }
+
         discordSignInBtnEl.onclick = async () => {
-            // Reload api.json for latest clientId
             let clientId = appConfig.discord?.clientId;
-            if (!clientId || clientId === 'REPLACE_WITH_YOUR_DISCORD_CLIENT_ID') {
-                try { const r = await fetch('api.json'); const j = await r.json(); if (j.discord) { appConfig.discord = j.discord; clientId = j.discord.clientId; } } catch(e) {}
+            if (!clientId || clientId.startsWith('PASTE_') || clientId.startsWith('REPLACE_')) {
+                try {
+                    const r = await fetch('api.json');
+                    const j = await r.json();
+                    if (j.discord) { appConfig.discord = j.discord; clientId = j.discord.clientId; }
+                } catch(e) {}
             }
-            if (!clientId || clientId === 'REPLACE_WITH_YOUR_DISCORD_CLIENT_ID') {
-                authErrorSpan.textContent = 'Discord not configured — add clientId to api.json';
+            if (!clientId || clientId.startsWith('PASTE_') || clientId.startsWith('REPLACE_')) {
+                authErrorSpan.style.color = '#FF4655';
+                authErrorSpan.textContent = 'Discord not set up — add clientId to api.json.';
                 return;
             }
-            // NOTE: We use response_type=token (implicit grant) because this is a static site.
-            // Client secret is NOT used here — that's only for server-side Authorization Code flow.
-            // The redirect URI must match EXACTLY what's registered in Discord Developer Portal.
-            const redirectUri = 'https://crixgamingvr.com/flappycrix';
+
+            // response_type=code (not token): the secret exchange happens
+            // server-side in /api/discord-auth so the account can be persistent.
+            const redirectUri = appConfig.discord?.redirectUri || 'https://crixgamingvr.com/flappycrix';
+            const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
+            try { sessionStorage.setItem('discord_state', state); } catch(e) {}
+
             const url = new URL('https://discord.com/api/oauth2/authorize');
             url.searchParams.set('client_id', clientId);
             url.searchParams.set('redirect_uri', redirectUri);
-            url.searchParams.set('response_type', 'token');
+            url.searchParams.set('response_type', 'code');
             url.searchParams.set('scope', 'identify');
+            url.searchParams.set('state', state);
+            url.searchParams.set('prompt', 'consent');
             window.location.href = url.toString();
         };
 
