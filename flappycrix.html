@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081412"></script>
-    <script src="playfab-manager.js?v=2026081412"></script>
+    <script src="filter.js?v=2026081414"></script>
+    <script src="playfab-manager.js?v=2026081414"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -819,6 +819,72 @@
             transition-duration: 0.001s !important;
         }
 
+        /* ---- NOTIFICATIONS ---- */
+        #toasts { position:fixed; top:14px; right:14px; z-index:70000;
+            display:flex; flex-direction:column; gap:8px; max-width:320px; }
+        .toast { background:#0F0F17; border:2px solid var(--orange);
+            border-left:4px solid var(--orange); border-radius:12px;
+            padding:11px 14px; box-shadow:3px 3px 0 rgba(0,0,0,.5);
+            animation:toastIn .25s ease; cursor:pointer; }
+        .toast.friend  { border-color:#27A9F5; border-left-color:#27A9F5; }
+        .toast.invite  { border-color:var(--green); border-left-color:var(--green); }
+        .toast.success { border-color:var(--green); border-left-color:var(--green); }
+        .toast.error   { border-color:var(--red); border-left-color:var(--red); }
+        .toast.leaving { animation:toastOut .25s ease forwards; }
+        @keyframes toastIn  { from{transform:translateX(120%);opacity:0} to{transform:none;opacity:1} }
+        @keyframes toastOut { to{transform:translateX(120%);opacity:0} }
+        .toast-title { font-size:12px; font-weight:bold; color:#fff; margin-bottom:2px; }
+        .toast-body  { font-size:11px; color:#B0B0B0; line-height:1.5; }
+        .toast-actions { display:flex; gap:6px; margin-top:8px; }
+        .toast-btn { flex:1; border:none; border-radius:16px; padding:5px 10px;
+            font-size:10px; font-weight:bold; cursor:pointer; font-family:inherit; }
+        .toast-btn.yes { background:var(--green); color:#042; }
+        .toast-btn.no  { background:rgba(255,255,255,.08); color:#bbb; }
+
+        .notif-badge { position:absolute; top:2px; right:8px;
+            background:var(--red); color:#fff; font-size:9px; font-weight:bold;
+            min-width:17px; height:17px; border-radius:9px; padding:0 5px;
+            display:inline-flex; align-items:center; justify-content:center; }
+        .notif-row { display:flex; gap:10px; align-items:flex-start;
+            background:rgba(0,0,0,.35); border:1px solid var(--line, rgba(255,255,255,.07));
+            border-radius:12px; padding:10px 12px; margin-bottom:7px; }
+        .notif-row.unread { border-color:rgba(255,107,53,.45); background:rgba(255,107,53,.05); }
+        .notif-icon { font-size:18px; flex-shrink:0; }
+        .notif-text { flex:1; min-width:0; }
+        .notif-t { font-size:12px; font-weight:bold; color:#fff; }
+        .notif-b { font-size:10px; color:#A0A0A0; line-height:1.5; margin-top:2px; }
+        .notif-time { font-size:9px; color:#777; margin-top:3px; }
+        .notif-acts { display:flex; gap:5px; margin-top:7px; }
+
+        /* ---- NOTIFICATIONS ---- */
+        #toastStack { position:fixed; bottom:16px; right:16px; z-index:60000;
+            display:flex; flex-direction:column-reverse; gap:8px; max-width:320px; }
+        .toast { background:#12121A; border:1px solid rgba(255,107,53,.4);
+            border-left:3px solid var(--orange); border-radius:12px;
+            padding:11px 14px; box-shadow:0 6px 20px rgba(0,0,0,.5);
+            animation:toastIn .25s ease; font-size:12px; }
+        .toast.friend  { border-left-color:#27A9F5; }
+        .toast.invite  { border-left-color:#00CC7A; }
+        .toast.warn    { border-left-color:#FF4655; }
+        .toast-title { font-weight:bold; color:#fff; margin-bottom:2px; font-size:12px; }
+        .toast-body  { color:#B8B8B8; font-size:11px; line-height:1.5; }
+        .toast-acts  { display:flex; gap:6px; margin-top:8px; }
+        .toast-btn { flex:1; border:none; border-radius:7px; padding:5px 10px;
+            font-size:10px; font-weight:bold; cursor:pointer; font-family:inherit;
+            text-transform:uppercase; letter-spacing:.5px; }
+        .toast-btn.yes { background:#00CC7A; color:#042; }
+        .toast-btn.no  { background:rgba(255,255,255,.08); color:#BBB; }
+        @keyframes toastIn { from{opacity:0;transform:translateX(24px)} to{opacity:1;transform:none} }
+        .notif-badge { position:absolute; top:-5px; right:-5px; background:#FF4655;
+            color:#fff; font-size:10px; font-weight:bold; min-width:18px; height:18px;
+            border-radius:9px; display:flex; align-items:center; justify-content:center;
+            padding:0 5px; border:2px solid #0A0A0F; }
+        .notif-list { display:flex; flex-direction:column; gap:8px; max-height:340px; overflow-y:auto; }
+        .notif-row { display:flex; align-items:center; gap:10px; background:rgba(0,0,0,.35);
+            border:1px solid var(--line, rgba(255,255,255,.07)); border-radius:12px; padding:10px 12px; }
+        .notif-av { width:34px; height:34px; border-radius:50%; object-fit:cover; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; }
+
         /* ---- STAFF MENU ---- */
         .owner-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
         .owner-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
@@ -1073,6 +1139,9 @@
             <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
         </div>
         
+        <button class="action-btn" id="notifBtn" style="width:100%;margin-bottom:6px;position:relative;">
+            🔔 NOTIFICATIONS <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
+        </button>
         <button class="action-btn" id="playerMenuBtn" style="width:100%;margin-bottom:6px;">🎮 PLAYER MENU</button>
         <button class="action-btn" id="ownerBtn" style="width:100%;margin-bottom:6px;display:none;background:linear-gradient(135deg,#FF0000,#8B0000);">🛡️ STAFF MENU</button>
         <button class="action-btn" id="settingsBtn" style="width:100%;margin-bottom:6px;">⚙️ SETTINGS</button>
@@ -1193,7 +1262,7 @@
                 <div class="queue-tabs">
                     <button class="queue-tab active" data-queue="casual">🎮 CASUAL</button>
                     <button class="queue-tab" data-queue="competitive">🏆 COMPETITIVE</button>
-                    <button class="queue-tab" data-queue="friends">👥 FRIENDS</button>
+                    <button class="queue-tab" data-queue="friends">👥 FRIENDS <span id="friendsTabBadge" class="notif-badge" style="display:none;position:static;margin-left:4px;">0</span></button>
                 </div>
                 <div id="rankBanner" style="display:none;"></div>
 
@@ -1233,6 +1302,14 @@
                     </div>
                     <div class="auth-error" id="friendError" style="text-align:center;font-size:10px;margin-bottom:8px;"></div>
 
+                    <div id="pendingIncoming" style="display:none;margin-bottom:12px;">
+                        <div style="font-size:10px;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Requests received</div>
+                        <div id="incomingList" class="friends-list"></div>
+                    </div>
+                    <div id="pendingOutgoing" style="display:none;margin-bottom:12px;">
+                        <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Requests sent</div>
+                        <div id="outgoingList" class="friends-list"></div>
+                    </div>
                     <div id="friendsList" class="friends-list"><div class="mp-empty-state">Loading friends…</div></div>
                     <button class="mp-btn-secondary" id="refreshFriendsBtn" style="width:100%;margin-top:8px;">🔄 REFRESH</button>
                 </div>
@@ -1380,6 +1457,21 @@
         </div>
     </div>
 
+    <!-- NOTIFICATION TOASTS -->
+    <div id="toasts"></div>
+
+    <!-- NOTIFICATION CENTRE -->
+    <div class="mp-modal" id="notifModal" style="z-index:48000;">
+        <div class="mp-modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">🔔 NOTIFICATIONS</div>
+                <button class="modal-close" id="closeNotifBtn">✕</button>
+            </div>
+            <div id="notifList"></div>
+            <button class="mp-btn-secondary" id="clearNotifBtn" style="width:100%;margin-top:12px;">CLEAR ALL</button>
+        </div>
+    </div>
+
     <!-- PLAYER MENU (single player sandbox) -->
     <div class="mp-modal" id="playerModal" style="z-index:46500;">
         <div class="mp-modal-content" style="max-width:480px;">
@@ -1488,7 +1580,6 @@
             <div id="ownerLog" class="owner-log"></div>
         </div>
     </div>
-
     <!-- SPECTATOR SWITCH BAR -->
     <div id="spectateBar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,8,0.96);border-top:2px solid #FF6B35;padding:10px 14px;z-index:19000;backdrop-filter:blur(8px);">
         <div style="max-width:640px;margin:0 auto;">
@@ -2727,6 +2818,9 @@
                 if (!res) console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
                 if (res) {
                     loadStatsFromPlayFab();
+                    pollNotifications(false);              // seed without toasting
+                    setInterval(() => pollNotifications(true), 45000);
+                    startRequestPolling();
                     PlayFabManager.setPresence(myPresence).catch(() => {});
                 }
                 refreshSettingsUI();
@@ -3050,6 +3144,142 @@
             }
             document.querySelectorAll('.presence-opt').forEach(b =>
                 b.classList.toggle('active', b.dataset.status === status));
+        }
+
+        // ================= NOTIFICATIONS =================
+        const NOTIF_KEY = 'crix_notifs_v1';
+        let notifications = [];
+
+        function loadNotifs() {
+            try { notifications = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]'); } catch(e) { notifications = []; }
+            updateNotifBadge();
+        }
+        function saveNotifs() {
+            try { localStorage.setItem(NOTIF_KEY, JSON.stringify(notifications.slice(0, 50))); } catch(e) {}
+            updateNotifBadge();
+        }
+        function updateNotifBadge() {
+            const b = document.getElementById('notifBadge');
+            if (!b) return;
+            const n = notifications.filter(x => !x.read).length;
+            b.style.display = n ? 'inline-flex' : 'none';
+            b.textContent = n > 9 ? '9+' : n;
+        }
+
+        function timeAgo(ts) {
+            const s = Math.floor((Date.now() - ts) / 1000);
+            if (s < 60) return 'just now';
+            if (s < 3600) return Math.floor(s/60) + 'm ago';
+            if (s < 86400) return Math.floor(s/3600) + 'h ago';
+            return Math.floor(s/86400) + 'd ago';
+        }
+
+        // type: friend | invite | success | error | info
+        function notify({ type = 'info', title, body = '', actions = null, toast = true, store = true, id = null }) {
+            if (store) {
+                notifications.unshift({ id: id || Date.now()+''+Math.random(),
+                    type, title, body, ts: Date.now(), read: false });
+                saveNotifs();
+            }
+            if (toast) showToast({ type, title, body, actions });
+        }
+
+        function showToast({ type, title, body, actions }) {
+            const wrap = document.getElementById('toasts');
+            if (!wrap) return;
+            const el = document.createElement('div');
+            el.className = 'toast ' + type;
+            el.innerHTML = `<div class="toast-title">${mpEsc(title)}</div>` +
+                           (body ? `<div class="toast-body">${mpEsc(body)}</div>` : '') +
+                           (actions ? `<div class="toast-actions">
+                                <button class="toast-btn yes">${mpEsc(actions.yesLabel||'Accept')}</button>
+                                <button class="toast-btn no">${mpEsc(actions.noLabel||'Decline')}</button>
+                              </div>` : '');
+            wrap.appendChild(el);
+            playSound(achSound);
+
+            const close = () => { el.classList.add('leaving'); setTimeout(() => el.remove(), 250); };
+            if (actions) {
+                el.querySelector('.yes').onclick = e => { e.stopPropagation(); actions.onYes?.(); close(); };
+                el.querySelector('.no').onclick  = e => { e.stopPropagation(); actions.onNo?.();  close(); };
+                setTimeout(close, 20000);   // requests linger longer
+            } else {
+                el.onclick = close;
+                setTimeout(close, 5000);
+            }
+        }
+
+        function renderNotifCentre() {
+            const list = document.getElementById('notifList');
+            if (!list) return;
+            if (!notifications.length) {
+                list.innerHTML = '<div class="mp-empty-state">Nothing yet.</div>';
+                return;
+            }
+            const icons = { friend:'👤', invite:'🎮', success:'✅', error:'⚠️', info:'🔔' };
+            list.innerHTML = notifications.map(n => `
+                <div class="notif-row ${n.read ? '' : 'unread'}">
+                    <div class="notif-icon">${icons[n.type] || '🔔'}</div>
+                    <div class="notif-text">
+                        <div class="notif-t">${mpEsc(n.title)}</div>
+                        ${n.body ? `<div class="notif-b">${mpEsc(n.body)}</div>` : ''}
+                        <div class="notif-time">${timeAgo(n.ts)}</div>
+                    </div>
+                </div>`).join('');
+            notifications.forEach(n => n.read = true);
+            saveNotifs();
+        }
+
+        // ---- FRIEND REQUEST POLLING ----
+        // PlayFab has no push, so we poll. 45s is frequent enough to feel
+        // responsive without burning API calls.
+        let seenRequests = new Set();
+        let requestPollTimer = null;
+
+        async function pollFriendRequests() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) return;
+            if (typeof PlayFabManager.getFriendsSplit !== 'function') return;
+            try {
+                const { incoming } = await PlayFabManager.getFriendsSplit();
+                incoming.forEach(f => {
+                    if (seenRequests.has(f.playFabId)) return;
+                    seenRequests.add(f.playFabId);
+                    notify({
+                        type: 'friend',
+                        title: 'Friend request',
+                        body: `${f.displayName} wants to be friends`,
+                        actions: {
+                            yesLabel: 'Accept', noLabel: 'Decline',
+                            onYes: () => respondRequest(f.playFabId, true,  f.displayName),
+                            onNo:  () => respondRequest(f.playFabId, false, f.displayName)
+                        }
+                    });
+                });
+                const badge = document.getElementById('friendsTabBadge');
+                if (badge) {
+                    badge.style.display = incoming.length ? 'inline-flex' : 'none';
+                    badge.textContent = incoming.length;
+                }
+            } catch(e) { /* transient network issues shouldn't spam */ }
+        }
+
+        async function respondRequest(pfId, accept, name) {
+            try {
+                await PlayFabManager.respondToFriendRequest(pfId, accept);
+                notify({ type: accept ? 'success' : 'info',
+                         title: accept ? 'Friend added' : 'Request declined',
+                         body: name });
+                if (accept) mpCheckAchievement('mp_social');
+                loadPlayFabFriends();
+            } catch(e) {
+                notify({ type:'error', title:'Could not respond', body:e.message });
+            }
+        }
+
+        function startRequestPolling() {
+            if (requestPollTimer) return;
+            pollFriendRequests();
+            requestPollTimer = setInterval(pollFriendRequests, 45000);
         }
 
         // ================= PLAYER MENU (single player only) =================
@@ -3383,6 +3613,114 @@
             }
         }
 
+        // ================= NOTIFICATIONS =================
+        let pendingRequests = [], pendingInvites = [];
+
+        // Thin wrapper over the existing notify() so both call styles work and
+        // there's a single notification pipeline. showToast expects actions as
+        // an OBJECT ({yesLabel,onYes,noLabel,onNo}), not an array, so convert.
+        function toast({ title, body, kind = 'info', actions = null }) {
+            const typeMap = { friend: 'info', invite: 'success', warn: 'error', info: 'info' };
+            let acts = null;
+            if (Array.isArray(actions) && actions.length) {
+                const yes = actions.find(a => a.style === 'yes') || actions[0];
+                const no  = actions.find(a => a.style !== 'yes');
+                acts = {
+                    yesLabel: yes?.label || 'OK',
+                    onYes:    yes?.onClick,
+                    noLabel:  no?.label  || 'Dismiss',
+                    onNo:     no?.onClick || (() => {})
+                };
+            } else if (actions && !Array.isArray(actions)) {
+                acts = actions;   // already the right shape
+            }
+            notify({ type: typeMap[kind] || 'info', title, body, actions: acts, store: !!acts });
+        }
+
+        function updateNotifBadge() {
+            const n = pendingRequests.length + pendingInvites.length;
+            const b = document.getElementById('notifBadge');
+            if (!b) return;
+            b.textContent = n;
+            b.style.display = n ? 'flex' : 'none';
+        }
+
+        async function pollNotifications(announce = true) {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) return;
+            if (typeof PlayFabManager.getFriendRequests !== 'function') return;
+            try {
+                const [reqs, invs] = await Promise.all([
+                    PlayFabManager.getFriendRequests().catch(() => []),
+                    PlayFabManager.getInvites().catch(() => [])
+                ]);
+                if (announce) {
+                    // Only toast things we haven't already shown
+                    const knownR = new Set(pendingRequests.map(r => r.from));
+                    reqs.filter(r => !knownR.has(r.from)).forEach(r => {
+                        toast({
+                            kind: 'friend',
+                            title: '👤 Friend request',
+                            body: `<strong>${mpEsc(r.name)}</strong> wants to be friends.`,
+                            timeout: 0,
+                            actions: [
+                                { label: 'Accept', style: 'yes', onClick: () => respondRequest(r.from, true, r.name) },
+                                { label: 'Deny',   style: 'no',  onClick: () => respondRequest(r.from, false, r.name) }
+                            ]
+                        });
+                    });
+                    const knownI = new Set(pendingInvites.map(i => i.at));
+                    invs.filter(i => !knownI.has(i.at)).forEach(i => {
+                        toast({
+                            kind: 'invite',
+                            title: '🎮 Lobby invite',
+                            body: `<strong>${mpEsc(i.name)}</strong> invited you to a ${mpEsc(i.mode)} match.`,
+                            timeout: 0,
+                            actions: [
+                                { label: 'Join',    style: 'yes', onClick: () => acceptInvite(i) },
+                                { label: 'Dismiss', style: 'no',  onClick: () => {} }
+                            ]
+                        });
+                    });
+                }
+                pendingRequests = reqs;
+                pendingInvites = invs;
+                updateNotifBadge();
+                renderNotifList();
+            } catch (e) {
+                console.warn('[Notifications]', e.message);
+            }
+        }
+
+        async function respondRequest(fromId, accept, name) {
+            try {
+                await PlayFabManager.respondFriendRequest(fromId, accept);
+                pendingRequests = pendingRequests.filter(r => r.from !== fromId);
+                updateNotifBadge(); renderNotifList();
+                toast({ kind: accept ? 'friend' : 'info',
+                        title: accept ? '✅ Friend added' : 'Request declined',
+                        body: accept ? `${mpEsc(name)} is now on your friends list.` : '' });
+                if (accept) loadPlayFabFriends();
+            } catch (e) {
+                toast({ kind: 'warn', title: 'Failed', body: mpEsc(e.message) });
+            }
+        }
+
+        function acceptInvite(inv) {
+            if (mpCurrentRoom) { mpLeaveLobby(); }
+            const input = document.getElementById('mpJoinCodeInput');
+            if (input) input.value = inv.roomCode;
+            document.getElementById('mpModal')?.classList.add('active');
+            mpShowView('mpViewJoinCode');
+            setTimeout(() => mpJoinByCode(), 250);
+            PlayFabManager.clearInvites?.().catch(() => {});
+        }
+
+        // The notification centre is rendered by renderNotifCentre(); this
+        // just forwards to it so both names work.
+        function renderNotifList() {
+            if (typeof renderNotifCentre === 'function') renderNotifCentre();
+        }
+
         // ---- PROFILE PICTURE ----
         // Presets are served from the site's own img folder so they always load.
         const AVATAR_PRESETS = [
@@ -3517,6 +3855,81 @@
         // ---- PLAYFAB FRIENDS ----
         let pfFriends = [];
         async function loadPlayFabFriends() {
+            // split-aware version below
+            return loadFriendsSplit();
+        }
+
+        async function loadFriendsSplit() {
+            const list = document.getElementById('friendsList');
+            if (!list) return;
+            if (typeof PlayFabManager === 'undefined' || typeof PlayFabManager.getFriendsSplit !== 'function') {
+                list.innerHTML = '<div class="mp-empty-state" style="color:#FFB347;">Old playfab-manager.js — hard refresh (Ctrl+Shift+R).</div>';
+                return;
+            }
+            if (!PlayFabManager.isReady) {
+                list.innerHTML = '<div class="mp-empty-state">Sign in to use friends.</div>';
+                return;
+            }
+            list.innerHTML = '<div class="mp-empty-state">Loading…</div>';
+            try {
+                const { friends, incoming, outgoing } = await PlayFabManager.getFriendsSplit();
+                pfFriends = friends;
+                renderFriendsList();
+
+                // incoming requests — accept or decline
+                const inWrap = document.getElementById('pendingIncoming');
+                const inList = document.getElementById('incomingList');
+                inWrap.style.display = incoming.length ? 'block' : 'none';
+                inList.innerHTML = incoming.map(f => `
+                    <div class="friend-row" data-id="${mpEsc(f.playFabId)}">
+                        ${f.avatarUrl ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="">`
+                                      : `<div class="friend-av" style="background:#27A9F5">${mpEsc(f.displayName.charAt(0).toUpperCase())}</div>`}
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:12px;color:#fff;">${mpEsc(f.displayName)}</div>
+                            <div style="font-size:9px;color:#888;">wants to be friends</div>
+                        </div>
+                        <button class="friend-btn" data-act="accept" style="color:#00CC7A;font-size:16px;" title="Accept">✓</button>
+                        <button class="friend-btn" data-act="decline" style="color:#FF4655;font-size:14px;" title="Decline">✕</button>
+                    </div>`).join('');
+                inList.querySelectorAll('.friend-row').forEach(row => {
+                    const id = row.dataset.id;
+                    const f = incoming.find(x => x.playFabId === id);
+                    row.querySelectorAll('.friend-btn').forEach(b =>
+                        b.addEventListener('click', () =>
+                            respondRequest(id, b.dataset.act === 'accept', f?.displayName || 'Player')));
+                });
+
+                // outgoing — cancellable
+                const outWrap = document.getElementById('pendingOutgoing');
+                const outList = document.getElementById('outgoingList');
+                outWrap.style.display = outgoing.length ? 'block' : 'none';
+                outList.innerHTML = outgoing.map(f => `
+                    <div class="friend-row" data-id="${mpEsc(f.playFabId)}" style="opacity:.75;">
+                        <div class="friend-av" style="background:#444">${mpEsc(f.displayName.charAt(0).toUpperCase())}</div>
+                        <div style="flex:1;min-width:0;">
+                            <div style="font-size:12px;color:#ccc;">${mpEsc(f.displayName)}</div>
+                            <div style="font-size:9px;color:#888;">request pending</div>
+                        </div>
+                        <button class="friend-btn" data-act="cancel" style="color:#888;font-size:13px;" title="Cancel">✕</button>
+                    </div>`).join('');
+                outList.querySelectorAll('.friend-btn').forEach(b =>
+                    b.addEventListener('click', async () => {
+                        const id = b.closest('.friend-row').dataset.id;
+                        try { await PlayFabManager.cancelFriendRequest(id); loadFriendsSplit(); }
+                        catch(e) { notify({type:'error',title:'Could not cancel',body:e.message}); }
+                    }));
+
+                const badge = document.getElementById('friendsTabBadge');
+                if (badge) {
+                    badge.style.display = incoming.length ? 'inline-flex' : 'none';
+                    badge.textContent = incoming.length;
+                }
+            } catch (e) {
+                list.innerHTML = `<div class="mp-empty-state" style="color:#FF4655;">Could not load friends: ${mpEsc(e.message)}</div>`;
+            }
+        }
+
+        async function _oldLoadPlayFabFriends() {
             const list = document.getElementById('friendsList');
             if (!list) return;
             if (typeof PlayFabManager === 'undefined') {
@@ -3573,7 +3986,7 @@
                         </div>
                     </div>
                     <button class="friend-btn fav" data-act="fav" title="Favourite">${f.favourite ? '★' : '☆'}</button>
-                    ${inRoom ? '<button class="friend-btn join" data-act="join" title="Join">▶</button>' : ''}
+                    ${mpCurrentRoom ? `<button class="friend-btn join" data-act="invite" title="Invite to lobby">✉</button>` : ''}
                     <button class="friend-btn rm" data-act="rm" title="Remove">✕</button>
                 </div>`;
             }).join('');
@@ -3597,14 +4010,31 @@
                                 pfFriends = pfFriends.filter(x => x.playFabId !== id);
                                 renderFriendsList();
                             } catch(e) {}
-                        } else if (btn.dataset.act === 'join') {
-                            if (mpCurrentRoom) {
-                                mpLobbyChatAppend(null, 'You are already in a lobby.', true);
+                        } else if (btn.dataset.act === 'invite') {
+                            if (!mpCurrentRoom) {
+                                toast({ kind:'warn', title:'Not in a lobby',
+                                        body:'Create or join a lobby first.' });
+                                return;
+                            }
+                            try {
+                                await PlayFabManager.sendInvite(id, mpCurrentRoom.code, mpCurrentRoom.mode);
+                                toast({ kind:'invite', title:'Invite sent',
+                                        body:`${mpEsc(f.displayName)} has been invited.` });
+                            } catch(e) {
+                                toast({ kind:'warn', title:'Invite failed', body: mpEsc(e.message) });
                             }
                         }
                     });
                 });
             });
+        }
+
+        // We only know PlayFab IDs for people we've shared a lobby with,
+        // so codes resolve through the local roster.
+        async function resolveByCode(nameWithCode) {
+            const target = knownPlayers.find(k =>
+                k.name.toLowerCase() === nameWithCode.toLowerCase());
+            return target ? target.pfId : null;
         }
 
         async function addFriendByInput(overrideName) {
@@ -3624,12 +4054,20 @@
                 // "Name#CODE" is an exact lookup. A bare name needs the code too,
                 // because PlayFab can't search partial or ambiguous names.
                 if (val.includes('#')) {
-                    await PlayFabManager.addFriendByCode(val);
+                    // Resolve the code to a PlayFab ID, then send a request
+                    // rather than adding them outright.
+                    const target = await resolveByCode(val);
+                    if (!target) { err.textContent = 'No player found with that code.'; return; }
+                    await PlayFabManager.sendFriendRequest(target);
+                    notify({ type:'success', title:'Request sent', body: val });
                 } else {
                     const matches = searchKnownPlayers(val);
                     const exact = matches.find(m => m.name.replace(/#.*$/,'').toLowerCase() === val.toLowerCase());
                     if (exact) {
-                        await PlayFabManager.addFriendByCode(exact.name);
+                        const target = exact.pfId || await resolveByCode(exact.name);
+                        if (!target) { err.textContent = 'Could not identify that player.'; return; }
+                        await PlayFabManager.sendFriendRequest(target);
+                        notify({ type:'success', title:'Request sent', body: exact.name });
                     } else if (matches.length) {
                         // Offer the closest names rather than failing outright
                         err.style.color = '#FFB347';
@@ -3648,8 +4086,7 @@
                 input.value = '';
                 document.getElementById('friendSuggest')?.classList.remove('active');
                 err.style.color = '#00CC7A';
-                err.textContent = 'Friend added!';
-                mpCheckAchievement('mp_social');
+                err.textContent = 'Request sent — they need to accept it.';
                 await loadPlayFabFriends();
                 setTimeout(() => err.textContent = '', 2500);
             } catch (e) {
@@ -4198,6 +4635,9 @@
             };
             
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
+            if (isFriend({ name: actor.name, pfId: null })) {
+                notify({ type:'invite', title:'Friend joined', body: `${actor.name} is in your lobby`, store:false });
+            }
             mpRenderLobby();
 
             // Re-announce ourselves to the newcomer. Without this, anyone who
@@ -4689,8 +5129,9 @@
             // Send compressed payload
             // Send position — use RC.All so sender also receives confirmation
             // (helps debug) but normally Others is fine
+            // x is deliberately not sent — it's always 100. Position along the
+            // level is derived from the score instead.
             mpRaiseEvent(MP_EV.POSITION, {
-                x: Math.round(bird.x * 10) / 10,
                 y: Math.round(bird.y * 10) / 10,
                 v: Math.round(bird.velocity * 100) / 100,
                 s: score,
@@ -4707,8 +5148,9 @@
                 const actorNr = parseInt(nr);
                 if (actorNr === mpLocalActor) return;
 
-                // Snap to target if very close (avoids floating point drift)
-                const tx = p.x ?? 100;
+                // Horizontal position comes from score difference, not from the
+                // synced x (which is always 100 for everyone).
+                const tx = mpVirtualX(p);
                 const ty = p.y ?? 300;
                 if (p.rx === undefined) { p.rx = tx; p.ry = ty; }
                 const dx = tx - p.rx, dy = ty - p.ry;
@@ -4773,6 +5215,25 @@
                 context.textAlign = 'left';
                 context.restore();
             });
+        }
+
+        // ----- RELATIVE POSITIONING -----
+        // bird.x never changes (it's always 100), so a player's real position
+        // in the level is expressed by their SCORE, not by x. One pipe of lead
+        // equals gameSpeed * framesBetweenPipes = 2.5 * 120 = 300px.
+        const PIPE_SPACING = 300;
+
+        // Where another player should appear on OUR screen.
+        function mpVirtualX(p) {
+            const diff = (p.score || 0) - score;          // + = ahead, - = behind
+            let vx = 100 + diff * PIPE_SPACING;
+            // Players on the exact same pipe would overlap us perfectly, so
+            // fan them out a little using their actor number.
+            if (diff === 0) {
+                const nr = Object.keys(mpPlayers).find(k => mpPlayers[k] === p) || 0;
+                vx += ((parseInt(nr) % 5) - 2) * 22;
+            }
+            return vx;
         }
 
         // ----- MID-GAME SPECTATING -----
@@ -4855,11 +5316,13 @@
 
             Object.entries(mpPlayers).forEach(([nr, p]) => {
                 if (parseInt(nr) === mpLocalActor) return;
-                const px = p.rx ?? p.x ?? 100;
+                const px = p.rx ?? mpVirtualX(p);
                 const py = p.ry ?? p.y ?? 300;
 
                 const off = px < M || px > W - M || py < M || py > H - M;
                 if (!off) return;   // visible on screen, no arrow needed
+
+                const gap = (p.score || 0) - score;   // pipes ahead (+) or behind (-)
 
                 // Clamp to the edge and work out which way to point
                 const cx = Math.max(M, Math.min(W - M, px));
@@ -4884,7 +5347,8 @@
                 ctx.font = 'bold 9px monospace';
                 ctx.textAlign = 'center';
 
-                const label = (p.dead ? '💀 ' : '') + (p.name || 'Player');
+                const dirIcon = gap > 0 ? '▲' : gap < 0 ? '▼' : '';
+                const label = (p.dead ? '💀 ' : dirIcon + ' ') + (p.name || 'Player');
                 const w = ctx.measureText(label).width;
                 // Nudge the label back inside so it never clips off-canvas
                 let lx = 0, ly = -15;
@@ -4902,12 +5366,15 @@
                 ctx.fillStyle = colour;
                 ctx.fillText(label, lx, ly);
 
-                // Distance readout, so you know how far they are
-                const dist = Math.round(Math.hypot(px - bird.x, py - bird.y));
+                // How far ahead or behind, in pipes — more meaningful than pixels
+                let gapText;
+                if (gap > 0)      gapText = gap + ' ahead';
+                else if (gap < 0) gapText = Math.abs(gap) + ' behind';
+                else              gapText = 'level';
                 ctx.font = '7px monospace';
-                ctx.globalAlpha = 0.6;
-                ctx.fillStyle = '#ccc';
-                ctx.fillText(dist + 'm', lx, ly + 9);
+                ctx.globalAlpha = 0.65;
+                ctx.fillStyle = gap > 0 ? '#FF8A94' : gap < 0 ? '#7affc7' : '#ccc';
+                ctx.fillText(gapText, lx, ly + 9);
 
                 ctx.textAlign = 'left';
                 ctx.restore();
@@ -4920,7 +5387,6 @@
             switch(code) {
                 case MP_EV.POSITION:
                     if (p) {
-                        p.x = content.x;
                         p.y = content.y;
                         p.vel = content.v;
                         p.score = content.s;
@@ -5304,6 +5770,19 @@
             });
         });
 
+        // ---- NOTIFICATIONS ----
+        document.getElementById('notifBtn')?.addEventListener('click', () => {
+            renderNotifList();
+            document.getElementById('notifModal').classList.add('active');
+            pollNotifications(false);
+        });
+        document.getElementById('closeNotifBtn')?.addEventListener('click', () =>
+            document.getElementById('notifModal').classList.remove('active'));
+        document.getElementById('notifModal')?.addEventListener('click', e => {
+            if (e.target.id === 'notifModal') e.target.classList.remove('active');
+        });
+        document.getElementById('refreshNotifBtn')?.addEventListener('click', () => pollNotifications(false));
+
         // ---- FRIENDS CONTROLS ----
         // ---- PLAYER MENU ----
         function updatePlayerMenuButton() {
@@ -5347,6 +5826,21 @@
         });
         document.querySelectorAll('#ownerModal .owner-btn').forEach(b =>
             b.addEventListener('click', () => ownerAction(b.dataset.act)));
+
+        // ---- NOTIFICATIONS ----
+        document.getElementById('notifBtn')?.addEventListener('click', () => {
+            renderNotifCentre();
+            document.getElementById('notifModal').classList.add('active');
+            playSound(selectSound);
+        });
+        document.getElementById('closeNotifBtn')?.addEventListener('click', () =>
+            document.getElementById('notifModal').classList.remove('active'));
+        document.getElementById('notifModal')?.addEventListener('click', e => {
+            if (e.target.id === 'notifModal') e.target.classList.remove('active');
+        });
+        document.getElementById('clearNotifBtn')?.addEventListener('click', () => {
+            notifications = []; saveNotifs(); renderNotifCentre();
+        });
 
         document.getElementById('addFriendBtn')?.addEventListener('click', () => addFriendByInput());
 
@@ -5567,6 +6061,7 @@
         document.getElementById('mpSubmitReportBtn').addEventListener('click', mpSubmitReport);
 
         loadFriends();
+        loadNotifs();
         loadLevel();
         loadRP();
         loadPresence();
