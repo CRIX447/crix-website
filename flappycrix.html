@@ -1484,6 +1484,18 @@
     <!-- NOTIFICATION TOASTS -->
     <div id="toasts"></div>
 
+    <!-- PATCH NOTES -->
+    <div class="mp-modal" id="patchModal" style="z-index:48500;">
+        <div class="mp-modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <div class="modal-title">📋 WHAT'S NEW</div>
+                <button class="modal-close" id="closePatchBtn">✕</button>
+            </div>
+            <div id="patchBody" style="max-height:420px;overflow-y:auto;"></div>
+            <button class="mp-btn-primary" id="patchOkBtn" style="width:100%;margin-top:12px;">GOT IT</button>
+        </div>
+    </div>
+
     <!-- NOTIFICATION CENTRE -->
     <div class="mp-modal" id="notifModal" style="z-index:48000;">
         <div class="mp-modal-content" style="max-width:420px;">
@@ -1666,6 +1678,10 @@
             <div class="set-row">
                 <span class="set-label">Roles</span>
                 <span id="setRoles" style="font-size:11px;color:#ABABAB;">None</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">What's new</span>
+                <button class="set-mini-btn" id="openPatchBtn">VIEW</button>
             </div>
             <div class="set-row">
                 <span class="set-label">Status</span>
@@ -2350,18 +2366,92 @@
         document.getElementById('canvasWrapper').addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
         // Gamepad support
         let gamepadJumped = false;
+        // ---- CONTROLLER SUPPORT ----
+        // A single polling loop regardless of how many pads connect (the old
+        // version started a new loop per gamepadconnected event, so two pads
+        // meant double-speed input).
+        let _padLoopRunning = false;
+        const _padPrev = {};          // edge detection per button
+
+        function padPressed(gp, idx) { return !!(gp.buttons[idx] && gp.buttons[idx].pressed); }
+
         function pollGamepad() {
             const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+            let anyConnected = false;
+
             for (const gp of pads) {
                 if (!gp) continue;
-                // Button 0 (A/Cross) or button 1 (B/Circle) = jump
-                const jumpPressed = gp.buttons[0]?.pressed || gp.buttons[1]?.pressed || gp.axes[1] < -0.5;
-                if (jumpPressed && !gamepadJumped) { gamepadJumped = true; jump(); }
-                if (!jumpPressed) gamepadJumped = false;
+                anyConnected = true;
+                const prev = _padPrev[gp.index] || (_padPrev[gp.index] = {});
+
+                // A / Cross / X, or stick up = flap
+                const jumpNow = padPressed(gp, 0) || padPressed(gp, 1) ||
+                                padPressed(gp, 12) || (gp.axes[1] ?? 0) < -0.55;
+                if (jumpNow && !prev.jump) {
+                    if (gameOver && !mpMatchActive) startGame();   // A also restarts
+                    else jump();
+                }
+                prev.jump = jumpNow;
+
+                // Start / Options → start a run
+                const startNow = padPressed(gp, 9);
+                if (startNow && !prev.start) {
+                    if (!gameRunning || gameOver) startGame();
+                }
+                prev.start = startNow;
+
+                // Y / Triangle → hide UI
+                const hideNow = padPressed(gp, 3);
+                if (hideNow && !prev.hide) toggleUIHide();
+                prev.hide = hideNow;
+
+                // B / Circle → close the topmost open modal
+                const backNow = padPressed(gp, 1);
+                if (backNow && !prev.back) {
+                    const open = [...document.querySelectorAll('.mp-modal.active, .store-modal.active, .locker-modal.active, .achievements-modal.active')].pop();
+                    if (open) open.classList.remove('active');
+                }
+                prev.back = backNow;
+
+                // Select / Share → settings
+                const selNow = padPressed(gp, 8);
+                if (selNow && !prev.sel) document.getElementById('settingsBtn')?.click();
+                prev.sel = selNow;
+
+                // Bumpers → cycle video/queue tabs where present
+                const lb = padPressed(gp, 4), rb = padPressed(gp, 5);
+                if (rb && !prev.rb) cyclePadTab(1);
+                if (lb && !prev.lb) cyclePadTab(-1);
+                prev.rb = rb; prev.lb = lb;
             }
+
+            if (anyConnected) requestAnimationFrame(pollGamepad);
+            else _padLoopRunning = false;   // stop cleanly when the last pad leaves
+        }
+
+        function cyclePadTab(dir) {
+            const tabs = [...document.querySelectorAll('.mp-modal.active .queue-tab, .store-modal.active .store-tab')];
+            if (!tabs.length) return;
+            const i = tabs.findIndex(t => t.classList.contains('active'));
+            tabs[(Math.max(0, i) + dir + tabs.length) % tabs.length].click();
+        }
+
+        function startPadLoop() {
+            if (_padLoopRunning) return;
+            _padLoopRunning = true;
             requestAnimationFrame(pollGamepad);
         }
-        window.addEventListener('gamepadconnected', () => { pollGamepad(); });
+
+        window.addEventListener('gamepadconnected', e => {
+            startPadLoop();
+            toast({ kind: 'invite', title: '🎮 Controller connected',
+                    body: (e.gamepad.id || 'Gamepad').slice(0, 40) + ' — A to flap, Start to play.' });
+        });
+        window.addEventListener('gamepaddisconnected', () => {
+            toast({ kind: 'warn', title: 'Controller disconnected', body: '' });
+        });
+        // Some browsers only expose pads after a button press, so check on load too
+        if (navigator.getGamepads && [...navigator.getGamepads()].some(Boolean)) startPadLoop();
 
         document.addEventListener('keydown', (e) => {
             const tag = document.activeElement ? document.activeElement.tagName : '';
@@ -2667,6 +2757,10 @@
             document.getElementById('sendCodeBtn')?.addEventListener('click', sendPhoneCode);
             document.getElementById('confirmCodeBtn')?.addEventListener('click', confirmPhoneCode);
 
+            document.getElementById('openPatchBtn')?.addEventListener('click', () => {
+                document.getElementById('settingsModal').classList.remove('active');
+                showPatchNotes();
+            });
             document.getElementById('resetSettingsBtn')?.addEventListener('click', () => {
                 settings = { ...DEFAULT_SETTINGS }; saveSettings(); refreshSettingsUI();
             });
@@ -3174,6 +3268,58 @@
                 b.classList.toggle('active', b.dataset.status === status));
         }
 
+        // ================= PATCH NOTES =================
+        const SEEN_VERSION_KEY = 'crix_seen_version';
+        let patchData = null;
+
+        async function loadPatchNotes(announce = true) {
+            try {
+                const r = await fetch('/patchnotes.json', { cache: 'no-store' });
+                patchData = await r.json();
+            } catch (e) { return; }
+            if (!patchData?.releases?.length) return;
+
+            const latest = patchData.latest || patchData.releases[0].version;
+            let seen = null;
+            try { seen = localStorage.getItem(SEEN_VERSION_KEY); } catch (e) {}
+
+            if (announce && seen !== latest) {
+                const rel = patchData.releases[0];
+                notify({
+                    type: 'success',
+                    title: `🎉 Update ${rel.version} — ${rel.title}`,
+                    body: `${rel.changes.length} changes. Tap to read.`,
+                    actions: {
+                        yesLabel: 'Read', onYes: () => showPatchNotes(),
+                        noLabel: 'Later', onNo: () => markVersionSeen()
+                    }
+                });
+            }
+        }
+
+        function markVersionSeen() {
+            try { localStorage.setItem(SEEN_VERSION_KEY, patchData?.latest || ''); } catch (e) {}
+        }
+
+        function showPatchNotes() {
+            if (!patchData) return;
+            const body = document.getElementById('patchBody');
+            body.innerHTML = patchData.releases.map((r, i) => `
+                <div style="margin-bottom:18px;padding-bottom:16px;${i < patchData.releases.length-1 ? 'border-bottom:1px solid rgba(255,255,255,.08);' : ''}">
+                    <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                        <span style="font-size:15px;font-weight:bold;color:#FFD700;">${mpEsc(r.title)}</span>
+                        <span style="font-size:10px;color:#00CC7A;">v${mpEsc(r.version)}</span>
+                        <span style="font-size:10px;color:#8C8C8C;">${mpEsc(r.date)}</span>
+                        ${i === 0 ? '<span style="font-size:9px;background:#FF4655;color:#fff;padding:2px 8px;border-radius:10px;">NEW</span>' : ''}
+                    </div>
+                    <ul style="margin:0;padding-left:18px;">
+                        ${r.changes.map(ch => `<li style="font-size:11px;color:#C9C9C9;line-height:1.8;">${mpEsc(ch)}</li>`).join('')}
+                    </ul>
+                </div>`).join('');
+            document.getElementById('patchModal').classList.add('active');
+            markVersionSeen();
+        }
+
         // ================= NOTIFICATIONS =================
         const NOTIF_KEY = 'crix_notifs_v1';
         let notifications = [];
@@ -3466,7 +3612,9 @@
             if (!btn) return;
             const staff = myRoles.includes('OWNER') || myRoles.includes('MOD');
             btn.style.display = staff ? '' : 'none';
-            btn.textContent = myRoles.includes('OWNER') ? '🛡️ OWNER MENU' : '🛡️ MOD MENU';
+            // Update only the label, or we'd wipe the icon markup
+            const lbl = btn.querySelector('label');
+            if (lbl) lbl.textContent = myRoles.includes('OWNER') ? 'Owner' : 'Mod';
         }
 
         function ownerLog(msg, ok = true) {
@@ -5812,6 +5960,16 @@
             });
         });
 
+        // ---- PATCH NOTES ----
+        document.getElementById('closePatchBtn')?.addEventListener('click', () =>
+            document.getElementById('patchModal').classList.remove('active'));
+        document.getElementById('patchOkBtn')?.addEventListener('click', () =>
+            document.getElementById('patchModal').classList.remove('active'));
+        document.getElementById('patchModal')?.addEventListener('click', e => {
+            if (e.target.id === 'patchModal') e.target.classList.remove('active');
+        });
+        loadPatchNotes(true);
+
         // ---- NOTIFICATIONS ----
         document.getElementById('notifBtn')?.addEventListener('click', () => {
             renderNotifList();
@@ -5829,7 +5987,11 @@
         // ---- PLAYER MENU ----
         function updatePlayerMenuButton() {
             const b = document.getElementById('playerMenuBtn');
-            if (b) b.textContent = ownsPlayerMenu() ? '🎮 PLAYER MENU' : '🔒 PLAYER MENU';
+            if (!b) return;
+            const owned = ownsPlayerMenu();
+            const ic = b.querySelector('span'), lb = b.querySelector('label');
+            if (ic) ic.textContent = owned ? '🎮' : '🔒';
+            if (lb) lb.textContent = owned ? 'Sandbox' : 'Locked';
         }
         document.getElementById('playerMenuBtn')?.addEventListener('click', () => {
             refreshPlayerMenu();
