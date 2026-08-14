@@ -11,15 +11,15 @@
     <meta property="og:site_name" content="CRIXGAMING VR">
     <meta property="og:title" content="Flappy Crix • CRIXGAMING VR">
     <meta property="og:description" content="Dodge pipes, collect coins, unlock cheats and cosmetics. Can you beat CRIX's high score?">
-    <meta property="og:image" content="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png">
+    <meta property="og:image" content="/img/bird.png">
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="Flappy Crix • CRIXGAMING VR">
     <meta name="twitter:description" content="Dodge pipes, collect coins, unlock cheats and cosmetics. Can you beat CRIX's high score?">
-    <meta name="twitter:image" content="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png">
+    <meta name="twitter:image" content="/img/bird.png">
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png">
+    <link rel="icon" type="image/png" href="/img/newfavicon.png">
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081408"></script>
-    <script src="playfab-manager.js?v=2026081408"></script>
+    <script src="filter.js?v=2026081409"></script>
+    <script src="playfab-manager.js?v=2026081409"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -45,7 +45,7 @@
     <style>
         @font-face {
             font-family: 'CrixCustom';
-            src: url('https://raw.githubusercontent.com/CRIX447/crix-website/main/img/font.otf') format('opentype');
+            src: url('/img/font.otf') format('opentype');
             font-weight: normal;
             font-style: normal;
             font-display: swap;
@@ -295,6 +295,10 @@
         .game-container.mp-wide {
             max-width: min(860px, 98vw) !important;
         }
+        /* Canvas is always 400x600 native and never stretched — the wider
+           container just gives the HUD and chat more room around it. */
+        .game-container.mp-wide .canvas-wrapper { justify-content: center; }
+        .game-container.mp-wide canvas { margin: 0 auto; }
         /* Canvas always renders at native resolution — no CSS scaling in MP */
         /* ---- CANVAS ---- */
         .canvas-wrapper {
@@ -311,7 +315,10 @@
             position: relative;
         }
         canvas {
-            width: 100%;
+            /* Never scale beyond native size — stretching a 560px canvas to fill
+               an 860px container is what made multiplayer look zoomed in. */
+            width: auto;
+            max-width: 100%;
             height: auto;
             border-radius: 12px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
@@ -1690,17 +1697,17 @@
     </div>
     
     <!-- AUDIO -->
-    <audio id="jumpSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/jump.mp3"></audio>
-    <audio id="deathSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/death.mp3"></audio>
-    <audio id="coinSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.mp3"></audio>
-    <audio id="selectSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/select.mp3"></audio>
-    <audio id="failSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/fail.mp3"></audio>
-    <audio id="powerupSound"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/powerup.mp3"></audio>
-    <audio id="victorySound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/victory.mp3"></audio>
-    <audio id="sixtySevenSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.mp3"></audio>
-    <audio id="boomSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.mp3"></audio>
-    <audio id="achSound" preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/ach.mp3"></audio>
-    <audio id="bgMusic" loop preload="auto"><source src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/music.mp3"></audio>
+    <audio id="jumpSound" preload="auto"><source src="/img/jump.mp3"></audio>
+    <audio id="deathSound" preload="auto"><source src="/img/death.mp3"></audio>
+    <audio id="coinSound" preload="auto"><source src="/img/coin.mp3"></audio>
+    <audio id="selectSound" preload="auto"><source src="/img/select.mp3"></audio>
+    <audio id="failSound" preload="auto"><source src="/img/fail.mp3"></audio>
+    <audio id="powerupSound"><source src="/img/powerup.mp3"></audio>
+    <audio id="victorySound" preload="auto"><source src="/img/victory.mp3"></audio>
+    <audio id="sixtySevenSound" preload="auto"><source src="/img/67.mp3"></audio>
+    <audio id="boomSound" preload="auto"><source src="/img/boom.mp3"></audio>
+    <audio id="achSound" preload="auto"><source src="/img/ach.mp3"></audio>
+    <audio id="bgMusic" loop preload="auto"><source src="/img/music.mp3"></audio>
     
     <script>
         // CanvasRenderingContext2D.roundRect polyfill for older browsers
@@ -1787,11 +1794,11 @@
         }
 
         const coinImage = new Image();
-        coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
+        coinImage.src = '/img/coin.gif';
         coinImage.style = 'display:none;position:absolute;';
         document.body.appendChild(coinImage); // must be in DOM for gif to animate in canvas
         const birdImage = new Image(); 
-        birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
+        birdImage.src = '/img/bird.png';
         
         let powerups = [
             { id: 'x2coins', name: '2X COINS', price: 5000, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins 30s' },
@@ -1800,10 +1807,10 @@
         ];
         
         let cosmetics = [
-            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 2500, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif', owned: false, equipped: false },
-            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 2000, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png', owned: false, equipped: false },
-            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 1800, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif', owned: false, equipped: false },
-            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 1500, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png', owned: false, equipped: false }
+            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 2500, image: '/img/bucket-hat.avif', owned: false, equipped: false },
+            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 2000, image: '/img/cap.png', owned: false, equipped: false },
+            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 1800, image: '/img/tank-top.avif', owned: false, equipped: false },
+            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 1500, image: '/img/new-t-shirt.png', owned: false, equipped: false }
         ];
         
         let achievements = [
@@ -2054,8 +2061,8 @@
                     score++; pipes[i].scored=true; 
                     grantXp(1, 'score');
                     if (typeof mpReportScore === 'function') mpReportScore(score);
-                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); } 
-                    if(score===1000 && !hasTriggered1000){ hasTriggered1000=true; gameRunning=false; cancelAnimationFrame(animationId); let boom=document.getElementById('boomOverlay'); boom.style.display='block'; boom.innerHTML='<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" style="max-width:180px;">'; boomSound.play(); setTimeout(()=>{boom.style.display='none'; let vo=document.getElementById('victoryOverlay'); vo.style.display='flex'; document.getElementById('victoryMessage').innerHTML=Object.values(cheats).some(v=>v)?'You conquered with style!':'VICTORY! LEGEND!'; victorySound.play();},2000); } 
+                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); } 
+                    if(score===1000 && !hasTriggered1000){ hasTriggered1000=true; gameRunning=false; cancelAnimationFrame(animationId); let boom=document.getElementById('boomOverlay'); boom.style.display='block'; boom.innerHTML='<img src="/img/boom.gif" style="max-width:180px;">'; boomSound.play(); setTimeout(()=>{boom.style.display='none'; let vo=document.getElementById('victoryOverlay'); vo.style.display='flex'; document.getElementById('victoryMessage').innerHTML=Object.values(cheats).some(v=>v)?'You conquered with style!':'VICTORY! LEGEND!'; victorySound.play();},2000); } 
                     checkAchievements(); 
                 } 
                 if(pipes[i].x+pipeWidth<0) pipes.splice(i--,1); 
@@ -3381,12 +3388,12 @@
         // ---- PROFILE PICTURE ----
         // Presets are served from the site's own img folder so they always load.
         const AVATAR_PRESETS = [
-            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png',
-            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png',
-            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixgamingvr.png',
-            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixsmp.png',
-            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixreacts.png',
-            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixblox.png'
+            '/img/bird.png',
+            '/img/newfavicon.png',
+            '/img/crixgamingvr.png',
+            '/img/crixsmp.png',
+            '/img/crixreacts.png',
+            '/img/crixblox.png'
         ];
         function currentAvatar() {
             return mpProfile.avatar || (currentUser && currentUser.photoURL) || null;
@@ -4374,8 +4381,6 @@
             coinsArr = []; pipes = [];  // clear leftover MP entities
             _mpMatchStarted = false; mpMatchOverShown = false;
             document.querySelector('.game-container')?.classList.remove('mp-wide');
-            const gc = document.getElementById('gameCanvas');
-            if (gc) { gc.width = 400; gc.height = 600; canvas.width = 400; canvas.height = 600; pipeGap = 170; }
             mpEndMatchUI();
             document.getElementById('mpModal').classList.remove('active');
             mpShowView('mpViewHome');
@@ -4406,15 +4411,9 @@
             mpMatchOverShown = false;
             if (seed !== undefined) window.mpSharedSeed = seed;
             document.querySelector('.game-container')?.classList.add('mp-wide');
-            // Expand canvas resolution for wider display — more visible game area
-            const gc = document.getElementById('gameCanvas');
-            if (gc) {
-                gc.width = 560;   // wider game world, not just CSS stretch
-                gc.height = 600;
-                canvas.width = 560;
-                canvas.height = 600;
-                pipeGap = 200;    // slightly wider gap at the wider resolution
-            }
+            // Canvas stays 400x600 in every mode. Resizing it made multiplayer
+            // look zoomed AND caused a desync: pipes spawn at x=canvas.width, so
+            // players with different widths generated different maps.
             // Clear all cheats when entering multiplayer
             cheats.godmode = false; cheats.coinlord = false; cheats.slowmo = false; cheats.bigbird = false;
             updateCheatIndicators();
@@ -4621,9 +4620,6 @@
         function mpEndMatchUI() {
             document.querySelector('.game-container')?.classList.remove('mp-wide');
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
-            // Restore canvas to single-player size
-            const gc = document.getElementById('gameCanvas');
-            if (gc) { gc.width = 400; gc.height = 600; canvas.width = 400; canvas.height = 600; pipeGap = 170; }
             document.getElementById('mpHud').classList.remove('active');
             document.getElementById('mpChatToggleBtn').classList.remove('active');
             document.getElementById('mpChatPanel').classList.remove('active');
