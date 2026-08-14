@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evidence — CRIXGAMING VR</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/img/newfavicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+@font-face {
+    font-family: 'CRIX Pixel';
+    src: url('/img/font.otf') format('opentype');
+    font-display: swap;
+}
+:root {
+    --neon-red:#FF4655; --neon-orange:#FF6B35; --cyber-orange:#CC5500;
+    --matrix-green:#00CC7A; --dark-bg:#0A0A0F; --darker-bg:#050508;
+    --card-bg:rgba(10,10,18,0.9); --grid-color:rgba(255,70,85,0.05);
+    --line:rgba(255,255,255,0.07);
+}
+*,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+html { scroll-behavior:smooth; }
+body {
+    font-family:'CRIX Pixel','Fredoka One','Courier New',monospace;
+    background:var(--dark-bg); color:#EDEDED;
+    background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size:48px 48px;
+    min-height:100vh;
+}
+
+/* NAV — matches the main site */
+.site-nav {
+    position:sticky; top:0; z-index:200;
+    background:rgba(5,5,8,0.96); backdrop-filter:blur(12px);
+    border-bottom:2px solid rgba(255,70,85,0.4);
+    height:54px; display:flex; align-items:center; padding:0 28px;
+}
+.nav-brand {
+    font-size:16px; font-weight:bold; text-decoration:none;
+    letter-spacing:2px; text-transform:uppercase; flex-shrink:0;
+    padding-right:28px; border-right:1px solid var(--line); margin-right:20px;
+    background:linear-gradient(135deg,var(--neon-red),var(--neon-orange));
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text;
+}
+.nav-links { display:flex; align-items:center; gap:4px; flex:1; }
+.nav-link {
+    color:#A0A0A0; text-decoration:none; font-size:12px;
+    text-transform:uppercase; letter-spacing:1px;
+    padding:5px 12px; border-radius:6px; transition:.12s;
+}
+.nav-link:hover { color:#fff; background:rgba(255,255,255,0.05); }
+.nav-link.active { color:var(--neon-orange); }
+
+.wrap { max-width:1160px; margin:0 auto; padding:0 28px; }
+.section { padding:48px 0; }
+.section-label {
+    font-size:10px; font-weight:bold; letter-spacing:3px;
+    text-transform:uppercase; color:var(--neon-red);
+    margin-bottom:6px; display:block;
+}
+.section-title {
+    font-size:32px; font-weight:bold; text-transform:uppercase;
+    letter-spacing:2px; position:relative; display:inline-block;
+}
+.section-title::after {
+    content:''; position:absolute; bottom:-10px; left:0;
+    width:48px; height:3px; border-radius:2px;
+    background:linear-gradient(90deg,var(--neon-red),transparent);
+}
+
+.notice {
+    background:rgba(255,165,0,0.06);
+    border:1px solid rgba(255,165,0,0.28);
+    border-radius:12px; padding:14px 18px; margin:30px 0 24px;
+    font-size:12px; color:#C9C9C9; line-height:1.8;
+}
+.notice a { color:var(--matrix-green); }
+
+.count-bar {
+    display:flex; align-items:center; justify-content:space-between;
+    flex-wrap:wrap; gap:10px; margin-bottom:16px;
+}
+.count-text { font-size:11px; color:#A0A0A0; letter-spacing:1px; }
+
+.evidence-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(200px,1fr));
+    gap:12px;
+}
+.ev-item {
+    position:relative; aspect-ratio:4/3; overflow:hidden;
+    border-radius:12px; cursor:zoom-in;
+    border:1px solid var(--line); background:#111118;
+    transition:border-color .15s, transform .15s;
+}
+.ev-item:hover { border-color:var(--neon-orange); transform:translateY(-2px); }
+.ev-item img { width:100%; height:100%; object-fit:cover; display:block; }
+.ev-num {
+    position:absolute; top:6px; left:6px;
+    background:rgba(0,0,0,0.75); color:#EDEDED;
+    font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px;
+}
+.ev-cap {
+    position:absolute; left:0; right:0; bottom:0;
+    background:linear-gradient(transparent,rgba(0,0,0,0.93) 45%);
+    color:#DDD; font-size:10px; line-height:1.5; padding:24px 8px 8px;
+    opacity:0; transform:translateY(4px); transition:.18s;
+}
+.ev-item:hover .ev-cap { opacity:1; transform:translateY(0); }
+.ev-date { display:block; color:var(--matrix-green); font-weight:700; margin-bottom:2px; }
+
+/* Shown only while probing, then removed. Never a broken-image tile. */
+#loading { text-align:center; padding:60px 20px; color:#8C8C8C; font-size:13px; }
+.spinner {
+    width:26px; height:26px; margin:0 auto 14px;
+    border:3px solid rgba(255,107,53,0.2); border-top-color:var(--neon-orange);
+    border-radius:50%; animation:spin .8s linear infinite;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+#empty { display:none; text-align:center; padding:70px 20px; }
+#empty .icon { font-size:44px; margin-bottom:14px; opacity:.5; }
+#empty .msg { color:#8C8C8C; font-size:14px; }
+
+/* LIGHTBOX */
+#lightbox {
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(0,0,0,0.95); align-items:center; justify-content:center;
+    flex-direction:column; padding:40px 20px;
+}
+#lightbox img { max-width:94vw; max-height:80vh; border-radius:10px; }
+#lbCap { color:#C9C9C9; font-size:13px; margin-top:16px; text-align:center; max-width:640px; line-height:1.7; }
+#lbClose { position:absolute; top:16px; right:26px; color:#EDEDED; font-size:38px; cursor:pointer; line-height:1; }
+.lb-nav {
+    position:absolute; top:50%; transform:translateY(-50%);
+    background:rgba(0,0,0,0.6); border:1px solid var(--line);
+    color:#EDEDED; font-size:26px; width:46px; height:46px;
+    border-radius:50%; cursor:pointer; display:flex;
+    align-items:center; justify-content:center; transition:.12s;
+}
+.lb-nav:hover { background:rgba(255,107,53,0.25); border-color:var(--neon-orange); }
+#lbPrev { left:20px; } #lbNext { right:20px; }
+
+footer { border-top:1px solid var(--line); padding:28px; text-align:center; }
+footer a { color:#8C8C8C; text-decoration:none; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+footer a:hover { color:var(--neon-orange); }
+
+@media (max-width:600px) {
+    .wrap { padding:0 16px; }
+    .section-title { font-size:24px; }
+    .nav-links { display:none; }
+    .evidence-grid { grid-template-columns:repeat(2,1fr); gap:8px; }
+    .lb-nav { width:38px; height:38px; font-size:20px; }
+}
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+    <a href="/" class="nav-brand">CRIXGAMING VR</a>
+    <div class="nav-links">
+        <a href="/#story" class="nav-link">Story</a>
+        <a href="/#network" class="nav-link">Channels</a>
+        <a href="/#videos" class="nav-link">Videos</a>
+        <a href="/evidence" class="nav-link active">Evidence</a>
+        <a href="/#shop" class="nav-link">Shop</a>
+    </div>
+</nav>
+
+<div class="wrap">
+    <div class="section">
+        <span class="section-label">Documentation</span>
+        <h2 class="section-title">Evidence</h2>
+
+        <div class="notice">
+            Screenshots documenting incidents in the community. Faces and slurs are censored
+            by default; names appear only where the person has agreed to be identified.
+            If you believe something here is inaccurate or concerns you directly, email
+            <a href="mailto:cgvr@crixgamingvr.com">cgvr@crixgamingvr.com</a> and it will be reviewed.
+        </div>
+
+        <div class="count-bar">
+            <span class="count-text" id="countText"></span>
+        </div>
+
+        <div id="loading">
+            <div class="spinner"></div>
+            Checking for evidence files…
+        </div>
+
+        <div class="evidence-grid" id="grid"></div>
+
+        <div id="empty">
+            <div class="icon">📁</div>
+            <div class="msg">Nothing posted yet.</div>
+        </div>
+    </div>
+</div>
+
+<footer>
+    <a href="/">← Back to main site</a>
+</footer>
+
+<div id="lightbox">
+    <span id="lbClose">&times;</span>
+    <button class="lb-nav" id="lbPrev">&#8249;</button>
+    <img id="lbImg" src="" alt="">
+    <button class="lb-nav" id="lbNext">&#8250;</button>
+    <div id="lbCap"></div>
+</div>
+
+<script>
+const MAX_EVIDENCE = 200;
+const DIR = '/img/evidence';
+let found = [], captions = {}, current = 0;
+
+const esc = s => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
+
+// Probe a single file. Resolves to the number if it loads, null if not.
+// Nothing is ever rendered for a file that fails, so there are no
+// placeholder or broken-image tiles.
+const probe = n => new Promise(res => {
+    const img = new Image();
+    img.onload  = () => res(n);
+    img.onerror = () => res(null);
+    img.src = `${DIR}/evidence${n}.png`;
+});
+
+async function loadCaptions() {
+    try {
+        const txt = await (await fetch('/evidence.txt', { cache: 'no-store' })).text();
+        txt.split('\n').map(l => l.trim())
+           .filter(l => l && !l.startsWith('#'))
+           .forEach(l => {
+               const [num, date, ...rest] = l.split('|').map(s => s.trim());
+               if (num) captions[num] = { date: date || '', desc: rest.join(' | ') || '' };
+           });
+    } catch (e) { /* captions are optional */ }
+}
+
+async function loadEvidence() {
+    await loadCaptions();
+
+    // Probe in batches of 25 so we don't fire 200 requests at once.
+    // Stops early after two consecutive empty batches, so a gallery of
+    // 5 images doesn't wait on 200 lookups.
+    let emptyRuns = 0;
+    for (let start = 1; start <= MAX_EVIDENCE; start += 25) {
+        const batch = [];
+        for (let i = start; i < start + 25 && i <= MAX_EVIDENCE; i++) batch.push(probe(i));
+        const hits = (await Promise.all(batch)).filter(Boolean);
+        found.push(...hits);
+        emptyRuns = hits.length ? 0 : emptyRuns + 1;
+        if (emptyRuns >= 2 && found.length) break;
+    }
+
+    found.sort((a, b) => a - b);
+    document.getElementById('loading').remove();
+
+    if (!found.length) {
+        document.getElementById('empty').style.display = 'block';
+        return;
+    }
+
+    document.getElementById('countText').textContent =
+        `${found.length} item${found.length === 1 ? '' : 's'}`;
+
+    document.getElementById('grid').innerHTML = found.map((n, idx) => {
+        const cap = captions[String(n)];
+        return `<div class="ev-item" data-idx="${idx}">
+            <img src="${DIR}/evidence${n}.png" alt="Evidence ${n}" loading="lazy">
+            <span class="ev-num">#${n}</span>
+            ${cap ? `<div class="ev-cap">${cap.date ? `<span class="ev-date">${esc(cap.date)}</span>` : ''}${esc(cap.desc)}</div>` : ''}
+        </div>`;
+    }).join('');
+
+    document.querySelectorAll('.ev-item').forEach(el =>
+        el.addEventListener('click', () => openLightbox(+el.dataset.idx)));
+}
+
+function openLightbox(idx) {
+    current = idx;
+    const n = found[idx];
+    const cap = captions[String(n)];
+    document.getElementById('lbImg').src = `${DIR}/evidence${n}.png`;
+    document.getElementById('lbCap').innerHTML = cap
+        ? `${cap.date ? `<strong style="color:var(--matrix-green)">${esc(cap.date)}</strong> &middot; ` : ''}${esc(cap.desc)}`
+        : `Evidence #${n}`;
+    document.getElementById('lightbox').style.display = 'flex';
+}
+function step(dir) {
+    if (!found.length) return;
+    openLightbox((current + dir + found.length) % found.length);
+}
+
+document.getElementById('lbClose').onclick = () =>
+    document.getElementById('lightbox').style.display = 'none';
+document.getElementById('lightbox').onclick = e => {
+    if (e.target.id === 'lightbox') e.currentTarget.style.display = 'none';
+};
+document.getElementById('lbPrev').onclick = e => { e.stopPropagation(); step(-1); };
+document.getElementById('lbNext').onclick = e => { e.stopPropagation(); step(1); };
+document.addEventListener('keydown', e => {
+    const lb = document.getElementById('lightbox');
+    if (lb.style.display !== 'flex') return;
+    if (e.key === 'Escape') lb.style.display = 'none';
+    if (e.key === 'ArrowLeft')  step(-1);
+    if (e.key === 'ArrowRight') step(1);
+});
+
+loadEvidence();
+</script>
+</body>
+</html>
