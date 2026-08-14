@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081414"></script>
-    <script src="playfab-manager.js?v=2026081414"></script>
+    <script src="filter.js?v=2026081415"></script>
+    <script src="playfab-manager.js?v=2026081415"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -342,7 +342,7 @@
             box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
         }
         .cyber-stat:active { transform: translateY(2px); border-bottom-width: 2px; box-shadow: none; }
-        .stat-label { font-size: 9px; color: #bbb; text-transform: uppercase; font-weight: 500; letter-spacing: 0.5px; }
+        .stat-label { font-size: 8px; color: #bbb; text-transform: uppercase; font-weight: 500; letter-spacing: 0.5px; }
         .stat-value { font-size: 15px; font-weight: 800; color: var(--orange); text-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
         #coinCount { color: #FFD966; }
         
@@ -422,8 +422,8 @@
         /* ---- INSTRUCTIONS ---- */
         .instructions {
             text-align: center;
-            margin: 10px 0;
-            padding: 10px;
+            margin: 6px 0 4px;
+            padding: 7px 10px;
             background: rgba(0,0,0,0.4);
             border: 2px solid var(--orange);
             border-bottom: 4px solid rgba(150,60,0,0.5);
@@ -819,6 +819,31 @@
             transition-duration: 0.001s !important;
         }
 
+        /* ---- COMPACT ICON BAR ---- */
+        .icon-bar {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr));
+            gap:6px; margin:8px 0 4px;
+        }
+        .icon-btn {
+            position:relative; background:rgba(10,10,20,.85);
+            border:2px solid rgba(255,107,53,.35);
+            border-bottom:4px solid rgba(150,60,0,.55);
+            border-radius:14px; padding:9px 4px 7px; cursor:pointer;
+            font-family:inherit; color:#EDEDED;
+            display:flex; flex-direction:column; align-items:center; gap:3px;
+            transition:all .12s; box-shadow:2px 2px 0 rgba(0,0,0,.4);
+        }
+        .icon-btn:hover { transform:translateY(-2px); border-color:var(--green);
+            border-bottom-color:#007744; box-shadow:2px 4px 0 rgba(0,0,0,.4); }
+        .icon-btn:active { transform:translateY(1px); border-bottom-width:2px; box-shadow:none; }
+        .icon-btn span  { font-size:18px; line-height:1; }
+        .icon-btn label { font-size:8px; letter-spacing:.5px; text-transform:uppercase;
+            color:#A0A0A0; cursor:pointer; }
+        .icon-btn:hover label { color:#fff; }
+        .icon-btn.staff { border-color:rgba(255,0,0,.5); border-bottom-color:#6b0000; }
+        .icon-btn.staff label { color:#FF8A94; }
+        .icon-btn .notif-badge { top:2px; right:6px; }
+
         /* ---- NOTIFICATIONS ---- */
         #toasts { position:fixed; top:14px; right:14px; z-index:70000;
             display:flex; flex-direction:column; gap:8px; max-width:320px; }
@@ -1125,29 +1150,28 @@
             <button id="hideUIBtn" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,107,53,0.4);border-radius:20px;padding:3px 12px;color:#ABABAB;font-size:10px;cursor:pointer;font-family:inherit;" title="Hide UI (H key)">👁 HIDE UI</button>
         </div>
         <div class="stats-grid">
-            <div class="cyber-stat" id="achievementsBtn"><div class="stat-label">🏆 ACHIEV</div><div class="stat-value" id="achievementCount">0/6</div></div>
             <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
-            <div class="cyber-stat"><div class="stat-label">HIGH</div><div class="stat-value" id="highScore">0</div></div>
-            <div class="cyber-stat"><div class="stat-label">MULT</div><div class="stat-value" id="coinMultiplier">1x</div></div>
+            <div class="cyber-stat"><div class="stat-label">BEST</div><div class="stat-value" id="highScore">0</div></div>
+            <div class="cyber-stat" id="achievementsBtn"><div class="stat-label">🏆 ACHIEVEMENTS</div><div class="stat-value" id="achievementCount">0/6</div></div>
+            <div class="cyber-stat" id="multStat" style="display:none;"><div class="stat-label">MULT</div><div class="stat-value" id="coinMultiplier">1x</div></div>
         </div>
         
         <div class="cheat-indicators" id="cheatIndicators"></div>
         <div class="active-powerups" id="activePowerups"></div>
-        
-        <div class="buttons-row">
-            <button class="action-btn" id="storeBtn">🛒 STORE</button>
-            <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
-        </div>
-        
-        <button class="action-btn" id="notifBtn" style="width:100%;margin-bottom:6px;position:relative;">
-            🔔 NOTIFICATIONS <span id="notifBadge" class="notif-badge" style="display:none;">0</span>
-        </button>
-        <button class="action-btn" id="playerMenuBtn" style="width:100%;margin-bottom:6px;">🎮 PLAYER MENU</button>
-        <button class="action-btn" id="ownerBtn" style="width:100%;margin-bottom:6px;display:none;background:linear-gradient(135deg,#FF0000,#8B0000);">🛡️ STAFF MENU</button>
-        <button class="action-btn" id="settingsBtn" style="width:100%;margin-bottom:6px;">⚙️ SETTINGS</button>
+        <!-- Primary action -->
         <button class="mp-banner-btn" id="multiplayerBtn">
             🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
         </button>
+
+        <!-- Everything else collapses into one icon row -->
+        <div class="icon-bar">
+            <button class="icon-btn" id="storeBtn"       title="Store"><span>🛒</span><label>Store</label></button>
+            <button class="icon-btn" id="lockerBtn"      title="Locker"><span>👕</span><label>Locker</label></button>
+            <button class="icon-btn" id="notifBtn"       title="Notifications"><span>🔔</span><label>Alerts</label><i id="notifBadge" class="notif-badge" style="display:none;">0</i></button>
+            <button class="icon-btn" id="playerMenuBtn"  title="Player menu"><span>🎮</span><label>Sandbox</label></button>
+            <button class="icon-btn" id="settingsBtn"    title="Settings"><span>⚙️</span><label>Settings</label></button>
+            <button class="icon-btn staff" id="ownerBtn" title="Staff menu" style="display:none;"><span>🛡️</span><label>Staff</label></button>
+        </div>
         <div class="mp-diagnostic-banner" id="mpDiagnosticBanner" style="display:none;"></div>
         
         
@@ -1158,8 +1182,8 @@
         </div>
         
         <div class="instructions">
-            <p><span class="highlight">⬆️ TAP / SPACE</span> to jump &nbsp;•&nbsp; <span class="highlight">🪙 COLLECT COINS</span></p>
-            <p><span class="highlight">🏆 UNLOCK ACHIEVEMENTS</span> &nbsp;•&nbsp; <span class="highlight">🔑 SIGN IN TO SAVE</span></p>
+            <p><span class="highlight">TAP</span> or <span class="highlight">SPACE</span> to fly &nbsp;·&nbsp; <span class="highlight">H</span> hides the UI</p>
+
         </div>
         
         <div class="back-link"><a href="https://crixgamingvr.com" target="_blank">← BACK TO MAIN SITE</a></div>
@@ -2016,7 +2040,11 @@
             if (n >= 1e3) return (n/1e3).toFixed(2) + 'K';
             return String(n);
         }
-        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `🪙 ${formatCoins(coinCount)}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`; document.getElementById('coinMultiplier').textContent = coinMultiplier + 'x'; }
+        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `🪙 ${formatCoins(coinCount)}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`; document.getElementById('coinMultiplier').textContent = coinMultiplier + 'x';
+            // Only show the multiplier tile when it's actually doing something
+            const ms = document.getElementById('multStat');
+            if (ms) ms.style.display = coinMultiplier > 1 ? '' : 'none';
+        }
         function updateAchievementCount() {
             const mp = (typeof MP_ACHIEVEMENTS !== 'undefined') ? MP_ACHIEVEMENTS : [];
             const all = achievements.concat(mp);
@@ -4714,7 +4742,7 @@
                 row.innerHTML = avatar +
                     `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
-                if (mpIsHost && !isMe) {
+                if (mpHasPerm(mpLocalActor, 'canKick') && !isMe) {
                     const kb = document.createElement('button');
                     kb.className = 'mp-player-kick-btn';
                     kb.textContent = 'KICK';
@@ -4751,15 +4779,17 @@
             });
 
             const hostCtrl = document.getElementById('mpHostControls');
-            hostCtrl.style.display = mpIsHost ? 'block' : 'none';
+            // Shown to the host and to anyone granted settings permission
+            const canSettings = mpHasPerm(mpLocalActor, 'canSettings');
+            hostCtrl.style.display = canSettings ? 'block' : 'none';
             if (mpIsHost) {
                 document.getElementById('mpVisibilityLabel').textContent = mpCurrentRoom.isPublic ? 'Public' : 'Invite Only';
                 const sel = document.getElementById('mpHostModeSelect');
                 if (sel) sel.value = mpCurrentRoom.mode;
             }
             applyModeSettingVisibility();
-            document.getElementById('mpStartMatchBtn').style.display = mpIsHost ? '' : 'none';
-            document.getElementById('mpEndGameBtn').style.display = (mpIsHost && mpMatchActive) ? '' : 'none';
+            document.getElementById('mpStartMatchBtn').style.display = canSettings ? '' : 'none';
+            document.getElementById('mpEndGameBtn').style.display = (canSettings && mpMatchActive) ? '' : 'none';
             mpRenderPermissionsPanel();
             document.getElementById('mpWaitingForHostMsg').style.display = mpIsHost ? 'none' : '';
         }
@@ -4814,13 +4844,13 @@
 
         // ----- HOST ACTIONS -----
         function mpKickPlayer(actorNr) {
-            if (!mpIsHost) return;
+            if (!mpHasPerm(mpLocalActor, 'canKick')) return;
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             photonClient.raiseEvent(MP_EV.KICK, { targetActor: actorNr }, { receivers: RC.All });
         }
 
         function mpToggleVisibility() {
-            if (!mpIsHost) return;
+            if (!mpHasPerm(mpLocalActor, 'canSettings')) return;
             mpCurrentRoom.isPublic = !mpCurrentRoom.isPublic;
             try {
                 if (photonClient.myRoom().setIsVisible) photonClient.myRoom().setIsVisible(mpCurrentRoom.isPublic);
@@ -4830,7 +4860,7 @@
         }
 
         function mpHostChangeMode(newMode) {
-            if (!mpIsHost) return;
+            if (!mpHasPerm(mpLocalActor, 'canSettings')) return;
             mpCurrentRoom.mode = newMode;
             mpMatchMode = newMode;
             try { photonClient.myRoom().setCustomProperties({ mode: newMode }); } catch(e) {}
@@ -4855,7 +4885,7 @@
 
         // ----- MATCH FLOW -----
         function mpStartMatch() {
-            if (!mpIsHost) return;
+            if (!mpHasPerm(mpLocalActor, 'canSettings')) return;
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             const mpSeed = Math.floor(Math.random() * 0xFFFFFFFF);
             window.mpSharedSeed = mpSeed;
@@ -5482,6 +5512,14 @@
                 case MP_EV.GRANT_PERM:
                     if (!mpPermissions[content.target]) mpPermissions[content.target] = {};
                     mpPermissions[content.target][content.perm] = content.value;
+                    if (content.target === mpLocalActor) {
+                        const label = content.perm === 'canKick' ? 'kick players' : 'change match settings';
+                        toast({
+                            kind: content.value ? 'invite' : 'warn',
+                            title: content.value ? '🔑 Permission granted' : '🔒 Permission removed',
+                            body: content.value ? `You can now ${label}.` : `You can no longer ${label}.`
+                        });
+                    }
                     mpRenderLobby();
                     break;
                 case MP_EV.HOST_END_GAME:
@@ -5598,7 +5636,10 @@
             if (!mpIsHost) return;
             if (!mpPermissions[targetActor]) mpPermissions[targetActor] = {};
             mpPermissions[targetActor][perm] = value;
-            mpRaiseEvent(MP_EV.GRANT_PERM, { target: targetActor, perm, value });
+            // Sent to everyone so late joiners and the target both stay in sync
+            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+            photonClient.raiseEvent(MP_EV.GRANT_PERM,
+                { target: targetActor, perm, value }, { receivers: RC.All });
             mpRenderPermissionsPanel();
             mpRenderLobby();
         }
@@ -5607,7 +5648,8 @@
         }
         function mpRenderPermissionsPanel() {
             const panel = document.getElementById('mpPermissionsPanel');
-            if (!panel || !mpIsHost) return;
+            if (!panel) return;
+            if (!mpIsHost) { panel.innerHTML = ''; return; }   // granting stays host-only
             const others = Object.entries(mpPlayers).filter(([nr]) => parseInt(nr) !== mpLocalActor);
             if (!others.length) { panel.innerHTML = ''; return; }
             panel.innerHTML = '<div style="font-size:10px;color:#aaa;margin-bottom:4px;text-transform:uppercase;">Permissions</div>' +
