@@ -15,6 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
+const PLAYFAB_MANAGER_VERSION = '2026.08.14-friends';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -51,6 +52,7 @@ const PlayFabManager = (() => {
         get isReady()   { return ready; },
         get playFabId() { return playFabId; },
         get _titleId()  { return titleId; },
+        get version()   { return PLAYFAB_MANAGER_VERSION; },
         get _ticket()   { return sessionTicket; },
         get status()    { return status; },
         get statusDetail() { return statusDetail; },
@@ -286,7 +288,10 @@ const PlayFabManager = (() => {
     };
 })();
 
-if (typeof window !== 'undefined') window.PlayFabManager = PlayFabManager;
+if (typeof window !== 'undefined') {
+    window.PlayFabManager = PlayFabManager;
+    window.PLAYFAB_MANAGER_VERSION = PLAYFAB_MANAGER_VERSION;
+}
 
 /* ============================================================
    FRIENDS / PRESENCE / PROGRESS  (extension)
@@ -385,3 +390,16 @@ if (typeof window !== 'undefined') window.PlayFabManager = PlayFabManager;
             });
     };
 })(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
+
+/* Startup self-check: shouts loudly if a stale cached copy is running. */
+(function () {
+    if (typeof window === 'undefined') return;
+    const need = ['addFriend','getFriends','removeFriend','setFavourite','setPresence','saveStats','loadStats'];
+    const missing = need.filter(fn => typeof PlayFabManager[fn] !== 'function');
+    if (missing.length) {
+        console.error('[PlayFab] STALE FILE — playfab-manager.js is missing:', missing.join(', '),
+                      '\nYour browser is running an old cached copy. Hard-refresh with Ctrl+Shift+R (Cmd+Shift+R on Mac).');
+    } else {
+        console.log('[PlayFab] playfab-manager.js', PLAYFAB_MANAGER_VERSION, '— all methods loaded ✓');
+    }
+})();
