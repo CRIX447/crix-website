@@ -1,0 +1,32 @@
+{
+  "_howto": "Add a new entry at the TOP. Bump 'version' and players who haven't seen it get a notification once. The Discord bot posts new entries automatically.",
+  "latest": "1.4.0",
+  "releases": [
+    {
+      "version": "1.4.0",
+      "date": "2026-08-14",
+      "title": "Friends, Notifications & Controllers",
+      "changes": [
+        "Friend requests now need accepting — no more instant adds",
+        "Notification centre with toasts for requests and lobby invites",
+        "Lobby invites: invite friends straight into your match",
+        "Full controller support — A to flap, Start to play, bumpers to switch tabs",
+        "Fixed players stacking on top of each other in multiplayer",
+        "Arrows now show who's ahead or behind, and by how many pipes",
+        "Host permissions actually work now (kick / settings)",
+        "Cleaner UI — the button stack is now a compact icon bar"
+      ]
+    },
+    {
+      "version": "1.3.0",
+      "date": "2026-08-10",
+      "title": "Ranked & Spectating",
+      "changes": [
+        "Casual and Competitive queues with seven rank tiers",
+        "Spectate matches already in progress",
+        "Coin Rush mode with a 5 minute timer",
+        "Levelling to 50 with XP from scores and wins"
+      ]
+    }
+  ]
+}
