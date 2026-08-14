@@ -50,6 +50,8 @@ const PlayFabManager = (() => {
     return {
         get isReady()   { return ready; },
         get playFabId() { return playFabId; },
+        get _titleId()  { return titleId; },
+        get _ticket()   { return sessionTicket; },
         get status()    { return status; },
         get statusDetail() { return statusDetail; },
 
@@ -285,3 +287,101 @@ const PlayFabManager = (() => {
 })();
 
 if (typeof window !== 'undefined') window.PlayFabManager = PlayFabManager;
+
+/* ============================================================
+   FRIENDS / PRESENCE / PROGRESS  (extension)
+   Appended so the core object above stays readable.
+   ============================================================ */
+(function (PFM) {
+    if (typeof PFM === 'undefined') return;
+
+    const call = (endpoint, body) => {
+        if (!PFM.isReady) return Promise.reject(new Error('Not logged in to PlayFab'));
+        return fetch(`https://${PFM._titleId}.playfabapi.com${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Authorization': PFM._ticket },
+            body: JSON.stringify(body)
+        }).then(async res => {
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const e = new Error(j.errorMessage || `PlayFab ${res.status}`);
+                e.playfabError = j.error; e.errorCode = j.errorCode; e.raw = j;
+                throw e;
+            }
+            return j.data;
+        });
+    };
+
+    /* ---- FRIENDS ---------------------------------------------
+       PlayFab tags are how we mark favourites — they survive on
+       the server, so favourites follow the account, not the device. */
+    PFM.addFriend = function (opts) {
+        const body = {};
+        if (opts.playFabId)   body.FriendPlayFabId = opts.playFabId;
+        if (opts.displayName) body.FriendTitleDisplayName = opts.displayName;
+        if (opts.username)    body.FriendUsername = opts.username;
+        if (opts.email)       body.FriendEmail = opts.email;
+        return call('/Client/AddFriend', body);
+    };
+
+    PFM.removeFriend = function (playFabId) {
+        return call('/Client/RemoveFriend', { FriendPlayFabId: playFabId });
+    };
+
+    PFM.getFriends = function () {
+        return call('/Client/GetFriendsList', {
+            ProfileConstraints: {
+                ShowDisplayName: true,
+                ShowAvatarUrl: true,
+                ShowLastLogin: true,
+                ShowStatistics: true
+            }
+        }).then(d => (d.Friends || []).map(f => ({
+            playFabId:   f.FriendPlayFabId,
+            displayName: f.TitleDisplayName || f.Profile?.DisplayName || 'Player',
+            avatarUrl:   f.Profile?.AvatarUrl || null,
+            lastLogin:   f.Profile?.LastLogin || null,
+            tags:        f.Tags || [],
+            favourite:   (f.Tags || []).includes('favourite'),
+            statistics:  f.Profile?.Statistics || []
+        })));
+    };
+
+    /* Favourites are stored as a PlayFab friend tag. */
+    PFM.setFavourite = function (playFabId, isFav) {
+        return call('/Client/SetFriendTags', {
+            FriendPlayFabId: playFabId,
+            Tags: isFav ? ['favourite'] : []
+        });
+    };
+
+    /* ---- PRESENCE --------------------------------------------
+       Stored as Public UserData so it persists across sessions.
+       Live status for players in your current room comes over
+       Photon instead — see broadcastPresence() in game.html.     */
+    PFM.setPresence = function (status) {
+        return call('/Client/UpdateUserData', {
+            Data: { presence: status, presenceAt: String(Date.now()) },
+            Permission: 'Public'
+        });
+    };
+
+    /* ---- PROGRESS (level / RP / stats) ------------------------
+       Statistics are used rather than UserData because they can be
+       leaderboard-ranked later without a migration.                */
+    PFM.saveStats = function (stats) {
+        const updates = Object.entries(stats).map(([k, v]) => ({
+            StatisticName: k, Value: Math.floor(v)
+        }));
+        return call('/Client/UpdatePlayerStatistics', { Statistics: updates });
+    };
+
+    PFM.loadStats = function (names) {
+        return call('/Client/GetPlayerStatistics', { StatisticNames: names })
+            .then(d => {
+                const out = {};
+                (d.Statistics || []).forEach(s => { out[s.StatisticName] = s.Value; });
+                return out;
+            });
+    };
+})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
