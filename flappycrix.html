@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081402"></script>
-    <script src="playfab-manager.js?v=2026081402"></script>
+    <script src="filter.js?v=2026081403"></script>
+    <script src="playfab-manager.js?v=2026081403"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -754,6 +754,23 @@
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
 
+        /* ---- STAFF MENU ---- */
+        .owner-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
+        .owner-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+            color:#ddd; font-size:11px; padding:10px 8px; border-radius:10px; cursor:pointer;
+            font-family:inherit; font-weight:600; transition:all .12s; text-align:left; }
+        .owner-btn:hover:not(:disabled) { background:rgba(255,255,255,0.1); border-color:rgba(255,255,255,0.25); }
+        .owner-btn:disabled { cursor:not-allowed; }
+        .owner-btn.danger { border-color:rgba(255,70,85,0.4); color:#FF8A94; }
+        .owner-btn.danger:hover:not(:disabled) { background:rgba(255,70,85,0.12); }
+        .owner-btn.warn { border-color:rgba(255,165,0,0.4); color:#FFB347; }
+        .owner-btn.warn:hover:not(:disabled) { background:rgba(255,165,0,0.1); }
+        .owner-btn.good { border-color:rgba(0,204,122,0.4); color:#00CC7A; }
+        .owner-btn.good:hover:not(:disabled) { background:rgba(0,204,122,0.1); }
+        .owner-log { margin-top:14px; max-height:110px; overflow-y:auto; font-size:10px;
+            font-family:monospace; background:rgba(0,0,0,0.35); border-radius:8px; padding:8px 10px; }
+        .owner-log:empty { display:none; }
+
         /* ---- FRIEND CODES / AVATARS ---- */
         .code-card { display:flex; align-items:center; justify-content:space-between; gap:10px;
             background:rgba(39,169,245,0.08); border:1px solid rgba(39,169,245,0.3);
@@ -991,6 +1008,7 @@
             <button class="action-btn" id="lockerBtn">👕 LOCKER</button>
         </div>
         
+        <button class="action-btn" id="ownerBtn" style="width:100%;margin-bottom:6px;display:none;background:linear-gradient(135deg,#FF0000,#8B0000);">🛡️ STAFF MENU</button>
         <button class="action-btn" id="settingsBtn" style="width:100%;margin-bottom:6px;">⚙️ SETTINGS</button>
         <button class="mp-banner-btn" id="multiplayerBtn">
             🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
@@ -1288,6 +1306,55 @@
             <textarea id="reportDetails" class="mp-input" placeholder="Additional details (optional)" maxlength="300" style="border-radius:14px;height:70px;resize:none;letter-spacing:0;text-transform:none;padding:10px 16px;width:100%;margin-bottom:10px;"></textarea>
             <button class="mp-btn-danger" id="mpSubmitReportBtn" style="width:100%;">SUBMIT REPORT</button>
             <div class="auth-error" id="reportError" style="text-align:center;margin-top:6px;"></div>
+        </div>
+    </div>
+
+    <!-- STAFF / OWNER MENU -->
+    <div class="mp-modal" id="ownerModal" style="z-index:47000;">
+        <div class="mp-modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <div class="modal-title" style="color:#FF4655;">🛡️ STAFF MENU</div>
+                <button class="modal-close" id="closeOwnerBtn">✕</button>
+            </div>
+
+            <div id="ownerRoleNote" style="font-size:10px;color:#888;margin-bottom:12px;"></div>
+
+            <!-- PLAYER ACTIONS -->
+            <div class="mp-section-title">👤 PLAYER ACTIONS</div>
+            <select class="mp-input" id="ownerTarget" style="text-align:left;letter-spacing:0;text-transform:none;font-size:12px;padding:9px 14px;">
+                <option value="">Select a player in your lobby…</option>
+            </select>
+
+            <div class="owner-grid" style="margin-top:10px;">
+                <button class="owner-btn warn" data-act="kick">👢 Kick</button>
+                <button class="owner-btn danger" data-act="ban">🔨 Ban</button>
+                <button class="owner-btn" data-act="giveCoins">🪙 Give Coins</button>
+                <button class="owner-btn" data-act="giveItem">🎁 Give Item</button>
+                <button class="owner-btn" data-act="makeMod">🛡️ Make Mod</button>
+                <button class="owner-btn danger" data-act="stripRoles">✂️ Strip Roles</button>
+            </div>
+
+            <!-- MATCH CONTROLS -->
+            <div class="mp-section-title" style="margin-top:16px;">🎮 MATCH CONTROLS</div>
+            <div class="owner-grid">
+                <button class="owner-btn danger" data-act="killAll">💀 Kill Everyone</button>
+                <button class="owner-btn good" data-act="reviveAll">❤️ Revive Everyone</button>
+                <button class="owner-btn" data-act="bigAll">🐘 Big Mode</button>
+                <button class="owner-btn" data-act="normalAll">🐦 Normal Size</button>
+                <button class="owner-btn warn" data-act="freezeAll">🧊 Freeze</button>
+                <button class="owner-btn good" data-act="unfreezeAll">▶️ Unfreeze</button>
+            </div>
+
+            <!-- SELF -->
+            <div class="mp-section-title" style="margin-top:16px;">⚡ SELF</div>
+            <div class="owner-grid">
+                <button class="owner-btn" data-act="selfCoins">🪙 +10,000 Coins</button>
+                <button class="owner-btn" data-act="selfGod">⚡ Toggle Godmode</button>
+                <button class="owner-btn" data-act="selfLevel">⭐ Max Level</button>
+                <button class="owner-btn" data-act="unlockAll">🔓 Unlock Cosmetics</button>
+            </div>
+
+            <div id="ownerLog" class="owner-log"></div>
         </div>
     </div>
 
@@ -1769,7 +1836,8 @@
         }
         
         function updateGame() { 
-            if (gameOver || !gameRunning) return; 
+            if (gameOver || !gameRunning) return;
+            if (window.__crixFrozen) return;   // owner freeze 
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode; 
             bird.velocity += bird.gravity; 
@@ -2385,6 +2453,7 @@
                         myRoles = JSON.parse(dev);
                         console.log('[Roles] Using local dev override:', myRoles);
                         refreshRoleDisplay();
+            updateOwnerButton();
                     }
                 } catch(e) {}
                 return;
@@ -2401,6 +2470,7 @@
                 refreshSettingsUI();
                 console.log('[Roles] Loaded from PlayFab:', myRoles);
                 refreshRoleDisplay();
+            updateOwnerButton();
             } catch(e) {
                 if (e.isBan) { showBanScreen(e); return; }
                 console.warn('[PlayFab] login failed:', e.message);
@@ -2640,6 +2710,7 @@
             LOBBY_CHAT: 11, HOST_MODE_CHANGE: 12,
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
+            OWNER_EFFECT: 21,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -2715,6 +2786,190 @@
             }
             document.querySelectorAll('.presence-opt').forEach(b =>
                 b.classList.toggle('active', b.dataset.status === status));
+        }
+
+        // ================= STAFF / OWNER MENU =================
+        // Every privileged action is verified server-side in CloudScript.
+        // Hiding the button is convenience, not security — a player who
+        // un-hides it still gets rejected by the server.
+        function updateOwnerButton() {
+            const btn = document.getElementById('ownerBtn');
+            if (!btn) return;
+            const staff = myRoles.includes('OWNER') || myRoles.includes('MOD');
+            btn.style.display = staff ? '' : 'none';
+            btn.textContent = myRoles.includes('OWNER') ? '🛡️ OWNER MENU' : '🛡️ MOD MENU';
+        }
+
+        function ownerLog(msg, ok = true) {
+            const el = document.getElementById('ownerLog');
+            if (!el) return;
+            const line = document.createElement('div');
+            line.style.color = ok ? '#00CC7A' : '#FF4655';
+            line.textContent = (ok ? '✓ ' : '✗ ') + msg;
+            el.prepend(line);
+            while (el.children.length > 8) el.lastChild.remove();
+        }
+
+        function refreshOwnerTargets() {
+            const sel = document.getElementById('ownerTarget');
+            if (!sel) return;
+            const prev = sel.value;
+            const others = Object.entries(mpPlayers || {})
+                .filter(([nr]) => parseInt(nr) !== mpLocalActor);
+            sel.innerHTML = '<option value="">Select a player in your lobby…</option>' +
+                others.map(([nr, p]) =>
+                    `<option value="${nr}">${mpEsc(p.name)}${p.pfId ? ' · ' + p.pfId.slice(0,8) : ''}</option>`
+                ).join('');
+            if (prev) sel.value = prev;
+            if (!others.length) {
+                sel.innerHTML = '<option value="">No other players in your lobby</option>';
+            }
+        }
+
+        function selectedTarget() {
+            const nr = parseInt(document.getElementById('ownerTarget')?.value);
+            if (!nr || !mpPlayers[nr]) return null;
+            return { actorNr: nr, ...mpPlayers[nr] };
+        }
+
+        async function ownerAction(act) {
+            const isOwner = myRoles.includes('OWNER');
+            const t = selectedTarget();
+            const needsTarget = ['kick','ban','giveCoins','giveItem','makeMod','stripRoles'];
+            if (needsTarget.includes(act) && !t) { ownerLog('Pick a player first', false); return; }
+
+            const pf = (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) ? PlayFabManager : null;
+            const RC = (typeof Photon !== 'undefined') ? Photon.LoadBalancing.Constants.ReceiverGroup : null;
+
+            try {
+                switch (act) {
+                    case 'kick':
+                        if (!mpCurrentRoom) { ownerLog('Not in a lobby', false); return; }
+                        photonClient.raiseEvent(MP_EV.KICK, { targetActor: t.actorNr }, { receivers: RC.All });
+                        ownerLog(`Kicked ${t.name}`);
+                        break;
+
+                    case 'ban': {
+                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
+                        if (!t.pfId) { ownerLog(`${t.name} has no PlayFab ID`, false); return; }
+                        const hours = prompt('Ban length in hours (leave blank = permanent):', '24');
+                        if (hours === null) return;
+                        const reason = prompt('Reason:', 'Breaking the rules') || 'Breaking the rules';
+                        await pf.adminAction('ban', { targetPlayFabId: t.pfId, hours: hours || undefined, reason });
+                        if (mpCurrentRoom) photonClient.raiseEvent(MP_EV.KICK, { targetActor: t.actorNr }, { receivers: RC.All });
+                        ownerLog(`Banned ${t.name}${hours ? ' for ' + hours + 'h' : ' permanently'}`);
+                        break;
+                    }
+
+                    case 'giveCoins': {
+                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
+                        const amt = parseInt(prompt(`Coins to give ${t.name}:`, '1000'));
+                        if (!amt) return;
+                        await pf.adminAction('giveCoins', { targetPlayFabId: t.pfId, amount: amt });
+                        ownerLog(`Gave ${t.name} ${formatCoins(amt)} coins`);
+                        break;
+                    }
+
+                    case 'giveItem': {
+                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
+                        const item = prompt('Catalog Item ID (e.g. hat_bucket):', 'hat_bucket');
+                        if (!item) return;
+                        await pf.adminAction('giveItem', { targetPlayFabId: t.pfId, itemId: item });
+                        ownerLog(`Gave ${t.name} ${item}`);
+                        break;
+                    }
+
+                    case 'makeMod':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
+                        await pf.adminAction('setRole', { targetPlayFabId: t.pfId, roles: ['MOD'] });
+                        ownerLog(`${t.name} is now a MOD`);
+                        break;
+
+                    case 'stripRoles':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
+                        await pf.adminAction('setRole', { targetPlayFabId: t.pfId, roles: [] });
+                        ownerLog(`Removed all roles from ${t.name}`);
+                        break;
+
+                    // ---- live match effects, broadcast over Photon ----
+                    case 'killAll':
+                    case 'reviveAll':
+                    case 'bigAll':
+                    case 'normalAll':
+                    case 'freezeAll':
+                    case 'unfreezeAll':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        if (!mpCurrentRoom) { ownerLog('Not in a lobby', false); return; }
+                        photonClient.raiseEvent(MP_EV.OWNER_EFFECT, { effect: act }, { receivers: RC.All });
+                        ownerLog('Applied: ' + act);
+                        break;
+
+                    // ---- self ----
+                    case 'selfCoins':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        coinCount += 10000; updateCoinDisplay(); autoSave();
+                        if (pf) pf.grantCurrency(10000, 'owner').catch(() => {});
+                        ownerLog('Added 10,000 coins');
+                        break;
+
+                    case 'selfGod':
+                        cheats.godmode = !cheats.godmode;
+                        updateCheatIndicators();
+                        ownerLog('Godmode ' + (cheats.godmode ? 'ON' : 'OFF'));
+                        break;
+
+                    case 'selfLevel':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        playerLevel = MAX_LEVEL; playerXp = 0; saveLevel();
+                        refreshSettingsUI();
+                        ownerLog('Level set to ' + MAX_LEVEL);
+                        break;
+
+                    case 'unlockAll':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        cosmetics.forEach(x => x.owned = true);
+                        updateLockerDisplay(); autoSave();
+                        ownerLog('Unlocked all cosmetics');
+                        break;
+                }
+            } catch (e) {
+                ownerLog(e.message || 'Action failed', false);
+            }
+        }
+
+        // Receive a live match effect from an owner
+        function applyOwnerEffect(effect) {
+            switch (effect) {
+                case 'killAll':
+                    if (gameRunning && !gameOver) {
+                        gameOver = true; playSound(deathSound);
+                        if (typeof mpReportDeath === 'function') mpReportDeath();
+                    }
+                    mpLobbyChatAppend(null, '💀 An owner killed everyone', true);
+                    break;
+                case 'reviveAll':
+                    if (mpMatchActive) { startGame(); }
+                    mpLobbyChatAppend(null, '❤️ An owner revived everyone', true);
+                    break;
+                case 'bigAll':
+                    cheats.bigbird = true; updateCheatIndicators();
+                    mpLobbyChatAppend(null, '🐘 Big mode enabled', true);
+                    break;
+                case 'normalAll':
+                    cheats.bigbird = false; updateCheatIndicators();
+                    mpLobbyChatAppend(null, '🐦 Normal size restored', true);
+                    break;
+                case 'freezeAll':
+                    window.__crixFrozen = true;
+                    mpLobbyChatAppend(null, '🧊 Everyone frozen', true);
+                    break;
+                case 'unfreezeAll':
+                    window.__crixFrozen = false;
+                    mpLobbyChatAppend(null, '▶️ Unfrozen', true);
+                    break;
+            }
         }
 
         // ---- PROFILE PICTURE ----
@@ -4240,6 +4495,9 @@
                 case MP_EV.TYPING:
                     if (p) p.typing = content.typing;
                     break;
+                case MP_EV.OWNER_EFFECT:
+                    applyOwnerEffect(content.effect);
+                    break;
                 case MP_EV.VOTE_KICK:
                     mpHandleVoteKick(content.target, content.name, actorNr);
                     break;
@@ -4534,6 +4792,28 @@
         });
 
         // ---- FRIENDS CONTROLS ----
+        // ---- STAFF MENU ----
+        document.getElementById('ownerBtn')?.addEventListener('click', () => {
+            refreshOwnerTargets();
+            const isOwner = myRoles.includes('OWNER');
+            document.getElementById('ownerRoleNote').textContent = isOwner
+                ? 'Signed in as OWNER — full access.'
+                : 'Signed in as MOD — kick and ban only. Owner-only actions will be refused.';
+            document.querySelectorAll('#ownerModal .owner-btn').forEach(b => {
+                const ownerOnly = !['kick','ban','giveCoins','giveItem','selfGod'].includes(b.dataset.act);
+                b.disabled = ownerOnly && !isOwner;
+                b.style.opacity = b.disabled ? '0.35' : '';
+            });
+            document.getElementById('ownerModal').classList.add('active');
+        });
+        document.getElementById('closeOwnerBtn')?.addEventListener('click', () =>
+            document.getElementById('ownerModal').classList.remove('active'));
+        document.getElementById('ownerModal')?.addEventListener('click', e => {
+            if (e.target.id === 'ownerModal') e.target.classList.remove('active');
+        });
+        document.querySelectorAll('#ownerModal .owner-btn').forEach(b =>
+            b.addEventListener('click', () => ownerAction(b.dataset.act)));
+
         document.getElementById('addFriendBtn')?.addEventListener('click', () => addFriendByInput());
 
         // Live suggestions as you type a name
