@@ -754,6 +754,31 @@
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
 
+        /* ---- FRIENDS / PRESENCE ---- */
+        .presence-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
+            background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.07);
+            border-radius:12px; padding:10px 12px; flex-wrap:wrap; }
+        .presence-picker { display:flex; gap:4px; flex-wrap:wrap; }
+        .presence-opt { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1);
+            color:#999; font-size:10px; padding:5px 10px; border-radius:16px; cursor:pointer;
+            font-family:inherit; display:flex; align-items:center; gap:5px; white-space:nowrap; }
+        .presence-opt:hover { color:#fff; border-color:rgba(255,255,255,0.2); }
+        .presence-opt.active { background:rgba(255,107,53,0.15); border-color:#FF6B35; color:#fff; }
+        .dot { width:7px; height:7px; border-radius:50%; display:inline-block; flex-shrink:0; }
+        .friends-list { display:flex; flex-direction:column; gap:6px; max-height:300px; overflow-y:auto; }
+        .friend-row { display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.35);
+            border:1px solid rgba(255,255,255,0.07); border-radius:12px; padding:8px 12px; }
+        .friend-row:hover { border-color:rgba(255,107,53,0.35); }
+        .friend-av { width:32px; height:32px; border-radius:50%; object-fit:cover; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center; font-size:13px;
+            font-weight:bold; color:#fff; }
+        .friend-btn { background:none; border:none; cursor:pointer; font-size:14px; padding:2px 5px;
+            line-height:1; color:#777; }
+        .friend-btn:hover { transform:scale(1.15); }
+        .friend-btn.fav { color:#FFD700; }
+        .friend-btn.join { color:#00CC7A; }
+        .friend-btn.rm { color:#FF4655; font-size:12px; }
+
         /* ---- QUEUE TABS / RANK / SPECTATE ---- */
         .queue-tabs { display:flex; gap:6px; margin-bottom:12px; }
         .queue-tab { flex:1; background:rgba(10,10,20,0.8); border:2px solid rgba(255,107,53,0.35);
@@ -1064,8 +1089,31 @@
                 <div class="queue-tabs">
                     <button class="queue-tab active" data-queue="casual">🎮 CASUAL</button>
                     <button class="queue-tab" data-queue="competitive">🏆 COMPETITIVE</button>
+                    <button class="queue-tab" data-queue="friends">👥 FRIENDS</button>
                 </div>
                 <div id="rankBanner" style="display:none;"></div>
+
+                <!-- FRIENDS PANEL -->
+                <div id="friendsPanel" style="display:none;">
+                    <div class="presence-row">
+                        <span style="font-size:11px;color:#999;">Your status</span>
+                        <div class="presence-picker">
+                            <button class="presence-opt active" data-status="online"><span class="dot" style="background:#00CC7A"></span>Online</button>
+                            <button class="presence-opt" data-status="dnd"><span class="dot" style="background:#FF4655"></span>Do not disturb</button>
+                            <button class="presence-opt" data-status="offline"><span class="dot" style="background:#666"></span>Appear offline</button>
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:6px;margin:12px 0 10px;">
+                        <input type="text" class="mp-input" id="addFriendInput" placeholder="Display name or PlayFab ID"
+                               style="flex:1;text-transform:none;letter-spacing:0;text-align:left;font-size:12px;padding:8px 14px;">
+                        <button class="mp-btn-primary" id="addFriendBtn" style="flex:0 0 auto;padding:8px 16px;">ADD</button>
+                    </div>
+                    <div class="auth-error" id="friendError" style="text-align:center;font-size:10px;margin-bottom:8px;"></div>
+
+                    <div id="friendsList" class="friends-list"><div class="mp-empty-state">Loading friends…</div></div>
+                    <button class="mp-btn-secondary" id="refreshFriendsBtn" style="width:100%;margin-top:8px;">🔄 REFRESH</button>
+                </div>
                 <div class="mp-section-title">🌍 PUBLIC LOBBIES</div>
                 <div class="mp-room-list" id="mpRoomList"><div class="mp-empty-state">Connecting...</div></div>
                 <button class="mp-btn-secondary" id="mpRefreshBtn" style="width:100%;margin-top:6px;">🔄 REFRESH</button>
@@ -1269,6 +1317,10 @@
             <div class="set-row">
                 <span class="set-label">Roles</span>
                 <span id="setRoles" style="font-size:11px;color:#888;">None</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Status</span>
+                <span id="setPresence" style="font-size:11px;display:flex;align-items:center;gap:5px;">—</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Rank</span>
@@ -2026,6 +2078,11 @@
             const cn = document.getElementById('setCoins');
             if (cn) cn.textContent = formatCoins(coinCount);
 
+            const ps = document.getElementById('setPresence');
+            if (ps) {
+                const m = PRESENCE_META[myPresence] || PRESENCE_META.online;
+                ps.innerHTML = `<span class="dot" style="background:${m.colour}"></span><span style="color:${m.colour}">${m.label}</span>`;
+            }
             const rk = document.getElementById('setRank');
             if (rk) {
                 const pr = rankProgress(playerRP);
@@ -2301,6 +2358,10 @@
                 const res = await PlayFabManager.login(user.uid, name);
                 myRoles = PlayFabManager.roles;
                 if (!res) console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
+                if (res) {
+                    loadStatsFromPlayFab();
+                    PlayFabManager.setPresence(myPresence).catch(() => {});
+                }
                 refreshSettingsUI();
                 console.log('[Roles] Loaded from PlayFab:', myRoles);
                 refreshRoleDisplay();
@@ -2589,6 +2650,148 @@
         };
         let myRoles = [];
 
+        // ---- PRESENCE ----
+        const PRESENCE_KEY = 'crix_presence_v1';
+        let myPresence = 'online';   // online | dnd | offline
+        const PRESENCE_META = {
+            online:  { label: 'Online',          colour: '#00CC7A' },
+            dnd:     { label: 'Do not disturb',  colour: '#FF4655' },
+            offline: { label: 'Appear offline',  colour: '#666'    }
+        };
+        function loadPresence() {
+            try { myPresence = localStorage.getItem(PRESENCE_KEY) || 'online'; } catch(e) {}
+        }
+        function setPresence(status) {
+            myPresence = status;
+            try { localStorage.setItem(PRESENCE_KEY, status); } catch(e) {}
+            // Persist to PlayFab so it survives across devices
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) {
+                PlayFabManager.setPresence(status).catch(() => {});
+            }
+            // Tell anyone in the current room straight away
+            if (mpCurrentRoom) {
+                mpRaiseEvent(MP_EV.NAME_UPDATE, {
+                    name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles,
+                    level: playerLevel, presence: status,
+                    pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
+                    photo: (currentUser && currentUser.photoURL) || null
+                });
+            }
+            document.querySelectorAll('.presence-opt').forEach(b =>
+                b.classList.toggle('active', b.dataset.status === status));
+        }
+
+        // ---- PLAYFAB FRIENDS ----
+        let pfFriends = [];
+        async function loadPlayFabFriends() {
+            const list = document.getElementById('friendsList');
+            if (!list) return;
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
+                list.innerHTML = '<div class="mp-empty-state">Sign in to use friends.</div>';
+                return;
+            }
+            list.innerHTML = '<div class="mp-empty-state">Loading friends…</div>';
+            try {
+                pfFriends = await PlayFabManager.getFriends();
+                renderFriendsList();
+            } catch (e) {
+                list.innerHTML = `<div class="mp-empty-state" style="color:#FF4655;">Could not load friends: ${mpEsc(e.message)}</div>`;
+            }
+        }
+
+        function renderFriendsList() {
+            const list = document.getElementById('friendsList');
+            if (!list) return;
+            if (!pfFriends.length) {
+                list.innerHTML = '<div class="mp-empty-state">No friends yet — add someone above.</div>';
+                return;
+            }
+            // Favourites first, then alphabetical
+            const sorted = [...pfFriends].sort((a,b) =>
+                (b.favourite - a.favourite) || a.displayName.localeCompare(b.displayName));
+
+            list.innerHTML = sorted.map(f => {
+                // Anyone in our current room gives us live presence
+                const inRoom = Object.values(mpPlayers || {}).find(p => p.pfId === f.playFabId);
+                const status = inRoom ? (inRoom.presence || 'online') : 'unknown';
+                const meta = PRESENCE_META[status] || { label: 'Offline', colour: '#444' };
+                const av = f.avatarUrl
+                    ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="">`
+                    : `<div class="friend-av" style="background:#FF4655">${f.displayName.charAt(0).toUpperCase()}</div>`;
+                return `<div class="friend-row" data-id="${mpEsc(f.playFabId)}">
+                    ${av}
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            ${f.favourite ? '<span style="color:#FFD700;">★</span> ' : ''}${mpEsc(f.displayName)}
+                        </div>
+                        <div style="font-size:9px;color:${meta.colour};display:flex;align-items:center;gap:4px;">
+                            <span class="dot" style="background:${meta.colour}"></span>${inRoom ? meta.label : 'Offline'}
+                        </div>
+                    </div>
+                    <button class="friend-btn fav" data-act="fav" title="Favourite">${f.favourite ? '★' : '☆'}</button>
+                    ${inRoom ? '<button class="friend-btn join" data-act="join" title="Join">▶</button>' : ''}
+                    <button class="friend-btn rm" data-act="rm" title="Remove">✕</button>
+                </div>`;
+            }).join('');
+
+            list.querySelectorAll('.friend-row').forEach(row => {
+                const id = row.dataset.id;
+                row.querySelectorAll('.friend-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const f = pfFriends.find(x => x.playFabId === id);
+                        if (!f) return;
+                        if (btn.dataset.act === 'fav') {
+                            try {
+                                await PlayFabManager.setFavourite(id, !f.favourite);
+                                f.favourite = !f.favourite;
+                                renderFriendsList();
+                            } catch(e) {}
+                        } else if (btn.dataset.act === 'rm') {
+                            if (!confirm('Remove ' + f.displayName + ' from friends?')) return;
+                            try {
+                                await PlayFabManager.removeFriend(id);
+                                pfFriends = pfFriends.filter(x => x.playFabId !== id);
+                                renderFriendsList();
+                            } catch(e) {}
+                        } else if (btn.dataset.act === 'join') {
+                            if (mpCurrentRoom) {
+                                mpLobbyChatAppend(null, 'You are already in a lobby.', true);
+                            }
+                        }
+                    });
+                });
+            });
+        }
+
+        async function addFriendByInput() {
+            const input = document.getElementById('addFriendInput');
+            const err = document.getElementById('friendError');
+            const val = input.value.trim();
+            err.style.color = '#FF4655';
+            if (!val) { err.textContent = 'Enter a display name or PlayFab ID.'; return; }
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
+                err.textContent = 'Sign in first.'; return;
+            }
+            const btn = document.getElementById('addFriendBtn');
+            btn.disabled = true; btn.textContent = '…';
+            try {
+                // A PlayFab ID is a 16-char hex-ish string; anything else is a display name
+                const looksLikeId = /^[A-F0-9]{10,20}$/i.test(val);
+                await PlayFabManager.addFriend(looksLikeId ? { playFabId: val } : { displayName: val });
+                input.value = '';
+                err.style.color = '#00CC7A';
+                err.textContent = 'Friend added!';
+                await loadPlayFabFriends();
+                setTimeout(() => err.textContent = '', 2500);
+            } catch (e) {
+                err.textContent = e.playfabError === 'AccountNotFound'
+                    ? 'No player found with that name or ID.'
+                    : e.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'ADD';
+            }
+        }
+
         // ---- LEVELS ----
         const MAX_LEVEL = 50;
         const LEVEL_KEY = 'crix_level_v1';
@@ -2602,7 +2805,36 @@
             } catch(e) {}
         }
         function saveLevel() {
+            // localStorage is the offline cache; PlayFab is the source of truth
             try { localStorage.setItem(LEVEL_KEY, JSON.stringify({ xp: playerXp, level: playerLevel })); } catch(e) {}
+            syncStatsToPlayFab();
+        }
+
+        // Debounced so a run of pipes doesn't fire one request per point
+        let _statSyncTimer = null;
+        function syncStatsToPlayFab() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) return;
+            clearTimeout(_statSyncTimer);
+            _statSyncTimer = setTimeout(() => {
+                PlayFabManager.saveStats({
+                    level: playerLevel, xp: playerXp, rp: playerRP,
+                    highScore: highScore, coins: coinCount
+                }).catch(() => {});
+            }, 3000);
+        }
+
+        async function loadStatsFromPlayFab() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) return;
+            try {
+                const s = await PlayFabManager.loadStats(['level','xp','rp','highScore','coins']);
+                // Server wins where it's ahead, so a fresh device doesn't wipe progress
+                if (s.level    > playerLevel) playerLevel = Math.min(s.level, MAX_LEVEL);
+                if (s.xp      != null && s.level >= playerLevel) playerXp = s.xp;
+                if (s.rp       > playerRP)    playerRP = s.rp;
+                if (s.highScore > highScore)  { highScore = s.highScore; document.getElementById('highScore').textContent = highScore; }
+                if (s.coins    > coinCount)   { coinCount = s.coins; updateCoinDisplay(); }
+                refreshSettingsUI();
+            } catch(e) {}
         }
         function grantXp(amount, reason) {
             if (playerLevel >= MAX_LEVEL) return;
@@ -2875,7 +3107,10 @@
         const RP_KEY = 'crix_rp_v1';
         let playerRP = 0;
         function loadRP() { try { playerRP = parseInt(localStorage.getItem(RP_KEY)) || 0; } catch(e) { playerRP = 0; } }
-        function saveRP() { try { localStorage.setItem(RP_KEY, String(playerRP)); } catch(e) {} }
+        function saveRP() {
+            try { localStorage.setItem(RP_KEY, String(playerRP)); } catch(e) {}
+            syncStatsToPlayFab();
+        }
         function rankFor(rp) {
             let r = RANKS[0];
             RANKS.forEach(x => { if (rp >= x.min) r = x; });
@@ -3820,6 +4055,7 @@
                         p.level = content.level || 1;
                         p.pfId  = content.pfId || null;
                         p.photo = content.photo || null;
+                        p.presence = content.presence || 'online';
                     }
                     mpRenderLobby();
                     break;
@@ -4096,10 +4332,27 @@
                 document.querySelectorAll('.queue-tab').forEach(x => x.classList.remove('active'));
                 t.classList.add('active');
                 mpBrowseQueue = t.dataset.queue;
-                renderRankBanner();
-                mpRenderRoomList();
+                const isFriends = mpBrowseQueue === 'friends';
+                document.getElementById('friendsPanel').style.display = isFriends ? 'block' : 'none';
+                // Hide the lobby browser bits while the friends tab is open
+                document.querySelectorAll('#mpViewHome .mp-section-title, #mpRoomList, #mpRefreshBtn')
+                    .forEach(el => el.style.display = isFriends ? 'none' : '');
+                if (isFriends) { loadPlayFabFriends(); }
+                else { renderRankBanner(); mpRenderRoomList(); }
                 playSound(selectSound);
             });
+        });
+
+        // ---- FRIENDS CONTROLS ----
+        document.getElementById('addFriendBtn')?.addEventListener('click', addFriendByInput);
+        document.getElementById('addFriendInput')?.addEventListener('keypress', e => {
+            if (e.key === 'Enter') addFriendByInput();
+        });
+        document.getElementById('refreshFriendsBtn')?.addEventListener('click', () => {
+            loadPlayFabFriends(); playSound(selectSound);
+        });
+        document.querySelectorAll('.presence-opt').forEach(b => {
+            b.addEventListener('click', () => { setPresence(b.dataset.status); playSound(selectSound); });
         });
 
         // ---- QUEUE PICKER (create) ----
@@ -4256,6 +4509,7 @@
         loadFriends();
         loadLevel();
         loadRP();
+        loadPresence();
         setupSettings();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
