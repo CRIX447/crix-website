@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.14-unlocks';
+const PLAYFAB_MANAGER_VERSION = '2026.08.14-requests';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -354,11 +354,50 @@ if (typeof window !== 'undefined') {
         })));
     };
 
+    /* ---- FRIEND REQUESTS ----
+       All four go through CloudScript because PlayFab's client AddFriend
+       only writes to your own list — the other person would never see it. */
+    PFM.sendFriendRequest = function (targetPlayFabId) {
+        return PFM.adminAction ? cloud('sendFriendRequest', { targetPlayFabId })
+                               : Promise.reject(new Error('not ready'));
+    };
+    PFM.respondToFriendRequest = function (requesterPlayFabId, accept) {
+        return cloud('respondToFriendRequest', { requesterPlayFabId, accept: !!accept });
+    };
+    PFM.cancelFriendRequest = function (targetPlayFabId) {
+        return cloud('cancelFriendRequest', { targetPlayFabId });
+    };
+    PFM.removeFriendBoth = function (targetPlayFabId) {
+        return cloud('removeFriendBoth', { targetPlayFabId });
+    };
+
+    function cloud(fn, params) {
+        return call('/Client/ExecuteCloudScript', {
+            FunctionName: fn,
+            FunctionParameter: params,
+            GeneratePlayStreamEvent: true
+        }).then(r => {
+            if (r.Error) throw new Error(r.Error.Message || 'CloudScript error');
+            if (r.FunctionResult && r.FunctionResult.error) throw new Error(r.FunctionResult.error);
+            return r.FunctionResult;
+        });
+    }
+
+    /* Friends split by request state. */
+    PFM.getFriendsSplit = function () {
+        return PFM.getFriends().then(all => ({
+            friends:  all.filter(f => !f.tags.includes('incoming') && !f.tags.includes('outgoing')),
+            incoming: all.filter(f =>  f.tags.includes('incoming')),
+            outgoing: all.filter(f =>  f.tags.includes('outgoing'))
+        }));
+    };
+
     /* Favourites are stored as a PlayFab friend tag. */
     PFM.setFavourite = function (playFabId, isFav) {
+        // Preserve 'friend' — SetFriendTags replaces the whole list
         return call('/Client/SetFriendTags', {
             FriendPlayFabId: playFabId,
-            Tags: isFav ? ['favourite'] : []
+            Tags: isFav ? ['friend', 'favourite'] : ['friend']
         });
     };
 
@@ -483,10 +522,45 @@ if (typeof window !== 'undefined') {
     };
 })(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
 
+
+/* ============================================================
+   FRIEND REQUESTS / INVITES  (extension 3)
+   All of these call CloudScript, because writing to another
+   player's data requires the server.
+   ============================================================ */
+(function (PFM) {
+    if (typeof PFM === 'undefined') return;
+
+    const cs = (fn, params = {}) => {
+        if (!PFM.isReady) return Promise.reject(new Error('Not logged in to PlayFab'));
+        return fetch(`https://${PFM._titleId}.playfabapi.com/Client/ExecuteCloudScript`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Authorization': PFM._ticket },
+            body: JSON.stringify({ FunctionName: fn, FunctionParameter: params, GeneratePlayStreamEvent: false })
+        })
+        .then(r => r.json())
+        .then(j => {
+            const d = j.data;
+            if (!d) throw new Error(j.errorMessage || 'CloudScript call failed');
+            if (d.Error) throw new Error(d.Error.Message || 'CloudScript error');
+            const res = d.FunctionResult || {};
+            if (res.error) throw new Error(res.error);
+            return res;
+        });
+    };
+
+    PFM.sendFriendRequest    = id            => cs('sendFriendRequest', { targetPlayFabId: id });
+    PFM.getFriendRequests    = ()            => cs('getFriendRequests').then(r => r.requests || []);
+    PFM.respondFriendRequest = (id, accept)  => cs('respondFriendRequest', { fromPlayFabId: id, accept });
+    PFM.sendInvite           = (id, code, mode) => cs('sendInvite', { targetPlayFabId: id, roomCode: code, mode });
+    PFM.getInvites           = ()            => cs('getInvites').then(r => r.invites || []);
+    PFM.clearInvites         = ()            => cs('clearInvites');
+})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
+
 /* Startup self-check: shouts loudly if a stale cached copy is running. */
 (function () {
     if (typeof window === 'undefined') return;
-    const need = ['addFriend','getFriends','removeFriend','setFavourite','setPresence','saveStats','loadStats','friendCodeFor','addFriendByCode','setAvatar','setNameWithCode','owns','refreshInventory'];
+    const need = ['addFriend','getFriends','removeFriend','setFavourite','setPresence','saveStats','loadStats','friendCodeFor','addFriendByCode','setAvatar','setNameWithCode','owns','refreshInventory','sendFriendRequest','getFriendRequests','respondFriendRequest','getInvites','sendFriendRequest','respondToFriendRequest','getFriendsSplit'];
     const missing = need.filter(fn => typeof PlayFabManager[fn] !== 'function');
     if (missing.length) {
         console.error('[PlayFab] STALE FILE — playfab-manager.js is missing:', missing.join(', '),
