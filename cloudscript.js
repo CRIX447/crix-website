@@ -320,101 +320,23 @@ handlers.removeFriendBoth = function (args) {
 };
 
 
-/* ============================================================
-   FRIEND REQUESTS
-   ------------------------------------------------------------
-   PlayFab's AddFriend is instant and one-directional — there's no
-   built-in request/accept flow. We store pending requests in the
-   TARGET player's InternalData, which only the server can write.
-   That's why this has to live in CloudScript rather than the client.
-   ============================================================ */
-
-function readRequests(playFabId) {
-    try {
-        var r = server.GetUserInternalData({ PlayFabId: playFabId, Keys: ["friendRequests"] });
-        if (r.Data && r.Data.friendRequests) return JSON.parse(r.Data.friendRequests.Value);
-    } catch (e) {}
-    return [];
-}
-
-function writeRequests(playFabId, list) {
-    server.UpdateUserInternalData({
-        PlayFabId: playFabId,
-        Data: { friendRequests: JSON.stringify(list.slice(0, 50)) }
-    });
-}
-
-handlers.sendFriendRequest = function (args) {
-    var target = args.targetPlayFabId;
-    if (!target) return { error: "No target" };
-    if (target === currentPlayerId) return { error: "You can't friend yourself" };
-
-    // Honour the target's "block friend requests" setting
-    try {
-        var pref = server.GetUserData({ PlayFabId: target, Keys: ["allowFriendRequests"] });
-        if (pref.Data && pref.Data.allowFriendRequests &&
-            pref.Data.allowFriendRequests.Value === "false") {
-            return { error: "This player isn't accepting friend requests" };
-        }
-    } catch (e) {}
-
-    // Already friends?
-    try {
-        var friends = server.GetFriendsList({ PlayFabId: currentPlayerId });
-        for (var i = 0; i < (friends.Friends || []).length; i++) {
-            if (friends.Friends[i].FriendPlayFabId === target) {
-                return { error: "You're already friends" };
-            }
-        }
-    } catch (e) {}
-
-    var list = readRequests(target);
-    for (var j = 0; j < list.length; j++) {
-        if (list[j].from === currentPlayerId) return { error: "Request already sent" };
-    }
-
-    var me = server.GetPlayerProfile({
-        PlayFabId: currentPlayerId,
-        ProfileConstraints: { ShowDisplayName: true, ShowAvatarUrl: true }
-    });
-
-    list.push({
-        from: currentPlayerId,
-        name: (me.PlayerProfile && me.PlayerProfile.DisplayName) || "Player",
-        avatar: (me.PlayerProfile && me.PlayerProfile.AvatarUrl) || null,
-        at: Date.now()
-    });
-    writeRequests(target, list);
-    return { ok: true };
-};
-
 handlers.getFriendRequests = function () {
-    return { requests: readRequests(currentPlayerId) };
-};
-
-handlers.respondFriendRequest = function (args) {
-    var from = args.fromPlayFabId;
-    var accept = args.accept === true;
-    if (!from) return { error: "No sender" };
-
-    var list = readRequests(currentPlayerId);
-    var found = false;
-    var remaining = [];
-    for (var i = 0; i < list.length; i++) {
-        if (list[i].from === from) { found = true; }
-        else { remaining.push(list[i]); }
-    }
-    if (!found) return { error: "No such request" };
-
-    writeRequests(currentPlayerId, remaining);
-
-    if (accept) {
-        // PlayFab friendships are one-directional, so link both sides
-        server.AddFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: from });
-        server.AddFriend({ PlayFabId: from, FriendPlayFabId: currentPlayerId });
-        return { ok: true, accepted: true };
-    }
-    return { ok: true, accepted: false };
+    // Incoming requests are friends tagged "incoming" — no separate storage needed.
+    var out = [];
+    try {
+        var res = server.GetFriendsList({ PlayFabId: currentPlayerId });
+        (res.Friends || []).forEach(function (f) {
+            if ((f.Tags || []).indexOf("incoming") !== -1) {
+                out.push({
+                    from: f.FriendPlayFabId,
+                    name: f.TitleDisplayName || (f.Profile && f.Profile.DisplayName) || "Player",
+                    avatar: (f.Profile && f.Profile.AvatarUrl) || null,
+                    at: Date.now()
+                });
+            }
+        });
+    } catch (e) {}
+    return { requests: out };
 };
 
 /* Lobby invites — same storage pattern, separate key. */
