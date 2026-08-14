@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081409"></script>
-    <script src="playfab-manager.js?v=2026081409"></script>
+    <script src="filter.js?v=2026081411"></script>
+    <script src="playfab-manager.js?v=2026081411"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -291,20 +291,15 @@
             filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
         }
         
-        /* ---- MP WIDE MODE ---- */
-        .game-container.mp-wide {
-            max-width: min(860px, 98vw) !important;
-        }
-        /* Canvas is always 400x600 native and never stretched — the wider
-           container just gives the HUD and chat more room around it. */
-        .game-container.mp-wide .canvas-wrapper { justify-content: center; }
-        .game-container.mp-wide canvas { margin: 0 auto; }
-        /* Canvas always renders at native resolution — no CSS scaling in MP */
         /* ---- CANVAS ---- */
         .canvas-wrapper {
             display: flex;
             justify-content: center;
-            margin: 12px 0;
+            /* Shrink-wraps the canvas so overlays anchored to this element
+               line up with the play area rather than the container edge. */
+            width: fit-content;
+            max-width: 100%;
+            margin: 12px auto;
             padding: 8px;
             background: rgba(0,0,0,0.4);
             border: 2px solid var(--orange);
@@ -315,11 +310,12 @@
             position: relative;
         }
         canvas {
-            /* Never scale beyond native size — stretching a 560px canvas to fill
-               an 860px container is what made multiplayer look zoomed in. */
-            width: auto;
-            max-width: 100%;
+            /* Definite width so the wrapper's fit-content sizing works and the
+               overlays sit flush against the play area. Scales down on narrow
+               screens while keeping the 400x600 ratio identical for everyone. */
+            width: min(400px, calc(100vw - 60px));
             height: auto;
+            aspect-ratio: 400 / 600;
             border-radius: 12px;
             background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
             cursor: pointer;
@@ -1401,7 +1397,7 @@
                     coin rain, low gravity and sandbox coins.<br>
                     <span style="color:#A0A0A0;">It stays disabled in multiplayer so matches stay fair.</span>
                 </div>
-                <div style="font-size:20px;color:#FFD700;font-weight:bold;margin-bottom:14px;">🪙 5,000</div>
+                <div id="pmPriceLabel" style="font-size:20px;color:#FFD700;font-weight:bold;margin-bottom:14px;">🪙 —</div>
                 <button class="mp-btn-primary" id="pmBuyBtn" style="max-width:220px;margin:0 auto;">UNLOCK</button>
                 <div id="pmBuyErr" style="font-size:11px;margin-top:10px;min-height:16px;"></div>
             </div>
@@ -3062,7 +3058,7 @@
         let sandboxCoins = 0;
 
         const PLAYER_MENU_ITEM = 'player_menu';
-        const PLAYER_MENU_PRICE = 5000;
+        const PLAYER_MENU_PRICE = 100000000;   // must match catalog.json
 
         // Owners get it for free — they already have the staff menu.
         function ownsPlayerMenu() {
@@ -3088,6 +3084,8 @@
 
         function refreshPlayerMenu() {
             const owned = ownsPlayerMenu();
+            const priceEl = document.getElementById('pmPriceLabel');
+            if (priceEl) priceEl.textContent = '🪙 ' + formatCoins(PLAYER_MENU_PRICE);
             document.getElementById('pmBuyPanel').style.display = owned ? 'none' : 'block';
             document.getElementById('pmContent').style.display  = owned ? 'block' : 'none';
             if (!owned) return;
@@ -4380,7 +4378,6 @@
             mpMatchMode = 'freemode';   // reset so coinrush rates don't leak into single player
             coinsArr = []; pipes = [];  // clear leftover MP entities
             _mpMatchStarted = false; mpMatchOverShown = false;
-            document.querySelector('.game-container')?.classList.remove('mp-wide');
             mpEndMatchUI();
             document.getElementById('mpModal').classList.remove('active');
             mpShowView('mpViewHome');
@@ -4410,7 +4407,6 @@
             mpMatchActive = true;
             mpMatchOverShown = false;
             if (seed !== undefined) window.mpSharedSeed = seed;
-            document.querySelector('.game-container')?.classList.add('mp-wide');
             // Canvas stays 400x600 in every mode. Resizing it made multiplayer
             // look zoomed AND caused a desync: pipes spawn at x=canvas.width, so
             // players with different widths generated different maps.
@@ -4618,7 +4614,6 @@
         }
 
         function mpEndMatchUI() {
-            document.querySelector('.game-container')?.classList.remove('mp-wide');
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
             document.getElementById('mpHud').classList.remove('active');
             document.getElementById('mpChatToggleBtn').classList.remove('active');
