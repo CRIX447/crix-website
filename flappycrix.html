@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081401"></script>
-    <script src="playfab-manager.js?v=2026081401"></script>
+    <script src="filter.js?v=2026081402"></script>
+    <script src="playfab-manager.js?v=2026081402"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -754,6 +754,16 @@
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
 
+        /* ---- FRIEND CODES / AVATARS ---- */
+        .code-card { display:flex; align-items:center; justify-content:space-between; gap:10px;
+            background:rgba(39,169,245,0.08); border:1px solid rgba(39,169,245,0.3);
+            border-radius:12px; padding:10px 14px; }
+        .avatar-grid { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+        .avatar-opt { width:46px; height:46px; border-radius:50%; object-fit:cover; cursor:pointer;
+            border:2px solid rgba(255,255,255,0.12); transition:all .12s; background:#1a1a2a; }
+        .avatar-opt:hover { transform:scale(1.08); border-color:rgba(255,255,255,0.3); }
+        .avatar-opt.sel { border-color:#00CC7A; transform:scale(1.08); }
+
         /* ---- FRIENDS / PRESENCE ---- */
         .presence-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
             background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.07);
@@ -1071,6 +1081,14 @@
             <div id="mpViewProfile" style="display:none;">
                 <div class="mp-section-title">👤 YOUR PROFILE</div>
                 <input type="text" class="mp-input" id="mpDisplayNameInput" placeholder="Your display name" maxlength="20" style="letter-spacing:1px;margin-bottom:8px;">
+                <div class="mp-section-title">🖼️ PROFILE PICTURE</div>
+                <div class="avatar-grid" id="avatarGrid"></div>
+                <div style="display:flex;gap:6px;margin-top:8px;">
+                    <input type="text" class="mp-input" id="avatarUrlInput" placeholder="…or paste an image URL"
+                           style="flex:1;text-transform:none;letter-spacing:0;text-align:left;font-size:11px;padding:7px 12px;">
+                    <button class="set-mini-btn" id="avatarUrlBtn" style="padding:7px 12px;">USE</button>
+                </div>
+
                 <div class="mp-section-title">🎨 YOUR BIRD COLOUR</div>
                 <div class="mp-colour-grid" id="mpColourGrid"></div>
                 <div style="display:flex;gap:8px;margin-top:12px;">
@@ -1104,10 +1122,28 @@
                         </div>
                     </div>
 
-                    <div style="display:flex;gap:6px;margin:12px 0 10px;">
-                        <input type="text" class="mp-input" id="addFriendInput" placeholder="Display name or PlayFab ID"
-                               style="flex:1;text-transform:none;letter-spacing:0;text-align:left;font-size:12px;padding:8px 14px;">
-                        <button class="mp-btn-primary" id="addFriendBtn" style="flex:0 0 auto;padding:8px 16px;">ADD</button>
+                    <!-- Your own friend code -->
+                    <div class="code-card">
+                        <div>
+                            <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;">Your friend code</div>
+                            <div id="myFriendCode" style="font-size:16px;font-weight:bold;color:#27A9F5;letter-spacing:1px;font-family:monospace;">—</div>
+                        </div>
+                        <button class="set-mini-btn" id="copyCodeBtn">COPY</button>
+                    </div>
+
+                    <div class="presence-row" style="margin-top:8px;">
+                        <span style="font-size:11px;color:#999;">Allow friend requests</span>
+                        <div class="mp-toggle-switch active" id="allowRequestsToggle"></div>
+                    </div>
+
+                    <div style="position:relative;margin:12px 0 6px;">
+                        <div style="display:flex;gap:6px;">
+                            <input type="text" class="mp-input" id="addFriendInput" placeholder="Type a name or paste a friend code"
+                                   autocomplete="off"
+                                   style="flex:1;text-transform:none;letter-spacing:0;text-align:left;font-size:12px;padding:8px 14px;">
+                            <button class="mp-btn-primary" id="addFriendBtn" style="flex:0 0 auto;padding:8px 16px;">ADD</button>
+                        </div>
+                        <div class="mention-popup" id="friendSuggest" style="bottom:auto;top:100%;margin-top:4px;"></div>
                     </div>
                     <div class="auth-error" id="friendError" style="text-align:center;font-size:10px;margin-bottom:8px;"></div>
 
@@ -2674,11 +2710,110 @@
                     name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles,
                     level: playerLevel, presence: status,
                     pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
-                    photo: (currentUser && currentUser.photoURL) || null
+                    photo: currentAvatar()
                 });
             }
             document.querySelectorAll('.presence-opt').forEach(b =>
                 b.classList.toggle('active', b.dataset.status === status));
+        }
+
+        // ---- PROFILE PICTURE ----
+        // Presets are served from the site's own img folder so they always load.
+        const AVATAR_PRESETS = [
+            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png',
+            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/newfavicon.png',
+            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixgamingvr.png',
+            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixsmp.png',
+            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixreacts.png',
+            'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/crixblox.png'
+        ];
+        function currentAvatar() {
+            return mpProfile.avatar || (currentUser && currentUser.photoURL) || null;
+        }
+        function renderAvatarGrid() {
+            const g = document.getElementById('avatarGrid');
+            if (!g) return;
+            const cur = currentAvatar();
+            const opts = [...AVATAR_PRESETS];
+            // Include their Google/Discord picture as an option if they have one
+            if (currentUser && currentUser.photoURL && !opts.includes(currentUser.photoURL)) {
+                opts.unshift(currentUser.photoURL);
+            }
+            g.innerHTML = opts.map(url =>
+                `<img class="avatar-opt${url === cur ? ' sel' : ''}" src="${mpEsc(url)}"
+                      data-url="${mpEsc(url)}" alt="" onerror="this.remove()">`).join('');
+            g.querySelectorAll('.avatar-opt').forEach(img =>
+                img.addEventListener('click', () => setAvatar(img.dataset.url)));
+        }
+        async function setAvatar(url) {
+            mpProfile.avatar = url;
+            mpSaveProfile();
+            renderAvatarGrid();
+            // Persist to PlayFab so friends see it too
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady &&
+                typeof PlayFabManager.setAvatar === 'function') {
+                PlayFabManager.setAvatar(url).catch(() => {});
+            }
+            // Tell the current lobby straight away
+            if (mpCurrentRoom) {
+                mpRaiseEvent(MP_EV.NAME_UPDATE, {
+                    name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles,
+                    level: playerLevel, presence: myPresence,
+                    pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
+                    photo: url
+                });
+                if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].photo = url;
+                mpRenderLobby();
+            }
+        }
+
+        // ---- PLAYERS YOU'VE MET (local roster) ----
+        // PlayFab has no partial-name search for clients, so we remember
+        // everyone you've shared a lobby with and search that instead.
+        const ROSTER_KEY = 'crix_roster_v1';
+        let knownPlayers = [];
+        function loadRoster() {
+            try { knownPlayers = JSON.parse(localStorage.getItem(ROSTER_KEY) || '[]'); } catch(e) { knownPlayers = []; }
+        }
+        function rememberPlayer(p) {
+            if (!p || !p.name || !p.pfId) return;
+            const existing = knownPlayers.find(k => k.pfId === p.pfId);
+            if (existing) { existing.name = p.name; existing.seen = Date.now(); }
+            else knownPlayers.push({ pfId: p.pfId, name: p.name, seen: Date.now() });
+            // Cap the list so it can't grow forever
+            knownPlayers.sort((a,b) => b.seen - a.seen);
+            knownPlayers = knownPlayers.slice(0, 100);
+            try { localStorage.setItem(ROSTER_KEY, JSON.stringify(knownPlayers)); } catch(e) {}
+        }
+
+        // Levenshtein distance, used to rank "did you mean" matches
+        function editDistance(a, b) {
+            a = a.toLowerCase(); b = b.toLowerCase();
+            const m = Array.from({length: a.length+1}, (_,i) => [i, ...Array(b.length).fill(0)]);
+            for (let j = 0; j <= b.length; j++) m[0][j] = j;
+            for (let i = 1; i <= a.length; i++)
+                for (let j = 1; j <= b.length; j++)
+                    m[i][j] = Math.min(m[i-1][j]+1, m[i][j-1]+1,
+                                       m[i-1][j-1] + (a[i-1] === b[j-1] ? 0 : 1));
+            return m[a.length][b.length];
+        }
+
+        function searchKnownPlayers(query) {
+            const q = query.toLowerCase().replace(/#.*$/, '').trim();
+            if (!q) return [];
+            return knownPlayers
+                .map(k => {
+                    const base = k.name.replace(/#.*$/, '').toLowerCase();
+                    let score;
+                    if (base === q) score = 0;
+                    else if (base.startsWith(q)) score = 1;
+                    else if (base.includes(q)) score = 2;
+                    else score = 3 + editDistance(base, q);
+                    return { ...k, score };
+                })
+                .filter(k => k.score <= 6)
+                .sort((a,b) => a.score - b.score)
+                .slice(0, 6);
         }
 
         // ---- PLAYFAB FRIENDS ----
@@ -2774,12 +2909,12 @@
             });
         }
 
-        async function addFriendByInput() {
+        async function addFriendByInput(overrideName) {
             const input = document.getElementById('addFriendInput');
             const err = document.getElementById('friendError');
-            const val = input.value.trim();
+            const val = (overrideName || input.value).trim();
             err.style.color = '#FF4655';
-            if (!val) { err.textContent = 'Enter a display name or PlayFab ID.'; return; }
+            if (!val) { err.textContent = 'Enter a name or friend code.'; return; }
             if (typeof PlayFabManager === 'undefined' || typeof PlayFabManager.addFriend !== 'function') {
                 err.textContent = 'Old playfab-manager.js loaded — push the new file and hard-refresh (Ctrl+Shift+R).';
                 return;
@@ -2788,17 +2923,40 @@
             const btn = document.getElementById('addFriendBtn');
             btn.disabled = true; btn.textContent = '…';
             try {
-                // A PlayFab ID is a 16-char hex-ish string; anything else is a display name
-                const looksLikeId = /^[A-F0-9]{10,20}$/i.test(val);
-                await PlayFabManager.addFriend(looksLikeId ? { playFabId: val } : { displayName: val });
+                // "Name#CODE" is an exact lookup. A bare name needs the code too,
+                // because PlayFab can't search partial or ambiguous names.
+                if (val.includes('#')) {
+                    await PlayFabManager.addFriendByCode(val);
+                } else {
+                    const matches = searchKnownPlayers(val);
+                    const exact = matches.find(m => m.name.replace(/#.*$/,'').toLowerCase() === val.toLowerCase());
+                    if (exact) {
+                        await PlayFabManager.addFriendByCode(exact.name);
+                    } else if (matches.length) {
+                        // Offer the closest names rather than failing outright
+                        err.style.color = '#FFB347';
+                        err.innerHTML = 'Did you mean: ' + matches.slice(0,3)
+                            .map(m => `<a href="#" class="sugg" data-n="${mpEsc(m.name)}" style="color:#27A9F5;">${mpEsc(m.name)}</a>`)
+                            .join(' · ');
+                        err.querySelectorAll('.sugg').forEach(a =>
+                            a.addEventListener('click', ev => { ev.preventDefault(); addFriendByInput(a.dataset.n); }));
+                        return;
+                    } else {
+                        err.textContent = 'Need their full friend code, e.g. Name#AB12. ' +
+                                          'Names alone only work for people you have played with.';
+                        return;
+                    }
+                }
                 input.value = '';
+                document.getElementById('friendSuggest')?.classList.remove('active');
                 err.style.color = '#00CC7A';
                 err.textContent = 'Friend added!';
                 await loadPlayFabFriends();
                 setTimeout(() => err.textContent = '', 2500);
             } catch (e) {
+                err.style.color = '#FF4655';
                 err.textContent = e.playfabError === 'AccountNotFound'
-                    ? 'No player found with that name or ID.'
+                    ? 'No player found with that code. Check it is exactly right, including the #.'
                     : e.message;
             } finally {
                 btn.disabled = false; btn.textContent = 'ADD';
@@ -3315,7 +3473,7 @@
                 roles: myRoles,
                 level: playerLevel,
                 pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
-                photo: (currentUser && currentUser.photoURL) || null
+                photo: currentAvatar()
             });
         }
 
@@ -4069,6 +4227,7 @@
                         p.pfId  = content.pfId || null;
                         p.photo = content.photo || null;
                         p.presence = content.presence || 'online';
+                        rememberPlayer(p);
                     }
                     mpRenderLobby();
                     break;
@@ -4288,7 +4447,8 @@
         document.getElementById('mpJoinByCodeBtn').addEventListener('click', () => { mpShowView('mpViewJoinCode'); selectSound.play(); });
         document.getElementById('mpRefreshBtn').addEventListener('click', () => { mpRenderRoomList(); selectSound.play(); });
         document.getElementById('mpEditProfileBtn').addEventListener('click', () => {
-            document.getElementById('mpDisplayNameInput').value = mpGetDisplayName();
+            document.getElementById('mpDisplayNameInput').value = mpGetDisplayName().replace(/#.*$/, '');
+            renderAvatarGrid();
             mpRenderColourGrid();
             mpShowView('mpViewProfile');
         });
@@ -4301,6 +4461,11 @@
             if (sel) mpProfile.colour = sel.dataset.colour;
             mpSaveProfile();
             setPhotonNickname(mpGetDisplayName());
+            // Keep the PlayFab display name as "Name#CODE" so friend lookups work
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady &&
+                typeof PlayFabManager.setNameWithCode === 'function') {
+                PlayFabManager.setNameWithCode(mpGetDisplayName()).catch(() => {});
+            }
             if (mpCurrentRoom) {
                 mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
                 if (mpPlayers[mpLocalActor]) {
@@ -4350,14 +4515,77 @@
                 // Hide the lobby browser bits while the friends tab is open
                 document.querySelectorAll('#mpViewHome .mp-section-title, #mpRoomList, #mpRefreshBtn')
                     .forEach(el => el.style.display = isFriends ? 'none' : '');
-                if (isFriends) { loadPlayFabFriends(); }
+                if (isFriends) {
+                    loadPlayFabFriends();
+                    const codeEl = document.getElementById('myFriendCode');
+                    if (codeEl) {
+                        const pf = (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId);
+                        const code = pf && PlayFabManager.friendCodeFor
+                            ? PlayFabManager.friendCodeFor(pf) : null;
+                        codeEl.textContent = code
+                            ? `${mpGetDisplayName().replace(/#.*$/,'')}#${code}` : 'Sign in first';
+                    }
+                    const tg = document.getElementById('allowRequestsToggle');
+                    if (tg) tg.classList.toggle('active', mpProfile.allowRequests !== false);
+                }
                 else { renderRankBanner(); mpRenderRoomList(); }
                 playSound(selectSound);
             });
         });
 
         // ---- FRIENDS CONTROLS ----
-        document.getElementById('addFriendBtn')?.addEventListener('click', addFriendByInput);
+        document.getElementById('addFriendBtn')?.addEventListener('click', () => addFriendByInput());
+
+        // Live suggestions as you type a name
+        document.getElementById('addFriendInput')?.addEventListener('input', function () {
+            const pop = document.getElementById('friendSuggest');
+            if (!pop) return;
+            const q = this.value.trim();
+            if (q.length < 2 || q.includes('#')) { pop.classList.remove('active'); return; }
+            const matches = searchKnownPlayers(q);
+            if (!matches.length) { pop.classList.remove('active'); return; }
+            pop.innerHTML = matches.map(m =>
+                `<div class="mention-opt" data-n="${mpEsc(m.name)}">${mpEsc(m.name)}</div>`).join('');
+            pop.classList.add('active');
+            pop.querySelectorAll('.mention-opt').forEach(o =>
+                o.addEventListener('mousedown', ev => {
+                    ev.preventDefault();
+                    document.getElementById('addFriendInput').value = o.dataset.n;
+                    pop.classList.remove('active');
+                }));
+        });
+        document.getElementById('addFriendInput')?.addEventListener('blur', () =>
+            setTimeout(() => document.getElementById('friendSuggest')?.classList.remove('active'), 150));
+
+        // Copy your own code
+        document.getElementById('copyCodeBtn')?.addEventListener('click', () => {
+            const code = document.getElementById('myFriendCode').textContent;
+            if (!code || code === '—') return;
+            navigator.clipboard?.writeText(code).then(() => {
+                const b = document.getElementById('copyCodeBtn');
+                b.textContent = 'COPIED'; setTimeout(() => b.textContent = 'COPY', 1500);
+            });
+        });
+
+        // Block / allow friend requests
+        document.getElementById('allowRequestsToggle')?.addEventListener('click', function () {
+            this.classList.toggle('active');
+            const allow = this.classList.contains('active');
+            mpProfile.allowRequests = allow;
+            mpSaveProfile();
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady &&
+                typeof PlayFabManager.setAllowFriendRequests === 'function') {
+                PlayFabManager.setAllowFriendRequests(allow).catch(() => {});
+            }
+        });
+
+        // Avatar from a pasted URL
+        document.getElementById('avatarUrlBtn')?.addEventListener('click', () => {
+            const url = document.getElementById('avatarUrlInput').value.trim();
+            if (!/^https?:\/\/.+/i.test(url)) return;
+            setAvatar(url);
+            document.getElementById('avatarUrlInput').value = '';
+        });
         document.getElementById('addFriendInput')?.addEventListener('keypress', e => {
             if (e.key === 'Enter') addFriendByInput();
         });
@@ -4523,6 +4751,7 @@
         loadLevel();
         loadRP();
         loadPresence();
+        loadRoster();
         setupSettings();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
