@@ -350,75 +350,6 @@ body {
 .music-control:hover { transform: scale(1.08) translateY(-1px); }
 .music-control.muted { background: linear-gradient(145deg,#333,#222); border-color:#555; border-bottom-color:#222; }
 
-/* ── EVIDENCE ── */
-.evidence-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 12px;
-}
-.evidence-item {
-    position: relative;
-    aspect-ratio: 4/3;
-    border-radius: 12px;
-    overflow: hidden;
-    border: 1px solid rgba(255,107,53,0.3);
-    cursor: zoom-in;
-    background: #12121c;
-    transition: border-color .15s, transform .15s;
-}
-.evidence-item:hover { border-color: var(--neon-orange); transform: translateY(-2px); }
-.evidence-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.evidence-item .num {
-    position: absolute; top: 6px; left: 6px;
-    background: rgba(0,0,0,0.75); color: #EDEDED;
-    font-size: 10px; padding: 2px 8px; border-radius: 10px;
-}
-
-/* ── EVIDENCE ─────────────────────────────────── */
-.evidence-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-    gap: 12px;
-}
-.ev-item {
-    position: relative; aspect-ratio: 4/3; overflow: hidden;
-    border-radius: 12px; cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.09);
-    background: var(--bg2, #111118);
-    transition: border-color .15s, transform .15s;
-}
-.ev-item:hover { border-color: var(--neon-orange); transform: translateY(-2px); }
-.ev-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ev-num {
-    position: absolute; top: 6px; left: 6px;
-    background: rgba(0,0,0,0.75); color: #EDEDED;
-    font-size: 10px; font-weight: 700;
-    padding: 2px 8px; border-radius: 10px;
-}
-.ev-cap {
-    position: absolute; left: 0; right: 0; bottom: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.92) 45%);
-    color: #DDD; font-size: 10px; line-height: 1.5;
-    padding: 22px 8px 8px;
-    opacity: 0; transform: translateY(4px);
-    transition: opacity .18s, transform .18s;
-}
-.ev-item:hover .ev-cap { opacity: 1; transform: translateY(0); }
-.ev-date { display: block; color: var(--matrix-green); font-weight: 700; margin-bottom: 2px; }
-
-#evLightbox {
-    display: none; position: fixed; inset: 0;
-    background: rgba(0,0,0,0.94); z-index: 99999;
-    align-items: center; justify-content: center;
-    flex-direction: column; padding: 30px; cursor: zoom-out;
-}
-#evLightbox img { max-width: 94vw; max-height: 84vh; border-radius: 10px; }
-#evCaption { color: #C9C9C9; font-size: 13px; margin-top: 14px; }
-#evClose {
-    position: absolute; top: 18px; right: 26px;
-    color: #EDEDED; font-size: 36px; cursor: pointer; line-height: 1;
-}
-
 /* ── FANMAIL ────────────────────────────────────────────────── */
 .fanmail-track-wrap {
     overflow: hidden;
@@ -529,7 +460,7 @@ body {
         <a href="#story"    class="nav-link">Story</a>
         <a href="#network"  class="nav-link">Channels</a>
         <a href="#fanmail"  class="nav-link">Fan Art</a>
-        <a href="#evidence" class="nav-link">Evidence</a>
+        <a href="/evidence" class="nav-link">Evidence</a>
         <a href="#videos"   class="nav-link">Videos</a>
         <a href="#shop"     class="nav-link">Shop</a>
         <a href="#evidence" class="nav-link" id="navEvidence" style="display:none;">Evidence</a>
@@ -650,31 +581,6 @@ body {
         <div class="video-grid" id="videoGrid"></div>
     </div>
 
-    <!-- EVIDENCE -->
-    <div class="section" id="evidence" style="display:none;">
-        <div class="section-header">
-            <span class="section-label">Documentation</span>
-            <h2 class="section-title">Evidence</h2>
-        </div>
-        <div id="evidenceNotice" style="background:rgba(255,165,0,0.06);border:1px solid rgba(255,165,0,0.28);border-radius:12px;padding:12px 16px;margin-bottom:18px;font-size:12px;color:#C9C9C9;line-height:1.7;">
-            Screenshots documenting incidents in the community. Names and handles shown are
-            as they appeared at the time. If you believe something here is inaccurate or
-            concerns you directly, email <a href="mailto:cgvr@crixgamingvr.com" style="color:var(--matrix-green);">cgvr@crixgamingvr.com</a>
-            and it will be reviewed.
-        </div>
-        <div class="evidence-grid" id="evidenceGrid"></div>
-        <div id="evidenceEmpty" style="display:none;color:#8C8C8C;font-size:13px;text-align:center;padding:30px;">
-            No evidence posted.
-        </div>
-    </div>
-
-    <!-- LIGHTBOX -->
-    <div id="evLightbox" onclick="this.style.display='none'">
-        <span id="evClose">&times;</span>
-        <img id="evLightboxImg" src="" alt="">
-        <div id="evCaption"></div>
-    </div>
-
     <!-- SHOP -->
     <div class="section" id="shop">
         <div class="merch-top">
@@ -686,20 +592,6 @@ body {
         </div>
         <div class="products-grid" id="productsGrid"></div>
         <img id="merchFavicon2" src="" style="display:none;" alt="">
-    </div>
-
-    <!-- EVIDENCE -->
-    <div class="section" id="evidence" style="display:none;">
-        <div class="section-header">
-            <span class="section-label">Receipts</span>
-            <h2 class="section-title">Evidence</h2>
-        </div>
-        <p style="color:#aaa;font-size:13px;line-height:1.8;max-width:700px;margin-bottom:22px;">
-            Screenshots and receipts relating to people covered on the channel.
-            Click any image to view it full size.
-        </p>
-        <div class="evidence-grid" id="evidenceGrid"></div>
-        <div id="evidenceCount" style="margin-top:16px;font-size:11px;color:#8C8C8C;text-align:center;"></div>
     </div>
 
     <!-- DAILY WORD -->
@@ -723,21 +615,11 @@ body {
                 <a href="https://shop.crixgamingvr.com" target="_blank" class="footer-link">Shop</a>
                 <a href="#" id="businessEmailLink" class="footer-link">Contact</a>
                 <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" class="footer-link">Discord</a>
-                </div>
+            </div>
         </div>
     </footer>
 
 </div><!-- /site-wrap -->
-
-<!-- EVIDENCE LIGHTBOX -->
-<div id="evidenceLightbox" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.94);z-index:99999;align-items:center;justify-content:center;padding:24px;cursor:zoom-out;">
-    <img id="evidenceLightboxImg" src="" alt="" style="max-width:95vw;max-height:88vh;border-radius:10px;border:2px solid var(--neon-orange);">
-    <div id="evidenceCaption" style="position:absolute;bottom:18px;left:0;right:0;text-align:center;color:#ccc;font-size:12px;"></div>
-    <button id="evidenceClose" style="position:absolute;top:18px;right:22px;background:rgba(255,70,85,0.15);border:2px solid var(--neon-red);color:var(--neon-red);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:16px;font-weight:bold;">✕</button>
-    <button id="evidencePrev" style="position:absolute;left:18px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:#fff;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:18px;">‹</button>
-    <button id="evidenceNext" style="position:absolute;right:18px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:#fff;width:42px;height:42px;border-radius:50%;cursor:pointer;font-size:18px;">›</button>
-</div>
-
 <!-- EMAIL MODAL -->
 <div class="email-modal" id="emailModal">
     <div class="email-modal-content">
@@ -1116,9 +998,7 @@ async function init() {
     setInterval(checkLiveStream, 120000);
     loadBibleVerse();
     loadFanmail();
-    loadEvidence();
     setupEvidence();
-    loadEvidence();
 }
 
 // =====================================================
@@ -1202,169 +1082,6 @@ document.getElementById('newVerseBtn')?.addEventListener('click', async () => {
         refEl.textContent = '— Philippians 4:13 (KJV)';
     }
 });
-
-// ── EVIDENCE ──
-// Files are img/evidence/evidence1.png … evidence100.png.
-// We probe for which actually exist rather than 404-ing 100 times visibly,
-// and stop after a run of consecutive misses so it stays cheap.
-let evidenceFound = [];
-
-async function loadEvidence() {
-    const grid = document.getElementById('evidenceGrid');
-    const section = document.getElementById('evidence');
-    const navLink = document.getElementById('navEvidence');
-    if (!grid) return;
-
-    const exists = url => new Promise(res => {
-        const img = new Image();
-        img.onload  = () => res(true);
-        img.onerror = () => res(false);
-        img.src = url;
-    });
-
-    const MAX = 100, STOP_AFTER_MISSES = 12;
-    let misses = 0;
-    const checks = [];
-
-    // Probe in small batches so we don't fire 100 requests at once
-    for (let i = 1; i <= MAX; i++) {
-        const url = `img/evidence/evidence${i}.png`;
-        const ok = await exists(url);
-        if (ok) { checks.push({ n: i, url }); misses = 0; }
-        else { misses++; if (misses >= STOP_AFTER_MISSES && checks.length) break; 
-               if (misses >= STOP_AFTER_MISSES && !checks.length) break; }
-    }
-
-    evidenceFound = checks;
-    if (!checks.length) {
-        section.style.display = 'none';
-        if (navLink) navLink.style.display = 'none';
-        return;
-    }
-
-    section.style.display = '';
-    if (navLink) navLink.style.display = '';
-
-    grid.innerHTML = checks.map((e, idx) => `
-        <div class="evidence-item" data-idx="${idx}">
-            <span class="num">#${e.n}</span>
-            <img src="${e.url}" alt="Evidence ${e.n}" loading="lazy">
-        </div>`).join('');
-
-    document.getElementById('evidenceCount').textContent =
-        `${checks.length} item${checks.length === 1 ? '' : 's'}`;
-
-    grid.querySelectorAll('.evidence-item').forEach(el =>
-        el.addEventListener('click', () => openLightbox(parseInt(el.dataset.idx))));
-}
-
-let lightboxIdx = 0;
-function openLightbox(i) {
-    lightboxIdx = i;
-    const e = evidenceFound[i];
-    if (!e) return;
-    document.getElementById('evidenceLightboxImg').src = e.url;
-    document.getElementById('evidenceCaption').textContent = `Evidence #${e.n} — ${i+1} of ${evidenceFound.length}`;
-    document.getElementById('evidenceLightbox').style.display = 'flex';
-}
-function stepLightbox(d) {
-    if (!evidenceFound.length) return;
-    openLightbox((lightboxIdx + d + evidenceFound.length) % evidenceFound.length);
-}
-function setupEvidence() {
-    const lb = document.getElementById('evidenceLightbox');
-    if (!lb) return;
-    document.getElementById('evidenceClose').addEventListener('click', e => { e.stopPropagation(); lb.style.display='none'; });
-    document.getElementById('evidencePrev').addEventListener('click', e => { e.stopPropagation(); stepLightbox(-1); });
-    document.getElementById('evidenceNext').addEventListener('click', e => { e.stopPropagation(); stepLightbox(1); });
-    lb.addEventListener('click', e => { if (e.target === lb) lb.style.display = 'none'; });
-    document.addEventListener('keydown', e => {
-        if (lb.style.display !== 'flex') return;
-        if (e.key === 'Escape') lb.style.display = 'none';
-        if (e.key === 'ArrowLeft') stepLightbox(-1);
-        if (e.key === 'ArrowRight') stepLightbox(1);
-    });
-}
-
-// ── EVIDENCE ───────────────────────────────────────────────
-// Probes img/evidence/evidence1.png … evidence100.png and shows only
-// the ones that actually exist, so there are no broken tiles.
-async function loadEvidence() {
-    const grid    = document.getElementById('evidenceGrid');
-    const section = document.getElementById('evidence');
-    const empty   = document.getElementById('evidenceEmpty');
-    if (!grid) return;
-
-    const exists = n => new Promise(res => {
-        const img = new Image();
-        img.onload  = () => res(n);
-        img.onerror = () => res(null);
-        img.src = `/img/evidence/evidence${n}.png`;
-    });
-
-    // Probe in batches so we don't fire 100 requests at once
-    const found = [];
-    for (let start = 1; start <= 100; start += 20) {
-        const batch = [];
-        for (let i = start; i < start + 20 && i <= 100; i++) batch.push(exists(i));
-        const results = await Promise.all(batch);
-        const hits = results.filter(Boolean);
-        found.push(...hits);
-        // Stop early once a whole batch comes back empty
-        if (!hits.length && found.length) break;
-    }
-
-    if (!found.length) {
-        section.style.display = 'none';
-        return;
-    }
-    section.style.display = '';
-    empty.style.display = 'none';
-
-    // Optional captions from evidence.txt:  number | date | description
-    let captions = {};
-    try {
-        const txt = await (await fetch('/evidence.txt')).text();
-        txt.split('\n')
-           .map(l => l.trim())
-           .filter(l => l && !l.startsWith('#'))
-           .forEach(l => {
-               const [num, date, ...rest] = l.split('|').map(s => s.trim());
-               if (num) captions[num] = { date: date || '', desc: rest.join(' | ') || '' };
-           });
-    } catch(e) {}
-
-    const esc = s => { const d = document.createElement('div'); d.textContent = String(s||''); return d.innerHTML; };
-
-    grid.innerHTML = found.map(n => {
-        const cap = captions[String(n)];
-        return `
-        <div class="ev-item" data-n="${n}">
-            <img src="/img/evidence/evidence${n}.png" alt="Evidence ${n}" loading="lazy">
-            <span class="ev-num">#${n}</span>
-            ${cap ? `<div class="ev-cap">${cap.date ? `<span class="ev-date">${esc(cap.date)}</span>` : ''}${esc(cap.desc)}</div>` : ''}
-        </div>`;
-    }).join('');
-
-    grid.querySelectorAll('.ev-item').forEach(el => {
-        el.addEventListener('click', () => {
-            const n = el.dataset.n;
-            const cap = captions[n];
-            document.getElementById('evLightboxImg').src = `/img/evidence/evidence${n}.png`;
-            document.getElementById('evCaption').innerHTML = cap
-                ? `${cap.date ? `<strong style="color:var(--matrix-green)">${esc(cap.date)}</strong> &middot; ` : ''}${esc(cap.desc)}`
-                : `Evidence #${n}`;
-            document.getElementById('evLightbox').style.display = 'flex';
-        });
-    });
-}
-document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-        const lb = document.getElementById('evLightbox');
-        if (lb) lb.style.display = 'none';
-    }
-});
-
 // ── FANMAIL ────────────────────────────────────────────────
 async function loadFanmail() {
     const track = document.getElementById('fanmailTrack');
