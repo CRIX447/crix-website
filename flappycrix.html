@@ -34,6 +34,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
+    <script src="filter.js"></script>
     <script src="playfab-manager.js"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
@@ -624,9 +625,12 @@
             padding: 6px 8px;
             font-size: 10px;
             color: white;
-            max-width: 130px;
+            max-width: 240px;      /* was 130px — long names were being cut off */
+            min-width: 120px;
+            width: max-content;
         }
         .mp-hud.active { display: block; }
+        .mp-hud-row { white-space: nowrap; }
         .mp-hud-row { display: flex; align-items: center; gap: 5px; margin: 2px 0; }
         .mp-hud-godmode { color: #FF6B6B; font-weight: 700; }
         .mp-chat-toggle-btn {
@@ -749,6 +753,13 @@
         }
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
+
+        /* ---- TAGS / LEVEL / FRIENDS ---- */
+        .mp-level-chip { display:inline-block; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4);
+            color:#FFD700; font-size:9px; font-weight:bold; padding:1px 5px; border-radius:8px; margin-right:5px; }
+        .mp-player-friend-btn { background:none; border:none; font-size:15px; cursor:pointer; padding:0 4px; line-height:1; }
+        .mp-player-friend-btn:hover { transform:scale(1.15); }
+        .mp-hud-name { display:inline-block; max-width:none; }
 
         /* ---- SETTINGS ---- */
         .set-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:12px; }
@@ -1188,6 +1199,16 @@
                 <span id="setRoles" style="font-size:11px;color:#888;">None</span>
             </div>
             <div class="set-row">
+                <span class="set-label">Level</span>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span id="setLevel" style="font-size:12px;color:#FFD700;font-weight:bold;">1</span>
+                    <div style="width:90px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;">
+                        <div id="setXpBar" style="height:100%;width:0%;background:linear-gradient(90deg,#FF6B35,#FFD700);"></div>
+                    </div>
+                    <span id="setXpText" style="font-size:9px;color:#777;">0/50</span>
+                </div>
+            </div>
+            <div class="set-row">
                 <span class="set-label">Coins</span>
                 <span id="setCoins" style="font-size:12px;color:#FFD966;">—</span>
             </div>
@@ -1622,6 +1643,7 @@
                 } 
                 if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){ 
                     score++; pipes[i].scored=true; 
+                    grantXp(1, 'score');
                     if (typeof mpReportScore === 'function') mpReportScore(score);
                     if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); } 
                     if(score===1000 && !hasTriggered1000){ hasTriggered1000=true; gameRunning=false; cancelAnimationFrame(animationId); let boom=document.getElementById('boomOverlay'); boom.style.display='block'; boom.innerHTML='<img src="https://raw.githubusercontent.com/CRIX447/crix-website/main/img/boom.gif" style="max-width:180px;">'; boomSound.play(); setTimeout(()=>{boom.style.display='none'; let vo=document.getElementById('victoryOverlay'); vo.style.display='flex'; document.getElementById('victoryMessage').innerHTML=Object.values(cheats).some(v=>v)?'You conquered with style!':'VICTORY! LEGEND!'; victorySound.play();},2000); } 
@@ -1659,6 +1681,7 @@
             for(let c of coinsArr){ if(!c.collected && coinImage.complete) ctx.drawImage(coinImage, c.x, c.y, 20, 20); } 
             // Draw other multiplayer players (host's pipes are authoritative, so guests see the same layout)
             if (typeof mpDrawOtherPlayers === 'function') mpDrawOtherPlayers(ctx);
+            if (typeof mpDrawOffscreenArrows === 'function') mpDrawOffscreenArrows(ctx);
             // Draw bird
             ctx.save(); 
             ctx.translate(bird.x,bird.y); 
@@ -1926,6 +1949,14 @@
 
             const cn = document.getElementById('setCoins');
             if (cn) cn.textContent = formatCoins(coinCount);
+
+            const lv = document.getElementById('setLevel');
+            if (lv) lv.textContent = playerLevel + (playerLevel >= MAX_LEVEL ? ' (MAX)' : '');
+            const need = xpForLevel(playerLevel);
+            const bar = document.getElementById('setXpBar');
+            if (bar) bar.style.width = (playerLevel >= MAX_LEVEL ? 100 : Math.min(100, playerXp/need*100)) + '%';
+            const xt = document.getElementById('setXpText');
+            if (xt) xt.textContent = playerLevel >= MAX_LEVEL ? 'MAX' : `${playerXp}/${need}`;
 
             const map = { setFpsToggle:'showFps', setNamesToggle:'showNames',
                           setMotionToggle:'reducedMotion', setMentionToggle:'mentionNotify' };
@@ -2203,7 +2234,7 @@
                 mpPlayers[mpLocalActor].roles = myRoles;
             }
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
                 if (typeof mpRenderLobby === 'function') mpRenderLobby();
                 if (typeof mpUpdateHud === 'function') mpUpdateHud();
             }
@@ -2470,10 +2501,80 @@
         // Roles come from PlayFab Read-Only Data (server-writable only), so a
         // player can't grant themselves OWNER by editing anything client-side.
         const ROLE_TAGS = {
-            OWNER: { label: 'OWNER', colour: '#FF0000' },
-            MOD:   { label: 'MOD',   colour: '#00ffd5' }
+            OWNER:  { label: 'OWNER',  colour: '#FF0000', order: 1 },
+            MOD:    { label: 'MOD',    colour: '#00ffd5', order: 2 },
+            FRIEND: { label: 'FRIEND', colour: '#27A9F5', order: 3 }
         };
         let myRoles = [];
+
+        // ---- LEVELS ----
+        const MAX_LEVEL = 50;
+        const LEVEL_KEY = 'crix_level_v1';
+        let playerXp = 0, playerLevel = 1;
+        // Rising curve: level N needs 50*N xp to advance
+        function xpForLevel(l) { return 50 * l; }
+        function loadLevel() {
+            try {
+                const d = JSON.parse(localStorage.getItem(LEVEL_KEY) || '{}');
+                playerXp = d.xp || 0; playerLevel = Math.min(d.level || 1, MAX_LEVEL);
+            } catch(e) {}
+        }
+        function saveLevel() {
+            try { localStorage.setItem(LEVEL_KEY, JSON.stringify({ xp: playerXp, level: playerLevel })); } catch(e) {}
+        }
+        function grantXp(amount, reason) {
+            if (playerLevel >= MAX_LEVEL) return;
+            playerXp += amount;
+            let levelled = false;
+            while (playerLevel < MAX_LEVEL && playerXp >= xpForLevel(playerLevel)) {
+                playerXp -= xpForLevel(playerLevel);
+                playerLevel++;
+                levelled = true;
+            }
+            saveLevel();
+            if (levelled) showLevelUp();
+            refreshSettingsUI();
+        }
+        function showLevelUp() {
+            playSound(achSound);
+            const n = document.createElement('div');
+            n.style.cssText = 'position:fixed;bottom:90px;right:16px;background:#0F0F17;border:2px solid #FFD700;border-radius:14px;padding:12px 18px;z-index:50000;font-size:13px;color:#fff;';
+            n.innerHTML = `<div style="color:#FFD700;font-weight:bold;">⭐ LEVEL ${playerLevel}</div>` +
+                          (playerLevel >= MAX_LEVEL ? '<div style="font-size:10px;color:#aaa;">Max level reached!</div>' : '');
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3200);
+        }
+
+        // ---- FRIENDS (local list — only YOU see [FRIEND] on people you added) ----
+        const FRIENDS_KEY = 'crix_friends_v1';
+        let myFriends = [];
+        function loadFriends() {
+            try { myFriends = JSON.parse(localStorage.getItem(FRIENDS_KEY) || '[]'); } catch(e) { myFriends = []; }
+        }
+        function saveFriends() {
+            try { localStorage.setItem(FRIENDS_KEY, JSON.stringify(myFriends)); } catch(e) {}
+        }
+        function isFriend(p) {
+            if (!p) return false;
+            return myFriends.some(f => (p.pfId && f.pfId === p.pfId) || f.name === p.name);
+        }
+        function addFriend(p) {
+            if (!p || isFriend(p)) return;
+            myFriends.push({ pfId: p.pfId || null, name: p.name });
+            saveFriends(); mpRenderLobby();
+        }
+        function removeFriend(p) {
+            myFriends = myFriends.filter(f => !((p.pfId && f.pfId === p.pfId) || f.name === p.name));
+            saveFriends(); mpRenderLobby();
+        }
+
+        // All tags that apply to a player, highest priority first
+        function allTags(p) {
+            const roles = (p && p.roles) || [];
+            const out = roles.filter(r => ROLE_TAGS[r]);
+            if (isFriend(p)) out.push('FRIEND');
+            return out.sort((a,b) => ROLE_TAGS[a].order - ROLE_TAGS[b].order);
+        }
 
         // Highest-priority tag only (OWNER outranks MOD)
         function topRole(roles) {
@@ -2483,20 +2584,26 @@
             return null;
         }
         // HTML tag for lobby list / chat
-        function roleTagHtml(roles) {
-            const r = topRole(roles);
-            if (!r) return '';
-            const t = ROLE_TAGS[r];
-            return `<span style="color:${t.colour};font-weight:bold;font-size:10px;margin-right:4px;">[${t.label}]</span>`;
+        function roleTagHtml(rolesOrPlayer) {
+            // Accepts either a roles array (legacy) or a full player object
+            const p = Array.isArray(rolesOrPlayer) ? { roles: rolesOrPlayer } : (rolesOrPlayer || {});
+            const tags = allTags(p);
+            if (!tags.length) return '';
+            return tags.map(r => {
+                const t = ROLE_TAGS[r];
+                return `<span style="color:${t.colour};font-weight:bold;font-size:10px;margin-right:3px;">[${t.label}]</span>`;
+            }).join('');
         }
         // Plain text tag for canvas name plates
-        function roleTagText(roles) {
-            const r = topRole(roles);
-            return r ? `[${ROLE_TAGS[r].label}] ` : '';
+        function roleTagText(rolesOrPlayer) {
+            const p = Array.isArray(rolesOrPlayer) ? { roles: rolesOrPlayer } : (rolesOrPlayer || {});
+            const tags = allTags(p);
+            return tags.length ? tags.map(r => `[${ROLE_TAGS[r].label}]`).join('') + ' ' : '';
         }
-        function roleTagColour(roles) {
-            const r = topRole(roles);
-            return r ? ROLE_TAGS[r].colour : null;
+        function roleTagColour(rolesOrPlayer) {
+            const p = Array.isArray(rolesOrPlayer) ? { roles: rolesOrPlayer } : (rolesOrPlayer || {});
+            const tags = allTags(p);
+            return tags.length ? ROLE_TAGS[tags[0]].colour : null;
         }
 
         function mpGetDisplayName() {
@@ -2763,7 +2870,7 @@
             
 
             // Broadcast our own name/colour to others
-            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles });
+            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
 
             document.getElementById('mpModal').classList.add('active');
             mpShowLobbyView();
@@ -2780,6 +2887,7 @@
             mpPlayers[nr] = {
                 name: actor.name || ('Player' + nr),
                 colour: PLAYER_COLOURS[Math.abs(nr) % PLAYER_COLOURS.length],
+                roles: [], level: 1, pfId: null, photo: null,
                 score: 0, dead: false,
                 x: 100, y: 300, vel: 0,
                 rx: 100, ry: 300,
@@ -2788,6 +2896,18 @@
             
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             mpRenderLobby();
+
+            // Re-announce ourselves to the newcomer. Without this, anyone who
+            // joins AFTER us never learns our name/colour/roles/level, which is
+            // why tags were invisible to late joiners.
+            mpRaiseEvent(MP_EV.NAME_UPDATE, {
+                name: mpGetDisplayName(),
+                colour: mpGetColour(),
+                roles: myRoles,
+                level: playerLevel,
+                pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                photo: (currentUser && currentUser.photoURL) || null
+            });
         }
 
         function mpHandleActorLeave(actor) {
@@ -2841,9 +2961,15 @@
                 const isMe = parseInt(nr) === mpLocalActor;
                 const row = document.createElement('div');
                 row.className = 'mp-player-row';
-                row.innerHTML =
-                    `<div class="mp-player-avatar" style="background:${p.colour||'#FF4655'}">${(p.name||'?').charAt(0).toUpperCase()}</div>` +
-                    `<div class="mp-player-name">${roleTagHtml(p.roles)}${mpEsc(p.name)}${isMe?' <span style="color:#888;font-size:9px;">(you)</span>':''}</div>` +
+                const avatar = p.photo
+                    ? `<img class="mp-player-avatar" src="${mpEsc(p.photo)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'mp-player-avatar',style:'background:${p.colour||'#FF4655'}',textContent:'${(p.name||'?').charAt(0).toUpperCase()}'}))">`
+                    : `<div class="mp-player-avatar" style="background:${p.colour||'#FF4655'}">${(p.name||'?').charAt(0).toUpperCase()}</div>`;
+                const lvl = `<span class="mp-level-chip">${p.level || 1}</span>`;
+                // Owners can see PlayFab IDs so they can ban without guesswork
+                const idLine = (myRoles.includes('OWNER') && p.pfId)
+                    ? `<div style="font-size:8px;color:#666;font-family:monospace;">${mpEsc(p.pfId)}</div>` : '';
+                row.innerHTML = avatar +
+                    `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#888;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
                 if (mpIsHost && !isMe) {
                     const kb = document.createElement('button');
@@ -2853,6 +2979,15 @@
                     row.appendChild(kb);
                 }
                 if (!isMe) {
+                    const fb = document.createElement('button');
+                    const already = isFriend(p);
+                    fb.className = 'mp-player-friend-btn';
+                    fb.textContent = already ? '★' : '☆';
+                    fb.title = already ? 'Remove friend' : 'Add friend';
+                    fb.style.color = already ? '#27A9F5' : '#666';
+                    fb.onclick = () => already ? removeFriend(p) : addFriend(p);
+                    row.appendChild(fb);
+
                     const rb = document.createElement('button');
                     rb.className = 'mp-player-report-btn';
                     rb.textContent = '🚨';
@@ -2894,7 +3029,7 @@
                 el.className = isSystem ? (logId === 'mpChatLog' ? 'mp-chat-log-entry' : 'sys') : 'msg';
                 if (isSystem) { el.style.color = '#888'; el.style.fontStyle = 'italic'; el.textContent = text; }
                 else {
-                    const _lm = renderMentions(text);
+                    const _lm = renderMentions(typeof ChatFilter !== 'undefined' ? ChatFilter.clean(text) : text);
                     if (_lm.mentionedMe) el.classList.add('chat-mention-me');
                     el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(fromName)}:</strong> ${_lm.html}`;
                     if (_lm.mentionedMe && settings.mentionNotify && !String(fromName).includes('(you)')) playSound(achSound);
@@ -3090,6 +3225,7 @@
             }
             mpCheckAchievement('mp_first');
             if (winnerActor === mpLocalActor) {
+                grantXp(10, 'mp_win');
                 mpCheckAchievement('mp_win');
                 if (mpMatchMode === 'race') mpCheckAchievement('mp_race');
                 if (mpMatchMode === 'lastone') mpCheckAchievement('mp_survivor');
@@ -3181,7 +3317,7 @@
             const coinrushTimerStr = mpMatchMode === 'coinrush' ? ` ⏱️ ${Math.floor(mpCoinRushSecondsLeft/60)}:${String(mpCoinRushSecondsLeft%60).padStart(2,'0')}` : '';
             let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}${coinrushTimerStr}</strong></div>`;
             Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
-                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p.roles)}${mpEsc(p.name)}: ${p.score}</div>`;
+                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${p.score}</div>`;
             });
             hud.innerHTML = rows;
         }
@@ -3263,13 +3399,16 @@
                 }
 
                 // Name tag above bird
+                if (typeof settings !== 'undefined' && settings.showNames === false) {
+                    context.restore(); return;
+                }
                 context.rotate(-rot); // un-rotate for text
                 context.font = 'bold 9px monospace';
                 context.textAlign = 'center';
                 context.globalAlpha = p.dead ? 0.3 : 1;
 
                 // Text background pill
-                const nameText = roleTagText(p.roles) + (p.name || 'Player');
+                const nameText = roleTagText(p) + (p.name || 'Player');
                 const textW = context.measureText(nameText).width;
                 context.fillStyle = 'rgba(0,0,0,0.55)';
                 context.beginPath();
@@ -3277,7 +3416,7 @@
                 context.fill();
 
                 // Tag colour takes priority over the player's chosen bird colour
-                context.fillStyle = roleTagColour(p.roles) || p.colour || '#FFD966';
+                context.fillStyle = roleTagColour(p) || p.colour || '#FFD966';
                 context.fillText(nameText, 0, -birdSize/2 - 7);
 
                 if (p.dead) {
@@ -3287,6 +3426,75 @@
 
                 context.textAlign = 'left';
                 context.restore();
+            });
+        }
+
+        // ----- OFF-SCREEN PLAYER ARROWS -----
+        function mpDrawOffscreenArrows(ctx) {
+            if (!mpCurrentRoom || !mpMatchActive) return;
+            if (typeof settings !== 'undefined' && settings.showNames === false) return;
+
+            const M = 26;               // margin from canvas edge
+            const W = canvas.width, H = canvas.height;
+
+            Object.entries(mpPlayers).forEach(([nr, p]) => {
+                if (parseInt(nr) === mpLocalActor) return;
+                const px = p.rx ?? p.x ?? 100;
+                const py = p.ry ?? p.y ?? 300;
+
+                const off = px < M || px > W - M || py < M || py > H - M;
+                if (!off) return;   // visible on screen, no arrow needed
+
+                // Clamp to the edge and work out which way to point
+                const cx = Math.max(M, Math.min(W - M, px));
+                const cy = Math.max(M, Math.min(H - M, py));
+                const ang = Math.atan2(py - cy, px - cx);
+
+                const colour = p.dead ? '#666' : (roleTagColour(p) || p.colour || '#FF6B35');
+
+                ctx.save();
+                ctx.translate(cx, cy);
+
+                // Arrow head
+                ctx.rotate(ang);
+                ctx.globalAlpha = p.dead ? 0.45 : 0.95;
+                ctx.fillStyle = colour;
+                ctx.beginPath();
+                ctx.moveTo(12, 0); ctx.lineTo(-7, -7); ctx.lineTo(-7, 7);
+                ctx.closePath(); ctx.fill();
+
+                // Label stays upright
+                ctx.rotate(-ang);
+                ctx.font = 'bold 9px monospace';
+                ctx.textAlign = 'center';
+
+                const label = (p.dead ? '💀 ' : '') + (p.name || 'Player');
+                const w = ctx.measureText(label).width;
+                // Nudge the label back inside so it never clips off-canvas
+                let lx = 0, ly = -15;
+                if (cy <= M + 1) ly = 20;
+                if (cx <= M + 1) lx = w/2;
+                if (cx >= W - M - 1) lx = -w/2;
+
+                ctx.globalAlpha = 0.85;
+                ctx.fillStyle = 'rgba(0,0,0,0.6)';
+                ctx.beginPath();
+                ctx.roundRect(lx - w/2 - 4, ly - 9, w + 8, 13, 4);
+                ctx.fill();
+
+                ctx.globalAlpha = 1;
+                ctx.fillStyle = colour;
+                ctx.fillText(label, lx, ly);
+
+                // Distance readout, so you know how far they are
+                const dist = Math.round(Math.hypot(px - bird.x, py - bird.y));
+                ctx.font = '7px monospace';
+                ctx.globalAlpha = 0.6;
+                ctx.fillStyle = '#ccc';
+                ctx.fillText(dist + 'm', lx, ly + 9);
+
+                ctx.textAlign = 'left';
+                ctx.restore();
             });
         }
 
@@ -3356,6 +3564,9 @@
                         p.name = content.name;
                         if (content.colour) p.colour = content.colour;
                         p.roles = content.roles || [];
+                        p.level = content.level || 1;
+                        p.pfId  = content.pfId || null;
+                        p.photo = content.photo || null;
                     }
                     mpRenderLobby();
                     break;
@@ -3400,6 +3611,7 @@
                 if (!log) return;
                 const el = document.createElement('div');
                 el.className = logId === 'mpChatLog' ? 'mp-chat-log-entry' : 'msg';
+                if (typeof ChatFilter !== 'undefined') text = ChatFilter.clean(text);
                 const _m = renderMentions(text);
                 if (_m.mentionedMe) el.classList.add('chat-mention-me');
                 el.innerHTML = `${roleTagHtml(roles)}<strong>${mpEsc(name)}:</strong> ${_m.html}`;
@@ -3588,7 +3800,7 @@
             mpSaveProfile();
             setPhotonNickname(mpGetDisplayName());
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
                 if (mpPlayers[mpLocalActor]) {
                     mpPlayers[mpLocalActor].name = mpGetDisplayName();
                     mpPlayers[mpLocalActor].colour = mpGetColour();
@@ -3654,8 +3866,9 @@
         // Lobby chat
         document.getElementById('mpLobbyChatSend').addEventListener('click', () => {
             const input = document.getElementById('mpLobbyChatInput');
-            const text = input.value.trim();
+            let text = input.value.trim();
             if (!text || !mpCurrentRoom) return;
+            if (typeof ChatFilter !== 'undefined') text = ChatFilter.clean(text);
             mpLobbyChatAppend(mpGetDisplayName() + ' (you)', text, false, myRoles);
             mpRaiseEvent(MP_EV.LOBBY_CHAT, { text: text.slice(0,100) });
             input.value = '';
@@ -3688,7 +3901,8 @@
         });
         mpChatInputEl.addEventListener('keypress', e => {
             if (e.key === 'Enter' && mpChatInputEl.value.trim()) {
-                const text = mpChatInputEl.value.trim().slice(0, 120);
+                let text = mpChatInputEl.value.trim().slice(0, 120);
+                if (typeof ChatFilter !== 'undefined') text = ChatFilter.clean(text);
                 mpChatAppendMessage(mpGetDisplayName() + ' (you)', text, myRoles);
                 mpRaiseEvent(MP_EV.CHAT, { text });
                 mpChatInputEl.value = '';
@@ -3702,6 +3916,8 @@
         document.getElementById('closeReportBtn').addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
         document.getElementById('mpSubmitReportBtn').addEventListener('click', mpSubmitReport);
 
+        loadFriends();
+        loadLevel();
         setupSettings();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
