@@ -332,9 +332,9 @@ body {
     display: flex; align-items: center;
     justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
-.footer-copy { font-size: 11px; color: #555; letter-spacing: 0.5px; }
+.footer-copy { font-size: 11px; color: #8C8C8C; letter-spacing: 0.5px; }
 .footer-links { display: flex; gap: 20px; }
-.footer-link { color: #555; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; transition: color 0.12s; }
+.footer-link { color: #8C8C8C; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; transition: color 0.12s; }
 .footer-link:hover { color: var(--neon-orange); }
 
 /* ── MUSIC BTN ─────────────────────────────────────────────── */
@@ -405,7 +405,7 @@ body {
 }
 .channel-filter {
     background: var(--card-bg); border: 1px solid var(--line);
-    color: #888; padding: 5px 14px; border-radius: 20px;
+    color: #ABABAB; padding: 5px 14px; border-radius: 20px;
     cursor: pointer; font-family: 'CRIX Pixel', monospace;
     font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
     transition: all 0.12s; white-space: nowrap;
@@ -559,7 +559,7 @@ body {
         <div class="fanmail-track-wrap">
             <div class="fanmail-track" id="fanmailTrack"></div>
         </div>
-        <p style="margin-top:16px;font-size:11px;color:#555;text-align:center;">Hover over an image to see who made it · Want to be featured? Send fan art to cgvr@crixgamingvr.com</p>
+        <p style="margin-top:16px;font-size:11px;color:#8C8C8C;text-align:center;">Hover over an image to see who made it · Want to be featured? Send fan art to cgvr@crixgamingvr.com</p>
     </div>
 
     <!-- VIDEOS -->
@@ -910,7 +910,7 @@ function renderCurrentTab() {
     const type = currentTab === 'long' ? 'long' : currentTab === 'shorts' ? 'shorts' : 'live';
     const videos = getFilteredVideos(type).slice(0, 9);
     videoGrid.innerHTML = '';
-    if (!videos.length) { videoGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#888;">No videos found</div>'; return; }
+    if (!videos.length) { videoGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ABABAB;">No videos found</div>'; return; }
     videos.forEach(video => {
         const card = document.createElement('div');
         card.className = 'video-card';
