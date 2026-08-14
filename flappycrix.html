@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081407"></script>
-    <script src="playfab-manager.js?v=2026081407"></script>
+    <script src="filter.js?v=2026081408"></script>
+    <script src="playfab-manager.js?v=2026081408"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -76,6 +76,9 @@
         
         body {
             background: var(--dark);
+            /* Without this, every element lacking an explicit `color` inherits
+               the browser default (black) and is invisible on the dark theme. */
+            color: #EDEDED;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -775,9 +778,34 @@
         }
         .store-grid div, .product-info div, #achievementsGrid div,
         #lockerHats div, #lockerShirts div { color: #EDEDED; }
-        /* keep the deliberate accent colours */
-        .product-price, .modal-title, .mp-section-title,
-        .stat-value, .mp-level-chip, .rank-name { color: inherit; }
+
+        /* Form controls render with OS defaults unless told otherwise —
+           on some systems that means black text on a white dropdown. */
+        select, option, input, textarea, button {
+            color: #EDEDED;
+            background-color: #14141C;
+        }
+        option { background-color: #14141C; color: #EDEDED; }
+        input::placeholder, textarea::placeholder { color: #999; }
+        /* buttons that intentionally have coloured backgrounds keep their own text colour */
+        .game-btn, .action-btn, .mp-btn-primary, .mp-btn-secondary, .mp-btn-danger,
+        .product-buy, .auth-btn, .nav-play, .store-tab.active, .video-tab.active,
+        .mp-privacy-btn.selected, .queue-tab.active, .login-btn, .logout-btn {
+            color: #FFFFFF;
+            background-color: revert;
+        }
+        .store-tab.active { color: #1A1400; }
+
+        /* Accent colours, restated so the broad readability rules above
+           can't flatten them to grey. */
+        .modal-content .product-price { color: var(--neon-orange) !important; }
+        .modal-content .modal-title,
+        .mp-modal-content .modal-title { color: #FFD966 !important; }
+        .mp-section-title { color: var(--orange) !important; }
+        .stat-value { color: var(--orange) !important; }
+        .stat-label { color: var(--green) !important; }
+        .mp-level-chip { color: #FFD700 !important; }
+        .video-date, .mp-room-meta { color: var(--green) !important; }
 
         /* ---- REDUCED MOTION ---- */
         body.reduced-motion *,
