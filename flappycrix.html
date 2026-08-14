@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081406"></script>
-    <script src="playfab-manager.js?v=2026081406"></script>
+    <script src="filter.js?v=2026081407"></script>
+    <script src="playfab-manager.js?v=2026081407"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -191,7 +191,7 @@
             align-items: center;
             text-align: center;
             margin: 14px 0;
-            color: #777;
+            color: #A0A0A0;
             font-size: 11px;
         }
         .auth-divider::before, .auth-divider::after {
@@ -565,7 +565,7 @@
         .mp-room-name { font-size: 12px; font-weight: 700; color: white; }
         .mp-room-meta { font-size: 10px; color: #999; margin-top: 2px; }
         .mp-room-join-tag { background: var(--green); color: #042; font-size: 10px; font-weight: 700; padding: 3px 10px; border-radius: 20px; }
-        .mp-empty-state { text-align: center; color: #777; font-size: 12px; padding: 20px; }
+        .mp-empty-state { text-align: center; color: #A0A0A0; font-size: 12px; padding: 20px; }
 
         /* ---- LOBBY VIEW ---- */
         .mp-lobby-code { text-align: center; font-size: 22px; font-weight: 800; color: var(--green); letter-spacing: 4px; margin: 6px 0; }
@@ -696,7 +696,7 @@
             padding: 8px; font-size: 10px; color: #ddd;
             display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px;
         }
-        .mp-lobby-chat-log .sys { color: #666; font-style: italic; }
+        .mp-lobby-chat-log .sys { color: #969696; font-style: italic; }
         .mp-lobby-chat-log .msg strong { color: var(--orange); }
         .mp-lobby-chat-row { display: flex; gap: 6px; }
         .mp-lobby-chat-input {
@@ -771,7 +771,7 @@
         }
         .modal-content input::placeholder, .mp-modal-content input::placeholder,
         .modal-content textarea::placeholder, .mp-modal-content textarea::placeholder {
-            color: #777;
+            color: #A0A0A0;
         }
         .store-grid div, .product-info div, #achievementsGrid div,
         #lockerHats div, #lockerShirts div { color: #EDEDED; }
@@ -834,7 +834,7 @@
             display:flex; align-items:center; justify-content:center; font-size:13px;
             font-weight:bold; color:#fff; }
         .friend-btn { background:none; border:none; cursor:pointer; font-size:14px; padding:2px 5px;
-            line-height:1; color:#777; }
+            line-height:1; color:#A0A0A0; }
         .friend-btn:hover { transform:scale(1.15); }
         .friend-btn.fav { color:#FFD700; }
         .friend-btn.join { color:#00CC7A; }
@@ -953,7 +953,7 @@
         }
         .store-tab.active {
             background: gold;
-            color: black;
+            color: #1A1400;
             border-color: gold;
             border-bottom-color: rgba(150,120,0,0.8);
         }
@@ -1025,7 +1025,7 @@
         </div>
         
         <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-            <button id="hideUIBtn" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,107,53,0.4);border-radius:20px;padding:3px 12px;color:#888;font-size:10px;cursor:pointer;font-family:inherit;" title="Hide UI (H key)">👁 HIDE UI</button>
+            <button id="hideUIBtn" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,107,53,0.4);border-radius:20px;padding:3px 12px;color:#ABABAB;font-size:10px;cursor:pointer;font-family:inherit;" title="Hide UI (H key)">👁 HIDE UI</button>
         </div>
         <div class="stats-grid">
             <div class="cyber-stat" id="achievementsBtn"><div class="stat-label">🏆 ACHIEV</div><div class="stat-value" id="achievementCount">0/6</div></div>
@@ -1180,7 +1180,7 @@
                     <!-- Your own friend code -->
                     <div class="code-card">
                         <div>
-                            <div style="font-size:9px;color:#888;text-transform:uppercase;letter-spacing:1px;">Your friend code</div>
+                            <div style="font-size:9px;color:#ABABAB;text-transform:uppercase;letter-spacing:1px;">Your friend code</div>
                             <div id="myFriendCode" style="font-size:16px;font-weight:bold;color:#27A9F5;letter-spacing:1px;font-family:monospace;">—</div>
                         </div>
                         <button class="set-mini-btn" id="copyCodeBtn">COPY</button>
@@ -1364,7 +1364,7 @@
                 <div style="font-size:11px;color:#aaa;line-height:1.7;max-width:330px;margin:0 auto 16px;">
                     Unlock a single-player sandbox: godmode, big and tiny bird, slow motion,
                     coin rain, low gravity and sandbox coins.<br>
-                    <span style="color:#777;">It stays disabled in multiplayer so matches stay fair.</span>
+                    <span style="color:#A0A0A0;">It stays disabled in multiplayer so matches stay fair.</span>
                 </div>
                 <div style="font-size:20px;color:#FFD700;font-weight:bold;margin-bottom:14px;">🪙 5,000</div>
                 <button class="mp-btn-primary" id="pmBuyBtn" style="max-width:220px;margin:0 auto;">UNLOCK</button>
@@ -1387,7 +1387,7 @@
             </div>
 
             <div class="mp-section-title" style="margin-top:16px;">🪙 SANDBOX COINS</div>
-            <div style="font-size:10px;color:#888;margin-bottom:8px;line-height:1.6;">
+            <div style="font-size:10px;color:#ABABAB;margin-bottom:8px;line-height:1.6;">
                 Sandbox coins are local only — they let you try out cosmetics without grinding,
                 and are not saved to your account or leaderboards.
             </div>
@@ -1417,7 +1417,7 @@
                 <button class="modal-close" id="closeOwnerBtn">✕</button>
             </div>
 
-            <div id="ownerRoleNote" style="font-size:10px;color:#888;margin-bottom:12px;"></div>
+            <div id="ownerRoleNote" style="font-size:10px;color:#ABABAB;margin-bottom:12px;"></div>
 
             <!-- PLAYER ACTIONS -->
             <div class="mp-section-title">👤 PLAYER ACTIONS</div>
@@ -1484,7 +1484,7 @@
             <div id="setSignedOut" style="display:none;text-align:center;padding:18px 12px;background:rgba(255,70,85,0.05);border:1px solid rgba(255,70,85,0.25);border-radius:12px;margin-bottom:12px;">
                 <div style="font-size:26px;margin-bottom:8px;">🔒</div>
                 <div style="font-size:12px;color:#ccc;margin-bottom:4px;">You need an account to get a Player ID.</div>
-                <div style="font-size:10px;color:#777;margin-bottom:14px;">Your ID stores your coins, cosmetics and stats.</div>
+                <div style="font-size:10px;color:#A0A0A0;margin-bottom:14px;">Your ID stores your coins, cosmetics and stats.</div>
                 <button class="mp-btn-primary" id="setSignInBtn" style="max-width:200px;margin:0 auto;">SIGN IN / SIGN UP</button>
             </div>
 
@@ -1504,7 +1504,7 @@
             <div class="set-row">
                 <span class="set-label">Phone</span>
                 <div style="display:flex;align-items:center;gap:6px;">
-                    <span id="setPhoneStatus" style="font-size:11px;color:#777;">Not linked</span>
+                    <span id="setPhoneStatus" style="font-size:11px;color:#A0A0A0;">Not linked</span>
                     <button class="set-mini-btn" id="linkPhoneBtn">LINK</button>
                 </div>
             </div>
@@ -1519,7 +1519,7 @@
             <div id="setPfWarning" style="display:none;font-size:10px;color:#FFB347;background:rgba(255,165,0,0.07);border:1px solid rgba(255,165,0,0.25);border-radius:8px;padding:8px 10px;margin:6px 0 2px;line-height:1.6;"></div>
             <div class="set-row">
                 <span class="set-label">Roles</span>
-                <span id="setRoles" style="font-size:11px;color:#888;">None</span>
+                <span id="setRoles" style="font-size:11px;color:#ABABAB;">None</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Status</span>
@@ -1536,7 +1536,7 @@
                     <div style="width:90px;height:6px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;">
                         <div id="setXpBar" style="height:100%;width:0%;background:linear-gradient(90deg,#FF6B35,#FFD700);"></div>
                     </div>
-                    <span id="setXpText" style="font-size:9px;color:#777;">0/50</span>
+                    <span id="setXpText" style="font-size:9px;color:#A0A0A0;">0/50</span>
                 </div>
             </div>
             <div class="set-row">
@@ -1624,12 +1624,12 @@
                 </div>
             </div>
 
-            <div style="font-size:11px;color:#666;margin-bottom:18px;">You can still play single player.</div>
+            <div style="font-size:11px;color:#969696;margin-bottom:18px;">You can still play single player.</div>
             <button onclick="document.getElementById('banScreen').style.display='none'"
                     style="background:linear-gradient(135deg,#FF4655,#FF6B35);color:#fff;border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);border-radius:30px;padding:11px 30px;font-family:inherit;font-size:13px;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:1px;">
                 Back to single player
             </button>
-            <div style="margin-top:14px;font-size:10px;color:#555;">Think this is a mistake? Email cgvr@crixgamingvr.com</div>
+            <div style="margin-top:14px;font-size:10px;color:#8C8C8C;">Think this is a mistake? Email cgvr@crixgamingvr.com</div>
         </div>
     </div>
 
@@ -1639,7 +1639,7 @@
         <div style="font-size:14px;color:#ccc;margin-bottom:20px;">Spectating remaining players</div>
         <canvas id="spectateCanvas" width="340" height="280" style="border:2px solid #FF6B35;border-radius:14px;background:#0a0a1a;max-width:95vw;"></canvas>
         <div id="spectateAlivePlayers" style="margin-top:12px;font-size:12px;color:#ccc;"></div>
-        <div style="margin-top:16px;font-size:11px;color:#777;">Match will end when only one player remains</div>
+        <div style="margin-top:16px;font-size:11px;color:#A0A0A0;">Match will end when only one player remains</div>
     </div>
 
     <!-- OVERLAYS -->
@@ -1920,7 +1920,7 @@
                     <div style="font-size:11px;color:#bbb;line-height:1.7;max-width:320px;margin:0 auto 14px;">
                         A single-player sandbox: godmode, big and tiny bird, slow motion,
                         coin rain, low gravity and sandbox coins.<br>
-                        <span style="color:#777;">Locked during multiplayer so matches stay fair.</span>
+                        <span style="color:#A0A0A0;">Locked during multiplayer so matches stay fair.</span>
                     </div>
                     <div style="font-size:19px;color:#FFD700;font-weight:bold;margin-bottom:12px;">🪙 ${formatCoins(PLAYER_MENU_PRICE)}</div>
                     ${owned
@@ -1933,8 +1933,8 @@
         }
 
         function updateLockerDisplay() { 
-            let hatsHtml = ''; cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;position:relative;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${h.id}')"><img src="${h.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${h.name}</div>${h.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="color:#666;font-size:12px;padding:10px;">No hats owned yet</div>'; 
-            let shirtsHtml = ''; cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;cursor:pointer;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${s.id}')"><img src="${s.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${s.name}</div>${s.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="color:#666;font-size:12px;padding:10px;">No shirts owned yet</div>'; 
+            let hatsHtml = ''; cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;position:relative;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${h.id}')"><img src="${h.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${h.name}</div>${h.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="color:#969696;font-size:12px;padding:10px;">No hats owned yet</div>'; 
+            let shirtsHtml = ''; cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;cursor:pointer;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${s.id}')"><img src="${s.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${s.name}</div>${s.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="color:#969696;font-size:12px;padding:10px;">No shirts owned yet</div>'; 
             document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
         }
         
@@ -2228,7 +2228,7 @@
             const mp = (typeof MP_ACHIEVEMENTS !== 'undefined') ? MP_ACHIEVEMENTS : [];
             const sectionHtml = (title, list) =>
                 `<div style="font-size:10px;color:#FF6B35;text-transform:uppercase;letter-spacing:2px;margin:6px 0 2px;">${title} · ${list.filter(a=>a.unlocked).length}/${list.length}</div>` +
-                list.map(a=>`<div style="background:#111;border:${a.unlocked?'2px solid gold':'1px solid #333'};border-radius:14px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:${a.unlocked?'2px 2px 0 rgba(150,120,0,0.5)':'2px 2px 0 rgba(0,0,0,0.3)'};"><div style="font-size:22px;">${a.icon}</div><div style="flex:1;"><div style="font-weight:bold;font-size:13px;">${a.name}</div><div style="font-size:10px;color:#aaa;margin-top:2px;">${a.desc}</div>${!a.unlocked&&a.target>1?`<div style="font-size:10px;color:#666;margin-top:3px;">${a.progress||0}/${a.target}</div>`:''}</div>${a.unlocked?'<div style="color:#00CC7A;font-size:18px;">✅</div>':''}</div>`).join('');
+                list.map(a=>`<div style="background:#111;border:${a.unlocked?'2px solid gold':'1px solid #333'};border-radius:14px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:${a.unlocked?'2px 2px 0 rgba(150,120,0,0.5)':'2px 2px 0 rgba(0,0,0,0.3)'};"><div style="font-size:22px;">${a.icon}</div><div style="flex:1;"><div style="font-weight:bold;font-size:13px;">${a.name}</div><div style="font-size:10px;color:#aaa;margin-top:2px;">${a.desc}</div>${!a.unlocked&&a.target>1?`<div style="font-size:10px;color:#969696;margin-top:3px;">${a.progress||0}/${a.target}</div>`:''}</div>${a.unlocked?'<div style="color:#00CC7A;font-size:18px;">✅</div>':''}</div>`).join('');
             g.innerHTML = sectionHtml('Single Player', achievements) +
                           (mp.length ? sectionHtml('Multiplayer', mp) : '');
             document.getElementById('achievementsModal').classList.add('active');
@@ -2392,14 +2392,14 @@
                     warn.style.display = 'block';
                     let extra = '';
                     if (hasPFM && PlayFabManager.status === 'no_title_id') {
-                        extra = '<br><span style="color:#666;">Open <code>api.json</code> and replace ' +
+                        extra = '<br><span style="color:#969696;">Open <code>api.json</code> and replace ' +
                                 '<code>PASTE_YOUR_PLAYFAB_TITLE_ID_HERE</code> with the Title ID from ' +
                                 'PlayFab &rarr; Title Settings &rarr; API Features.</span>';
                     } else if (hasPFM && PlayFabManager.status === 'account_missing') {
-                        extra = '<br><span style="color:#666;">In PlayFab: Title Settings &rarr; API Features &rarr; ' +
+                        extra = '<br><span style="color:#969696;">In PlayFab: Title Settings &rarr; API Features &rarr; ' +
                                 'tick <strong>Allow client to create accounts</strong>, then reload.</span>';
                     } else if (hasPFM && PlayFabManager.status === 'no_firebase') {
-                        extra = '<br><span style="color:#666;">Sign in with Google or email first.</span>';
+                        extra = '<br><span style="color:#969696;">Sign in with Google or email first.</span>';
                     }
                     warn.innerHTML = '⚠️ ' + msg + extra;
                 }
@@ -3493,7 +3493,7 @@
             if (typeof PlayFabManager.getFriends !== 'function') {
                 list.innerHTML = '<div class="mp-empty-state" style="color:#FFB347;line-height:1.7;">' +
                     '⚠️ Old version of <code>playfab-manager.js</code> is loaded.<br>' +
-                    '<span style="font-size:10px;color:#888;">Push the updated file, then hard-refresh with ' +
+                    '<span style="font-size:10px;color:#ABABAB;">Push the updated file, then hard-refresh with ' +
                     'Ctrl+Shift+R (Cmd+Shift+R on Mac).</span></div>';
                 return;
             }
@@ -4208,9 +4208,9 @@
                 const lvl = `<span class="mp-level-chip">${p.level || 1}</span>`;
                 // Owners can see PlayFab IDs so they can ban without guesswork
                 const idLine = (myRoles.includes('OWNER') && p.pfId)
-                    ? `<div style="font-size:8px;color:#666;font-family:monospace;">${mpEsc(p.pfId)}</div>` : '';
+                    ? `<div style="font-size:8px;color:#969696;font-family:monospace;">${mpEsc(p.pfId)}</div>` : '';
                 row.innerHTML = avatar +
-                    `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#888;font-size:9px;">(you)</span>':''}${idLine}</div>` +
+                    `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
                 if (mpIsHost && !isMe) {
                     const kb = document.createElement('button');
@@ -4750,7 +4750,7 @@
             const list = document.getElementById('spectateList');
             if (!list) return;
             const others = Object.entries(mpPlayers).filter(([nr]) => parseInt(nr) !== mpLocalActor);
-            if (!others.length) { list.innerHTML = '<span style="font-size:11px;color:#666;">Nobody to spectate</span>'; return; }
+            if (!others.length) { list.innerHTML = '<span style="font-size:11px;color:#969696;">Nobody to spectate</span>'; return; }
             list.innerHTML = others.map(([nr,p]) => {
                 const n = parseInt(nr);
                 const sel = n === spectateTarget;
@@ -4982,7 +4982,7 @@
             if (!log) return;
             const el = document.createElement('div');
             el.className = 'mp-chat-log-entry';
-            el.style.cssText = 'color:#888;font-style:italic';
+            el.style.cssText = 'color:#ABABAB;font-style:italic';
             el.textContent = text;
             log.appendChild(el);
             log.scrollTop = log.scrollHeight;
@@ -5232,7 +5232,7 @@
             b.innerHTML =
                 `<span class="rank-name" style="color:${pr.cur.colour}">🏆 ${pr.cur.name}</span>` +
                 `<div class="rank-bar-wrap"><div class="rank-bar" style="width:${pr.pct}%;background:${pr.cur.colour}"></div></div>` +
-                `<span style="font-size:10px;color:#888;">${pr.next ? pr.need + ' RP to ' + pr.next.name : 'MAX RANK'}</span>`;
+                `<span style="font-size:10px;color:#ABABAB;">${pr.next ? pr.need + ' RP to ' + pr.next.name : 'MAX RANK'}</span>`;
         }
         document.querySelectorAll('.queue-tab').forEach(t => {
             t.addEventListener('click', () => {
