@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js"></script>
-    <script src="playfab-manager.js"></script>
+    <script src="filter.js?v=2026081401"></script>
+    <script src="playfab-manager.js?v=2026081401"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -2686,7 +2686,18 @@
         async function loadPlayFabFriends() {
             const list = document.getElementById('friendsList');
             if (!list) return;
-            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
+            if (typeof PlayFabManager === 'undefined') {
+                list.innerHTML = '<div class="mp-empty-state" style="color:#FF4655;">playfab-manager.js did not load.</div>';
+                return;
+            }
+            if (typeof PlayFabManager.getFriends !== 'function') {
+                list.innerHTML = '<div class="mp-empty-state" style="color:#FFB347;line-height:1.7;">' +
+                    '⚠️ Old version of <code>playfab-manager.js</code> is loaded.<br>' +
+                    '<span style="font-size:10px;color:#888;">Push the updated file, then hard-refresh with ' +
+                    'Ctrl+Shift+R (Cmd+Shift+R on Mac).</span></div>';
+                return;
+            }
+            if (!PlayFabManager.isReady) {
                 list.innerHTML = '<div class="mp-empty-state">Sign in to use friends.</div>';
                 return;
             }
@@ -2769,9 +2780,11 @@
             const val = input.value.trim();
             err.style.color = '#FF4655';
             if (!val) { err.textContent = 'Enter a display name or PlayFab ID.'; return; }
-            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
-                err.textContent = 'Sign in first.'; return;
+            if (typeof PlayFabManager === 'undefined' || typeof PlayFabManager.addFriend !== 'function') {
+                err.textContent = 'Old playfab-manager.js loaded — push the new file and hard-refresh (Ctrl+Shift+R).';
+                return;
             }
+            if (!PlayFabManager.isReady) { err.textContent = 'Sign in first.'; return; }
             const btn = document.getElementById('addFriendBtn');
             btn.disabled = true; btn.textContent = '…';
             try {
