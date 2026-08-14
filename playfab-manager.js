@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.14-friends';
+const PLAYFAB_MANAGER_VERSION = '2026.08.14-codes';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -391,10 +391,89 @@ if (typeof window !== 'undefined') {
     };
 })(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
 
+
+/* ============================================================
+   FRIEND CODES / AVATAR / PRIVACY  (extension 2)
+   ------------------------------------------------------------
+   Friend codes work by baking a short code into the PlayFab
+   display name as "Name#AB12". PlayFab's AddFriend already
+   supports exact display-name lookup, so no custom backend is
+   needed — the code IS part of the name.
+   ============================================================ */
+(function (PFM) {
+    if (typeof PFM === 'undefined') return;
+
+    const call = (endpoint, body) => {
+        if (!PFM.isReady) return Promise.reject(new Error('Not logged in to PlayFab'));
+        return fetch(`https://${PFM._titleId}.playfabapi.com${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Authorization': PFM._ticket },
+            body: JSON.stringify(body)
+        }).then(async res => {
+            const j = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const e = new Error(j.errorMessage || `PlayFab ${res.status}`);
+                e.playfabError = j.error; e.errorCode = j.errorCode; e.raw = j;
+                throw e;
+            }
+            return j.data;
+        });
+    };
+
+    /* Deterministic 4-character code derived from the PlayFab ID, so the
+       same account always produces the same code. Ambiguous characters
+       (0/O, 1/I) are excluded so codes are easy to read out loud. */
+    PFM.friendCodeFor = function (playFabId) {
+        const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        if (!playFabId) return null;
+        let h = 0;
+        for (let i = 0; i < playFabId.length; i++) {
+            h = ((h << 5) - h + playFabId.charCodeAt(i)) | 0;
+        }
+        h = Math.abs(h);
+        let code = '';
+        for (let i = 0; i < 4; i++) { code += ALPHA[h % ALPHA.length]; h = Math.floor(h / ALPHA.length) + 7; }
+        return code;
+    };
+
+    /* Sets the display name to "Name#CODE" so friend lookups work. */
+    PFM.setNameWithCode = async function (baseName) {
+        const code = PFM.friendCodeFor(PFM.playFabId);
+        if (!code) return null;
+        const clean = String(baseName).replace(/#.*$/, '').trim().slice(0, 18);
+        const full = `${clean}#${code}`;
+        await call('/Client/UpdateUserTitleDisplayName', { DisplayName: full });
+        return full;
+    };
+
+    /* Add by the full "Name#CODE" string. */
+    PFM.addFriendByCode = function (nameWithCode) {
+        return call('/Client/AddFriend', { FriendTitleDisplayName: nameWithCode.trim() });
+    };
+
+    /* Avatar. PlayFab stores a URL — we don't host uploads. */
+    PFM.setAvatar = function (url) {
+        return call('/Client/UpdateAvatarUrl', { ImageUrl: url });
+    };
+
+    /* Privacy preference. Stored public so a lookup can honour it. */
+    PFM.setAllowFriendRequests = function (allow) {
+        return call('/Client/UpdateUserData', {
+            Data: { allowFriendRequests: allow ? 'true' : 'false' },
+            Permission: 'Public'
+        });
+    };
+
+    PFM.getMyPrivacy = function () {
+        return call('/Client/GetUserData', { Keys: ['allowFriendRequests'] })
+            .then(d => d.Data?.allowFriendRequests?.Value !== 'false');
+    };
+})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
+
 /* Startup self-check: shouts loudly if a stale cached copy is running. */
 (function () {
     if (typeof window === 'undefined') return;
-    const need = ['addFriend','getFriends','removeFriend','setFavourite','setPresence','saveStats','loadStats'];
+    const need = ['addFriend','getFriends','removeFriend','setFavourite','setPresence','saveStats','loadStats','friendCodeFor','addFriendByCode','setAvatar','setNameWithCode'];
     const missing = need.filter(fn => typeof PlayFabManager[fn] !== 'function');
     if (missing.length) {
         console.error('[PlayFab] STALE FILE — playfab-manager.js is missing:', missing.join(', '),
