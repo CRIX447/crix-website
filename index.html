@@ -769,6 +769,45 @@ function normalizeHandle(h) {
     return (h || '').replace(/^@/, '').toLowerCase();
 }
 
+// Calls the serverless proxy when it's available, and falls back to a direct
+// key from api.json if the Vercel env vars aren't configured yet. This means
+// the site keeps working during the migration instead of going blank.
+let _useProxy = null;   // null = not yet determined
+
+async function ytFetch(params) {
+    const qs = new URLSearchParams(params).toString();
+
+    if (_useProxy !== false) {
+        try {
+            const r = await fetch(`/api/youtube?${qs}`);
+            if (r.ok) {
+                const j = await r.json();
+                if (!j.error) { _useProxy = true; return j; }
+            }
+            // 500 here usually means YOUTUBE_API_KEY isn't set in Vercel
+            if (_useProxy === null) {
+                console.warn('[YouTube] Proxy unavailable, falling back to the key in api.json. ' +
+                             'Set YOUTUBE_API_KEY in Vercel to use the secure proxy.');
+            }
+            _useProxy = false;
+        } catch (e) { _useProxy = false; }
+    }
+
+    // Fallback: direct call using the key from api.json (if present)
+    if (!API_KEY) throw new Error('No YouTube key available (proxy off and api.json has none)');
+    const { action, ...rest } = params;
+    const paths = {
+        stats:   () => `channels?part=statistics,contentDetails&id=${rest.channelId || CHANNEL_ID}`,
+        resolve: () => `channels?part=id,statistics,contentDetails&forHandle=${encodeURIComponent(String(rest.handle||'').replace(/^@/,''))}`,
+        uploads: () => `playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(rest.playlistId||'')}`,
+        live:    () => `search?part=snippet&channelId=${rest.channelId || CHANNEL_ID}&eventType=live&type=video`
+    };
+    const path = paths[action] && paths[action]();
+    if (!path) throw new Error('Unknown YouTube action: ' + action);
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${API_KEY}`);
+    return res.json();
+}
+
 async function loadConfig() {
     try {
         const res = await fetch('api.json');
@@ -795,8 +834,7 @@ async function resolveChannelId(ch, apiKey) {
 
     try {
         const handle = ch.handle.replace(/^@/, '');
-        const res = await fetch(`/api/youtube?action=resolve&handle=${handle}`);
-        const data = await res.json();
+        const data = await ytFetch({ action: 'resolve', handle });
         const id = data.items?.[0]?.id;
         if (id) {
             cache[ch.handle] = id;
@@ -817,8 +855,7 @@ async function fetchVideosForChannel(ch) {
             ch.id = resolved;
             if (isMain) CHANNEL_ID = resolved; // used by checkLiveStream()
         }
-        const chanRes = await fetch(`/api/youtube?action=stats&channelId=${ch.id}`);
-        const chanData = await chanRes.json();
+        const chanData = await ytFetch({ action: 'stats', channelId: ch.id });
         if (!chanData.items?.[0]) return;
         if (isMain) {
             const st = chanData.items[0].statistics;
@@ -827,8 +864,7 @@ async function fetchVideosForChannel(ch) {
             document.getElementById('viewCount').textContent = formatNumber(parseInt(st.viewCount || 0));
         }
         const uploadsId = chanData.items[0].contentDetails.relatedPlaylists.uploads;
-        const vidRes = await fetch(`/api/youtube?action=uploads&playlistId=${uploadsId}`);
-        const vidData = await vidRes.json();
+        const vidData = await ytFetch({ action: 'uploads', playlistId: uploadsId });
         if (!vidData.items) return;
         const long = [], shorts = [], live = [];
         vidData.items.forEach(item => {
@@ -847,7 +883,7 @@ async function fetchVideosForChannel(ch) {
 }
 
 async function fetchYouTubeData() {
-    if (!API_KEY || !CHANNEL_DEFS.length) { useFallbackVideos(); return; }
+    if (!CHANNEL_DEFS.length) { useFallbackVideos(); return; }
     try {
         await Promise.all(CHANNEL_DEFS.map(ch => fetchVideosForChannel(ch)));
         const resolved = CHANNEL_DEFS.filter(ch => ch.id);
@@ -1005,11 +1041,9 @@ async function init() {
 // LIVE STREAM — checks if CRIX is currently live
 // =====================================================
 async function checkLiveStream() {
-    if (!API_KEY || !CHANNEL_ID) return;
+    if (!CHANNEL_ID) return;
     try {
-        const url = `/api/youtube?action=live&channelId=${CHANNEL_ID}`;
-        const res = await fetch(url);
-        const data = await res.json();
+        const data = await ytFetch({ action: 'live', channelId: CHANNEL_ID });
         const liveItem = data.items && data.items[0];
         const liveSection = document.getElementById('liveSection');
         if (liveItem) {
