@@ -780,17 +780,18 @@ async function ytFetch(params) {
     if (_useProxy !== false) {
         try {
             const r = await fetch(`/api/youtube?${qs}`);
-            if (r.ok) {
-                const j = await r.json();
-                if (!j.error) { _useProxy = true; return j; }
-            }
-            // 500 here usually means YOUTUBE_API_KEY isn't set in Vercel
+            const j = await r.json().catch(() => null);
+            if (r.ok && j && !j.error) { _useProxy = true; return j; }
             if (_useProxy === null) {
-                console.warn('[YouTube] Proxy unavailable, falling back to the key in api.json. ' +
-                             'Set YOUTUBE_API_KEY in Vercel to use the secure proxy.');
+                console.warn('[YouTube] Proxy returned', r.status,
+                             j?.error || j?.errorMessage || '(no body)',
+                             '— falling back to the key in api.json.');
             }
             _useProxy = false;
-        } catch (e) { _useProxy = false; }
+        } catch (e) {
+            if (_useProxy === null) console.warn('[YouTube] Proxy unreachable:', e.message);
+            _useProxy = false;
+        }
     }
 
     // Fallback: direct call using the key from api.json (if present)
@@ -805,7 +806,35 @@ async function ytFetch(params) {
     const path = paths[action] && paths[action]();
     if (!path) throw new Error('Unknown YouTube action: ' + action);
     const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${API_KEY}`);
-    return res.json();
+    const json = await res.json();
+    if (json.error) {
+        const reason = json.error.errors?.[0]?.reason || '';
+        const hints = {
+            keyInvalid:          'The API key is wrong or has been deleted.',
+            ipRefererBlocked:    'The key is restricted to certain referrers/IPs and this domain is not allowed. In Google Cloud → Credentials, add https://crixgamingvr.com/* to the HTTP referrer list.',
+            quotaExceeded:       'Daily quota used up. It resets at midnight Pacific.',
+            dailyLimitExceeded:  'Daily quota used up. It resets at midnight Pacific.',
+            accessNotConfigured: 'YouTube Data API v3 is not enabled for this project. Enable it in Google Cloud → APIs & Services → Library.',
+            forbidden:           'The key exists but is not permitted to make this call.'
+        };
+        console.error(`[YouTube] ${json.error.code} ${reason}: ${json.error.message}`);
+        if (hints[reason]) console.error('[YouTube] → ' + hints[reason]);
+        showYouTubeError(hints[reason] || json.error.message);
+    }
+    return json;
+}
+
+// Puts the failure on screen so it isn't invisible.
+function showYouTubeError(msg) {
+    if (document.getElementById('ytErrBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'ytErrBanner';
+    b.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;max-width:640px;margin:0 auto;' +
+        'background:#1a1014;border:1px solid rgba(255,70,85,.5);border-radius:10px;padding:12px 16px;' +
+        'font-size:12px;color:#FFB3BA;z-index:9999;line-height:1.6;font-family:system-ui,sans-serif;';
+    b.innerHTML = `<strong style="color:#FF4655">YouTube data unavailable.</strong> ${msg}
+        <span onclick="this.parentElement.remove()" style="float:right;cursor:pointer;color:#888;padding-left:10px">✕</span>`;
+    document.body.appendChild(b);
 }
 
 async function loadConfig() {
@@ -821,7 +850,13 @@ async function loadConfig() {
                     .map(c => ({ handle: c.handle, name: c.name || c.handle, id: '' }));
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('[Config] api.json failed to load:', e.message);
+    }
+    console.log('[Config] channels:', CHANNEL_DEFS.length,
+                '| key in api.json:', API_KEY ? 'yes' : 'no',
+                '| main:', MAIN_CHANNEL_HANDLE || '(none)');
+    if (!CHANNEL_DEFS.length) console.error('[Config] No channels defined in api.json — nothing to load.');
 }
 
 // Resolve an @handle to a channel ID using the official forHandle param.
@@ -841,7 +876,10 @@ async function resolveChannelId(ch, apiKey) {
             try { localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
             return id;
         }
-    } catch(e) {}
+        console.warn('[YouTube] No channel found for handle', ch.handle);
+    } catch(e) {
+        console.warn('[YouTube] resolve failed for', ch.handle, '-', e.message);
+    }
     return null;
 }
 
@@ -879,7 +917,9 @@ async function fetchVideosForChannel(ch) {
             else long.push(v);
         });
         allChannelVideos[ch.id] = { long, shorts, live };
-    } catch(e) {}
+    } catch(e) {
+        console.warn('[YouTube] failed loading', ch.name, '-', e.message);
+    }
 }
 
 async function fetchYouTubeData() {
