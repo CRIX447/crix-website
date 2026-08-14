@@ -1,6 +1,7 @@
 {
   "youtube": {
-    "_moved": "The API key now lives in a Vercel environment variable (YOUTUBE_API_KEY) and is used only by /api/youtube.js server-side. It is deliberately NOT here, because anything in this file is readable by anyone who opens DevTools.",
+    "_note": "apiKey here is a FALLBACK. Preferred setup: set YOUTUBE_API_KEY in Vercel env vars so /api/youtube.js proxies the calls and the key never reaches the browser. The site tries the proxy first and only uses this if the proxy isn't configured. Once the proxy works, delete apiKey below and regenerate it in Google Cloud.",
+    "apiKey": "AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk",
     "mainChannel": "@CRIXGAMINGVR",
     "channels": [
       {
@@ -40,10 +41,15 @@
     "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
   },
   "discord": {
+    "_setup": "1) discord.com/developers \u2192 your app \u2192 OAuth2 \u2192 Redirects \u2192 add EXACTLY https://crixgamingvr.com/flappycrix  2) copy the Client ID below  3) put CLIENT SECRET in Vercel env vars as DISCORD_CLIENT_SECRET \u2014 never here, this file is public.",
     "clientId": "PASTE_YOUR_DISCORD_CLIENT_ID_HERE",
     "redirectUri": "https://crixgamingvr.com/flappycrix",
-    "guildId": "1234567890",
-    "_note_clientSecret": "Client secret is NOT used in the browser. It is only needed if you add a server-side token exchange. See api/discord-token.js for the Vercel edge function."
+    "_vercelEnvVars": [
+      "1521661170438635644",
+      "bIykJckQsIBsggvg9kl5AxqZYSwAZH0r",
+      "DISCORD_REDIRECT_URI = https://crixgamingvr.com/flappycrix",
+      "FIREBASE_SERVICE_ACCOUNT = the full service-account JSON on one line"
+    ]
   },
   "playfab": {
     "_setup": "Get titleId from PlayFab Game Manager -> Title Settings -> API Features. currencyCode must exactly match the 2-character code you create under Economy -> Currency.",
