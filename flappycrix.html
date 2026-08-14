@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081411"></script>
-    <script src="playfab-manager.js?v=2026081411"></script>
+    <script src="filter.js?v=2026081412"></script>
+    <script src="playfab-manager.js?v=2026081412"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -3865,6 +3865,9 @@
             try {
                 mpSetStatusDot('connecting');
                 mpHideDiagnostic();
+                console.log('[Photon] connecting | appId:', (appConfig.photon.appId||'').slice(0,8) + '…',
+                            '| region:', appConfig.photon.region || 'us',
+                            '| SDK:', typeof Photon !== 'undefined' ? 'loaded' : 'MISSING');
                 photonClient = new Photon.LoadBalancing.LoadBalancingClient(
                     Photon.ConnectionProtocol.Wss,
                     appConfig.photon.appId,
@@ -3873,6 +3876,7 @@
                 photonClient.onStateChange = function(state) {
                     const S = Photon.LoadBalancing.LoadBalancingClient.State;
                     const name = Photon.LoadBalancing.LoadBalancingClient.StateToName(state) || state;
+                    console.log('[Photon] state:', name);
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
                         mpSetStatusDot('online');
@@ -3911,11 +3915,36 @@
                 photonClient.onJoinRoom = function(createdByMe) { mpHandleJoinedRoom(createdByMe); };
                 photonClient.onEvent = function(code, content, actorNr) { mpHandleEvent(code, content, actorNr); };
                 photonClient.onError = function(errCode, errMsg) {
-                    mpShowDiagnostic('⚠️ Multiplayer error ' + errCode + ': ' + errMsg);
+                    // Photon's numeric codes are opaque — translate the common ones.
+                    const hints = {
+                        1: 'Could not reach Photon. A firewall, VPN or ad-blocker may be blocking WebSockets on port 19093.',
+                        2: 'Photon rejected the App ID. Check api.json photon.appId is a REALTIME app ID (not Chat/Fusion/Quantum).',
+                        3: 'Photon timed out. Usually a network issue or the region is unreachable.',
+                        1001: 'Authentication failed — the App ID is wrong or the app is disabled in the Photon dashboard.',
+                        1002: 'Photon app is over its CCU limit (20 on the free plan) or disabled.',
+                        32757: 'No free slots / room full.',
+                        32758: 'Room not found — the code may be wrong or the lobby closed.',
+                        32764: 'Room name already in use.',
+                        32766: 'Game does not exist.'
+                    };
+                    const hint = hints[errCode] || '';
+                    console.error('[Photon] error', errCode, errMsg, hint ? '\n  → ' + hint : '');
+                    mpShowDiagnostic('⚠️ ' + (hint || `Multiplayer error ${errCode}: ${errMsg}`));
                     mpSetStatusDot('offline');
                 };
                 photonClient.myActor().setName(mpGetDisplayName());
                 photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
+
+                // If we're still not in a lobby after 12s, say so rather than
+                // sitting on a silent "connecting" dot forever.
+                setTimeout(() => {
+                    if (!mpConnected) {
+                        console.error('[Photon] Still not connected after 12s. Check the state log above.');
+                        mpShowDiagnostic('⚠️ Could not reach Photon. Check your App ID in api.json, ' +
+                                         'or try disabling a VPN/ad-blocker — WebSockets on port 19093 may be blocked.');
+                        mpSetStatusDot('offline');
+                    }
+                }, 12000);
             } catch(e) {
                 mpShowDiagnostic('⚠️ Multiplayer failed: ' + e.message);
                 mpSetStatusDot('offline');
