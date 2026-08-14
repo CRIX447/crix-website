@@ -754,6 +754,26 @@
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
 
+        /* ---- QUEUE TABS / RANK / SPECTATE ---- */
+        .queue-tabs { display:flex; gap:6px; margin-bottom:12px; }
+        .queue-tab { flex:1; background:rgba(10,10,20,0.8); border:2px solid rgba(255,107,53,0.35);
+            border-bottom:4px solid rgba(150,60,0,0.5); color:#999; padding:9px; border-radius:12px;
+            cursor:pointer; font-family:inherit; font-size:12px; font-weight:bold; letter-spacing:1px;
+            text-transform:uppercase; transition:all .12s; }
+        .queue-tab:hover { color:#fff; }
+        .queue-tab.active { background:linear-gradient(135deg,#FF4655,#FF6B35); color:#fff;
+            border-color:#00CC7A; border-bottom-color:#007744; }
+        .rank-banner { display:flex; align-items:center; gap:10px; background:rgba(0,0,0,0.4);
+            border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 14px; margin-bottom:12px; }
+        .rank-name { font-size:14px; font-weight:bold; }
+        .rank-bar-wrap { flex:1; height:7px; background:rgba(255,255,255,0.1); border-radius:4px; overflow:hidden; }
+        .rank-bar { height:100%; border-radius:4px; }
+        .spec-opt { flex-shrink:0; background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.35);
+            color:#ddd; font-size:11px; padding:6px 12px; border-radius:20px; cursor:pointer;
+            font-family:inherit; white-space:nowrap; }
+        .spec-opt:hover { border-color:#FF6B35; color:#fff; }
+        .spec-opt.sel { background:linear-gradient(135deg,#FF4655,#FF6B35); color:#fff; border-color:#00CC7A; }
+
         /* ---- TAGS / LEVEL / FRIENDS ---- */
         .mp-level-chip { display:inline-block; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4);
             color:#FFD700; font-size:9px; font-weight:bold; padding:1px 5px; border-radius:8px; margin-right:5px; }
@@ -1041,6 +1061,11 @@
                     <button class="mp-btn-secondary" id="mpJoinByCodeBtn">🔑 JOIN CODE</button>
                     <button class="mp-btn-secondary" id="mpEditProfileBtn" style="background:linear-gradient(135deg,#444,#222);">👤 PROFILE</button>
                 </div>
+                <div class="queue-tabs">
+                    <button class="queue-tab active" data-queue="casual">🎮 CASUAL</button>
+                    <button class="queue-tab" data-queue="competitive">🏆 COMPETITIVE</button>
+                </div>
+                <div id="rankBanner" style="display:none;"></div>
                 <div class="mp-section-title">🌍 PUBLIC LOBBIES</div>
                 <div class="mp-room-list" id="mpRoomList"><div class="mp-empty-state">Connecting...</div></div>
                 <button class="mp-btn-secondary" id="mpRefreshBtn" style="width:100%;margin-top:6px;">🔄 REFRESH</button>
@@ -1068,9 +1093,19 @@
                     <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
                     <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon">🪙</div><div class="mp-mode-name">Coin Rush</div></div>
                 </div>
+                <div class="mp-section-title">QUEUE</div>
+                <div class="mp-privacy-row">
+                    <button class="mp-privacy-btn selected" id="mpQueueCasual">🎮 CASUAL</button>
+                    <button class="mp-privacy-btn" id="mpQueueComp">🏆 COMPETITIVE</button>
+                </div>
+                <div id="compNotice" style="display:none;font-size:10px;color:#FFB347;background:rgba(255,165,0,0.07);border:1px solid rgba(255,165,0,0.25);border-radius:8px;padding:7px 10px;margin-top:6px;line-height:1.5;">
+                    ⚠️ Competitive matches are always public — private lobbies would let players farm rank against friends.
+                </div>
+
                 <div class="mp-section-title">PRIVACY</div>
                 <div class="mp-privacy-row">
                     <button class="mp-privacy-btn selected" id="mpPrivacyPublic">🌍 PUBLIC</button>
+                    <button class="mp-privacy-btn" id="mpPrivacyFriends">👥 FRIENDS</button>
                     <button class="mp-privacy-btn" id="mpPrivacyInvite">🔒 INVITE ONLY</button>
                 </div>
                 <div style="display:flex;gap:8px;margin-top:10px;">
@@ -1102,6 +1137,31 @@
                             <option value="lastone">💀 Last One Standing</option>
                             <option value="coinrush">🪙 Coin Rush</option>
                         </select>
+                    </div>
+                    <div class="mp-toggle-row" style="margin-top:6px;">
+                        <span>Max players</span>
+                        <select class="mp-mode-select" id="mpMaxPlayers">
+                            <option value="2">2</option><option value="4">4</option>
+                            <option value="6">6</option><option value="8" selected>8</option>
+                        </select>
+                    </div>
+                    <div class="mp-toggle-row" style="margin-top:6px;">
+                        <span>Race target</span>
+                        <select class="mp-mode-select" id="mpRaceTarget">
+                            <option value="25">25</option><option value="50">50</option>
+                            <option value="100" selected>100</option><option value="200">200</option>
+                        </select>
+                    </div>
+                    <div class="mp-toggle-row" style="margin-top:6px;">
+                        <span>Coin Rush time</span>
+                        <select class="mp-mode-select" id="mpRushTime">
+                            <option value="120">2 min</option><option value="180">3 min</option>
+                            <option value="300" selected>5 min</option>
+                        </select>
+                    </div>
+                    <div class="mp-toggle-row" style="margin-top:6px;">
+                        <span>Allow mid-game spectators</span>
+                        <div class="mp-toggle-switch active" id="mpAllowSpectate"></div>
                     </div>
                     <div id="mpPermissionsPanel" style="margin-top:8px;"></div>
                 </div>
@@ -1144,6 +1204,18 @@
             <textarea id="reportDetails" class="mp-input" placeholder="Additional details (optional)" maxlength="300" style="border-radius:14px;height:70px;resize:none;letter-spacing:0;text-transform:none;padding:10px 16px;width:100%;margin-bottom:10px;"></textarea>
             <button class="mp-btn-danger" id="mpSubmitReportBtn" style="width:100%;">SUBMIT REPORT</button>
             <div class="auth-error" id="reportError" style="text-align:center;margin-top:6px;"></div>
+        </div>
+    </div>
+
+    <!-- SPECTATOR SWITCH BAR -->
+    <div id="spectateBar" style="display:none;position:fixed;bottom:0;left:0;right:0;background:rgba(5,5,8,0.96);border-top:2px solid #FF6B35;padding:10px 14px;z-index:19000;backdrop-filter:blur(8px);">
+        <div style="max-width:640px;margin:0 auto;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <span style="font-size:11px;color:#FF6B35;font-weight:bold;text-transform:uppercase;letter-spacing:1px;">👁 Spectating</span>
+                <span id="spectateTargetName" style="font-size:12px;color:#fff;font-weight:bold;">—</span>
+                <button id="spectateLeaveBtn" style="background:rgba(255,70,85,0.15);border:1px solid #FF4655;color:#FF4655;font-size:10px;padding:4px 12px;border-radius:16px;cursor:pointer;font-family:inherit;font-weight:bold;">LEAVE</button>
+            </div>
+            <div id="spectateList" style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px;"></div>
         </div>
     </div>
 
@@ -1197,6 +1269,10 @@
             <div class="set-row">
                 <span class="set-label">Roles</span>
                 <span id="setRoles" style="font-size:11px;color:#888;">None</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Rank</span>
+                <span id="setRank" style="font-size:12px;font-weight:bold;">—</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Level</span>
@@ -1950,6 +2026,12 @@
             const cn = document.getElementById('setCoins');
             if (cn) cn.textContent = formatCoins(coinCount);
 
+            const rk = document.getElementById('setRank');
+            if (rk) {
+                const pr = rankProgress(playerRP);
+                rk.textContent = `${pr.cur.name} · ${playerRP} RP`;
+                rk.style.color = pr.cur.colour;
+            }
             const lv = document.getElementById('setLevel');
             if (lv) lv.textContent = playerLevel + (playerLevel >= MAX_LEVEL ? ' (MAX)' : '');
             const need = xpForLevel(playerLevel);
@@ -2747,10 +2829,11 @@
             const rooms = photonClient.availableRooms() || [];
             const pub = rooms.filter(r => {
                 const p = r.getCustomProperties ? r.getCustomProperties() : {};
-                return p.isPublic !== false && r.isOpen !== false;
+                if (p.isPublic === false || r.isOpen === false) return false;
+                return (p.queue || 'casual') === mpBrowseQueue;
             });
             if (!pub.length) {
-                listEl.innerHTML = '<div class="mp-empty-state">No public lobbies. Be the first — create one!</div>';
+                listEl.innerHTML = `<div class="mp-empty-state">No ${mpBrowseQueue} lobbies right now. Create one!</div>`;
                 return;
             }
             listEl.innerHTML = '';
@@ -2759,7 +2842,9 @@
                 const modes = {freemode:'🕊️',race:'🏁',lastone:'💀'};
                 const item = document.createElement('div');
                 item.className = 'mp-room-item';
-                item.innerHTML = `<div><div class="mp-room-name">${modes[p.mode]||'🕊️'} ${mpEsc(p.roomName||r.name)}</div><div class="mp-room-meta">${p.mode||'freemode'} · ${r.playerCount||0}/${r.maxPlayers||8}</div></div><div class="mp-room-join-tag">JOIN</div>`;
+                const rankBadge = p.queue === 'competitive' && p.hostRank
+                    ? `<span style="color:${(RANKS.find(x=>x.name===p.hostRank)||{}).colour||'#888'};font-size:9px;margin-left:6px;">🏆 ${mpEsc(p.hostRank)}</span>` : '';
+                item.innerHTML = `<div><div class="mp-room-name">${modes[p.mode]||'🕊️'} ${mpEsc(p.roomName||r.name)}${rankBadge}</div><div class="mp-room-meta">${p.mode||'freemode'} · ${r.playerCount||0}/${r.maxPlayers||8}</div></div><div class="mp-room-join-tag">JOIN</div>`;
                 item.onclick = () => mpJoinRoomByName(r.name);
                 listEl.appendChild(item);
             });
@@ -2774,6 +2859,57 @@
         // ----- CREATE / JOIN -----
         let mpSelectedMode = 'freemode';
         let mpSelectedPrivacy = 'public';
+        let mpSelectedQueue = 'casual';        // 'casual' | 'competitive'
+        let mpBrowseQueue = 'casual';          // which tab the browser is showing
+
+        // ---- RANKS (competitive only) ----
+        const RANKS = [
+            { name: 'Bronze',    min: 0,    colour: '#CD7F32' },
+            { name: 'Silver',    min: 300,  colour: '#C0C0C0' },
+            { name: 'Gold',      min: 700,  colour: '#FFD700' },
+            { name: 'Platinum',  min: 1200, colour: '#5FD4D0' },
+            { name: 'Diamond',   min: 1800, colour: '#7FDBFF' },
+            { name: 'Champion',  min: 2500, colour: '#FF6B35' },
+            { name: 'Unreal',    min: 3200, colour: '#FF4655' }
+        ];
+        const RP_KEY = 'crix_rp_v1';
+        let playerRP = 0;
+        function loadRP() { try { playerRP = parseInt(localStorage.getItem(RP_KEY)) || 0; } catch(e) { playerRP = 0; } }
+        function saveRP() { try { localStorage.setItem(RP_KEY, String(playerRP)); } catch(e) {} }
+        function rankFor(rp) {
+            let r = RANKS[0];
+            RANKS.forEach(x => { if (rp >= x.min) r = x; });
+            return r;
+        }
+        function rankProgress(rp) {
+            const cur = rankFor(rp);
+            const idx = RANKS.indexOf(cur);
+            const next = RANKS[idx + 1];
+            if (!next) return { pct: 100, cur, next: null, need: 0 };
+            return {
+                pct: Math.min(100, (rp - cur.min) / (next.min - cur.min) * 100),
+                cur, next, need: next.min - rp
+            };
+        }
+        // Placement-style RP: win big, lose less
+        function awardRP(place, total) {
+            if (mpMatchMode === undefined) return;
+            const share = total > 1 ? (total - place) / (total - 1) : 1;   // 1st = 1, last = 0
+            const delta = Math.round(-25 + share * 75);                     // -25 .. +50
+            playerRP = Math.max(0, playerRP + delta);
+            saveRP();
+            showRPChange(delta);
+            refreshSettingsUI();
+        }
+        function showRPChange(delta) {
+            const r = rankFor(playerRP);
+            const n = document.createElement('div');
+            n.style.cssText = 'position:fixed;bottom:130px;right:16px;background:#0F0F17;border:2px solid '+r.colour+';border-radius:14px;padding:12px 18px;z-index:50000;font-size:13px;color:#fff;';
+            n.innerHTML = `<div style="color:${r.colour};font-weight:bold;">${r.name}</div>` +
+                          `<div style="font-size:11px;color:${delta>=0?'#00CC7A':'#FF4655'};">${delta>=0?'+':''}${delta} RP</div>`;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3200);
+        }
 
         function mpCreateRoom() {
             if (!mpConnected) { alert('Not connected yet. Wait for the status dot to turn green.'); return; }
@@ -2781,15 +2917,27 @@
             const code = Array.from({length:4}, () => 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*32)]).join('');
             const roomId = 'crix_' + code;
             try {
+                // Competitive is forced public — private ranked lobbies would
+                // let players farm RP against friends.
+                const privacy = mpSelectedQueue === 'competitive' ? 'public' : mpSelectedPrivacy;
+                const maxP = parseInt(document.getElementById('mpMaxPlayers')?.value) || 8;
+
                 photonClient.createRoom(roomId, {
-                    maxPlayers: 8,
-                    isVisible: mpSelectedPrivacy === 'public',
+                    maxPlayers: maxP,
+                    isVisible: privacy === 'public',
                     isOpen: true,
                     customGameProperties: {
                         roomName: name, mode: mpSelectedMode,
-                        isPublic: mpSelectedPrivacy === 'public', code: code
+                        isPublic: privacy === 'public',
+                        privacy: privacy,
+                        queue: mpSelectedQueue,
+                        hostRank: mpSelectedQueue === 'competitive' ? rankFor(playerRP).name : null,
+                        raceTarget: parseInt(document.getElementById('mpRaceTarget')?.value) || 100,
+                        rushTime: parseInt(document.getElementById('mpRushTime')?.value) || 300,
+                        allowSpectate: document.getElementById('mpAllowSpectate')?.classList.contains('active') !== false,
+                        code: code
                     },
-                    propsListedInLobby: ['roomName','mode','isPublic']
+                    propsListedInLobby: ['roomName','mode','isPublic','queue','hostRank']
                 });
                 mpMatchMode = mpSelectedMode;
             } catch(e) { alert('Could not create room: ' + e.message); }
@@ -2831,7 +2979,12 @@
                 code: props.code || room.name.replace('crix_',''),
                 roomDisplayName: props.roomName || room.name,
                 mode: props.mode || 'freemode',
-                isPublic: props.isPublic !== false
+                isPublic: props.isPublic !== false,
+                queue: props.queue || 'casual',
+                privacy: props.privacy || 'public',
+                raceTarget: props.raceTarget || 100,
+                rushTime: props.rushTime || 300,
+                allowSpectate: props.allowSpectate !== false
             };
             mpMatchMode = mpCurrentRoom.mode;
 
@@ -2875,6 +3028,14 @@
             document.getElementById('mpModal').classList.add('active');
             mpShowLobbyView();
             mpRenderLobby();
+
+            // If a match is already running, watch instead of spawning in
+            const rp = room.getCustomProperties ? room.getCustomProperties() : {};
+            if (rp.matchInProgress && rp.allowSpectate !== false && !createdByMe) {
+                mpMatchMode = rp.mode || 'freemode';
+                mpLobbyChatAppend(null, 'Match already in progress — you are spectating.', true);
+                setTimeout(() => mpEnterMidGameSpectate(), 400);
+            }
         }
 
         function mpHandleActorJoin(actor) {
@@ -3095,6 +3256,9 @@
 
         let _mpMatchStarted = false;
         function mpBeginMatchLocally(mode, seed) {
+            if (mpIsHost) {
+                try { photonClient.myRoom().setCustomProperties({ matchInProgress: true }); } catch(e) {}
+            }
             if (_mpMatchStarted) return;
             _mpMatchStarted = true;
             setTimeout(() => { _mpMatchStarted = false; }, 3000);
@@ -3125,7 +3289,7 @@
                 updateActivePowerups();
                 // Start timer on host
                 if (mpIsHost) {
-                    mpCoinRushSecondsLeft = MP_COIN_RUSH_SECONDS;
+                    mpCoinRushSecondsLeft = mpCurrentRoom?.rushTime || MP_COIN_RUSH_SECONDS;
                     mpCoinRushTimer = setInterval(() => {
                         mpCoinRushSecondsLeft--;
                         mpUpdateHud();
@@ -3174,7 +3338,7 @@
             mpRaiseEvent(MP_EV.SCORE, { score: s });
             if (s >= 50) mpCheckAchievement('mp_score50');
             if (mpMatchMode === 'coinrush' && s >= 50) mpCheckAchievement('mp_coinrush');
-            if (mpMatchMode === 'race' && s >= MP_RACE_TARGET) {
+            if (mpMatchMode === 'race' && s >= (mpCurrentRoom?.raceTarget || MP_RACE_TARGET)) {
                 // Won the race
                 const results = Object.entries(mpPlayers)
                     .map(([a,p]) => ({actor: parseInt(a), name: p.name, score: p.score}))
@@ -3205,6 +3369,15 @@
             if (mpMatchOverShown) return; // prevent duplicate calls
             mpMatchOverShown = true;
             mpMatchActive = false;
+            mpLeaveSpectate();
+            if (mpIsHost) {
+                try { photonClient.myRoom().setCustomProperties({ matchInProgress: false }); } catch(e) {}
+            }
+            // Competitive matches award RP by finishing position
+            if (mpCurrentRoom && mpCurrentRoom.queue === 'competitive' && Array.isArray(results)) {
+                const _i = results.findIndex(r => r.actor === mpLocalActor);
+                if (_i !== -1) awardRP(_i + 1, results.length);
+            }
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
             // Play win or lose sound
             if (winnerActor === mpLocalActor) {
@@ -3429,6 +3602,76 @@
             });
         }
 
+        // ----- MID-GAME SPECTATING -----
+        // Someone joining a match already in progress can't just spawn in
+        // (they'd have no pipes and an unfair score), so they watch instead
+        // and can switch between whoever is still alive.
+        let spectateTarget = null;
+
+        function mpEnterMidGameSpectate() {
+            mpSpectating = true;
+            gameRunning = false;
+            if (animationId) cancelAnimationFrame(animationId);
+            document.getElementById('mpModal')?.classList.remove('active');
+            document.getElementById('spectateBar').style.display = 'block';
+            document.getElementById('mpHud')?.classList.add('active');
+            const alive = Object.entries(mpPlayers).filter(([nr,p]) => !p.dead && parseInt(nr) !== mpLocalActor);
+            spectateTarget = alive.length ? parseInt(alive[0][0]) : null;
+            renderSpectateBar();
+            mpSpectateLoop();
+        }
+
+        function renderSpectateBar() {
+            const list = document.getElementById('spectateList');
+            if (!list) return;
+            const others = Object.entries(mpPlayers).filter(([nr]) => parseInt(nr) !== mpLocalActor);
+            if (!others.length) { list.innerHTML = '<span style="font-size:11px;color:#666;">Nobody to spectate</span>'; return; }
+            list.innerHTML = others.map(([nr,p]) => {
+                const n = parseInt(nr);
+                const sel = n === spectateTarget;
+                return `<button class="spec-opt${sel?' sel':''}" data-nr="${n}">
+                    ${p.dead ? '💀' : '🐦'} ${mpEsc(p.name)} <span style="opacity:.6">${p.score||0}</span>
+                </button>`;
+            }).join('');
+            list.querySelectorAll('.spec-opt').forEach(b =>
+                b.addEventListener('click', () => {
+                    spectateTarget = parseInt(b.dataset.nr);
+                    renderSpectateBar();
+                }));
+            const t = mpPlayers[spectateTarget];
+            const nameEl = document.getElementById('spectateTargetName');
+            if (nameEl) nameEl.textContent = t ? t.name : '—';
+        }
+
+        function mpSpectateLoop() {
+            if (!mpSpectating) return;
+            // Draw the world from the spectated player's perspective
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle='#00CC7A';
+            for (let pi of pipes) { ctx.fillRect(pi.x,0,pipeWidth,pi.top); ctx.fillRect(pi.x,pi.bottom,pipeWidth,canvas.height-pi.bottom); }
+            for (let co of coinsArr) { if(!co.collected && coinImage.complete) ctx.drawImage(coinImage, co.x, co.y, 20, 20); }
+            mpDrawOtherPlayers(ctx);
+            mpDrawOffscreenArrows(ctx);
+
+            const t = mpPlayers[spectateTarget];
+            ctx.textAlign='center';
+            ctx.fillStyle='rgba(0,0,0,0.5)';
+            ctx.fillRect(canvas.width/2-110, 8, 220, 26);
+            ctx.fillStyle='#FF6B35';
+            ctx.font='bold 12px "CrixCustom", monospace';
+            ctx.fillText(t ? `👁 ${t.name} · ${t.score||0}` : '👁 SPECTATING', canvas.width/2, 26);
+            ctx.textAlign='left';
+
+            requestAnimationFrame(mpSpectateLoop);
+        }
+
+        function mpLeaveSpectate() {
+            mpSpectating = false;
+            spectateTarget = null;
+            document.getElementById('spectateBar').style.display = 'none';
+            document.getElementById('mpHud')?.classList.remove('active');
+        }
+
         // ----- OFF-SCREEN PLAYER ARROWS -----
         function mpDrawOffscreenArrows(ctx) {
             if (!mpCurrentRoom || !mpMatchActive) return;
@@ -3525,11 +3768,21 @@
                     break;
                 case MP_EV.DEATH:
                     if (p) { p.dead = true; p.score = content.finalScore; }
+                    if (mpSpectating) {
+                        // If we were watching them, jump to someone still alive
+                        if (spectateTarget === actorNr) {
+                            const alive = Object.entries(mpPlayers)
+                                .filter(([n,x]) => !x.dead && parseInt(n) !== mpLocalActor);
+                            spectateTarget = alive.length ? parseInt(alive[0][0]) : null;
+                        }
+                        renderSpectateBar();
+                    }
                     mpUpdateHud();
                     const masterNr2 = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
                     if (mpLocalActor === masterNr2 && mpMatchMode === 'lastone') mpCheckMatchEndCondition();
                     break;
                 case MP_EV.SCORE:
+                    if (mpSpectating) setTimeout(renderSpectateBar, 0);
                     if (p) {
                         p.score = content.score;
                         if (mpMatchMode === 'coinrush') mpCoinRushCoins[actorNr] = content.score;
@@ -3825,6 +4078,90 @@
                 mpSelectedMode = card.dataset.mode;
             });
         });
+        // ---- QUEUE TABS (browser) ----
+        function renderRankBanner() {
+            const b = document.getElementById('rankBanner');
+            if (!b) return;
+            if (mpBrowseQueue !== 'competitive') { b.style.display = 'none'; return; }
+            const pr = rankProgress(playerRP);
+            b.style.display = 'block';
+            b.className = 'rank-banner';
+            b.innerHTML =
+                `<span class="rank-name" style="color:${pr.cur.colour}">🏆 ${pr.cur.name}</span>` +
+                `<div class="rank-bar-wrap"><div class="rank-bar" style="width:${pr.pct}%;background:${pr.cur.colour}"></div></div>` +
+                `<span style="font-size:10px;color:#888;">${pr.next ? pr.need + ' RP to ' + pr.next.name : 'MAX RANK'}</span>`;
+        }
+        document.querySelectorAll('.queue-tab').forEach(t => {
+            t.addEventListener('click', () => {
+                document.querySelectorAll('.queue-tab').forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                mpBrowseQueue = t.dataset.queue;
+                renderRankBanner();
+                mpRenderRoomList();
+                playSound(selectSound);
+            });
+        });
+
+        // ---- QUEUE PICKER (create) ----
+        function setQueue(q) {
+            mpSelectedQueue = q;
+            document.getElementById('mpQueueCasual').classList.toggle('selected', q === 'casual');
+            document.getElementById('mpQueueComp').classList.toggle('selected', q === 'competitive');
+            const comp = q === 'competitive';
+            document.getElementById('compNotice').style.display = comp ? 'block' : 'none';
+            // Competitive can't be private — lock the privacy row
+            ['mpPrivacyFriends','mpPrivacyInvite'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = comp;
+                el.style.opacity = comp ? '0.35' : '';
+                el.style.pointerEvents = comp ? 'none' : '';
+            });
+            if (comp) {
+                mpSelectedPrivacy = 'public';
+                document.getElementById('mpPrivacyPublic').classList.add('selected');
+                document.getElementById('mpPrivacyFriends')?.classList.remove('selected');
+                document.getElementById('mpPrivacyInvite')?.classList.remove('selected');
+            }
+        }
+        document.getElementById('mpQueueCasual')?.addEventListener('click', () => { setQueue('casual'); playSound(selectSound); });
+        document.getElementById('mpQueueComp')?.addEventListener('click', () => { setQueue('competitive'); playSound(selectSound); });
+
+        // ---- FRIENDS-ONLY PRIVACY ----
+        document.getElementById('mpPrivacyFriends')?.addEventListener('click', () => {
+            mpSelectedPrivacy = 'friends';
+            document.getElementById('mpPrivacyFriends').classList.add('selected');
+            document.getElementById('mpPrivacyPublic').classList.remove('selected');
+            document.getElementById('mpPrivacyInvite').classList.remove('selected');
+        });
+
+        // ---- HOST MATCH SETTINGS ----
+        document.getElementById('mpAllowSpectate')?.addEventListener('click', function() {
+            this.classList.toggle('active');
+            if (mpIsHost) {
+                try { photonClient.myRoom().setCustomProperties({ allowSpectate: this.classList.contains('active') }); } catch(e) {}
+            }
+        });
+        ['mpMaxPlayers','mpRaceTarget','mpRushTime'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => {
+                if (!mpIsHost || !mpCurrentRoom) return;
+                const props = {
+                    raceTarget: parseInt(document.getElementById('mpRaceTarget').value),
+                    rushTime: parseInt(document.getElementById('mpRushTime').value)
+                };
+                try { photonClient.myRoom().setCustomProperties(props); } catch(e) {}
+                mpCurrentRoom.raceTarget = props.raceTarget;
+                mpCurrentRoom.rushTime = props.rushTime;
+                mpLobbyChatAppend(null, 'Host updated match settings.', true);
+            });
+        });
+
+        // ---- SPECTATOR BAR ----
+        document.getElementById('spectateLeaveBtn')?.addEventListener('click', () => {
+            mpLeaveSpectate();
+            mpLeaveLobby();
+        });
+
         document.getElementById('mpPrivacyPublic').addEventListener('click', () => {
             mpSelectedPrivacy = 'public';
             document.getElementById('mpPrivacyPublic').classList.add('selected');
@@ -3918,6 +4255,7 @@
 
         loadFriends();
         loadLevel();
+        loadRP();
         setupSettings();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
