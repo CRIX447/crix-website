@@ -47,7 +47,7 @@
   },
   "playfab": {
     "_setup": "Get titleId from PlayFab Game Manager -> Title Settings -> API Features. currencyCode must exactly match the 2-character code you create under Economy -> Currency.",
-    "titleId": "PASTE_YOUR_PLAYFAB_TITLE_ID_HERE",
+    "titleId": "17CF2A",
     "currencyCode": "CN",
     "currencyDisplayName": "Coins",
     "catalogVersion": "Main"
