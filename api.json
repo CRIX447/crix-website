@@ -1,7 +1,6 @@
 {
   "youtube": {
-    "_howToAddAChannel": "Just add a new { handle, name } entry below \u2014 no need to find a channel ID, the site looks it up automatically from the handle.",
-    "apiKey": "AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk",
+    "_moved": "The API key now lives in a Vercel environment variable (YOUTUBE_API_KEY) and is used only by /api/youtube.js server-side. It is deliberately NOT here, because anything in this file is readable by anyone who opens DevTools.",
     "mainChannel": "@CRIXGAMINGVR",
     "channels": [
       {
@@ -48,14 +47,14 @@
   },
   "playfab": {
     "_setup": "Get titleId from PlayFab Game Manager -> Title Settings -> API Features. currencyCode must exactly match the 2-character code you create under Economy -> Currency.",
-    "titleId": "17CF2A",
+    "titleId": "PASTE_YOUR_PLAYFAB_TITLE_ID_HERE",
     "currencyCode": "CN",
     "currencyDisplayName": "Coins",
     "catalogVersion": "Main"
   },
   "voice": {
     "_setup": "Photon Voice needs its own App ID \u2014 create one at dashboard.photonengine.com and pick the 'Voice' product (NOT Realtime, that's the separate one already above).",
-    "appId": "ac891a19-02cd-43dc-a6d0-7a38bb8027ae",
+    "appId": "PASTE_YOUR_PHOTON_VOICE_APP_ID_HERE",
     "appVersion": "1.0",
     "region": "us",
     "enabled": false
