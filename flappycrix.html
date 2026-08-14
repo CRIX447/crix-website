@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081405"></script>
-    <script src="playfab-manager.js?v=2026081405"></script>
+    <script src="filter.js?v=2026081406"></script>
+    <script src="playfab-manager.js?v=2026081406"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -754,6 +754,40 @@
         .admin-action-btn.danger { border-color: var(--red); color: var(--red); }
         .admin-action-btn.success { border-color: var(--green); color: var(--green); }
 
+        /* ---- READABLE TEXT IN MODALS ----
+           Some store/locker/achievement elements inherited a dark colour that
+           was unreadable on the dark panels. */
+        .modal-content, .modal-content div, .modal-content span,
+        .modal-content p, .modal-content label, .modal-content li {
+            color: #EDEDED;
+        }
+        .modal-content select, .modal-content option,
+        .mp-modal-content select, .mp-modal-content option {
+            color: #EDEDED; background: #14141C;
+        }
+        .modal-content input, .mp-modal-content input,
+        .modal-content textarea, .mp-modal-content textarea {
+            color: #FFFFFF;
+        }
+        .modal-content input::placeholder, .mp-modal-content input::placeholder,
+        .modal-content textarea::placeholder, .mp-modal-content textarea::placeholder {
+            color: #777;
+        }
+        .store-grid div, .product-info div, #achievementsGrid div,
+        #lockerHats div, #lockerShirts div { color: #EDEDED; }
+        /* keep the deliberate accent colours */
+        .product-price, .modal-title, .mp-section-title,
+        .stat-value, .mp-level-chip, .rank-name { color: inherit; }
+
+        /* ---- REDUCED MOTION ---- */
+        body.reduced-motion *,
+        body.reduced-motion *::before,
+        body.reduced-motion *::after {
+            animation-duration: 0.001s !important;
+            animation-iteration-count: 1 !important;
+            transition-duration: 0.001s !important;
+        }
+
         /* ---- STAFF MENU ---- */
         .owner-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
         .owner-btn { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
@@ -1041,9 +1075,11 @@
             <div style="display:flex;gap:8px;justify-content:center;margin-bottom:15px;">
                 <button class="store-tab active" id="tabPowerupsStore">⚡ POWER-UPS</button>
                 <button class="store-tab" id="tabCosmeticsStore">👕 COSMETICS</button>
+                <button class="store-tab" id="tabUnlocksStore">🔓 UNLOCKS</button>
             </div>
             <div id="storePowerups"><div class="store-grid" id="powerupsStoreGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;"></div></div>
             <div id="storeCosmetics" style="display:none;"><div class="store-grid" id="cosmeticsStoreGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;"></div></div>
+            <div id="storeUnlocks" style="display:none;"><div id="unlocksStoreGrid"></div></div>
         </div>
     </div>
     
@@ -1248,14 +1284,14 @@
                             <option value="6">6</option><option value="8" selected>8</option>
                         </select>
                     </div>
-                    <div class="mp-toggle-row" style="margin-top:6px;">
+                    <div class="mp-toggle-row setting-race" style="margin-top:6px;">
                         <span>Race target</span>
                         <select class="mp-mode-select" id="mpRaceTarget">
                             <option value="25">25</option><option value="50">50</option>
                             <option value="100" selected>100</option><option value="200">200</option>
                         </select>
                     </div>
-                    <div class="mp-toggle-row" style="margin-top:6px;">
+                    <div class="mp-toggle-row setting-coinrush" style="margin-top:6px;">
                         <span>Coin Rush time</span>
                         <select class="mp-mode-select" id="mpRushTime">
                             <option value="120">2 min</option><option value="180">3 min</option>
@@ -1265,6 +1301,9 @@
                     <div class="mp-toggle-row" style="margin-top:6px;">
                         <span>Allow mid-game spectators</span>
                         <div class="mp-toggle-switch active" id="mpAllowSpectate"></div>
+                    </div>
+                    <div id="rankedLockNote" style="display:none;font-size:10px;color:#FFB347;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">
+                        🏆 Ranked matches use the default settings so every competitive game is played on equal terms.
                     </div>
                     <div id="mpPermissionsPanel" style="margin-top:8px;"></div>
                 </div>
@@ -1708,6 +1747,17 @@
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5 };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
         
+        // Cosmetic images are cached — previously a new Image() was allocated
+        // every frame for each equipped item, which caused heavy stutter and
+        // meant the sprite often hadn't loaded by the time it was drawn.
+        const _imgCache = {};
+        function cachedImage(src) {
+            if (!src) return null;
+            let img = _imgCache[src];
+            if (!img) { img = new Image(); img.src = src; _imgCache[src] = img; }
+            return (img.complete && img.naturalWidth > 0) ? img : null;
+        }
+
         const coinImage = new Image();
         coinImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/coin.gif';
         coinImage.style = 'display:none;position:absolute;';
@@ -1716,16 +1766,16 @@
         birdImage.src = 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bird.png';
         
         let powerups = [
-            { id: 'x2coins', name: '2X COINS', price: 100, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins 30s' },
-            { id: 'shield', name: 'SHIELD', price: 75, duration: 20, active: false, timeLeft: 0, timer: null, desc: 'Invincible 20s' },
-            { id: 'magnet', name: 'MAGNET', price: 60, duration: 15, active: false, timeLeft: 0, timer: null, desc: 'Coin magnet 15s' }
+            { id: 'x2coins', name: '2X COINS', price: 5000, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins 30s' },
+            { id: 'shield', name: 'SHIELD', price: 4000, duration: 20, active: false, timeLeft: 0, timer: null, desc: 'Invincible 20s' },
+            { id: 'magnet', name: 'MAGNET', price: 3000, duration: 15, active: false, timeLeft: 0, timer: null, desc: 'Coin magnet 15s' }
         ];
         
         let cosmetics = [
-            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 50, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif', owned: false, equipped: false },
-            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 45, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png', owned: false, equipped: false },
-            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 40, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif', owned: false, equipped: false },
-            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 35, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png', owned: false, equipped: false }
+            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 2500, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/bucket-hat.avif', owned: false, equipped: false },
+            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 2000, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/cap.png', owned: false, equipped: false },
+            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 1800, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/tank-top.avif', owned: false, equipped: false },
+            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 1500, image: 'https://raw.githubusercontent.com/CRIX447/crix-website/main/img/new-t-shirt.png', owned: false, equipped: false }
         ];
         
         let achievements = [
@@ -1859,6 +1909,29 @@
             let chtml = ''; cosmetics.forEach(c => { chtml += `<div style="background:#1a1a2a;border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.7);border-radius:14px;padding:10px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"><img src="${c.image}" style="width:44px;height:44px;object-fit:contain;margin-bottom:4px;" onerror="this.style.display='none'"><div style="font-size:11px;margin-bottom:3px;">${c.name}</div><div style="color:gold;margin-bottom:5px;">🪙 ${c.price}</div><button onclick="buyCosmetic('${c.id}')" style="background:${c.owned?'#333':'linear-gradient(135deg,#FF4655,#FF6B35)'};border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);padding:4px 12px;border-radius:30px;cursor:pointer;color:white;font-weight:bold;font-size:11px;box-shadow:1px 1px 0 rgba(0,0,0,0.3);" ${c.owned?'disabled':''}>${c.owned?'OWNED':'BUY'}</button></div>`; }); document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
         }
         
+        function updateUnlocksStore() {
+            const g = document.getElementById('unlocksStoreGrid');
+            if (!g) return;
+            const owned = ownsPlayerMenu();
+            g.innerHTML = `
+                <div style="background:#1a1a2a;border:2px solid ${owned?'#00CC7A':'#FFD700'};border-bottom:4px solid rgba(0,0,0,0.4);border-radius:16px;padding:18px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);">
+                    <div style="font-size:34px;margin-bottom:8px;">${owned?'✅':'🎮'}</div>
+                    <div style="font-size:15px;font-weight:bold;color:#fff;margin-bottom:6px;">PLAYER MENU</div>
+                    <div style="font-size:11px;color:#bbb;line-height:1.7;max-width:320px;margin:0 auto 14px;">
+                        A single-player sandbox: godmode, big and tiny bird, slow motion,
+                        coin rain, low gravity and sandbox coins.<br>
+                        <span style="color:#777;">Locked during multiplayer so matches stay fair.</span>
+                    </div>
+                    <div style="font-size:19px;color:#FFD700;font-weight:bold;margin-bottom:12px;">🪙 ${formatCoins(PLAYER_MENU_PRICE)}</div>
+                    ${owned
+                        ? '<div style="color:#00CC7A;font-weight:bold;font-size:13px;">OWNED — open it from the main screen</div>'
+                        : `<button class="product-buy" id="shopBuyPlayerMenu" style="padding:10px 26px;font-size:13px;">UNLOCK</button>
+                           <div id="shopBuyErr" style="font-size:11px;margin-top:10px;min-height:16px;"></div>`}
+                </div>`;
+            const b = document.getElementById('shopBuyPlayerMenu');
+            if (b) b.addEventListener('click', () => buyPlayerMenu('shopBuyErr'));
+        }
+
         function updateLockerDisplay() { 
             let hatsHtml = ''; cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;position:relative;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${h.id}')"><img src="${h.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${h.name}</div>${h.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="color:#666;font-size:12px;padding:10px;">No hats owned yet</div>'; 
             let shirtsHtml = ''; cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;cursor:pointer;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${s.id}')"><img src="${s.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${s.name}</div>${s.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="color:#666;font-size:12px;padding:10px;">No shirts owned yet</div>'; 
@@ -1874,9 +1947,9 @@
             let sz = cheats.bigbird ? 45 : 32; 
             if(birdImage.complete) previewCtx.drawImage(birdImage, -sz/2, -sz/2, sz, sz); 
             let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
-            if(shirt){ let img=new Image(); img.src=shirt.image; previewCtx.drawImage(img, -sz/2, -sz/2, sz, sz); } 
+            if(shirt){ const si=cachedImage(shirt.image); if(si){ const sw=sz*0.72, sh=sz*0.55; previewCtx.drawImage(si, -sw/2, sz*0.02, sw, sh); } } 
             let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
-            if(hat){ let img=new Image(); img.src=hat.image; previewCtx.drawImage(img, -sz/2, -sz/2-5, sz, sz); } 
+            if(hat){ const hi=cachedImage(hat.image); if(hi){ const hw=sz*0.78, hh=sz*0.58; previewCtx.drawImage(hi, -hw/2, -sz/2-hh*0.62, hw, hh); } } 
             previewCtx.restore(); 
             document.getElementById('previewTitle').innerHTML = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP'; 
         }
@@ -1997,10 +2070,24 @@
             ctx.rotate(rot); 
             let birdSize = cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30);
             if(birdImage.complete) ctx.drawImage(birdImage,-birdSize/2,-birdSize/2,birdSize,birdSize); 
-            let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
-            if(shirt){ let img=new Image(); img.src=shirt.image; ctx.drawImage(img,-birdSize/2,-birdSize/2,birdSize,birdSize); } 
-            let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped); 
-            if(hat){ let img=new Image(); img.src=hat.image; ctx.drawImage(img,-birdSize/2,-birdSize/2-5,birdSize,birdSize); } 
+            // Shirt: narrower and lower so it sits on the body, not over the whole bird
+            let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped);
+            if(shirt){
+                const si = cachedImage(shirt.image);
+                if (si) {
+                    const sw = birdSize * 0.72, sh = birdSize * 0.55;
+                    ctx.drawImage(si, -sw/2, birdSize*0.02, sw, sh);
+                }
+            }
+            // Hat: sits on top of the head, above the bird's outline
+            let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped);
+            if(hat){
+                const hi = cachedImage(hat.image);
+                if (hi) {
+                    const hw = birdSize * 0.78, hh = birdSize * 0.58;
+                    ctx.drawImage(hi, -hw/2, -birdSize/2 - hh*0.62, hw, hh);
+                }
+            } 
             ctx.restore(); 
             const mpGodmodeActiveDraw = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
             if (mpGodmodeActiveDraw) {
@@ -2022,6 +2109,15 @@
                 ctx.fillText('SCORE: ' + score, canvas.width/2, 40); 
                 ctx.textAlign='left'; // reset
             } 
+            if (typeof settings !== 'undefined' && settings.showFps) {
+                ctx.save();
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = _fps >= 55 ? '#00CC7A' : _fps >= 30 ? '#FFB347' : '#FF4655';
+                ctx.fillText(_fps + ' FPS', canvas.width - 8, 14);
+                ctx.textAlign = 'left';
+                ctx.restore();
+            }
             if(gameOver){ 
                 ctx.textAlign='center';
                 ctx.fillStyle='rgba(0,0,0,0.5)';
@@ -2036,8 +2132,28 @@
             } 
         }
         
-        function gameLoop(){
-            if(gameRunning){ updateGame(); }
+        // Fixed timestep. Previously the loop ran on raw requestAnimationFrame,
+        // so a 240Hz monitor ran the game four times faster than a 60Hz one.
+        const TICK_MS = 1000 / 60;
+        let _lastTime = 0, _accum = 0, _fps = 0, _fpsAccum = 0, _fpsFrames = 0;
+
+        function gameLoop(now){
+            now = now || performance.now();
+            if (!_lastTime) _lastTime = now;
+            let delta = now - _lastTime;
+            _lastTime = now;
+            if (delta > 250) delta = 250;   // don't fast-forward after a tab switch
+
+            // FPS readout
+            _fpsAccum += delta; _fpsFrames++;
+            if (_fpsAccum >= 500) { _fps = Math.round(_fpsFrames * 1000 / _fpsAccum); _fpsAccum = 0; _fpsFrames = 0; }
+
+            _accum += delta;
+            let steps = 0;
+            while (_accum >= TICK_MS && steps < 5) {   // cap catch-up work
+                if (gameRunning) updateGame();
+                _accum -= TICK_MS; steps++;
+            }
             drawGame();
             if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
             if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
@@ -2129,12 +2245,25 @@
             document.getElementById('tabCosmeticsStore').classList.remove('active'); 
             document.getElementById('storePowerups').style.display = 'block'; 
             document.getElementById('storeCosmetics').style.display = 'none'; 
+            document.getElementById('storeUnlocks').style.display = 'none';
+            document.getElementById('tabUnlocksStore')?.classList.remove('active');
+        };
+        document.getElementById('tabUnlocksStore').onclick = () => {
+            updateUnlocksStore();
+            document.getElementById('tabUnlocksStore').classList.add('active');
+            document.getElementById('tabPowerupsStore').classList.remove('active');
+            document.getElementById('tabCosmeticsStore').classList.remove('active');
+            document.getElementById('storePowerups').style.display = 'none';
+            document.getElementById('storeCosmetics').style.display = 'none';
+            document.getElementById('storeUnlocks').style.display = 'block';
         };
         document.getElementById('tabCosmeticsStore').onclick = () => { 
             document.getElementById('tabCosmeticsStore').classList.add('active'); 
             document.getElementById('tabPowerupsStore').classList.remove('active'); 
             document.getElementById('storePowerups').style.display = 'none'; 
             document.getElementById('storeCosmetics').style.display = 'block'; 
+            document.getElementById('storeUnlocks').style.display = 'none';
+            document.getElementById('tabUnlocksStore')?.classList.remove('active');
         };
         
         // ===== AUTH SETUP (called after Firebase config is loaded) =====
@@ -2190,7 +2319,8 @@
             if (bgMusic) bgMusic.volume = settings.musicVol / 100;
             [jumpSound,deathSound,coinSound,selectSound,powerupSound,victorySound,achSound,failSound]
                 .forEach(s => { if (s) s.volume = settings.sfxVol / 100; });
-            document.body.style.setProperty('--anim-speed', settings.reducedMotion ? '0s' : '');
+            // Reduced motion actually disables the animations now
+            document.body.classList.toggle('reduced-motion', !!settings.reducedMotion);
         }
 
         function refreshSettingsUI() {
@@ -2984,9 +3114,10 @@
             refreshPlayerMenu();
         }
 
-        async function buyPlayerMenu() {
-            const btn = document.getElementById('pmBuyBtn');
-            const err = document.getElementById('pmBuyErr');
+        async function buyPlayerMenu(errId) {
+            const btn = document.getElementById('pmBuyBtn') || document.getElementById('shopBuyPlayerMenu');
+            const err = document.getElementById(errId || 'pmBuyErr') || document.getElementById('shopBuyErr');
+            if (!err) return;
             err.style.color = '#FF4655';
 
             if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
@@ -3011,13 +3142,18 @@
                 err.style.color = '#00CC7A';
                 err.textContent = 'Unlocked!';
                 playSound(achSound);
-                setTimeout(() => { err.textContent = ''; refreshPlayerMenu(); }, 900);
+                setTimeout(() => {
+                    err.textContent = '';
+                    refreshPlayerMenu();
+                    updateUnlocksStore();
+                    updatePlayerMenuButton();
+                }, 900);
             } catch (e) {
                 err.textContent = e.playfabError === 'InsufficientFunds'
                     ? 'Not enough coins on your account.'
                     : (e.message || 'Purchase failed');
             } finally {
-                btn.disabled = false; btn.textContent = 'UNLOCK';
+                if (btn) { btn.disabled = false; btn.textContent = 'UNLOCK'; }
             }
         }
 
@@ -3873,8 +4009,11 @@
                         privacy: privacy,
                         queue: mpSelectedQueue,
                         hostRank: mpSelectedQueue === 'competitive' ? rankFor(playerRP).name : null,
-                        raceTarget: parseInt(document.getElementById('mpRaceTarget')?.value) || 100,
-                        rushTime: parseInt(document.getElementById('mpRushTime')?.value) || 300,
+                        // Ranked ignores host tweaks entirely
+                        raceTarget: mpSelectedQueue === 'competitive' ? 100
+                                    : (parseInt(document.getElementById('mpRaceTarget')?.value) || 100),
+                        rushTime:   mpSelectedQueue === 'competitive' ? 300
+                                    : (parseInt(document.getElementById('mpRushTime')?.value) || 300),
                         allowSpectate: document.getElementById('mpAllowSpectate')?.classList.contains('active') !== false,
                         code: code
                     },
@@ -4116,6 +4255,7 @@
                 const sel = document.getElementById('mpHostModeSelect');
                 if (sel) sel.value = mpCurrentRoom.mode;
             }
+            applyModeSettingVisibility();
             document.getElementById('mpStartMatchBtn').style.display = mpIsHost ? '' : 'none';
             document.getElementById('mpEndGameBtn').style.display = (mpIsHost && mpMatchActive) ? '' : 'none';
             mpRenderPermissionsPanel();
@@ -4123,6 +4263,35 @@
         }
 
         // ----- LOBBY CHAT -----
+        // Only show the settings that apply to the selected mode, and lock
+        // everything in ranked so competitive matches use identical rules.
+        function applyModeSettingVisibility() {
+            const mode = mpCurrentRoom?.mode || 'freemode';
+            const ranked = mpCurrentRoom?.queue === 'competitive';
+
+            document.querySelectorAll('.setting-race').forEach(el =>
+                el.style.display = mode === 'race' ? '' : 'none');
+            document.querySelectorAll('.setting-coinrush').forEach(el =>
+                el.style.display = mode === 'coinrush' ? '' : 'none');
+
+            const note = document.getElementById('rankedLockNote');
+            if (note) note.style.display = ranked ? 'block' : 'none';
+
+            ['mpMaxPlayers','mpRaceTarget','mpRushTime','mpHostModeSelect'].forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.disabled = ranked;
+                el.style.opacity = ranked ? '0.4' : '';
+            });
+            const sp = document.getElementById('mpAllowSpectate');
+            if (sp) { sp.style.pointerEvents = ranked ? 'none' : ''; sp.style.opacity = ranked ? '0.4' : ''; }
+
+            if (ranked && mpCurrentRoom) {
+                mpCurrentRoom.raceTarget = 100;
+                mpCurrentRoom.rushTime = 300;
+            }
+        }
+
         function mpLobbyChatAppend(fromName, text, isSystem, roles) {
             ['mpLobbyChatLog', 'mpChatLog'].forEach(logId => {
                 const log = document.getElementById(logId);
@@ -4166,6 +4335,7 @@
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             photonClient.raiseEvent(MP_EV.HOST_MODE_CHANGE, { mode: newMode }, { receivers: RC.Others });
             mpRenderLobby();
+            applyModeSettingVisibility();
         }
 
         function mpLeaveLobby() {
@@ -4365,7 +4535,7 @@
             document.getElementById('mpMatchOverTitle').textContent = winner ? '🏆 ' + winner.name + ' WINS!' : '🏆 MATCH OVER';
             document.getElementById('mpMatchOverResults').innerHTML = results.map((r,i) =>
                 `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
-                    <span>${i+1}. ${mpEsc(r.name)}</span><span style="color:gold">${r.score}</span>
+                    <span>${i+1}. ${mpEsc(r.name)}</span><span style="color:gold">${(endMode||mpMatchMode)==='coinrush' ? '🪙 '+r.score : r.score}</span>
                 </div>`).join('');
             overlay.style.display = 'flex';
         }
@@ -4443,7 +4613,9 @@
             const coinrushTimerStr = mpMatchMode === 'coinrush' ? ` ⏱️ ${Math.floor(mpCoinRushSecondsLeft/60)}:${String(mpCoinRushSecondsLeft%60).padStart(2,'0')}` : '';
             let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}${coinrushTimerStr}</strong></div>`;
             Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
-                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${p.score}</div>`;
+                const isRush = mpMatchMode === 'coinrush';
+                const val = isRush ? `🪙 ${p.score||0}` : (p.score||0);
+                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${val}</div>`;
             });
             hud.innerHTML = rows;
         }
@@ -5233,6 +5405,11 @@
         ['mpMaxPlayers','mpRaceTarget','mpRushTime'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', () => {
                 if (!mpIsHost || !mpCurrentRoom) return;
+                if (mpCurrentRoom.queue === 'competitive') {
+                    mpLobbyChatAppend(null, 'Ranked matches use fixed settings.', true);
+                    applyModeSettingVisibility();
+                    return;
+                }
                 const props = {
                     raceTarget: parseInt(document.getElementById('mpRaceTarget').value),
                     rushTime: parseInt(document.getElementById('mpRushTime').value)
