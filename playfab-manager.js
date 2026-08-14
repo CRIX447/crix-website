@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.14-requests';
+const PLAYFAB_MANAGER_VERSION = '2026.08.15-fixes';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -276,7 +276,14 @@ const PlayFabManager = (() => {
                 FunctionParameter: { action, ...params },
                 GeneratePlayStreamEvent: true
             }).then(r => {
-                if (r.Error) throw new Error(r.Error.Message || 'CloudScript error');
+                if (r.Error) {
+                    const msg = r.Error.Message || 'CloudScript error';
+                    if (/no function named/i.test(msg)) {
+                        throw new Error('CloudScript is not deployed. Paste cloudscript.js into ' +
+                            'PlayFab → Automation → CloudScript and click "Deploy to live".');
+                    }
+                    throw new Error(msg);
+                }
                 if (r.FunctionResult?.error) throw new Error(r.FunctionResult.error);
                 return r.FunctionResult;
             });
@@ -542,7 +549,16 @@ if (typeof window !== 'undefined') {
         .then(j => {
             const d = j.data;
             if (!d) throw new Error(j.errorMessage || 'CloudScript call failed');
-            if (d.Error) throw new Error(d.Error.Message || 'CloudScript error');
+            if (d.Error) {
+                const msg = d.Error.Message || 'CloudScript error';
+                if (/no function named/i.test(msg)) {
+                    throw new Error(
+                        `"${fn}" is not deployed to PlayFab. Paste cloudscript.js into ` +
+                        `Game Manager → Automation → CloudScript, then click "Deploy to live" ` +
+                        `(saving a revision alone is not enough).`);
+                }
+                throw new Error(msg);
+            }
             const res = d.FunctionResult || {};
             if (res.error) throw new Error(res.error);
             return res;
@@ -551,7 +567,7 @@ if (typeof window !== 'undefined') {
 
     PFM.sendFriendRequest    = id            => cs('sendFriendRequest', { targetPlayFabId: id });
     PFM.getFriendRequests    = ()            => cs('getFriendRequests').then(r => r.requests || []);
-    PFM.respondFriendRequest = (id, accept)  => cs('respondFriendRequest', { fromPlayFabId: id, accept });
+    PFM.respondFriendRequest = (id, accept)  => cs('respondToFriendRequest', { requesterPlayFabId: id, accept });
     PFM.sendInvite           = (id, code, mode) => cs('sendInvite', { targetPlayFabId: id, roomCode: code, mode });
     PFM.getInvites           = ()            => cs('getInvites').then(r => r.invites || []);
     PFM.clearInvites         = ()            => cs('clearInvites');
