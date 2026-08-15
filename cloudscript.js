@@ -339,6 +339,22 @@ handlers.getFriendRequests = function () {
     return { requests: out };
 };
 
+handlers.blockPlayer = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    // A block is just a tag — it survives on PlayFab and needs no extra storage
+    setTags(currentPlayerId, target, ["blocked"]);
+    try { server.RemoveFriend({ PlayFabId: target, FriendPlayFabId: currentPlayerId }); } catch (e) {}
+    return { ok: true };
+};
+
+handlers.unblockPlayer = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    try { server.RemoveFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: target }); } catch (e) {}
+    return { ok: true };
+};
+
 /* Lobby invites — same storage pattern, separate key. */
 handlers.sendInvite = function (args) {
     var target = args.targetPlayFabId;
