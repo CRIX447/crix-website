@@ -34,7 +34,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-1730";</script>
+    <script>window.__BUILD__ = "2026.08.15-1810";</script>
     
     <script>
     // Captures console output and errors to an on-screen panel, so problems can
@@ -122,8 +122,8 @@
     })();
     </script>
 
-    <script src="/filter.js?v=2026081508"></script>
-    <script src="/playfab-manager.js?v=2026081508"></script>
+    <script src="/filter.js?v=2026081509"></script>
+    <script src="/playfab-manager.js?v=2026081509"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1410,6 +1410,9 @@
                 </div>
                 <div id="rankBanner" style="display:none;"></div>
 
+                <div class="mp-room-list" id="mpRoomList"></div>
+                <button class="mp-btn-secondary" id="mpRefreshBtn" style="width:100%;margin-bottom:10px;">🔄 REFRESH LOBBIES</button>
+
                 <!-- FRIENDS PANEL -->
                 <div id="friendsPanel" style="display:none;">
                     <!-- your code -->
@@ -1836,7 +1839,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1730</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1810</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Debug log</span>
@@ -2563,11 +2566,11 @@
             els.forEach(sel => { document.querySelectorAll(sel).forEach(el => { el.style.opacity = uiHidden ? '0' : ''; el.style.pointerEvents = uiHidden ? 'none' : ''; }); });
             document.getElementById('hideUIBtn').textContent = uiHidden ? '👁 SHOW UI' : '👁 HIDE UI';
         }
-        document.getElementById('hideUIBtn').addEventListener('click', toggleUIHide);
+        document.getElementById('hideUIBtn')?.addEventListener('click', toggleUIHide);
         document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') toggleUIHide(); } });
 
-        document.getElementById('startGameBtn').addEventListener('click', startGame);
-        document.getElementById('canvasWrapper').addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
+        document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+        document.getElementById('canvasWrapper')?.addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
         // Gamepad support
         let gamepadJumped = false;
         // ---- CONTROLLER SUPPORT ----
@@ -2662,12 +2665,12 @@
             const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
             if ((e.key === ' ' || e.key === 'Space') && !isInput) { e.preventDefault(); jump(); }
         });
-        document.getElementById('musicToggleBtn').addEventListener('click', () => { musicMuted = !musicMuted; if(!musicMuted) bgMusic.play().catch(()=>{}); else bgMusic.pause(); selectSound.play(); });
-        document.getElementById('storeBtn').onclick = () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); };
-        document.getElementById('closeStoreBtn').onclick = () => document.getElementById('storeModal').classList.remove('active');
-        document.getElementById('lockerBtn').onclick = () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); };
-        document.getElementById('closeLockerBtn').onclick = () => document.getElementById('lockerModal').classList.remove('active');
-        document.getElementById('achievementsBtn').onclick = () => { 
+        document.getElementById('musicToggleBtn')?.addEventListener('click', () => { musicMuted = !musicMuted; if(!musicMuted) bgMusic.play().catch(()=>{}); else bgMusic.pause(); selectSound.play(); });
+        const _b_storeBtn = document.getElementById('storeBtn'); if (_b_storeBtn) _b_storeBtn.onclick = () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); };
+        const _b_closeStoreBtn = document.getElementById('closeStoreBtn'); if (_b_closeStoreBtn) _b_closeStoreBtn.onclick = () => document.getElementById('storeModal').classList.remove('active');
+        const _b_lockerBtn = document.getElementById('lockerBtn'); if (_b_lockerBtn) _b_lockerBtn.onclick = () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); };
+        const _b_closeLockerBtn = document.getElementById('closeLockerBtn'); if (_b_closeLockerBtn) _b_closeLockerBtn.onclick = () => document.getElementById('lockerModal').classList.remove('active');
+        const _b_achievementsBtn = document.getElementById('achievementsBtn'); if (_b_achievementsBtn) _b_achievementsBtn.onclick = () => { 
             let g=document.getElementById('achievementsGrid');
             const mp = (typeof MP_ACHIEVEMENTS !== 'undefined') ? MP_ACHIEVEMENTS : [];
             const sectionHtml = (title, list) =>
@@ -2677,14 +2680,14 @@
                           (mp.length ? sectionHtml('Multiplayer', mp) : '');
             document.getElementById('achievementsModal').classList.add('active');
         };
-        document.getElementById('closeAchievementsBtn').onclick = () => document.getElementById('achievementsModal').classList.remove('active');
-        document.getElementById('unequipHat').onclick = () => { let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped); if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
-        document.getElementById('unequipShirt').onclick = () => { let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped); if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
-        document.getElementById('victoryRestart').onclick = () => { document.getElementById('victoryOverlay').style.display='none'; startGame(); };
+        const _b_closeAchievementsBtn = document.getElementById('closeAchievementsBtn'); if (_b_closeAchievementsBtn) _b_closeAchievementsBtn.onclick = () => document.getElementById('achievementsModal').classList.remove('active');
+        const _b_unequipHat = document.getElementById('unequipHat'); if (_b_unequipHat) _b_unequipHat.onclick = () => { let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped); if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
+        const _b_unequipShirt = document.getElementById('unequipShirt'); if (_b_unequipShirt) _b_unequipShirt.onclick = () => { let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped); if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
+        const _b_victoryRestart = document.getElementById('victoryRestart'); if (_b_victoryRestart) _b_victoryRestart.onclick = () => { document.getElementById('victoryOverlay').style.display='none'; startGame(); };
         
         
         // Store tab switching
-        document.getElementById('tabPowerupsStore').onclick = () => { 
+        const _b_tabPowerupsStore = document.getElementById('tabPowerupsStore'); if (_b_tabPowerupsStore) _b_tabPowerupsStore.onclick = () => { 
             document.getElementById('tabPowerupsStore').classList.add('active'); 
             document.getElementById('tabCosmeticsStore').classList.remove('active'); 
             document.getElementById('storePowerups').style.display = 'block'; 
@@ -2692,7 +2695,7 @@
             document.getElementById('storeUnlocks').style.display = 'none';
             document.getElementById('tabUnlocksStore')?.classList.remove('active');
         };
-        document.getElementById('tabUnlocksStore').onclick = () => {
+        const _b_tabUnlocksStore = document.getElementById('tabUnlocksStore'); if (_b_tabUnlocksStore) _b_tabUnlocksStore.onclick = () => {
             updateUnlocksStore();
             document.getElementById('tabUnlocksStore').classList.add('active');
             document.getElementById('tabPowerupsStore').classList.remove('active');
@@ -2701,7 +2704,7 @@
             document.getElementById('storeCosmetics').style.display = 'none';
             document.getElementById('storeUnlocks').style.display = 'block';
         };
-        document.getElementById('tabCosmeticsStore').onclick = () => { 
+        const _b_tabCosmeticsStore = document.getElementById('tabCosmeticsStore'); if (_b_tabCosmeticsStore) _b_tabCosmeticsStore.onclick = () => { 
             document.getElementById('tabCosmeticsStore').classList.add('active'); 
             document.getElementById('tabPowerupsStore').classList.remove('active'); 
             document.getElementById('storePowerups').style.display = 'none'; 
@@ -3237,8 +3240,8 @@
             });
         }
 
-        document.getElementById('loginBtn').onclick = () => authModalEl.classList.add('active');
-        document.getElementById('logoutBtn').onclick = async () => { if (auth) await auth.signOut(); selectSound.play(); };
+        const _b_loginBtn = document.getElementById('loginBtn'); if (_b_loginBtn) _b_loginBtn.onclick = () => authModalEl.classList.add('active');
+        const _b_logoutBtn = document.getElementById('logoutBtn'); if (_b_logoutBtn) _b_logoutBtn.onclick = async () => { if (auth) await auth.signOut(); selectSound.play(); };
         authCloseBtnEl.onclick = () => authModalEl.classList.remove('active');
 
         authSwitchBtn.onclick = () => {
@@ -3583,7 +3586,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-1730</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-1810</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4888,7 +4891,7 @@
         function mpShowDiagnostic(msg) {
             // Clicking the banner opens the full test
             setTimeout(() => {
-                const d = document.getElementById('mpDiagnostic');
+                const d = document.getElementById('mpDiagnosticBanner');
                 if (d && !d.dataset.wired) {
                     d.dataset.wired = '1';
                     d.style.cursor = 'pointer';
@@ -6477,7 +6480,7 @@
         MP_ACHIEVEMENTS.forEach(a => { if (localStorage.getItem('crix_mp_ach_' + a.id)) a.unlocked = true; });
 
         // ----- DOM EVENT WIRING -----
-        document.getElementById('multiplayerBtn').addEventListener('click', () => {
+        document.getElementById('multiplayerBtn')?.addEventListener('click', () => {
             selectSound.play();
             // Banned players can still play single player, just not multiplayer
             if (window.__crixBanned) { showBanScreen(window.__crixBanInfo || {}); return; }
@@ -6496,19 +6499,19 @@
             }
         });
 
-        document.getElementById('closeMpBtn').addEventListener('click', () => document.getElementById('mpModal').classList.remove('active'));
-        document.getElementById('mpModal').addEventListener('click', e => { if (e.target.id === 'mpModal') document.getElementById('mpModal').classList.remove('active'); });
+        document.getElementById('closeMpBtn')?.addEventListener('click', () => document.getElementById('mpModal').classList.remove('active'));
+        document.getElementById('mpModal')?.addEventListener('click', e => { if (e.target.id === 'mpModal') document.getElementById('mpModal').classList.remove('active'); });
 
-        document.getElementById('mpSignInGateBtn').addEventListener('click', () => {
+        document.getElementById('mpSignInGateBtn')?.addEventListener('click', () => {
             document.getElementById('mpModal').classList.remove('active');
             document.getElementById('authModal').classList.add('active');
         });
 
         // Home buttons
-        document.getElementById('mpCreateRoomBtn').addEventListener('click', () => { mpShowView('mpViewCreate'); selectSound.play(); });
-        document.getElementById('mpJoinByCodeBtn').addEventListener('click', () => { mpShowView('mpViewJoinCode'); selectSound.play(); });
-        document.getElementById('mpRefreshBtn').addEventListener('click', () => { mpRenderRoomList(); selectSound.play(); });
-        document.getElementById('mpEditProfileBtn').addEventListener('click', () => {
+        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreate'); selectSound.play(); });
+        document.getElementById('mpJoinByCodeBtn')?.addEventListener('click', () => { mpShowView('mpViewJoinCode'); selectSound.play(); });
+        document.getElementById('mpRefreshBtn')?.addEventListener('click', () => { mpRenderRoomList(); selectSound.play(); });
+        document.getElementById('mpEditProfileBtn')?.addEventListener('click', () => {
             document.getElementById('mpDisplayNameInput').value = mpGetDisplayName().replace(/#.*$/, '');
             renderAvatarGrid();
             mpRenderColourGrid();
@@ -6516,7 +6519,7 @@
         });
 
         // Profile
-        document.getElementById('mpProfileSaveBtn').addEventListener('click', () => {
+        document.getElementById('mpProfileSaveBtn')?.addEventListener('click', () => {
             const name = document.getElementById('mpDisplayNameInput').value.trim();
             if (name) mpProfile.displayName = name;
             const sel = document.querySelector('.mp-colour-swatch.selected');
@@ -6538,14 +6541,14 @@
             }
             mpShowView('mpViewHome');
         });
-        document.getElementById('mpProfileBackBtn').addEventListener('click', () => mpShowView('mpViewHome'));
+        document.getElementById('mpProfileBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
 
         // Join/Create
-        document.getElementById('mpJoinCodeBackBtn').addEventListener('click', () => mpShowView('mpViewHome'));
-        document.getElementById('mpCreateBackBtn').addEventListener('click', () => mpShowView('mpViewHome'));
-        document.getElementById('mpJoinCodeConfirmBtn').addEventListener('click', mpJoinByCode);
-        document.getElementById('mpJoinCodeInput').addEventListener('keypress', e => { if (e.key === 'Enter') mpJoinByCode(); });
-        document.getElementById('mpCreateConfirmBtn').addEventListener('click', () => { mpCreateRoom(); selectSound.play(); });
+        document.getElementById('mpJoinCodeBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
+        document.getElementById('mpCreateBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
+        document.getElementById('mpJoinCodeConfirmBtn')?.addEventListener('click', mpJoinByCode);
+        document.getElementById('mpJoinCodeInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') mpJoinByCode(); });
+        document.getElementById('mpCreateConfirmBtn')?.addEventListener('click', () => { mpCreateRoom(); selectSound.play(); });
 
         document.querySelectorAll('.mp-mode-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -6823,19 +6826,19 @@
             mpLeaveLobby();
         });
 
-        document.getElementById('mpPrivacyPublic').addEventListener('click', () => {
+        document.getElementById('mpPrivacyPublic')?.addEventListener('click', () => {
             mpSelectedPrivacy = 'public';
             document.getElementById('mpPrivacyPublic').classList.add('selected');
             document.getElementById('mpPrivacyInvite').classList.remove('selected');
         });
-        document.getElementById('mpPrivacyInvite').addEventListener('click', () => {
+        document.getElementById('mpPrivacyInvite')?.addEventListener('click', () => {
             mpSelectedPrivacy = 'invite';
             document.getElementById('mpPrivacyInvite').classList.add('selected');
             document.getElementById('mpPrivacyPublic').classList.remove('selected');
         });
 
         // Lobby
-        document.getElementById('mpCopyCodeBtn').addEventListener('click', () => {
+        document.getElementById('mpCopyCodeBtn')?.addEventListener('click', () => {
             if (!mpCurrentRoom) return;
             navigator.clipboard?.writeText(mpCurrentRoom.code).then(() => {
                 const btn = document.getElementById('mpCopyCodeBtn');
@@ -6844,16 +6847,16 @@
                 setTimeout(() => btn.textContent = orig, 1500);
             });
         });
-        document.getElementById('mpVisibilityToggle').addEventListener('click', mpToggleVisibility);
-        document.getElementById('mpStartMatchBtn').addEventListener('click', () => { mpStartMatch(); selectSound.play(); });
-        document.getElementById('mpEndGameBtn').addEventListener('click', () => {
+        document.getElementById('mpVisibilityToggle')?.addEventListener('click', mpToggleVisibility);
+        document.getElementById('mpStartMatchBtn')?.addEventListener('click', () => { mpStartMatch(); selectSound.play(); });
+        document.getElementById('mpEndGameBtn')?.addEventListener('click', () => {
             if (!mpIsHost && !mpHasPerm(mpLocalActor,'canSettings')) return;
             const results = Object.entries(mpPlayers).map(([a,p]) => ({actor:parseInt(a),name:p.name,score:p.score})).sort((a,b)=>b.score-a.score);
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             photonClient.raiseEvent(MP_EV.HOST_END_GAME, { results }, { receivers: RC.Others });
             mpShowMatchOver(results, null);
         });
-        document.getElementById('mpLeaveLobbyBtn').addEventListener('click', () => { mpLeaveLobby(); selectSound.play(); });
+        document.getElementById('mpLeaveLobbyBtn')?.addEventListener('click', () => { mpLeaveLobby(); selectSound.play(); });
 
         // Host mode change
         const hostModeSelect = document.getElementById('mpHostModeSelect');
@@ -6862,7 +6865,7 @@
         }
 
         // Lobby chat
-        document.getElementById('mpLobbyChatSend').addEventListener('click', () => {
+        document.getElementById('mpLobbyChatSend')?.addEventListener('click', () => {
             const input = document.getElementById('mpLobbyChatInput');
             let text = input.value.trim();
             if (!text || !mpCurrentRoom) return;
@@ -6871,24 +6874,24 @@
             mpRaiseEvent(MP_EV.LOBBY_CHAT, { text: text.slice(0,100) });
             input.value = '';
         });
-        document.getElementById('mpLobbyChatInput').addEventListener('keypress', e => {
+        document.getElementById('mpLobbyChatInput')?.addEventListener('keypress', e => {
             if (e.key === 'Enter') document.getElementById('mpLobbyChatSend').click();
         });
 
         // Match over
-        document.getElementById('mpBackToLobbyBtn').addEventListener('click', () => {
+        document.getElementById('mpBackToLobbyBtn')?.addEventListener('click', () => {
             document.getElementById('mpMatchOverOverlay').style.display = 'none';
             mpMatchOverShown = false;
             if (mpCurrentRoom) { mpMatchActive = false; document.getElementById('mpModal').classList.add('active'); mpShowLobbyView(); mpRenderLobby(); }
         });
-        document.getElementById('mpExitToSingleBtn').addEventListener('click', () => {
+        document.getElementById('mpExitToSingleBtn')?.addEventListener('click', () => {
             document.getElementById('mpMatchOverOverlay').style.display = 'none';
             mpMatchOverShown = false;
             mpLeaveLobby();
         });
 
         // In-game chat
-        document.getElementById('mpChatToggleBtn').addEventListener('click', () => {
+        document.getElementById('mpChatToggleBtn')?.addEventListener('click', () => {
             document.getElementById('mpChatPanel').classList.toggle('active');
         });
         const mpChatInputEl = document.getElementById('mpChatInput');
@@ -6911,8 +6914,8 @@
         mpChatInputEl.addEventListener('blur', () => { clearTimeout(mpTypingTimeout); mpSetTypingGodmode(false); });
 
         // Report modal
-        document.getElementById('closeReportBtn').addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
-        document.getElementById('mpSubmitReportBtn').addEventListener('click', mpSubmitReport);
+        document.getElementById('closeReportBtn')?.addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
+        document.getElementById('mpSubmitReportBtn')?.addEventListener('click', mpSubmitReport);
 
         loadFriends();
         loadNotifs();
