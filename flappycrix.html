@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0230";</script>
+    <script>window.__BUILD__ = "2026.08.16-0340";</script>
     
 
-    <script src="/filter.js?v=2026081603"></script>
-    <script src="/playfab-manager.js?v=2026081603"></script>
+    <script src="/filter.js?v=2026081604"></script>
+    <script src="/playfab-manager.js?v=2026081604"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1791,7 +1791,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0230</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0340</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3095,6 +3095,17 @@
                 const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
                 const res = await PlayFabManager.login(user.uid, name);
                 myRoles = PlayFabManager.roles;
+                // Pick up any role granted through the Firestore fallback
+                if (res) {
+                    PlayFabManager.refreshRoles().then(r => {
+                        if (r.length !== myRoles.length) {
+                            myRoles = r;
+                            console.log('[Roles] after Firestore merge:', myRoles);
+                            refreshRoleDisplay();
+                            updateOwnerButton();
+                        }
+                    }).catch(() => {});
+                }
                 if (!res) console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
                 if (res) {
                     loadStatsFromPlayFab();
@@ -3561,7 +3572,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0230</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0340</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
