@@ -34,7 +34,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-1900";</script>
+    <script>window.__BUILD__ = "2026.08.15-1950";</script>
     
     <script>
     // Captures console output and errors to an on-screen panel, so problems can
@@ -122,8 +122,8 @@
     })();
     </script>
 
-    <script src="/filter.js?v=2026081510"></script>
-    <script src="/playfab-manager.js?v=2026081510"></script>
+    <script src="/filter.js?v=2026081511"></script>
+    <script src="/playfab-manager.js?v=2026081511"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1839,7 +1839,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1900</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1950</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Debug log</span>
@@ -3586,7 +3586,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-1900</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-1950</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4844,8 +4844,11 @@
         let mpActiveRegion = null;
         let mpRegionQueue = [], mpRegionIndex = 0, mpRegionSettled = false;
 
+        let _regionTimer = null;
+
         function tryNextRegion() {
             if (mpRegionSettled) return;
+            if (_regionTimer) { clearTimeout(_regionTimer); _regionTimer = null; }
             if (mpRegionIndex >= mpRegionQueue.length) {
                 mpShowDiagnostic('⚠️ Photon refused every region. This usually means the App ID ' +
                                  'is not a Realtime app, or the app is disabled in the Photon dashboard.');
@@ -4862,7 +4865,19 @@
             } catch (e) {
                 console.warn(`[Photon] region "${region}" threw:`, e.message);
                 setTimeout(tryNextRegion, 400);
+                return;
             }
+
+            // A rejected region can stall at ConnectedToNameServer with no error
+            // at all, so a timeout is the only way to move on.
+            _regionTimer = setTimeout(() => {
+                if (mpRegionSettled) return;
+                const st = photonClient.state;
+                const nm = Photon.LoadBalancing.LoadBalancingClient.StateToName(st) || st;
+                console.warn(`[Photon] region "${region}" stalled at ${nm} after 6s — trying next`);
+                try { photonClient.disconnect(); } catch(e) {}
+                setTimeout(tryNextRegion, 300);
+            }, 6000);
         }
         let _pfRetries = 0, _pfRetryTimer = null;
         function scheduleReconnect() {
@@ -4981,10 +4996,20 @@
                 photonClient.onStateChange = function(state) {
                     const S = Photon.LoadBalancing.LoadBalancingClient.State;
                     const name = Photon.LoadBalancing.LoadBalancingClient.StateToName(state) || state;
-                    console.log('[Photon] state:', name);
+                    console.log(`[Photon] state: ${name}` +
+                                (mpActiveRegion ? ` (region ${mpActiveRegion})` : ''));
+                    // ConnectedToNameServer is where a bad App ID or an
+                    // unavailable region silently stalls.
+                    if (state === S.ConnectedToNameServer) {
+                        console.log('[Photon] nameserver reached — requesting master server…');
+                    }
+                    if (state === S.ConnectedToMaster || state === S.JoinedLobby) {
+                        console.log('[Photon] master server reached ✓');
+                    }
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
                         mpRegionSettled = true;
+                        if (_regionTimer) { clearTimeout(_regionTimer); _regionTimer = null; }
                         console.log(`[Photon] connected — region "${mpActiveRegion}"`);
                         _pfRetries = 0;
                         if (_pfRetryTimer) { clearTimeout(_pfRetryTimer); _pfRetryTimer = null; }
@@ -5026,6 +5051,17 @@
                 photonClient.onActorLeave = function(actor) { mpHandleActorLeave(actor); };
                 photonClient.onJoinRoom = function(createdByMe) { mpHandleJoinedRoom(createdByMe); };
                 photonClient.onEvent = function(code, content, actorNr) { mpHandleEvent(code, content, actorNr); };
+                photonClient.onOperationResponse = function(res) {
+                    if (res && res.errCode) {
+                        console.error(`[Photon] operation ${res.opCode} failed: ` +
+                                      `${res.errCode} ${res.errMsg || ''}`);
+                        if (res.errCode === 32767 || res.errCode === -2) {
+                            console.error('[Photon] → The App ID was rejected. Confirm at ' +
+                                          'dashboard.photonengine.com that this is a REALTIME app.');
+                        }
+                    }
+                };
+
                 photonClient.onError = function(errCode, errMsg) {
                     // Photon's numeric codes are opaque — translate the common ones.
                     const hints = {
