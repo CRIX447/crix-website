@@ -35,18 +35,17 @@
   },
   "firebase": {
     "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
-    "authDomain": "flappy-crix.firebaseapp.com",
+    "authDomain": "app.crixgamingvr.com",
     "projectId": "flappy-crix",
     "storageBucket": "flappy-crix.firebasestorage.app",
     "messagingSenderId": "543002752038",
-    "appId": "1:543002752038:web:70c45999a25647313062e7",
-    "_authDomain": "Must be the default <project>.firebaseapp.com UNLESS you have completed Firebase Hosting's custom-domain setup (DNS records + verification). Setting a custom domain without that makes the sign-in popup close with no result \u2014 it cannot complete the OAuth handshake."
+    "appId": "1:543002752038:web:70c45999a25647313062e7"
   },
   "photon": {
     "appId": "56ff5627-b073-412c-ac63-95fd3dc28484",
     "appVersion": "1.0",
     "region": "",
-    "chatAppId": "6e37b28d-5013-4d5e-80fe-3df7cc686e63",
+    "chatAppId": "56ff5627-b073-412c-ac63-95fd3dc28484",
     "_region": "Leave blank to auto-pick a region your app allows (recommended). Set a code like 'au', 'us', 'eu', 'asia' to force one \u2014 but it must be enabled in the Photon dashboard under Region Allowlist, or the connection is rejected.",
     "_appId": "Your live site is using 56ff5627-... \u2014 keep whatever is already in YOUR api.json, do not paste this file over it. Replace the line above with your real Realtime App ID before pushing."
   },
