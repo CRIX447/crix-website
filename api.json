@@ -7,15 +7,18 @@
     "channels": [
       {
         "handle": "@CRIXPLAYZMC",
-        "name": "CRIX PLAYZ MC"
+        "name": "CRIX PLAYZ MC",
+        "id": ""
       },
       {
         "handle": "@CRIXREACTS123",
-        "name": "CRIX REACTS"
+        "name": "CRIX REACTS",
+        "id": ""
       },
       {
         "handle": "@CRIXYAPS",
-        "name": "CRIX YAPS"
+        "name": "CRIX YAPS",
+        "id": ""
       },
       {
         "handle": "@CRIXGAMINGVR",
@@ -24,9 +27,11 @@
       },
       {
         "handle": "@CRIXGAMINGVR2",
-        "name": "CRIXGAMING VR 2"
+        "name": "CRIXGAMING VR 2",
+        "id": ""
       }
-    ]
+    ],
+    "_howToGetChannelId": "Open the channel > click the channel name > Share channel > Copy channel ID. Or on your own channels: youtube.com/account_advanced. Paste it as \"id\" below. With an id set, the site skips the handle lookup entirely \u2014 faster and immune to handle changes."
   },
   "firebase": {
     "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
@@ -39,12 +44,13 @@
   "photon": {
     "appId": "30228e0d-b570-419c-bf6d-2912ba99d9fc",
     "appVersion": "1.0",
-    "region": "us",
-    "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa"
+    "region": "",
+    "chatAppId": "0248f466-327e-4429-b203-ac144c3cdbaa",
+    "_region": "Leave blank to auto-pick a region your app allows (recommended). Set a code like 'au', 'us', 'eu', 'asia' to force one \u2014 but it must be enabled in the Photon dashboard under Region Allowlist, or the connection is rejected."
   },
   "discord": {
     "_setup": "1) discord.com/developers \u2192 your app \u2192 OAuth2 \u2192 Redirects \u2192 add EXACTLY https://crixgamingvr.com/flappycrix  2) copy the Client ID below  3) put CLIENT SECRET in Vercel env vars as DISCORD_CLIENT_SECRET \u2014 never here, this file is public.",
-    "clientId": "PASTE_YOUR_DISCORD_CLIENT_ID_HERE",
+    "clientId": "1521661170438635644",
     "redirectUri": "https://crixgamingvr.com/flappycrix",
     "_vercelEnvVars": [
       "1521661170438635644",
