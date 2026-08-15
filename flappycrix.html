@@ -25,6 +25,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
     
     <!-- Photon Realtime SDK (for multiplayer) -->
     <!-- Served locally as photon-realtime-browser.js: the official npm package (photon-realtime)
@@ -34,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-2245";</script>
+    <script>window.__BUILD__ = "2026.08.16-0010";</script>
     
 
-    <script src="/filter.js?v=2026081515"></script>
-    <script src="/playfab-manager.js?v=2026081515"></script>
+    <script src="/filter.js?v=2026081601"></script>
+    <script src="/playfab-manager.js?v=2026081601"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1297,6 +1298,11 @@
                 <input type="text" class="mp-input" id="mpDisplayNameInput" placeholder="Your display name" maxlength="20" style="letter-spacing:1px;margin-bottom:8px;">
                 <div class="mp-section-title">🖼️ PROFILE PICTURE</div>
                 <div class="avatar-grid" id="avatarGrid"></div>
+                <div style="display:flex;gap:6px;margin-top:8px;align-items:center;">
+                    <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+                    <button class="mp-btn-secondary" id="avatarUploadBtn" style="flex:1;font-size:11px;">📤 UPLOAD A PICTURE</button>
+                </div>
+                <div id="avatarUploadMsg" style="font-size:10px;color:#A0A0A0;margin-top:5px;min-height:14px;"></div>
                 <div style="display:flex;gap:6px;margin-top:8px;">
                     <input type="text" class="mp-input" id="avatarUrlInput" placeholder="…or paste an image URL"
                            style="flex:1;text-transform:none;letter-spacing:0;text-align:left;font-size:11px;padding:7px 12px;">
@@ -1470,6 +1476,7 @@
                         <span>Allow mid-game spectators</span>
                         <div class="mp-toggle-switch active" id="mpAllowSpectate"></div>
                     </div>
+                    <button class="mp-btn-secondary" id="mpClearBlocksBtn" style="width:100%;margin-top:6px;font-size:11px;">🔓 CLEAR LOBBY BLOCKS</button>
                     <div id="rankedLockNote" style="display:none;font-size:10px;color:#FFB347;background:rgba(255,165,0,0.08);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px 10px;margin-top:8px;line-height:1.5;">
                         🏆 Ranked matches use the default settings so every competitive game is played on equal terms.
                     </div>
@@ -1521,6 +1528,47 @@
     <div id="toasts"></div>
 
 
+
+    <!-- START A VOTE KICK -->
+    <div class="mp-modal" id="vkStartModal" style="z-index:47500;">
+        <div class="mp-modal-content" style="max-width:380px;">
+            <div class="modal-header">
+                <div class="modal-title">🗳️ CALL A VOTE</div>
+                <button class="modal-close" id="vkCloseBtn">✕</button>
+            </div>
+            <div style="font-size:12px;color:#C9C9C9;margin-bottom:12px;">
+                Remove <strong id="vkTarget" style="color:#fff;">—</strong> from the lobby?
+                Everyone else votes, and the host votes last.
+            </div>
+            <textarea id="vkReason" rows="3" placeholder="Why? e.g. spamming chat, griefing…"
+                style="width:100%;background:#0c0c14;border:1px solid rgba(255,255,255,.1);color:#fff;
+                       border-radius:10px;padding:10px;font-family:inherit;font-size:12px;resize:vertical;"></textarea>
+            <div class="auth-error" id="vkError" style="font-size:10px;margin:6px 0;"></div>
+            <button class="mp-btn-danger" id="vkSubmitBtn" style="width:100%;">START VOTE</button>
+        </div>
+    </div>
+
+    <!-- VOTE IN PROGRESS -->
+    <div class="mp-modal" id="vpModal" style="z-index:47600;">
+        <div class="mp-modal-content" style="max-width:380px;">
+            <div class="modal-header"><div class="modal-title">🗳️ VOTE IN PROGRESS</div></div>
+            <div style="text-align:center;padding:6px 0 14px;">
+                <div style="font-size:15px;font-weight:bold;color:#fff;margin-bottom:4px;">
+                    Remove <span id="vpName">—</span>?
+                </div>
+                <div id="vpReason" style="font-size:12px;color:#FFB347;font-style:italic;line-height:1.6;"></div>
+            </div>
+            <div style="height:7px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-bottom:6px;">
+                <div id="vpProgress" style="height:100%;width:0%;background:linear-gradient(90deg,#FF6B35,#FF4655);transition:width .3s;"></div>
+            </div>
+            <div id="vpCount" style="font-size:10px;color:#A0A0A0;text-align:center;margin-bottom:14px;">—</div>
+            <div id="vpButtons" style="display:flex;gap:8px;">
+                <button class="mp-btn-danger"  id="vpYes" style="flex:1;">REMOVE</button>
+                <button class="mp-btn-secondary" id="vpNo" style="flex:1;">KEEP</button>
+            </div>
+            <div id="vpWait" style="display:none;text-align:center;font-size:11px;color:#A0A0A0;padding:8px;"></div>
+        </div>
+    </div>
 
     <!-- CONNECTION TEST -->
     <div class="mp-modal" id="diagModal" style="z-index:49000;">
@@ -1735,7 +1783,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-2245</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0010</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3398,7 +3446,7 @@
             LOBBY_CHAT: 11, HOST_MODE_CHANGE: 12,
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
-            OWNER_EFFECT: 21,
+            OWNER_EFFECT: 21, VOTE_CAST: 22,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -3505,7 +3553,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-2245</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0010</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4302,6 +4350,61 @@
             g.querySelectorAll('.avatar-opt').forEach(img =>
                 img.addEventListener('click', () => setAvatar(img.dataset.url)));
         }
+        // Uploads go to Firebase Storage under avatars/<uid>. Rules should allow
+        // a user to write only their own path — see the note in SECURITY.md.
+        async function uploadAvatar(file) {
+            const msg = document.getElementById('avatarUploadMsg');
+            const show = (t, colour='#A0A0A0') => { if (msg) { msg.textContent = t; msg.style.color = colour; } };
+
+            if (!currentUser) return show('Sign in first to upload a picture.', '#FFB347');
+            if (typeof firebase === 'undefined' || !firebase.storage)
+                return show('Upload unavailable — Firebase Storage did not load.', '#FF4655');
+
+            if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type))
+                return show('Use a PNG, JPG, WEBP or GIF.', '#FF4655');
+            if (file.size > 2 * 1024 * 1024)
+                return show(`That image is ${(file.size/1048576).toFixed(1)}MB — the limit is 2MB.`, '#FF4655');
+
+            show('Uploading…');
+            try {
+                // Downscale before upload: keeps storage small and avatars load fast
+                const resized = await resizeImage(file, 256);
+                const ref = firebase.storage().ref(`avatars/${currentUser.uid}`);
+                const snap = await ref.put(resized, { contentType: 'image/jpeg' });
+                const url = await snap.ref.getDownloadURL();
+                await setAvatar(url);
+                show('Uploaded ✓', '#00CC7A');
+                setTimeout(() => show(''), 2500);
+            } catch (e) {
+                console.error('[Avatar] upload failed:', e);
+                const hints = {
+                    'storage/unauthorized': 'Storage rules are blocking this. Allow writes to avatars/{uid} in Firebase → Storage → Rules.',
+                    'storage/unauthenticated': 'Sign in again and retry.',
+                    'storage/retry-limit-exceeded': 'Upload timed out — check your connection.'
+                };
+                show(hints[e.code] || ('Upload failed: ' + e.message), '#FF4655');
+            }
+        }
+
+        // Square-crop and shrink to `size` px, returning a JPEG blob
+        function resizeImage(file, size) {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const side = Math.min(img.width, img.height);
+                    const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
+                    const cv = document.createElement('canvas');
+                    cv.width = cv.height = size;
+                    const cx = cv.getContext('2d');
+                    cx.drawImage(img, sx, sy, side, side, 0, 0, size, size);
+                    cv.toBlob(b => b ? resolve(b) : reject(new Error('Could not process that image')),
+                              'image/jpeg', 0.88);
+                };
+                img.onerror = () => reject(new Error('That file is not a readable image'));
+                img.src = URL.createObjectURL(file);
+            });
+        }
+
         async function setAvatar(url) {
             mpProfile.avatar = url;
             mpSaveProfile();
@@ -5188,6 +5291,7 @@
                     propsListedInLobby: ['roomName','mode','isPublic','queue','hostRank']
                 });
                 mpMatchMode = mpSelectedMode;
+                mpLobbyBlocklist = { ids: [], names: [], setBy: null };   // fresh lobby, no blocks
             } catch(e) { alert('Could not create room: ' + e.message); }
         }
 
@@ -5338,6 +5442,14 @@
                     Object.entries(mpPlayers).forEach(([nr, p]) => p.isHost = (parseInt(nr) === m));
                     const wasHost = mpIsHost;
                     mpIsHost = (mpLocalActor === m);
+
+                    // The person who set the blocks has gone — clear them so
+                    // anyone they removed can rejoin under the new host.
+                    if (!wasHost && mpIsHost && mpLobbyBlocklist.ids.length + mpLobbyBlocklist.names.length) {
+                        mpLobbyBlocklist = { ids: [], names: [], setBy: null };
+                        try { photonClient.myRoom().setCustomProperties({ blocked: mpLobbyBlocklist }); } catch(e) {}
+                        mpLobbyChatAppend(null, 'Previous host left — lobby blocks cleared.', true);
+                    }
                     if (!wasHost && mpIsHost) {
                         toast({ kind: 'invite', title: '👑 You are now host',
                                 body: 'The previous host left.' });
@@ -5416,9 +5528,13 @@
                 const isMe = parseInt(nr) === mpLocalActor;
                 const row = document.createElement('div');
                 row.className = 'mp-player-row';
+                // Built as a real element rather than an inline onerror string —
+                // a name containing an apostrophe used to break the attribute
+                // and the avatar would disappear entirely.
+                const initial = mpEsc((p.name || '?').charAt(0).toUpperCase());
                 const avatar = p.photo
-                    ? `<img class="mp-player-avatar" src="${mpEsc(p.photo)}" alt="" onerror="this.replaceWith(Object.assign(document.createElement('div'),{className:'mp-player-avatar',style:'background:${p.colour||'#FF4655'}',textContent:'${(p.name||'?').charAt(0).toUpperCase()}'}))">`
-                    : `<div class="mp-player-avatar" style="background:${p.colour||'#FF4655'}">${(p.name||'?').charAt(0).toUpperCase()}</div>`;
+                    ? `<img class="mp-player-avatar" src="${mpEsc(p.photo)}" alt="" data-fallback="${initial}" data-colour="${mpEsc(p.colour||'#FF4655')}">`
+                    : `<div class="mp-player-avatar" style="background:${mpEsc(p.colour||'#FF4655')}">${initial}</div>`;
                 const lvl = `<span class="mp-level-chip">${p.level || 1}</span>`;
                 // Owners can see PlayFab IDs so they can ban without guesswork
                 const idLine = (myRoles.includes('OWNER') && p.pfId)
@@ -5427,7 +5543,7 @@
                     `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
                 // Host-only: block someone from coming back
-                if (mpIsHost && !isMe) {
+                if (mpIsHost && !isMe && !targetProtected) {
                     const bb = document.createElement('button');
                     bb.className = 'mp-player-report-btn';
                     bb.textContent = '⊘';
@@ -5437,7 +5553,10 @@
                     row.appendChild(bb);
                 }
                 // Anyone with kick permission can remove anyone else, host included
-                if (mpHasPerm(mpLocalActor, 'canKick') && !isMe) {
+                const targetProtected = mpIsProtected(parseInt(nr));
+                // Owners can still kick staff; everyone else can't see the button
+                if (mpHasPerm(mpLocalActor, 'canKick') && !isMe &&
+                    (!targetProtected || myRoles.includes('OWNER'))) {
                     const kb = document.createElement('button');
                     kb.className = 'mp-player-kick-btn';
                     kb.textContent = 'KICK';
@@ -5449,9 +5568,25 @@
                     const already = isFriend(p);
                     fb.className = 'mp-player-friend-btn';
                     fb.textContent = already ? '★' : '☆';
-                    fb.title = already ? 'Remove friend' : 'Add friend';
-                    fb.style.color = already ? '#27A9F5' : '#666';
-                    fb.onclick = () => already ? removeFriend(p) : addFriend(p);
+                    fb.title = already ? 'Already friends' : 'Send a friend request';
+                    fb.style.color = already ? '#27A9F5' : '#8C8C8C';
+                    fb.onclick = async () => {
+                        if (already) { toast({ kind:'info', title:'Already friends', body:mpEsc(p.name) }); return; }
+                        if (!p.pfId) { toast({ kind:'warn', title:'Cannot add', body:'That player has no PlayFab account yet.' }); return; }
+                        if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
+                            toast({ kind:'warn', title:'Sign in first', body:'You need an account to add friends.' });
+                            return;
+                        }
+                        try {
+                            await PlayFabManager.sendFriendRequest(p.pfId);
+                            fb.textContent = '⏳';
+                            fb.title = 'Request sent';
+                            toast({ kind:'friend', title:'Request sent',
+                                    body:`${mpEsc(p.name)} needs to accept it.` });
+                        } catch (e) {
+                            toast({ kind:'warn', title:'Could not send', body:mpEsc(e.message) });
+                        }
+                    };
                     row.appendChild(fb);
 
                     const rb = document.createElement('button');
@@ -5471,6 +5606,15 @@
                     }
                 }
                 listEl.appendChild(row);
+                row.querySelectorAll('img.mp-player-avatar[data-fallback]').forEach(img => {
+                    img.addEventListener('error', function () {
+                        const d = document.createElement('div');
+                        d.className = 'mp-player-avatar';
+                        d.style.background = this.dataset.colour || '#FF4655';
+                        d.textContent = this.dataset.fallback || '?';
+                        this.replaceWith(d);
+                    });
+                });
             });
 
             const hostCtrl = document.getElementById('mpHostControls');
@@ -5543,14 +5687,22 @@
 
         // ----- HOST ACTIONS -----
         // Players blocked from this lobby (by PlayFab id where known, plus name)
-        let mpLobbyBlocklist = { ids: [], names: [] };
+        // Blocks apply to ONE lobby session. A new lobby starts clean, and if
+        // the host who set them leaves, they're dropped with them.
+        let mpLobbyBlocklist = { ids: [], names: [], setBy: null };
 
         function mpBlockFromLobby(actorNr, name) {
             if (!mpIsHost) return;
+            if (mpIsProtected(actorNr)) {
+                toast({ kind:'warn', title:'Cannot block',
+                        body:`${mpEsc(name)} is ${mpProtectedName(actorNr)}.` });
+                return;
+            }
             const t = mpPlayers[actorNr];
             if (!confirm(`Kick and block ${name} from this lobby?`)) return;
             if (t?.pfId) mpLobbyBlocklist.ids.push(t.pfId);
             if (t?.name) mpLobbyBlocklist.names.push(t.name.toLowerCase());
+            mpLobbyBlocklist.setBy = (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || mpLocalActor;
             // Share the list so it survives a host handover
             try {
                 photonClient.myRoom().setCustomProperties({ blocked: mpLobbyBlocklist });
@@ -5560,8 +5712,21 @@
         }
 
         // Enforced by the host when someone joins
+        // Lets a host undo blocks without leaving the lobby
+        function mpClearLobbyBlocks() {
+            if (!mpIsHost) return;
+            const n = mpLobbyBlocklist.ids.length + mpLobbyBlocklist.names.length;
+            if (!n) { toast({ kind:'info', title:'No blocks to clear', body:'' }); return; }
+            mpLobbyBlocklist = { ids: [], names: [], setBy: null };
+            try { photonClient.myRoom().setCustomProperties({ blocked: mpLobbyBlocklist }); } catch(e) {}
+            mpLobbyChatAppend(null, `${n} lobby block${n===1?'':'s'} cleared.`, true);
+            toast({ kind:'invite', title:'Blocks cleared', body:'Blocked players can rejoin.' });
+        }
+
         function mpEnforceBlocklist(actor) {
             if (!mpIsHost) return false;
+            // Staff are never blocked from a lobby
+            if (mpIsProtected(actor.actorNr)) return false;
             const nm = (actor.name || '').toLowerCase();
             const pid = mpPlayers[actor.actorNr]?.pfId;
             const blocked = mpLobbyBlocklist.names.includes(nm) ||
@@ -5576,6 +5741,11 @@
 
         function mpKickPlayer(actorNr) {
             if (!mpHasPerm(mpLocalActor, 'canKick')) return;
+            if (mpIsProtected(actorNr) && !myRoles.includes('OWNER')) {
+                toast({ kind:'warn', title:'Cannot kick',
+                        body:`That player is ${mpProtectedName(actorNr)}.` });
+                return;
+            }
             const target = mpPlayers[actorNr];
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             photonClient.raiseEvent(MP_EV.KICK, { targetActor: actorNr }, { receivers: RC.All });
@@ -5612,6 +5782,7 @@
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpMatchActive = false; mpSpectating = false;
             mpMatchMode = 'freemode';   // reset so coinrush rates don't leak into single player
+            mpLobbyBlocklist = { ids: [], names: [], setBy: null };
             coinsArr = []; pipes = [];  // clear leftover MP entities
             _mpMatchStarted = false; mpMatchOverShown = false;
             mpEndMatchUI();
@@ -6220,6 +6391,11 @@
                     mpLobbyChatAppend(p ? p.name : ('Player' + actorNr), content.text, false, p ? p.roles : []);
                     break;
                 case MP_EV.KICK:
+                    // Ignore kicks aimed at staff, whatever the sender claims
+                    if (mpIsProtected(content.targetActor) && content.targetActor === mpLocalActor) {
+                        console.warn('[MP] Ignored a kick aimed at a staff account.');
+                        break;
+                    }
                     if (content.targetActor === mpLocalActor) {
                         alert('You were removed from the lobby by the host.');
                         mpLeaveLobby();
@@ -6261,8 +6437,15 @@
                 case MP_EV.OWNER_EFFECT:
                     applyOwnerEffect(content.effect);
                     break;
+                case MP_EV.VOTE_CAST:
+                    handleVoteCast(content, actorNr);
+                    break;
                 case MP_EV.VOTE_KICK:
-                    mpHandleVoteKick(content.target, content.name, actorNr);
+                    if (mpIsProtected(content.target)) {
+                        console.warn('[MP] Ignored a vote-kick against staff.');
+                        break;
+                    }
+                    mpHandleVoteKick(content, actorNr);
                     break;
                 case MP_EV.GRANT_PERM:
                     if (!mpPermissions[content.target]) mpPermissions[content.target] = {};
@@ -6321,6 +6504,12 @@
         // ----- REPORTING -----
         let mpReportTarget = null;
         function mpOpenReport(actorNr, playerName) {
+            if (mpIsProtected(actorNr)) {
+                toast({ kind:'warn', title:'Cannot report',
+                        body:`${mpEsc(playerName)} is ${mpProtectedName(actorNr)}. ` +
+                             'Contact cgvr@crixgamingvr.com instead.' });
+                return;
+            }
             mpReportTarget = { actorNr, playerName };
             document.getElementById('reportTargetName').textContent = playerName;
             document.getElementById('reportReason').value = '';
@@ -6366,24 +6555,188 @@
         // The in-game duplicate admin panel and its whitelist were removed.
 
         // ----- VOTE KICK -----
+        // ----- VOTE KICK -----
+        // A proper poll: a reason is required, everyone except the target votes,
+        // and the host votes last so they can't sway it early.
+        let mpActivePoll = null;
+
         function mpInitiateVoteKick(targetActor, targetName) {
-            if (!mpCurrentRoom || !photonClient.isJoinedToRoom()) return;
-            mpRaiseEvent(MP_EV.VOTE_KICK, { target: targetActor, name: targetName }, { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
-        }
-        function mpHandleVoteKick(targetActor, targetName, voterActor) {
-            if (!mpVoteKicks[targetActor]) mpVoteKicks[targetActor] = { votes: new Set(), name: targetName };
-            mpVoteKicks[targetActor].votes.add(voterActor);
-            const total = Object.keys(mpPlayers).length;
-            const needed = Math.ceil(total * 0.6); // 60% majority
-            const count = mpVoteKicks[targetActor].votes.size;
-            mpLobbyChatAppend(null, `Vote to kick ${mpEsc(targetName)}: ${count}/${needed} needed`, true);
-            if (count >= needed) {
-                delete mpVoteKicks[targetActor];
-                if (mpIsHost) {
-                    mpRaiseEvent(MP_EV.KICK, { targetActor }, { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
-                }
-                if (targetActor === mpLocalActor) { alert('You were voted out.'); mpLeaveLobby(); }
+            if (mpIsProtected(targetActor)) {
+                toast({ kind:'warn', title:'Cannot vote-kick',
+                        body:`${mpEsc(targetName)} is ${mpProtectedName(targetActor)}.` });
+                return;
             }
+            if (!mpCurrentRoom || !photonClient.isJoinedToRoom()) return;
+            if (mpActivePoll) {
+                toast({ kind:'warn', title:'A vote is already running', body:'' });
+                return;
+            }
+            if (Object.keys(mpPlayers).length < 3) {
+                toast({ kind:'warn', title:'Not enough players',
+                        body:'Vote kicks need at least 3 people in the lobby.' });
+                return;
+            }
+            document.getElementById('vkTarget').textContent = targetName;
+            document.getElementById('vkReason').value = '';
+            document.getElementById('vkError').textContent = '';
+            document.getElementById('vkStartModal').classList.add('active');
+            document.getElementById('vkStartModal').dataset.target = targetActor;
+            document.getElementById('vkStartModal').dataset.name = targetName;
+        }
+
+        function mpSubmitVoteKick() {
+            const modal = document.getElementById('vkStartModal');
+            const reason = document.getElementById('vkReason').value.trim();
+            if (reason.length < 4) {
+                document.getElementById('vkError').textContent = 'Give a reason so people can vote fairly.';
+                return;
+            }
+            const targetActor = parseInt(modal.dataset.target);
+            const targetName = modal.dataset.name;
+            modal.classList.remove('active');
+            mpRaiseEvent(MP_EV.VOTE_KICK, {
+                target: targetActor, name: targetName,
+                reason: ChatFilter ? ChatFilter.clean(reason) : reason,
+                startedBy: mpLocalActor
+            }, { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+        }
+
+        function mpHandleVoteKick(content, voterActor) {
+            const targetActor = content.target;
+
+            // New poll
+            if (!mpActivePoll || mpActivePoll.target !== targetActor) {
+                // Everyone votes except the person being voted on
+                const eligible = Object.keys(mpPlayers).map(Number).filter(n => n !== targetActor);
+                const hostNr = Object.entries(mpPlayers).find(([,p]) => p.isHost)?.[0];
+                mpActivePoll = {
+                    target: targetActor,
+                    name: content.name,
+                    reason: content.reason || 'No reason given',
+                    startedBy: content.startedBy ?? voterActor,
+                    eligible,
+                    hostNr: hostNr ? parseInt(hostNr) : null,
+                    votes: new Map(),          // actorNr -> true/false
+                    endsAt: Date.now() + 45000
+                };
+                // The person who called it is automatically a yes
+                mpActivePoll.votes.set(mpActivePoll.startedBy, true);
+
+                mpLobbyChatAppend(null,
+                    `Vote started to remove ${mpEsc(content.name)} — "${mpEsc(mpActivePoll.reason)}"`, true);
+
+                if (targetActor === mpLocalActor) {
+                    toast({ kind:'warn', title:'A vote has been called on you',
+                            body: mpEsc(mpActivePoll.reason) });
+                } else {
+                    showVotePoll();
+                }
+                if (mpPollTimer) clearInterval(mpPollTimer);
+                mpPollTimer = setInterval(tickPoll, 1000);
+            }
+        }
+
+        let mpPollTimer = null;
+
+        function showVotePoll() {
+            const p = mpActivePoll;
+            if (!p || p.target === mpLocalActor) return;
+            document.getElementById('vpName').textContent = p.name;
+            document.getElementById('vpReason').textContent = p.reason;
+            document.getElementById('vpModal').classList.add('active');
+            updatePollUI();
+        }
+
+        function isHostSelf() { return mpIsHost; }
+
+        function canVoteNow() {
+            const p = mpActivePoll;
+            if (!p) return false;
+            if (p.votes.has(mpLocalActor)) return false;
+            // The host votes last — only once everyone else has
+            if (isHostSelf()) {
+                const others = p.eligible.filter(n => n !== p.hostNr);
+                return others.every(n => p.votes.has(n));
+            }
+            return true;
+        }
+
+        function updatePollUI() {
+            const p = mpActivePoll;
+            if (!p) return;
+            const cast = p.votes.size;
+            const total = p.eligible.length;
+            const yes = [...p.votes.values()].filter(Boolean).length;
+            const left = Math.max(0, Math.ceil((p.endsAt - Date.now()) / 1000));
+
+            const bar = document.getElementById('vpProgress');
+            if (bar) bar.style.width = Math.round(cast / total * 100) + '%';
+            const cnt = document.getElementById('vpCount');
+            if (cnt) cnt.textContent = `${cast}/${total} voted · ${yes} for removal · ${left}s left`;
+
+            const btns = document.getElementById('vpButtons');
+            const wait = document.getElementById('vpWait');
+            if (!btns || !wait) return;
+            if (p.votes.has(mpLocalActor)) {
+                btns.style.display = 'none';
+                wait.style.display = 'block';
+                wait.textContent = 'Vote recorded — waiting for the others…';
+            } else if (!canVoteNow()) {
+                btns.style.display = 'none';
+                wait.style.display = 'block';
+                wait.textContent = 'As host you vote last — waiting for everyone else.';
+            } else {
+                btns.style.display = 'flex';
+                wait.style.display = 'none';
+            }
+        }
+
+        function castVote(yes) {
+            if (!mpActivePoll || !canVoteNow()) return;
+            mpRaiseEvent(MP_EV.VOTE_CAST, { target: mpActivePoll.target, yes },
+                { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+        }
+
+        function handleVoteCast(content, voterActor) {
+            const p = mpActivePoll;
+            if (!p || p.target !== content.target) return;
+            if (!p.eligible.includes(voterActor)) return;   // target can't vote
+            p.votes.set(voterActor, !!content.yes);
+            updatePollUI();
+            if (p.votes.size >= p.eligible.length) resolvePoll();
+        }
+
+        function tickPoll() {
+            if (!mpActivePoll) { clearInterval(mpPollTimer); return; }
+            updatePollUI();
+            if (Date.now() >= mpActivePoll.endsAt) resolvePoll();
+        }
+
+        function resolvePoll() {
+            const p = mpActivePoll;
+            if (!p) return;
+            clearInterval(mpPollTimer);
+            mpPollTimer = null;
+            document.getElementById('vpModal')?.classList.remove('active');
+
+            const yes = [...p.votes.values()].filter(Boolean).length;
+            const passed = yes > p.eligible.length / 2;   // simple majority of eligible voters
+
+            mpLobbyChatAppend(null,
+                passed ? `Vote passed — ${mpEsc(p.name)} was removed (${yes}/${p.eligible.length}).`
+                       : `Vote failed — ${mpEsc(p.name)} stays (${yes}/${p.eligible.length}).`, true);
+
+            if (passed) {
+                if (mpIsHost) {
+                    mpRaiseEvent(MP_EV.KICK, { targetActor: p.target },
+                        { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+                }
+                if (p.target === mpLocalActor) {
+                    alert('The lobby voted to remove you.\nReason: ' + p.reason);
+                    mpLeaveLobby();
+                }
+            }
+            mpActivePoll = null;
         }
 
         // ----- HOST PERMISSIONS -----
@@ -6398,6 +6751,21 @@
             mpRenderPermissionsPanel();
             mpRenderLobby();
         }
+        // Staff can't be kicked, vote-kicked, reported or lobby-blocked.
+        // Checked on the acting client AND on the receiving client, so a
+        // tampered client can't force it through.
+        function mpIsProtected(actorNr) {
+            const p = mpPlayers[actorNr];
+            if (!p) return false;
+            const r = p.roles || [];
+            return r.includes('OWNER') || r.includes('MOD');
+        }
+        function mpProtectedName(actorNr) {
+            const p = mpPlayers[actorNr];
+            const r = (p?.roles) || [];
+            return r.includes('OWNER') ? 'an owner' : 'a moderator';
+        }
+
         function mpHasPerm(actorNr, perm) {
             return mpIsHost || !!(mpPermissions[actorNr] && mpPermissions[actorNr][perm]);
         }
@@ -6715,6 +7083,13 @@
         });
 
         // Avatar from a pasted URL
+        document.getElementById('avatarUploadBtn')?.addEventListener('click', () =>
+            document.getElementById('avatarFile')?.click());
+        document.getElementById('avatarFile')?.addEventListener('change', function () {
+            if (this.files && this.files[0]) uploadAvatar(this.files[0]);
+            this.value = '';   // allow re-picking the same file
+        });
+
         document.getElementById('avatarUrlBtn')?.addEventListener('click', () => {
             const url = document.getElementById('avatarUrlInput').value.trim();
             if (!/^https?:\/\/.+/i.test(url)) return;
@@ -6773,6 +7148,13 @@
         });
 
         // ---- HOST MATCH SETTINGS ----
+        document.getElementById('vkCloseBtn')?.addEventListener('click', () =>
+            document.getElementById('vkStartModal').classList.remove('active'));
+        document.getElementById('vkSubmitBtn')?.addEventListener('click', mpSubmitVoteKick);
+        document.getElementById('vpYes')?.addEventListener('click', () => castVote(true));
+        document.getElementById('vpNo')?.addEventListener('click', () => castVote(false));
+
+        document.getElementById('mpClearBlocksBtn')?.addEventListener('click', mpClearLobbyBlocks);
         document.getElementById('mpAllowSpectate')?.addEventListener('click', function() {
             this.classList.toggle('active');
             if (mpIsHost) {
