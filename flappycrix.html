@@ -34,11 +34,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-2130";</script>
+    <script>window.__BUILD__ = "2026.08.15-2245";</script>
     
 
-    <script src="/filter.js?v=2026081513"></script>
-    <script src="/playfab-manager.js?v=2026081513"></script>
+    <script src="/filter.js?v=2026081515"></script>
+    <script src="/playfab-manager.js?v=2026081515"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1735,7 +1735,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-2130</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-2245</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3371,7 +3371,7 @@
                     'auth/cancelled-popup-request': 'Popup blocked — allow popups and try again.',
                     'auth/unauthorized-domain': 'This domain is not authorised in Firebase. Add crixgamingvr.com under Authentication → Settings → Authorised domains.',
                     'auth/operation-not-allowed': 'Google sign-in is not enabled in Firebase (Authentication → Sign-in method).',
-                    'auth/internal-error': 'Firebase rejected the sign-in. Check that authDomain in api.json matches your Firebase project.'
+                    'auth/internal-error': 'Firebase rejected the sign-in. Try again, or check the browser console for details.'
                 };
                 if (e.code === 'auth/popup-closed-by-user') {
                     // user closed it deliberately, no error needed
@@ -3505,7 +3505,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-2130</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-2245</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -3654,16 +3654,23 @@
             try { seen = localStorage.getItem(SEEN_VERSION_KEY); } catch (e) {}
 
             if (announce && seen !== latest) {
+                // Don't fire twice for the same version within one session
+                if (window.__announcedVersion === latest) return;
+                window.__announcedVersion = latest;
+
                 const rel = patchData.releases[0];
                 notify({
                     type: 'success',
                     title: `🎉 Update ${rel.version} — ${rel.title}`,
-                    body: `${rel.changes.length} changes. Tap to read.`,
+                    body: `${rel.title}. ${rel.changes.length} changes — tap to read.`,
                     actions: {
-                        yesLabel: 'Read', onYes: () => showPatchNotes(),
-                        noLabel: 'Later', onNo: () => markVersionSeen()
-                    }
+                        yesLabel: 'Read',  onYes: () => showPatchNotes(),
+                        noLabel:  'Later', onNo:  () => markVersionSeen()
+                    },
+                    store: true,        // stays in the notification centre
+                    timeout: 0          // doesn't auto-dismiss
                 });
+                console.log(`[Patch] new release ${latest} announced (last seen: ${seen || 'none'})`);
             }
         }
 
@@ -6582,6 +6589,9 @@
             if (e.target.id === 'patchModal') e.target.classList.remove('active');
         });
         loadPatchNotes(true);
+        // Re-check every 10 minutes so someone who leaves the tab open still
+        // sees a release published after they loaded the page.
+        setInterval(() => loadPatchNotes(true), 10 * 60 * 1000);
 
         // ---- NOTIFICATIONS ----
         document.getElementById('notifBtn')?.addEventListener('click', () => {
