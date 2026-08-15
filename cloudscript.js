@@ -89,7 +89,7 @@ handlers.adminAction = function (args, context) {
 
     // Every action is gated here, server-side.
     var ownerOnly = ["giveCoins", "giveItem", "setRole", "reviveAll", "killAll", "bigAll"];
-    var modOrOwner = ["kick", "ban", "unban"];
+    var modOrOwner = ["kick", "ban", "unban", "lookup"];
 
     if (ownerOnly.indexOf(action) !== -1 && !isOwner(currentPlayerId)) {
         return { error: "Owner only" };
@@ -99,6 +99,32 @@ handlers.adminAction = function (args, context) {
     }
 
     switch (action) {
+
+        case "lookup": {
+            if (!target) return { error: "No target" };
+            var info = { playFabId: target };
+            try {
+                var p = server.GetPlayerProfile({
+                    PlayFabId: target,
+                    ProfileConstraints: { ShowDisplayName: true, ShowCreated: true, ShowLastLogin: true, ShowBannedUntil: true }
+                });
+                info.displayName = p.PlayerProfile && p.PlayerProfile.DisplayName;
+                info.created     = p.PlayerProfile && p.PlayerProfile.Created;
+                info.lastLogin   = p.PlayerProfile && p.PlayerProfile.LastLogin;
+            } catch (e) { info.profileError = e.message; }
+            try {
+                var inv = server.GetUserInventory({ PlayFabId: target });
+                info.currency = inv.VirtualCurrency;
+                info.items = (inv.Inventory || []).map(function (i) { return i.ItemId; });
+            } catch (e) { info.inventoryError = e.message; }
+            try {
+                var b = server.GetUserBans({ PlayFabId: target });
+                info.bans = (b.BanData || []).filter(function (x) { return x.Active; })
+                    .map(function (x) { return { banId: x.BanId, reason: x.Reason, expires: x.Expires }; });
+            } catch (e) {}
+            info.roles = getRoles(target);
+            return info;
+        }
 
         case "giveCoins": {
             var amt = parseInt(args.amount, 10);
