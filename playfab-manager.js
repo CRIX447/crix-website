@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.15-friends2';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-hosttransfer';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -565,6 +565,7 @@ if (typeof window !== 'undefined') {
         });
     };
 
+    PFM.cloudScriptVersion   = ()            => cs('version');
     PFM.sendFriendRequest    = id            => cs('sendFriendRequest', { targetPlayFabId: id });
     PFM.cancelFriendRequest  = id            => cs('cancelFriendRequest', { targetPlayFabId: id });
     PFM.removeFriendBoth     = id            => cs('removeFriendBoth', { targetPlayFabId: id });
@@ -575,6 +576,9 @@ if (typeof window !== 'undefined') {
     PFM.respondFriendRequest = (id, accept)  => cs('respondToFriendRequest', { requesterPlayFabId: id, accept });
     PFM.sendInvite           = (id, code, mode) => cs('sendInvite', { targetPlayFabId: id, roomCode: code, mode });
     PFM.getInvites           = ()            => cs('getInvites').then(r => r.invites || []);
+    PFM.csVersion            = ()            => cs('version');
+    // Calls any handler by name — used by the console's health check
+    PFM.callHandler          = (fn, params)  => cs(fn, params || {});
     PFM.clearInvites         = ()            => cs('clearInvites');
 })(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
 
