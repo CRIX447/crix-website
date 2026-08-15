@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deployment Check — CRIXGAMING VR</title>
+<meta name="robots" content="noindex">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A0A0F;color:#EDEDED;font-family:system-ui,-apple-system,sans-serif;
+  padding:28px 18px;line-height:1.6}
+.wrap{max-width:760px;margin:0 auto}
+h1{font-size:22px;margin-bottom:6px}
+.sub{color:#8C8C8C;font-size:13px;margin-bottom:24px}
+.row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);align-items:flex-start}
+.row:last-child{border-bottom:none}
+.ic{font-size:16px;width:22px;flex-shrink:0;text-align:center}
+.nm{font-weight:600;font-size:14px}
+.dt{font-size:12px;color:#A0A0A0;word-break:break-all;margin-top:2px}
+.fx{font-size:12px;color:#FFB347;margin-top:4px}
+code{background:rgba(0,0,0,.45);padding:1px 6px;border-radius:4px;color:#FFB347;font-size:11px}
+button{background:#FF4655;color:#fff;border:none;padding:11px 22px;border-radius:9px;
+  font-size:14px;font-weight:600;cursor:pointer;margin-top:20px}
+button:hover{background:#cc2233}
+button.ghost{background:#1C1C28;border:1px solid rgba(255,255,255,.12)}
+.box{background:#12121A;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px;margin-top:20px}
+.box h2{font-size:14px;margin-bottom:10px;color:#FF6B35}
+.box ol{padding-left:20px}
+.box li{font-size:13px;color:#C9C9C9;margin-bottom:8px}
+a{color:#00CC7A}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Deployment Check</h1>
+  <p class="sub">Verifies every required file is actually live on this domain, and whether your latest push made it here.</p>
+
+  <div id="results"></div>
+  <button id="run">Run check again</button>
+  <button id="copy" class="ghost">Copy results</button>
+
+  <div class="box" id="staleHelp" style="display:none;">
+    <h2>Your deployment looks out of date</h2>
+    <p style="font-size:13px;color:#C9C9C9;margin-bottom:10px;">
+      Making a GitHub repo private commonly breaks Vercel's access, so deploys stop
+      without any obvious error and the live site keeps serving old files.
+    </p>
+    <ol>
+      <li>Open <a href="https://vercel.com/dashboard" target="_blank">vercel.com/dashboard</a> → your project → <strong>Deployments</strong>. Is the newest one from your last push, or days old?</li>
+      <li>Go to <strong>Settings → Git</strong>. If it says the repository can't be found or access was revoked, click <strong>Reconnect</strong>.</li>
+      <li>On GitHub: <strong>Settings → Applications → Vercel → Configure</strong>, and grant it access to the private repo.</li>
+      <li>Back on Vercel, hit <strong>Redeploy</strong> on the latest commit.</li>
+    </ol>
+  </div>
+</div>
+
+<script>
+const EXPECTED_BUILD = '2026.08.15-1505';
+
+const FILES = [
+  { path:'/game.html',                    need:true,  label:'Game page' },
+  { path:'/photon-realtime-browser.js',   need:true,  label:'Photon SDK',      contains:'Photon' },
+  { path:'/playfab-manager.js',           need:true,  label:'PlayFab manager', contains:'PLAYFAB_MANAGER_VERSION' },
+  { path:'/filter.js',                    need:true,  label:'Chat filter',     contains:'ChatFilter' },
+  { path:'/api.json',                     need:true,  label:'Config (api.json)', json:true },
+  { path:'/patchnotes.json',              need:false, label:'Patch notes',     json:true },
+  { path:'/img/bird.png',                 need:true,  label:'Images'  },
+  { path:'/img/font.otf',                 need:true,  label:'Font'    },
+  { path:'/img/jump.mp3',                 need:false, label:'Sounds'  }
+];
+
+let out = [];
+const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
+
+function add(name, state, detail, fix) {
+  out.push({name,state,detail,fix});
+  const icons = {pass:'✅',fail:'❌',warn:'⚠️',info:'ℹ️'};
+  const el = document.createElement('div');
+  el.className = 'row';
+  el.innerHTML = `<span class="ic">${icons[state]||'•'}</span>
+    <div style="flex:1;min-width:0">
+      <div class="nm">${esc(name)}</div>
+      ${detail?`<div class="dt">${detail}</div>`:''}
+      ${fix?`<div class="fx">→ ${fix}</div>`:''}
+    </div>`;
+  document.getElementById('results').appendChild(el);
+}
+
+async function check() {
+  out = [];
+  document.getElementById('results').innerHTML = '';
+  document.getElementById('staleHelp').style.display = 'none';
+  let stale = false, missing = 0;
+
+  add('Domain', 'info', esc(location.origin));
+
+  // Is the deployed game.html the build we expect?
+  try {
+    const r = await fetch('/game.html?cb=' + Date.now());
+    const txt = await r.text();
+    const m = txt.match(/__BUILD__\s*=\s*"([^"]+)"/);
+    if (!m) {
+      stale = true;
+      add('Live build', 'fail', 'No build stamp found in the deployed game.html.',
+          'The deployed file predates this check — your push has not gone live.');
+    } else if (m[1] !== EXPECTED_BUILD) {
+      stale = true;
+      add('Live build', 'fail',
+          `Live: <code>${esc(m[1])}</code> &nbsp; Expected: <code>${esc(EXPECTED_BUILD)}</code>`,
+          'Vercel is serving an older commit. See the steps below.');
+    } else {
+      add('Live build', 'pass', `<code>${esc(m[1])}</code> — up to date.`);
+    }
+  } catch(e) {
+    add('Live build', 'fail', esc(e.message), 'Could not fetch game.html at all.');
+    stale = true;
+  }
+
+  // Every required file
+  for (const f of FILES) {
+    try {
+      const r = await fetch(f.path + '?cb=' + Date.now());
+      if (!r.ok) {
+        if (f.need) missing++;
+        add(f.label, f.need ? 'fail' : 'warn', `<code>${f.path}</code> → HTTP ${r.status}`,
+            f.need ? 'This file is missing from the deployment. Confirm it is committed in the repo root.' : null);
+        continue;
+      }
+      const ct = r.headers.get('content-type') || '';
+      // A 200 that returns HTML usually means the SPA/404 page was served instead
+      if (f.path.endsWith('.js') && ct.includes('text/html')) {
+        if (f.need) missing++;
+        add(f.label, 'fail', `<code>${f.path}</code> returned HTML, not JavaScript.`,
+            'The file is not deployed — the server sent the 404 page instead.');
+        continue;
+      }
+      if (f.json) {
+        try { await r.clone().json(); }
+        catch { add(f.label, 'fail', `<code>${f.path}</code> is not valid JSON.`, 'Check for a trailing comma or stray character.'); continue; }
+      }
+      if (f.contains) {
+        const t = await r.clone().text();
+        if (!t.includes(f.contains)) {
+          add(f.label, 'warn', `<code>${f.path}</code> loaded but looks wrong.`,
+              `Expected it to contain "${esc(f.contains)}" — possibly an old or truncated copy.`);
+          continue;
+        }
+      }
+      add(f.label, 'pass', `<code>${f.path}</code> served OK`);
+    } catch(e) {
+      if (f.need) missing++;
+      add(f.label, f.need ? 'fail' : 'warn', esc(e.message));
+    }
+  }
+
+  // Config sanity
+  try {
+    const cfg = await (await fetch('/api.json?cb=' + Date.now())).json();
+    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const appId = cfg?.photon?.appId || '';
+    add('Photon App ID', uuid.test(appId) ? 'pass' : 'fail',
+        appId ? `<code>${esc(appId.slice(0,8))}…</code>` : 'missing',
+        uuid.test(appId) ? null : 'Paste your Realtime App ID into api.json → photon.appId.');
+
+    const tid = cfg?.playfab?.titleId || '';
+    add('PlayFab Title ID', (tid && !tid.startsWith('PASTE_')) ? 'pass' : 'warn',
+        tid || 'missing',
+        (tid && !tid.startsWith('PASTE_')) ? null : 'Needed for coins, levels, friends and bans.');
+
+    const did = cfg?.discord?.clientId || '';
+    add('Discord Client ID', (did && !did.startsWith('PASTE_')) ? 'pass' : 'warn',
+        did || 'missing',
+        (did && !did.startsWith('PASTE_')) ? null : 'Needed only for Discord sign-in.');
+  } catch(e) {
+    add('Config values', 'fail', esc(e.message));
+  }
+
+  // Can this network even reach Photon?
+  const net = await new Promise(res => {
+    let done=false; const fin=v=>{if(!done){done=true;res(v);}};
+    try {
+      const ws = new WebSocket('wss://ns.photonengine.io:19093/diagnostic?libversion=check');
+      ws.onopen  = () => { fin('open'); try{ws.close();}catch(e){} };
+      ws.onerror = () => fin('blocked');
+      ws.onclose = e => fin(e.code===1006 ? 'blocked' : 'closed');
+      setTimeout(()=>fin('timeout'), 8000);
+    } catch(e){ fin('blocked'); }
+  });
+  add('Photon network', net==='open' ? 'pass' : 'fail',
+      net==='open' ? 'Port 19093 is reachable from this network.' : `Connection ${net}.`,
+      net==='open' ? null : 'A firewall, VPN, ad-blocker or school/work network is blocking port 19093. Try mobile data to confirm.');
+
+  if (stale || missing) document.getElementById('staleHelp').style.display = 'block';
+}
+
+document.getElementById('run').onclick = check;
+document.getElementById('copy').onclick = () => {
+  const t = out.map(r => `[${r.state.toUpperCase()}] ${r.name}: ${(r.detail||'').replace(/<[^>]+>/g,'')}` +
+                         (r.fix?`\n    FIX: ${r.fix.replace(/<[^>]+>/g,'')}`:'')).join('\n');
+  navigator.clipboard?.writeText(t).then(()=>{
+    const b=document.getElementById('copy'); b.textContent='Copied'; setTimeout(()=>b.textContent='Copy results',1600);
+  });
+};
+check();
+</script>
+</body>
+</html>
