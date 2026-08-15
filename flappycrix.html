@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081502"></script>
-    <script src="playfab-manager.js?v=2026081502"></script>
+    <script src="filter.js?v=2026081503"></script>
+    <script src="playfab-manager.js?v=2026081503"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -91,6 +91,8 @@
         }
         
         .game-container {
+            margin-left: auto;
+            margin-right: auto;
             max-width: 500px;
             transition: max-width 0.3s ease;
             width: 100%;
@@ -937,6 +939,26 @@
         .avatar-opt:hover { transform:scale(1.08); border-color:rgba(255,255,255,0.3); }
         .avatar-opt.sel { border-color:#00CC7A; transform:scale(1.08); }
 
+        /* ---- FRIEND SUB-TABS ---- */
+        .friend-tabs { display:flex; gap:4px; margin:10px 0 8px; }
+        .friend-tab { flex:1; background:rgba(255,255,255,.04);
+            border:1px solid rgba(255,255,255,.1); color:#A0A0A0;
+            font-size:10px; padding:7px 4px; border-radius:9px; cursor:pointer;
+            font-family:inherit; text-transform:uppercase; letter-spacing:.5px;
+            display:flex; align-items:center; justify-content:center; gap:4px; }
+        .friend-tab:hover { color:#fff; border-color:rgba(255,255,255,.2); }
+        .friend-tab.active { background:rgba(39,169,245,.15); border-color:#27A9F5; color:#27A9F5; }
+        .friend-tab i { font-style:normal; font-size:9px; background:rgba(255,255,255,.12);
+            color:#EDEDED; border-radius:8px; padding:1px 5px; min-width:14px; }
+        .friend-tab i.hot { background:#FF4655; color:#fff; }
+        .fr-actions { display:flex; gap:4px; align-items:center; flex-shrink:0; }
+        .fr-accept, .fr-deny { border:none; border-radius:7px; padding:5px 10px;
+            font-size:9px; font-weight:bold; cursor:pointer; font-family:inherit;
+            text-transform:uppercase; letter-spacing:.5px; }
+        .fr-accept { background:#00CC7A; color:#042; }
+        .fr-deny { background:rgba(255,255,255,.08); color:#C9C9C9; }
+        .fr-accept:hover, .fr-deny:hover { filter:brightness(1.15); }
+
         /* ---- FRIENDS / PRESENCE ---- */
         .presence-row { display:flex; align-items:center; justify-content:space-between; gap:10px;
             background:rgba(0,0,0,0.3); border:1px solid rgba(255,255,255,0.07);
@@ -1292,54 +1314,52 @@
 
                 <!-- FRIENDS PANEL -->
                 <div id="friendsPanel" style="display:none;">
-                    <div class="presence-row">
-                        <span style="font-size:11px;color:#999;">Your status</span>
-                        <div class="presence-picker">
-                            <button class="presence-opt active" data-status="online"><span class="dot" style="background:#00CC7A"></span>Online</button>
-                            <button class="presence-opt" data-status="dnd"><span class="dot" style="background:#FF4655"></span>Do not disturb</button>
-                            <button class="presence-opt" data-status="offline"><span class="dot" style="background:#666"></span>Appear offline</button>
-                        </div>
-                    </div>
-
-                    <!-- Your own friend code -->
+                    <!-- your code -->
                     <div class="code-card">
                         <div>
-                            <div style="font-size:9px;color:#ABABAB;text-transform:uppercase;letter-spacing:1px;">Your friend code</div>
+                            <div style="font-size:9px;color:#A0A0A0;text-transform:uppercase;letter-spacing:1px;">Your friend code</div>
                             <div id="myFriendCode" style="font-size:16px;font-weight:bold;color:#27A9F5;letter-spacing:1px;font-family:monospace;">—</div>
                         </div>
                         <button class="set-mini-btn" id="copyCodeBtn">COPY</button>
                     </div>
 
-                    <div class="presence-row" style="margin-top:8px;">
-                        <span style="font-size:11px;color:#999;">Allow friend requests</span>
-                        <div class="mp-toggle-switch active" id="allowRequestsToggle"></div>
-                    </div>
-
-                    <div style="position:relative;margin:12px 0 6px;">
+                    <!-- add someone -->
+                    <div style="position:relative;margin:10px 0 4px;">
                         <div style="display:flex;gap:6px;">
-                            <input type="text" class="mp-input" id="addFriendInput" placeholder="Type a name or paste a friend code"
+                            <input type="text" class="mp-input" id="addFriendInput" placeholder="Name#CODE or a name you've played with"
                                    autocomplete="off"
                                    style="flex:1;text-transform:none;letter-spacing:0;text-align:left;font-size:12px;padding:8px 14px;">
-                            <button class="mp-btn-primary" id="addFriendBtn" style="flex:0 0 auto;padding:8px 16px;">ADD</button>
+                            <button class="mp-btn-primary" id="addFriendBtn" style="flex:0 0 auto;padding:8px 16px;">SEND</button>
                         </div>
                         <div class="mention-popup" id="friendSuggest" style="bottom:auto;top:100%;margin-top:4px;"></div>
                     </div>
-                    <div class="auth-error" id="friendError" style="text-align:center;font-size:10px;margin-bottom:8px;"></div>
+                    <div class="auth-error" id="friendError" style="text-align:center;font-size:10px;margin-bottom:6px;"></div>
 
-                    <div id="pendingIncoming" style="display:none;margin-bottom:12px;">
-                        <div style="font-size:10px;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Requests received</div>
-                        <div id="incomingList" class="friends-list"></div>
+                    <!-- sub tabs -->
+                    <div class="friend-tabs">
+                        <button class="friend-tab active" data-ft="friends">Friends <i id="cntFriends">0</i></button>
+                        <button class="friend-tab" data-ft="incoming">Requests <i id="cntIncoming" class="hot">0</i></button>
+                        <button class="friend-tab" data-ft="outgoing">Sent <i id="cntOutgoing">0</i></button>
+                        <button class="friend-tab" data-ft="blocked">Blocked <i id="cntBlocked">0</i></button>
                     </div>
-                    <div id="pendingOutgoing" style="display:none;margin-bottom:12px;">
-                        <div style="font-size:10px;color:#888;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px;">Requests sent</div>
-                        <div id="outgoingList" class="friends-list"></div>
+
+                    <div id="friendsList" class="friends-list"></div>
+
+                    <div class="presence-row" style="margin-top:10px;">
+                        <span style="font-size:11px;color:#A0A0A0;">Your status</span>
+                        <div class="presence-picker">
+                            <button class="presence-opt active" data-status="online"><span class="dot" style="background:#00CC7A"></span>Online</button>
+                            <button class="presence-opt" data-status="dnd"><span class="dot" style="background:#FF4655"></span>Busy</button>
+                            <button class="presence-opt" data-status="offline"><span class="dot" style="background:#8C8C8C"></span>Invisible</button>
+                        </div>
                     </div>
-                    <div id="friendsList" class="friends-list"><div class="mp-empty-state">Loading friends…</div></div>
+                    <div class="presence-row" style="margin-top:6px;">
+                        <span style="font-size:11px;color:#A0A0A0;">Allow friend requests</span>
+                        <div class="mp-toggle-switch active" id="allowRequestsToggle"></div>
+                    </div>
+
                     <button class="mp-btn-secondary" id="refreshFriendsBtn" style="width:100%;margin-top:8px;">🔄 REFRESH</button>
                 </div>
-                <div class="mp-section-title">🌍 PUBLIC LOBBIES</div>
-                <div class="mp-room-list" id="mpRoomList"><div class="mp-empty-state">Connecting...</div></div>
-                <button class="mp-btn-secondary" id="mpRefreshBtn" style="width:100%;margin-top:6px;">🔄 REFRESH</button>
             </div>
 
             <!-- VIEW: JOIN BY CODE -->
@@ -3201,7 +3221,22 @@
 
             // response_type=code (not token): the secret exchange happens
             // server-side in /api/discord-auth so the account can be persistent.
-            const redirectUri = appConfig.discord?.redirectUri || 'https://crixgamingvr.com/flappycrix';
+            // Redirect URI comes from api.json so it can be changed without
+            // editing code — it must match the Discord portal exactly.
+            let redirectUri = appConfig.discord?.redirectUri;
+            if (!redirectUri) {
+                try {
+                    const r = await fetch('api.json');
+                    const j = await r.json();
+                    redirectUri = j.discord?.redirectUri;
+                    if (j.discord) appConfig.discord = j.discord;
+                } catch(e) {}
+            }
+            if (!redirectUri) {
+                authErrorSpan.style.color = '#FF4655';
+                authErrorSpan.textContent = 'Discord redirectUri missing from api.json.';
+                return;
+            }
             const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
             try { sessionStorage.setItem('discord_state', state); } catch(e) {}
 
@@ -4089,15 +4124,13 @@
 
         // ---- PLAYFAB FRIENDS ----
         let pfFriends = [];
-        async function loadPlayFabFriends() {
-            // split-aware version below
-            return loadFriendsSplit();
-        }
+        let friendTab = 'friends';
+        let fList = { friends: [], incoming: [], outgoing: [], blocked: [] };
 
-        async function loadFriendsSplit() {
+        async function loadPlayFabFriends() {
             const list = document.getElementById('friendsList');
             if (!list) return;
-            if (typeof PlayFabManager === 'undefined' || typeof PlayFabManager.getFriendsSplit !== 'function') {
+            if (typeof PlayFabManager === 'undefined' || typeof PlayFabManager.getFriends !== 'function') {
                 list.innerHTML = '<div class="mp-empty-state" style="color:#FFB347;">Old playfab-manager.js — hard refresh (Ctrl+Shift+R).</div>';
                 return;
             }
@@ -4107,169 +4140,156 @@
             }
             list.innerHTML = '<div class="mp-empty-state">Loading…</div>';
             try {
-                const { friends, incoming, outgoing } = await PlayFabManager.getFriendsSplit();
-                pfFriends = friends;
+                const all = await PlayFabManager.getFriends();
+                // PlayFab tags carry the relationship state
+                fList.friends  = all.filter(f => f.tags.includes('friend'));
+                fList.incoming = all.filter(f => f.tags.includes('incoming'));
+                fList.outgoing = all.filter(f => f.tags.includes('outgoing'));
+                fList.blocked  = all.filter(f => f.tags.includes('blocked'));
+                // Anything untagged is a legacy instant-add — treat as a friend
+                const untagged = all.filter(f => !f.tags.length);
+                fList.friends.push(...untagged);
+                updateFriendCounts();
                 renderFriendsList();
-
-                // incoming requests — accept or decline
-                const inWrap = document.getElementById('pendingIncoming');
-                const inList = document.getElementById('incomingList');
-                inWrap.style.display = incoming.length ? 'block' : 'none';
-                inList.innerHTML = incoming.map(f => `
-                    <div class="friend-row" data-id="${mpEsc(f.playFabId)}">
-                        ${f.avatarUrl ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="">`
-                                      : `<div class="friend-av" style="background:#27A9F5">${mpEsc(f.displayName.charAt(0).toUpperCase())}</div>`}
-                        <div style="flex:1;min-width:0;">
-                            <div style="font-size:12px;color:#fff;">${mpEsc(f.displayName)}</div>
-                            <div style="font-size:9px;color:#888;">wants to be friends</div>
-                        </div>
-                        <button class="friend-btn" data-act="accept" style="color:#00CC7A;font-size:16px;" title="Accept">✓</button>
-                        <button class="friend-btn" data-act="decline" style="color:#FF4655;font-size:14px;" title="Decline">✕</button>
-                    </div>`).join('');
-                inList.querySelectorAll('.friend-row').forEach(row => {
-                    const id = row.dataset.id;
-                    const f = incoming.find(x => x.playFabId === id);
-                    row.querySelectorAll('.friend-btn').forEach(b =>
-                        b.addEventListener('click', () =>
-                            respondRequest(id, b.dataset.act === 'accept', f?.displayName || 'Player')));
-                });
-
-                // outgoing — cancellable
-                const outWrap = document.getElementById('pendingOutgoing');
-                const outList = document.getElementById('outgoingList');
-                outWrap.style.display = outgoing.length ? 'block' : 'none';
-                outList.innerHTML = outgoing.map(f => `
-                    <div class="friend-row" data-id="${mpEsc(f.playFabId)}" style="opacity:.75;">
-                        <div class="friend-av" style="background:#444">${mpEsc(f.displayName.charAt(0).toUpperCase())}</div>
-                        <div style="flex:1;min-width:0;">
-                            <div style="font-size:12px;color:#ccc;">${mpEsc(f.displayName)}</div>
-                            <div style="font-size:9px;color:#888;">request pending</div>
-                        </div>
-                        <button class="friend-btn" data-act="cancel" style="color:#888;font-size:13px;" title="Cancel">✕</button>
-                    </div>`).join('');
-                outList.querySelectorAll('.friend-btn').forEach(b =>
-                    b.addEventListener('click', async () => {
-                        const id = b.closest('.friend-row').dataset.id;
-                        try { await PlayFabManager.cancelFriendRequest(id); loadFriendsSplit(); }
-                        catch(e) { notify({type:'error',title:'Could not cancel',body:e.message}); }
-                    }));
-
-                const badge = document.getElementById('friendsTabBadge');
-                if (badge) {
-                    badge.style.display = incoming.length ? 'inline-flex' : 'none';
-                    badge.textContent = incoming.length;
-                }
             } catch (e) {
-                list.innerHTML = `<div class="mp-empty-state" style="color:#FF4655;">Could not load friends: ${mpEsc(e.message)}</div>`;
+                list.innerHTML = `<div class="mp-empty-state" style="color:#FF4655;">${mpEsc(e.message)}</div>`;
             }
         }
 
-        async function _oldLoadPlayFabFriends() {
-            const list = document.getElementById('friendsList');
-            if (!list) return;
-            if (typeof PlayFabManager === 'undefined') {
-                list.innerHTML = '<div class="mp-empty-state" style="color:#FF4655;">playfab-manager.js did not load.</div>';
-                return;
-            }
-            if (typeof PlayFabManager.getFriends !== 'function') {
-                list.innerHTML = '<div class="mp-empty-state" style="color:#FFB347;line-height:1.7;">' +
-                    '⚠️ Old version of <code>playfab-manager.js</code> is loaded.<br>' +
-                    '<span style="font-size:10px;color:#ABABAB;">Push the updated file, then hard-refresh with ' +
-                    'Ctrl+Shift+R (Cmd+Shift+R on Mac).</span></div>';
-                return;
-            }
-            if (!PlayFabManager.isReady) {
-                list.innerHTML = '<div class="mp-empty-state">Sign in to use friends.</div>';
-                return;
-            }
-            list.innerHTML = '<div class="mp-empty-state">Loading friends…</div>';
-            try {
-                pfFriends = await PlayFabManager.getFriends();
-                renderFriendsList();
-            } catch (e) {
-                list.innerHTML = `<div class="mp-empty-state" style="color:#FF4655;">Could not load friends: ${mpEsc(e.message)}</div>`;
-            }
+        function updateFriendCounts() {
+            const set = (id, n, hot) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.textContent = n;
+                el.style.display = n ? '' : 'none';
+                if (hot) el.classList.toggle('hot', n > 0);
+            };
+            set('cntFriends',  fList.friends.length);
+            set('cntIncoming', fList.incoming.length, true);
+            set('cntOutgoing', fList.outgoing.length);
+            set('cntBlocked',  fList.blocked.length);
+            // mirror onto the notification badge
+            pendingRequests = fList.incoming.map(f => ({ from: f.playFabId, name: f.displayName, avatar: f.avatarUrl }));
+            updateNotifBadge();
+        }
+
+        function friendAvatar(f) {
+            return f.avatarUrl
+                ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="">`
+                : `<div class="friend-av" style="background:#FF4655">${mpEsc((f.displayName||'?').charAt(0).toUpperCase())}</div>`;
         }
 
         function renderFriendsList() {
             const list = document.getElementById('friendsList');
             if (!list) return;
-            if (!pfFriends.length) {
-                list.innerHTML = '<div class="mp-empty-state">No friends yet — add someone above.</div>';
+            const rows = fList[friendTab] || [];
+
+            const empties = {
+                friends:  'No friends yet — send someone your code.',
+                incoming: 'No pending requests.',
+                outgoing: "You haven't sent any requests.",
+                blocked:  'Nobody blocked.'
+            };
+            if (!rows.length) {
+                list.innerHTML = `<div class="mp-empty-state">${empties[friendTab]}</div>`;
                 return;
             }
-            // Favourites first, then alphabetical
-            const sorted = [...pfFriends].sort((a,b) =>
-                (b.favourite - a.favourite) || a.displayName.localeCompare(b.displayName));
+
+            const sorted = friendTab === 'friends'
+                ? [...rows].sort((a,b) => (b.favourite - a.favourite) || a.displayName.localeCompare(b.displayName))
+                : rows;
 
             list.innerHTML = sorted.map(f => {
-                // Anyone in our current room gives us live presence
                 const inRoom = Object.values(mpPlayers || {}).find(p => p.pfId === f.playFabId);
-                const status = inRoom ? (inRoom.presence || 'online') : 'unknown';
-                const meta = PRESENCE_META[status] || { label: 'Offline', colour: '#444' };
-                const av = f.avatarUrl
-                    ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="">`
-                    : `<div class="friend-av" style="background:#FF4655">${f.displayName.charAt(0).toUpperCase()}</div>`;
+                const status = inRoom ? (inRoom.presence || 'online') : 'offline';
+                const meta = PRESENCE_META[status] || { label:'Offline', colour:'#8C8C8C' };
+                const joinable = !!inRoom && status !== 'offline';
+
+                let actions = '';
+                if (friendTab === 'friends') {
+                    actions =
+                        `<button class="friend-btn fav"  data-act="fav"    title="Favourite">${f.favourite ? '★' : '☆'}</button>` +
+                        (mpCurrentRoom ? `<button class="friend-btn join" data-act="invite" title="Invite to your lobby">✉</button>` : '') +
+                        `<button class="friend-btn"      data-act="block"  title="Block" style="color:#FFB347">⊘</button>` +
+                        `<button class="friend-btn rm"   data-act="remove" title="Remove">✕</button>`;
+                } else if (friendTab === 'incoming') {
+                    actions =
+                        `<button class="fr-accept" data-act="accept">ACCEPT</button>` +
+                        `<button class="fr-deny"   data-act="deny">DENY</button>`;
+                } else if (friendTab === 'outgoing') {
+                    actions = `<button class="fr-deny" data-act="cancel">CANCEL</button>`;
+                } else {
+                    actions = `<button class="fr-accept" data-act="unblock">UNBLOCK</button>`;
+                }
+
+                const sub = friendTab === 'friends'
+                    ? `<span class="dot" style="background:${meta.colour}"></span>${meta.label}${joinable ? ' · in a lobby' : ''}`
+                    : friendTab === 'incoming' ? 'wants to be friends'
+                    : friendTab === 'outgoing' ? 'request pending'
+                    : 'blocked';
+
                 return `<div class="friend-row" data-id="${mpEsc(f.playFabId)}">
-                    ${av}
+                    ${friendAvatar(f)}
                     <div style="flex:1;min-width:0;">
                         <div style="font-size:12px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            ${f.favourite ? '<span style="color:#FFD700;">★</span> ' : ''}${mpEsc(f.displayName)}
+                            ${f.favourite && friendTab==='friends' ? '<span style="color:#FFD700">★</span> ' : ''}${mpEsc(f.displayName)}
                         </div>
-                        <div style="font-size:9px;color:${meta.colour};display:flex;align-items:center;gap:4px;">
-                            <span class="dot" style="background:${meta.colour}"></span>${inRoom ? meta.label : 'Offline'}
-                        </div>
+                        <div style="font-size:9px;color:${friendTab==='friends'?meta.colour:'#8C8C8C'};display:flex;align-items:center;gap:4px;">${sub}</div>
                     </div>
-                    <button class="friend-btn fav" data-act="fav" title="Favourite">${f.favourite ? '★' : '☆'}</button>
-                    ${mpCurrentRoom ? `<button class="friend-btn join" data-act="invite" title="Invite to lobby">✉</button>` : ''}
-                    <button class="friend-btn rm" data-act="rm" title="Remove">✕</button>
+                    <div class="fr-actions">${actions}</div>
                 </div>`;
             }).join('');
 
             list.querySelectorAll('.friend-row').forEach(row => {
                 const id = row.dataset.id;
-                row.querySelectorAll('.friend-btn').forEach(btn => {
-                    btn.addEventListener('click', async () => {
-                        const f = pfFriends.find(x => x.playFabId === id);
-                        if (!f) return;
-                        if (btn.dataset.act === 'fav') {
-                            try {
-                                await PlayFabManager.setFavourite(id, !f.favourite);
-                                f.favourite = !f.favourite;
-                                renderFriendsList();
-                            } catch(e) {}
-                        } else if (btn.dataset.act === 'rm') {
-                            if (!confirm('Remove ' + f.displayName + ' from friends?')) return;
-                            try {
-                                await PlayFabManager.removeFriend(id);
-                                pfFriends = pfFriends.filter(x => x.playFabId !== id);
-                                renderFriendsList();
-                            } catch(e) {}
-                        } else if (btn.dataset.act === 'invite') {
-                            if (!mpCurrentRoom) {
-                                toast({ kind:'warn', title:'Not in a lobby',
-                                        body:'Create or join a lobby first.' });
-                                return;
-                            }
-                            try {
-                                await PlayFabManager.sendInvite(id, mpCurrentRoom.code, mpCurrentRoom.mode);
-                                toast({ kind:'invite', title:'Invite sent',
-                                        body:`${mpEsc(f.displayName)} has been invited.` });
-                            } catch(e) {
-                                toast({ kind:'warn', title:'Invite failed', body: mpEsc(e.message) });
-                            }
-                        }
-                    });
-                });
+                row.querySelectorAll('[data-act]').forEach(btn =>
+                    btn.addEventListener('click', () => friendAction(btn.dataset.act, id)));
             });
         }
 
-        // We only know PlayFab IDs for people we've shared a lobby with,
-        // so codes resolve through the local roster.
-        async function resolveByCode(nameWithCode) {
-            const target = knownPlayers.find(k =>
-                k.name.toLowerCase() === nameWithCode.toLowerCase());
-            return target ? target.pfId : null;
+        async function friendAction(act, id) {
+            const all = [...fList.friends, ...fList.incoming, ...fList.outgoing, ...fList.blocked];
+            const f = all.find(x => x.playFabId === id);
+            if (!f) return;
+            try {
+                switch (act) {
+                    case 'accept':
+                        await PlayFabManager.respondFriendRequest(id, true);
+                        toast({ kind:'friend', title:'✅ Friend added', body:`${mpEsc(f.displayName)} is now a friend.` });
+                        break;
+                    case 'deny':
+                        await PlayFabManager.respondFriendRequest(id, false);
+                        toast({ kind:'info', title:'Request declined', body:'' });
+                        break;
+                    case 'cancel':
+                        await PlayFabManager.cancelFriendRequest(id);
+                        toast({ kind:'info', title:'Request cancelled', body:'' });
+                        break;
+                    case 'remove':
+                        if (!confirm(`Remove ${f.displayName}?`)) return;
+                        await PlayFabManager.removeFriendBoth(id);
+                        break;
+                    case 'block':
+                        if (!confirm(`Block ${f.displayName}? They won't be able to add or invite you.`)) return;
+                        await PlayFabManager.blockPlayer(id);
+                        toast({ kind:'warn', title:'Blocked', body:mpEsc(f.displayName) });
+                        break;
+                    case 'unblock':
+                        await PlayFabManager.unblockPlayer(id);
+                        break;
+                    case 'fav':
+                        await PlayFabManager.setFavourite(id, !f.favourite);
+                        break;
+                    case 'invite':
+                        if (!mpCurrentRoom) { toast({kind:'warn',title:'Not in a lobby',body:'Create or join one first.'}); return; }
+                        await PlayFabManager.sendInvite(id, mpCurrentRoom.code, mpCurrentRoom.mode);
+                        toast({ kind:'invite', title:'Invite sent', body:`${mpEsc(f.displayName)} has been invited.` });
+                        return;   // no reload needed
+                }
+                await loadPlayFabFriends();
+            } catch (e) {
+                toast({ kind:'warn', title:'Failed', body:mpEsc(e.message) });
+            }
         }
 
         async function addFriendByInput(overrideName) {
@@ -4464,6 +4484,29 @@
             return tags.length ? ROLE_TAGS[tags[0]].colour : null;
         }
 
+        let _pfRetries = 0, _pfRetryTimer = null;
+        function scheduleReconnect() {
+            if (_pfRetryTimer) return;
+            if (_pfRetries >= 5) {
+                mpShowDiagnostic('⚠️ Could not reach Photon after several attempts. ' +
+                                 'Check your App ID in api.json, or the app may be over its CCU limit.');
+                return;
+            }
+            const delay = Math.min(30000, 2000 * Math.pow(2, _pfRetries));
+            _pfRetries++;
+            mpShowDiagnostic(`🔄 Reconnecting in ${Math.round(delay/1000)}s… (attempt ${_pfRetries}/5)`);
+            _pfRetryTimer = setTimeout(() => {
+                _pfRetryTimer = null;
+                try {
+                    mpSetStatusDot('connecting');
+                    photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
+                } catch (e) {
+                    console.warn('[Photon] reconnect threw:', e.message);
+                    scheduleReconnect();
+                }
+            }, delay);
+        }
+
         function mpGetDisplayName() {
             if (mpProfile.displayName) return mpProfile.displayName;
             if (currentUser) return currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Player');
@@ -4551,6 +4594,8 @@
                     console.log('[Photon] state:', name);
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
+                        _pfRetries = 0;
+                        if (_pfRetryTimer) { clearTimeout(_pfRetryTimer); _pfRetryTimer = null; }
                         mpSetStatusDot('online');
                         mpHideDiagnostic();
                         mpRenderRoomList();
@@ -4592,6 +4637,7 @@
                         1: 'Could not reach Photon. A firewall, VPN or ad-blocker may be blocking WebSockets on port 19093.',
                         2: 'Photon rejected the App ID. Check api.json photon.appId is a REALTIME app ID (not Chat/Fusion/Quantum).',
                         3: 'Photon timed out. Usually a network issue or the region is unreachable.',
+                        1003: 'Photon closed the connection. Usually a wrong App ID, the app being disabled, or the free-tier CCU limit. Retrying…',
                         1001: 'Authentication failed — the App ID is wrong or the app is disabled in the Photon dashboard.',
                         1002: 'Photon app is over its CCU limit (20 on the free plan) or disabled.',
                         32757: 'No free slots / room full.',
@@ -4603,6 +4649,11 @@
                     console.error('[Photon] error', errCode, errMsg, hint ? '\n  → ' + hint : '');
                     mpShowDiagnostic('⚠️ ' + (hint || `Multiplayer error ${errCode}: ${errMsg}`));
                     mpSetStatusDot('offline');
+
+                    // A dropped master connection used to leave the game dead
+                    // until a manual refresh. Retry with backoff instead.
+                    const transient = [1003, 3, 1];
+                    if (transient.includes(errCode) && !mpCurrentRoom) scheduleReconnect();
                 };
                 photonClient.myActor().setName(mpGetDisplayName());
                 photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
@@ -4800,6 +4851,12 @@
                 rushTime: props.rushTime || 300,
                 allowSpectate: props.allowSpectate !== false
             };
+            if (props.blocked && typeof props.blocked === 'object') {
+                mpLobbyBlocklist = {
+                    ids: props.blocked.ids || [],
+                    names: props.blocked.names || []
+                };
+            }
             mpMatchMode = mpCurrentRoom.mode;
 
             // Seed players using correct API: myRoomActorsArray()
@@ -4869,6 +4926,7 @@
                 isHost: (nr === masterNr)
             };
             
+            if (mpEnforceBlocklist(actor)) return;
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             if (isFriend({ name: actor.name, pfId: null })) {
                 notify({ type:'invite', title:'Friend joined', body: `${actor.name} is in your lobby`, store:false });
@@ -4948,6 +5006,27 @@
             const count = Object.keys(mpPlayers).length;
             document.getElementById('mpPlayerCount').textContent = count;
 
+            // Our own entry can be missing if actor resolution lagged behind the
+            // join — rebuild it rather than rendering a lobby without ourselves.
+            if (mpLocalActor && !mpPlayers[mpLocalActor]) {
+                mpPlayers[mpLocalActor] = {
+                    name: mpGetDisplayName(), colour: mpGetColour(),
+                    roles: myRoles, level: playerLevel,
+                    photo: currentAvatar(),
+                    pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                    score: 0, dead: false, x: 100, y: 300, rx: 100, ry: 300,
+                    isHost: mpIsHost
+                };
+            } else if (mpPlayers[mpLocalActor]) {
+                // Keep our own row in step with our current profile
+                const me = mpPlayers[mpLocalActor];
+                me.name = mpGetDisplayName();
+                me.colour = mpGetColour();
+                me.roles = myRoles;
+                me.level = playerLevel;
+                me.photo = currentAvatar();
+            }
+
             const listEl = document.getElementById('mpPlayerList');
             listEl.innerHTML = '';
             Object.entries(mpPlayers).forEach(([nr, p]) => {
@@ -4964,6 +5043,16 @@
                 row.innerHTML = avatar +
                     `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
+                // Host-only: block someone from coming back
+                if (mpIsHost && !isMe) {
+                    const bb = document.createElement('button');
+                    bb.className = 'mp-player-report-btn';
+                    bb.textContent = '⊘';
+                    bb.title = 'Kick and block from this lobby';
+                    bb.style.color = '#FFB347';
+                    bb.onclick = () => mpBlockFromLobby(parseInt(nr), p.name);
+                    row.appendChild(bb);
+                }
                 // Anyone with kick permission can remove anyone else, host included
                 if (mpHasPerm(mpLocalActor, 'canKick') && !isMe) {
                     const kb = document.createElement('button');
@@ -5032,12 +5121,16 @@
             const note = document.getElementById('rankedLockNote');
             if (note) note.style.display = ranked ? 'block' : 'none';
 
-            ['mpMaxPlayers','mpRaceTarget','mpRushTime','mpHostModeSelect'].forEach(id => {
+            // Ranked locks the tuning values but the MODE stays changeable —
+            // playing ranked Race vs ranked Coin Rush is a legitimate choice.
+            ['mpMaxPlayers','mpRaceTarget','mpRushTime'].forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
                 el.disabled = ranked;
                 el.style.opacity = ranked ? '0.4' : '';
             });
+            const modeSel = document.getElementById('mpHostModeSelect');
+            if (modeSel) { modeSel.disabled = false; modeSel.style.opacity = ''; }
             const sp = document.getElementById('mpAllowSpectate');
             if (sp) { sp.style.pointerEvents = ranked ? 'none' : ''; sp.style.opacity = ranked ? '0.4' : ''; }
 
@@ -5066,6 +5159,38 @@
         }
 
         // ----- HOST ACTIONS -----
+        // Players blocked from this lobby (by PlayFab id where known, plus name)
+        let mpLobbyBlocklist = { ids: [], names: [] };
+
+        function mpBlockFromLobby(actorNr, name) {
+            if (!mpIsHost) return;
+            const t = mpPlayers[actorNr];
+            if (!confirm(`Kick and block ${name} from this lobby?`)) return;
+            if (t?.pfId) mpLobbyBlocklist.ids.push(t.pfId);
+            if (t?.name) mpLobbyBlocklist.names.push(t.name.toLowerCase());
+            // Share the list so it survives a host handover
+            try {
+                photonClient.myRoom().setCustomProperties({ blocked: mpLobbyBlocklist });
+            } catch(e) {}
+            mpKickPlayer(actorNr);
+            mpLobbyChatAppend(null, `${mpEsc(name)} was blocked from this lobby.`, true);
+        }
+
+        // Enforced by the host when someone joins
+        function mpEnforceBlocklist(actor) {
+            if (!mpIsHost) return false;
+            const nm = (actor.name || '').toLowerCase();
+            const pid = mpPlayers[actor.actorNr]?.pfId;
+            const blocked = mpLobbyBlocklist.names.includes(nm) ||
+                            (pid && mpLobbyBlocklist.ids.includes(pid));
+            if (blocked) {
+                setTimeout(() => mpKickPlayer(actor.actorNr), 300);
+                mpLobbyChatAppend(null, `${mpEsc(actor.name)} is blocked from this lobby.`, true);
+                return true;
+            }
+            return false;
+        }
+
         function mpKickPlayer(actorNr) {
             if (!mpHasPerm(mpLocalActor, 'canKick')) return;
             const target = mpPlayers[actorNr];
@@ -6200,6 +6325,14 @@
         document.getElementById('addFriendInput')?.addEventListener('keypress', e => {
             if (e.key === 'Enter') addFriendByInput();
         });
+        document.querySelectorAll('.friend-tab').forEach(t =>
+            t.addEventListener('click', () => {
+                document.querySelectorAll('.friend-tab').forEach(x => x.classList.remove('active'));
+                t.classList.add('active');
+                friendTab = t.dataset.ft;
+                renderFriendsList();
+                playSound(selectSound);
+            }));
         document.getElementById('refreshFriendsBtn')?.addEventListener('click', () => {
             loadPlayFabFriends(); playSound(selectSound);
         });
@@ -6251,7 +6384,7 @@
             document.getElementById(id)?.addEventListener('change', () => {
                 if (!mpIsHost || !mpCurrentRoom) return;
                 if (mpCurrentRoom.queue === 'competitive') {
-                    mpLobbyChatAppend(null, 'Ranked matches use fixed settings.', true);
+                    mpLobbyChatAppend(null, 'Ranked uses fixed values — the mode can still be changed.', true);
                     applyModeSettingVisibility();
                     return;
                 }
