@@ -34,6 +34,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
+    <script>window.__BUILD__ = "2026.08.15-1505";</script>
     <script src="filter.js?v=2026081505"></script>
     <script src="playfab-manager.js?v=2026081505"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
@@ -1724,6 +1725,10 @@
             <div class="set-row">
                 <span class="set-label">Roles</span>
                 <span id="setRoles" style="font-size:11px;color:#ABABAB;">None</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Build</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1505</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3423,6 +3428,11 @@
             el.innerHTML = '';
             const btn = document.getElementById('runDiagBtn');
             btn.disabled = true; btn.textContent = 'TESTING…';
+
+            // 0. Which build is actually live?
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-1505</code>',
+                    'If this is older than the build you just pushed, Vercel is not deploying. ' +
+                    'Check Vercel → Settings → Git that it still has access to the repo.');
 
             // 1. Photon SDK file
             if (typeof Photon === 'undefined') {
