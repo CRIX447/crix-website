@@ -105,6 +105,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     <button class="tab" data-t="logs">Logs</button>
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
+    <button class="tab" data-t="health">PlayFab</button>
     <button class="tab" data-t="deploy">Deploy</button>
     <button class="tab" data-t="system">System</button>
   </div>
@@ -237,6 +238,23 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         </div>
         <div class="row"><button class="btn sm" id="giveItem">Grant item</button></div>
         <div class="out" id="itemOut">—</div>
+      </div>
+    </div>
+
+    <!-- PLAYFAB HEALTH -->
+    <div class="view" id="v-health" style="display:none;">
+      <div class="panel">
+        <h2>PlayFab health</h2>
+        <p style="font-size:12px;color:#A0A0A0;line-height:1.7;margin-bottom:12px;">
+          Tests every client API and every CloudScript handler individually, so you can
+          see exactly which pieces work rather than discovering them one error at a time.
+        </p>
+        <div class="row">
+          <button class="btn sm" id="hRun">Run full test</button>
+          <button class="btn sm ghost" id="hCopy">Copy results</button>
+        </div>
+        <div id="hSummary" style="margin-top:12px;"></div>
+        <div id="hResults" style="margin-top:8px;"></div>
       </div>
     </div>
 
@@ -543,6 +561,20 @@ function renderMe() {
   ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('');
 }
 
+const _csBtn = $('copyCsBtn');
+if (_csBtn) _csBtn.onclick = async () => {
+  const out = $('csOut');
+  try {
+    const txt = await (await fetch('/cloudscript.js?cb=' + Date.now())).text();
+    await navigator.clipboard.writeText(txt);
+    out.className = 'out ok';
+    out.textContent = `Copied ${(txt.length/1024).toFixed(1)}KB. Paste into PlayFab, then press "Deploy to live".`;
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = 'Copy failed — open /cloudscript.js and copy it manually.';
+  }
+};
+
 $('runChecks').onclick = async () => {
   const out = $('sysOut');
   out.className = 'out';
@@ -552,11 +584,30 @@ $('runChecks').onclick = async () => {
   add('PlayFab', PlayFabManager.isReady, PlayFabManager.playFabId);
   add('Firebase', !!me, me?.email);
 
+  // Compare the DEPLOYED handler list against what this build needs. A stale
+  // deployment is otherwise indistinguishable from no deployment at all.
+  const NEEDED = ['adminAction','grantCoins','getMyBanInfo','sendFriendRequest',
+                  'respondToFriendRequest','cancelFriendRequest','removeFriendBoth',
+                  'getFriendRequests','blockPlayer','unblockPlayer','sendInvite',
+                  'getInvites','clearInvites','version'];
   try {
-    await PlayFabManager.getFriendRequests();
-    add('CloudScript', true, 'deployed and responding');
+    const v = await PlayFabManager.cloudScriptVersion();
+    const have = v.handlers || [];
+    const missing = NEEDED.filter(h => !have.includes(h));
+    if (missing.length) {
+      add('CloudScript', false,
+          `revision ${v.version || '?'} is MISSING: ${missing.join(', ')}`);
+      $('csPanel').style.display = 'block';
+    } else {
+      add('CloudScript', true, `revision ${v.version || '?'} · ${have.length} handlers`);
+      $('csPanel').style.display = 'none';
+    }
   } catch (e) {
-    add('CloudScript', false, e.message);
+    const stale = /not deployed|no function named/i.test(e.message);
+    add('CloudScript', false, stale
+        ? 'deployed revision is old, or nothing is deployed'
+        : e.message);
+    $('csPanel').style.display = 'block';
   }
 
   try {
