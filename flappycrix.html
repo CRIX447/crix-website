@@ -34,7 +34,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-1810";</script>
+    <script>window.__BUILD__ = "2026.08.15-1900";</script>
     
     <script>
     // Captures console output and errors to an on-screen panel, so problems can
@@ -122,8 +122,8 @@
     })();
     </script>
 
-    <script src="/filter.js?v=2026081509"></script>
-    <script src="/playfab-manager.js?v=2026081509"></script>
+    <script src="/filter.js?v=2026081510"></script>
+    <script src="/playfab-manager.js?v=2026081510"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1839,7 +1839,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1810</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1900</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Debug log</span>
@@ -3586,7 +3586,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-1810</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-1900</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4842,6 +4842,28 @@
         }
 
         let mpActiveRegion = null;
+        let mpRegionQueue = [], mpRegionIndex = 0, mpRegionSettled = false;
+
+        function tryNextRegion() {
+            if (mpRegionSettled) return;
+            if (mpRegionIndex >= mpRegionQueue.length) {
+                mpShowDiagnostic('⚠️ Photon refused every region. This usually means the App ID ' +
+                                 'is not a Realtime app, or the app is disabled in the Photon dashboard.');
+                mpSetStatusDot('offline');
+                console.error('[Photon] All regions rejected:', mpRegionQueue.join(', '));
+                return;
+            }
+            const region = mpRegionQueue[mpRegionIndex++];
+            mpActiveRegion = region;
+            console.log(`[Photon] trying region "${region}" (${mpRegionIndex}/${mpRegionQueue.length})`);
+            mpSetStatusDot('connecting');
+            try {
+                photonClient.connectToRegionMaster(region);
+            } catch (e) {
+                console.warn(`[Photon] region "${region}" threw:`, e.message);
+                setTimeout(tryNextRegion, 400);
+            }
+        }
         let _pfRetries = 0, _pfRetryTimer = null;
         function scheduleReconnect() {
             if (_pfRetryTimer) return;
@@ -4962,6 +4984,8 @@
                     console.log('[Photon] state:', name);
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
+                        mpRegionSettled = true;
+                        console.log(`[Photon] connected — region "${mpActiveRegion}"`);
                         _pfRetries = 0;
                         if (_pfRetryTimer) { clearTimeout(_pfRetryTimer); _pfRetryTimer = null; }
                         mpSetStatusDot('online');
@@ -4979,6 +5003,9 @@
                             }
                             mpLocalActor = nr;
                         }
+                    } else if (state === S.Disconnected && !mpRegionSettled && mpRegionIndex < mpRegionQueue.length) {
+                        console.warn(`[Photon] disconnected while trying "${mpActiveRegion}" — next region`);
+                        setTimeout(tryNextRegion, 500);
                     } else if (state === S.Disconnected) {
                         mpConnected = false;
                         mpSetStatusDot('offline');
@@ -5020,51 +5047,37 @@
 
                     // A dropped master connection used to leave the game dead
                     // until a manual refresh. Retry with backoff instead.
+                    // Before we've settled on a region, a failure just means
+                    // that region was refused — move to the next candidate.
+                    if (!mpRegionSettled && mpRegionIndex < mpRegionQueue.length) {
+                        console.warn(`[Photon] region "${mpActiveRegion}" refused (${errCode}) — trying next`);
+                        setTimeout(tryNextRegion, 500);
+                        return;
+                    }
                     const transient = [1003, 3, 1];
                     if (transient.includes(errCode) && !mpCurrentRoom) scheduleReconnect();
                 };
                 photonClient.myActor().setName(mpGetDisplayName());
 
+                // connectToRegionMaster() already handles the nameserver step
+                // internally. Calling connectToNameServer() first and then
+                // connectToRegionMaster() tore down the first connection —
+                // that was the "connects then disconnects" behaviour.
                 const wanted = (appConfig.photon.region || '').toLowerCase();
+                const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
+                const nearby =
+                      tz.includes('australia') ? ['au','asia','jp','us','eu']
+                    : tz.includes('asia')      ? ['asia','jp','au','us','eu']
+                    : tz.includes('europe')    ? ['eu','ru','us']
+                    : tz.includes('america')   ? ['us','usw','sa','eu']
+                    :                            ['eu','us','asia'];
 
-                // Photon apps have a Region Allowlist. Connecting to a region
-                // that isn't on it is rejected, so ask first rather than assume.
-                photonClient.onGetRegionsResult = function(errCode, errMsg, regions) {
-                    if (errCode !== 0 || !regions) {
-                        console.warn('[Photon] Could not list regions:', errMsg);
-                        photonClient.connectToRegionMaster(wanted || 'eu');
-                        return;
-                    }
-                    const codes = Object.keys(regions).map(r => r.toLowerCase());
-                    console.log('[Photon] Regions enabled for this app:', codes.join(', '));
-
-                    let pick;
-                    if (wanted && codes.includes(wanted)) {
-                        pick = wanted;
-                    } else {
-                        // Prefer something near the player, then fall back to
-                        // whatever the app actually has enabled.
-                        const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
-                        const preferred =
-                            tz.includes('australia') ? ['au','asia','jp','sa','us']
-                          : tz.includes('asia')      ? ['asia','jp','au','us']
-                          : tz.includes('europe')    ? ['eu','ru','us']
-                          : tz.includes('america')   ? ['us','usw','sa','eu']
-                          :                            ['eu','us'];
-                        pick = preferred.find(r => codes.includes(r)) || codes[0];
-                        if (wanted && pick !== wanted) {
-                            console.warn(`[Photon] Region "${wanted}" is not enabled for this app. ` +
-                                         `Using "${pick}" instead. Enable it in the Photon dashboard ` +
-                                         `under Region Allowlist, or change api.json to match.`);
-                        }
-                    }
-                    mpActiveRegion = pick;
-                    console.log('[Photon] connecting to region:', pick);
-                    photonClient.connectToRegionMaster(pick);
-                };
-
-                // Kicks off the region list, which then triggers the connect above
-                photonClient.connectToNameServer();
+                // Try the configured region first, then nearby ones. If a region
+                // isn't on the app's allowlist Photon closes the connection, so
+                // we move down the list rather than giving up.
+                mpRegionQueue = wanted ? [wanted, ...nearby.filter(r => r !== wanted)] : nearby.slice();
+                mpRegionIndex = 0;
+                tryNextRegion();
 
                 // If we're still not in a lobby after 12s, say so rather than
                 // sitting on a silent "connecting" dot forever.
