@@ -34,11 +34,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-2020";</script>
+    <script>window.__BUILD__ = "2026.08.15-2130";</script>
     
 
-    <script src="/filter.js?v=2026081512"></script>
-    <script src="/playfab-manager.js?v=2026081512"></script>
+    <script src="/filter.js?v=2026081513"></script>
+    <script src="/playfab-manager.js?v=2026081513"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1735,7 +1735,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-2020</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-2130</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3104,13 +3104,17 @@
             handleDiscordCallback();
             auth.onAuthStateChanged((user) => {
                 currentUser = user;
+                console.log('[Auth] state changed:', user ? (user.email || user.uid) : 'signed out');
                 if (user) {
-                    renderUserProfile(user);
-                    initPlayFabForUser(user);
+                    // Guarded individually — one failure here used to abort the
+                    // whole handler, leaving the modal open and the UI stale.
+                    try { renderUserProfile(user); } catch(e) { console.error('[Auth] renderUserProfile:', e.message); }
+                    try { initPlayFabForUser(user); } catch(e) { console.error('[Auth] initPlayFabForUser:', e.message); }
+                    try { authModalEl.classList.remove('active'); } catch(e) {}
                     document.getElementById('loginBtn').style.display = 'none';
                     document.getElementById('logoutBtn').style.display = 'block';
                     refreshSettingsUI();
-                    loadFromCloud();
+                    try { loadFromCloud(); } catch(e) { console.error('[Auth] loadFromCloud:', e.message); }
                     if (typeof setPhotonNickname === 'function') setPhotonNickname(user.displayName || (user.email ? user.email.split('@')[0] : 'Player'));
                 } else {
                     document.getElementById('userName').textContent = 'Not Logged In';
@@ -3237,12 +3241,32 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ code })
                 });
+
+                // A 404 means the serverless function isn't deployed at all,
+                // which is the most common reason Discord "does nothing".
+                if (res.status === 404) {
+                    throw new Error('/api/discord-auth is not deployed. Push the api/ folder and ' +
+                                    'package.json so Vercel builds the serverless function.');
+                }
+
+                const ctype = res.headers.get('content-type') || '';
+                if (!ctype.includes('application/json')) {
+                    throw new Error(`/api/discord-auth returned ${res.status} (${ctype || 'no type'}) ` +
+                                    'instead of JSON — the function is probably missing or crashed.');
+                }
+
                 const data = await res.json().catch(() => ({}));
+                console.log('[Discord] token endpoint replied', res.status, data.error || 'ok');
 
                 if (!res.ok || !data.token) {
-                    const hint = res.status === 500 && /not configured/i.test(data.error || '')
-                        ? 'Set DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET and FIREBASE_SERVICE_ACCOUNT in Vercel.'
-                        : (data.detail || data.error || `Server returned ${res.status}`);
+                    let hint = data.detail || data.error || `Server returned ${res.status}`;
+                    if (/not configured/i.test(data.error || '')) {
+                        hint = 'Vercel is missing DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET.';
+                    } else if (/FIREBASE_SERVICE_ACCOUNT/i.test(hint)) {
+                        hint = 'Vercel is missing FIREBASE_SERVICE_ACCOUNT (Firebase → Project Settings → Service Accounts → Generate new private key).';
+                    } else if (/redirect/i.test(hint)) {
+                        hint = 'The redirect URI must match the Discord portal exactly: https://crixgamingvr.com/flappycrix';
+                    }
                     throw new Error(hint);
                 }
 
@@ -3341,10 +3365,18 @@
                 authModalEl.classList.remove('active');
                 selectSound.play();
             } catch (e) {
-                if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
-                    authErrorSpan.textContent = 'Popup blocked — allow popups and try again';
-                } else if (e.code === 'auth/popup-closed-by-user') {
-                    // user closed it, no error needed
+                console.error('[Auth] Google sign-in failed:', e.code, e.message);
+                const msgs = {
+                    'auth/popup-blocked': 'Popup blocked — allow popups for this site and try again.',
+                    'auth/cancelled-popup-request': 'Popup blocked — allow popups and try again.',
+                    'auth/unauthorized-domain': 'This domain is not authorised in Firebase. Add crixgamingvr.com under Authentication → Settings → Authorised domains.',
+                    'auth/operation-not-allowed': 'Google sign-in is not enabled in Firebase (Authentication → Sign-in method).',
+                    'auth/internal-error': 'Firebase rejected the sign-in. Check that authDomain in api.json matches your Firebase project.'
+                };
+                if (e.code === 'auth/popup-closed-by-user') {
+                    // user closed it deliberately, no error needed
+                } else if (msgs[e.code]) {
+                    authErrorSpan.textContent = msgs[e.code];
                 } else {
                     authErrorSpan.textContent = e.message;
                 }
@@ -3473,7 +3505,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-2020</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-2130</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
