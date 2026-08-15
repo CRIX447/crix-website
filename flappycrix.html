@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0010";</script>
+    <script>window.__BUILD__ = "2026.08.16-0120";</script>
     
 
-    <script src="/filter.js?v=2026081601"></script>
-    <script src="/playfab-manager.js?v=2026081601"></script>
+    <script src="/filter.js?v=2026081602"></script>
+    <script src="/playfab-manager.js?v=2026081602"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1783,7 +1783,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0010</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0120</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3553,7 +3553,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0010</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0120</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -5542,6 +5542,10 @@
                 row.innerHTML = avatar +
                     `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
+                // Declared before first use — reading a const early throws and
+                // aborted the entire player loop, leaving the lobby empty.
+                const targetProtected = mpIsProtected(parseInt(nr));
+
                 // Host-only: block someone from coming back
                 if (mpIsHost && !isMe && !targetProtected) {
                     const bb = document.createElement('button');
@@ -5553,7 +5557,6 @@
                     row.appendChild(bb);
                 }
                 // Anyone with kick permission can remove anyone else, host included
-                const targetProtected = mpIsProtected(parseInt(nr));
                 // Owners can still kick staff; everyone else can't see the button
                 if (mpHasPerm(mpLocalActor, 'canKick') && !isMe &&
                     (!targetProtected || myRoles.includes('OWNER'))) {
