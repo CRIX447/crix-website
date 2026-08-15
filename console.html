@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Console — CRIXGAMING VR</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="/img/newfavicon.png">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="/playfab-manager.js"></script>
+<style>
+@font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
+:root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:#EDEDED;font-family:'CRIX Pixel',ui-monospace,Menlo,Consolas,monospace;
+  min-height:100vh;font-size:13px;
+  background-image:linear-gradient(rgba(255,70,85,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,70,85,.04) 1px,transparent 1px);
+  background-size:48px 48px}
+
+/* ---- GATE ---- */
+#gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.gate-card{background:var(--panel);border:2px solid var(--red);border-bottom:5px solid rgba(150,20,35,.7);
+  border-radius:20px;padding:36px 30px;max-width:400px;width:100%;text-align:center;
+  box-shadow:5px 5px 0 rgba(0,0,0,.6)}
+.gate-card h1{font-size:20px;color:var(--red);text-transform:uppercase;letter-spacing:2px;margin-bottom:8px}
+.gate-msg{font-size:12px;color:#A0A0A0;line-height:1.7;margin-bottom:20px}
+.btn{background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;border:2px solid rgba(255,255,255,.15);
+  border-bottom:4px solid rgba(0,0,0,.4);border-radius:30px;padding:11px 26px;font-family:inherit;
+  font-size:13px;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
+.btn:hover{filter:brightness(1.1)}
+.btn.sm{padding:6px 14px;font-size:11px;border-radius:20px;border-bottom-width:3px}
+.btn.ghost{background:#1C1C28;border-color:var(--line)}
+.btn.danger{background:linear-gradient(135deg,#cc2233,#8b0000)}
+
+/* ---- SHELL ---- */
+#app{display:none}
+.topbar{display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;
+  background:rgba(5,5,8,.96);border-bottom:2px solid rgba(255,70,85,.4);position:sticky;top:0;z-index:50}
+.brand{font-size:15px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--red),var(--orange));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.who{margin-left:auto;font-size:11px;color:#A0A0A0;display:flex;align-items:center;gap:8px}
+.tag{background:#FF0000;color:#fff;font-size:9px;font-weight:bold;padding:2px 7px;border-radius:10px}
+
+.tabs{display:flex;gap:4px;padding:12px 20px 0;flex-wrap:wrap}
+.tab{background:var(--panel);border:1px solid var(--line);color:#A0A0A0;padding:8px 16px;
+  border-radius:9px 9px 0 0;cursor:pointer;font-family:inherit;font-size:12px;
+  text-transform:uppercase;letter-spacing:1px}
+.tab:hover{color:#fff}
+.tab.active{background:rgba(255,70,85,.15);border-color:var(--red);color:var(--red)}
+
+.wrap{max-width:1100px;margin:0 auto;padding:16px 20px 40px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+.panel h2{font-size:12px;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin-bottom:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+input,select,textarea{background:#0c0c14;border:1px solid var(--line);color:#EDEDED;
+  border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;flex:1;min-width:140px}
+input:focus,select:focus{outline:none;border-color:var(--orange)}
+label{font-size:11px;color:#A0A0A0;min-width:90px}
+
+/* ---- LOG ---- */
+#logBody{background:#07070b;border:1px solid var(--line);border-radius:10px;padding:12px;
+  height:440px;overflow-y:auto;font-size:11px;line-height:1.65;white-space:pre-wrap;word-break:break-word}
+.l-time{color:#555}
+.l-log{color:#bbb}.l-info{color:#7fd4ff}.l-warn{color:#ffb347}.l-error{color:#ff6b74}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{background:#0c0c14;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center}
+.stat .k{font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1px}
+.stat .v{font-size:18px;font-weight:bold;color:#fff;margin-top:4px;word-break:break-all}
+.out{background:#0c0c14;border:1px solid var(--line);border-radius:10px;padding:12px;
+  font-size:11px;min-height:44px;white-space:pre-wrap;word-break:break-word;color:#C9C9C9}
+.ok{color:var(--green)}.bad{color:var(--red)}
+.hint{font-size:10px;color:#8C8C8C;line-height:1.6;margin-top:6px}
+@media(max-width:600px){.wrap{padding:12px}.tabs{padding:10px 12px 0}.topbar{padding:0 12px}}
+</style>
+</head>
+<body>
+
+<!-- ================= GATE ================= -->
+<div id="gate">
+  <div class="gate-card">
+    <div style="font-size:40px;margin-bottom:10px;">🛡️</div>
+    <h1>Console</h1>
+    <p class="gate-msg" id="gateMsg">Checking access…</p>
+    <button class="btn" id="signInBtn" style="display:none;">Sign in with Google</button>
+    <div style="margin-top:16px;"><a href="/flappycrix" style="color:#8C8C8C;font-size:11px;">← Back to the game</a></div>
+  </div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <div class="topbar">
+    <span class="brand">CRIX CONSOLE</span>
+    <div class="who">
+      <span class="tag">OWNER</span>
+      <span id="whoName">—</span>
+      <button class="btn sm ghost" id="signOutBtn">Sign out</button>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-t="logs">Logs</button>
+    <button class="tab" data-t="players">Players</button>
+    <button class="tab" data-t="economy">Economy</button>
+    <button class="tab" data-t="system">System</button>
+  </div>
+
+  <div class="wrap">
+
+    <!-- LOGS -->
+    <div class="view" id="v-logs">
+      <div class="panel">
+        <h2>Live log</h2>
+        <div class="row">
+          <select id="logLevel" style="flex:0 0 130px;">
+            <option value="all">All levels</option>
+            <option value="error">Errors only</option>
+            <option value="warn">Warnings +</option>
+          </select>
+          <input id="logFilter" placeholder="Filter text…">
+          <button class="btn sm ghost" id="logCopy">Copy</button>
+          <button class="btn sm ghost" id="logClear">Clear</button>
+        </div>
+        <div id="logBody"></div>
+        <p class="hint">Captures console output from this page. To capture the game's log, open the game
+           and use its own diagnostics — this page can't read another tab's console.</p>
+      </div>
+    </div>
+
+    <!-- PLAYERS -->
+    <div class="view" id="v-players" style="display:none;">
+      <div class="panel">
+        <h2>Look up a player</h2>
+        <div class="row">
+          <input id="lookupId" placeholder="PlayFab ID (e.g. 5CBE6EC456E77C2C)">
+          <button class="btn sm" id="lookupBtn">Look up</button>
+        </div>
+        <div class="out" id="lookupOut">Enter a PlayFab ID.</div>
+      </div>
+
+      <div class="panel">
+        <h2>Moderation</h2>
+        <div class="row"><label>Player ID</label><input id="modId" placeholder="PlayFab ID"></div>
+        <div class="row"><label>Reason</label><input id="modReason" placeholder="Breaking the rules"></div>
+        <div class="row">
+          <label>Duration</label>
+          <select id="modHours">
+            <option value="1">1 hour</option>
+            <option value="24" selected>24 hours</option>
+            <option value="168">7 days</option>
+            <option value="720">30 days</option>
+            <option value="">Permanent</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn sm danger" id="banBtn">Ban</button>
+          <button class="btn sm ghost" id="unbanBtn">Unban (needs ban ID)</button>
+        </div>
+        <div class="out" id="modOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Roles</h2>
+        <div class="row"><label>Player ID</label><input id="roleId" placeholder="PlayFab ID"></div>
+        <div class="row">
+          <button class="btn sm" id="makeMod">Grant MOD</button>
+          <button class="btn sm ghost" id="stripRole">Remove all roles</button>
+        </div>
+        <div class="out" id="roleOut">—</div>
+        <p class="hint">Roles are catalog items, so they follow the account and can't be bought.</p>
+      </div>
+    </div>
+
+    <!-- ECONOMY -->
+    <div class="view" id="v-economy" style="display:none;">
+      <div class="panel">
+        <h2>Grant currency</h2>
+        <div class="row"><label>Player ID</label><input id="coinId" placeholder="Leave blank for yourself"></div>
+        <div class="row"><label>Amount</label><input id="coinAmt" type="number" value="1000"></div>
+        <div class="row"><button class="btn sm" id="giveCoins">Grant coins</button></div>
+        <div class="out" id="coinOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Grant item</h2>
+        <div class="row"><label>Player ID</label><input id="itemId" placeholder="Leave blank for yourself"></div>
+        <div class="row">
+          <label>Item</label>
+          <select id="itemPick">
+            <option value="player_menu">Player Menu unlock</option>
+            <option value="hat_bucket">Bucket Hat</option>
+            <option value="hat_cap">Baseball Cap</option>
+            <option value="shirt_tank">Tank Top</option>
+            <option value="shirt_tee">T-Shirt</option>
+            <option value="pu_x2coins">2x Coins</option>
+            <option value="pu_shield">Shield</option>
+            <option value="pu_magnet">Coin Magnet</option>
+            <option value="role_mod">Moderator Role</option>
+            <option value="role_owner">Owner Role</option>
+          </select>
+        </div>
+        <div class="row"><button class="btn sm" id="giveItem">Grant item</button></div>
+        <div class="out" id="itemOut">—</div>
+      </div>
+    </div>
+
+    <!-- SYSTEM -->
+    <div class="view" id="v-system" style="display:none;">
+      <div class="panel">
+        <h2>Your account</h2>
+        <div class="stat-grid" id="meGrid"></div>
+      </div>
+      <div class="panel">
+        <h2>Service status</h2>
+        <div class="row"><button class="btn sm" id="runChecks">Run checks</button></div>
+        <div class="out" id="sysOut">Not run yet.</div>
+      </div>
+      <div class="panel">
+        <h2>Shortcuts</h2>
+        <div class="row">
+          <a class="btn sm ghost" href="/deploy-check" target="_blank">Deployment check</a>
+          <a class="btn sm ghost" href="https://dashboard.photonengine.com" target="_blank">Photon</a>
+          <a class="btn sm ghost" href="https://developer.playfab.com" target="_blank">PlayFab</a>
+          <a class="btn sm ghost" href="https://console.firebase.google.com" target="_blank">Firebase</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
+const $ = id => document.getElementById(id);
+
+/* ---------- log capture (this page only) ---------- */
+const LOG = [];
+['log','info','warn','error'].forEach(lv => {
+  const orig = console[lv].bind(console);
+  console[lv] = function () {
+    LOG.push({ t:new Date().toTimeString().slice(0,8), lv,
+      msg: Array.from(arguments).map(a =>
+        a instanceof Error ? a.message :
+        typeof a === 'object' ? (()=>{try{return JSON.stringify(a);}catch{return String(a);}})() :
+        String(a)).join(' ') });
+    if (LOG.length > 500) LOG.shift();
+    renderLog();
+    orig.apply(console, arguments);
+  };
+});
+window.addEventListener('error', e => console.error(`${e.message} (${(e.filename||'').split('/').pop()}:${e.lineno})`));
+
+function renderLog() {
+  const body = $('logBody'); if (!body) return;
+  const lvl = $('logLevel')?.value || 'all';
+  const q = ($('logFilter')?.value || '').toLowerCase();
+  const keep = LOG.filter(l => {
+    if (lvl === 'error' && l.lv !== 'error') return false;
+    if (lvl === 'warn' && !['warn','error'].includes(l.lv)) return false;
+    return !q || l.msg.toLowerCase().includes(q);
+  });
+  body.innerHTML = keep.map(l =>
+    `<div class="l-${l.lv}"><span class="l-time">${l.t}</span> ${esc(l.msg)}</div>`).join('');
+  body.scrollTop = body.scrollHeight;
+}
+
+/* ---------- auth gate ---------- */
+let auth = null, me = null;
+
+(async function init() {
+  let cfg;
+  try {
+    cfg = await (await fetch('/api.json?cb=' + Date.now())).json();
+  } catch (e) {
+    $('gateMsg').textContent = 'Could not load api.json.';
+    return;
+  }
+  try {
+    firebase.initializeApp(cfg.firebase);
+    auth = firebase.auth();
+  } catch (e) {
+    $('gateMsg').textContent = 'Firebase failed to start: ' + e.message;
+    return;
+  }
+  await PlayFabManager.init(cfg.playfab || {});
+
+  auth.onAuthStateChanged(async user => {
+    if (!user) {
+      $('gateMsg').textContent = 'Sign in with an owner account to continue.';
+      $('signInBtn').style.display = '';
+      return;
+    }
+    me = user;
+    $('gateMsg').textContent = 'Checking your role…';
+    $('signInBtn').style.display = 'none';
+
+    try {
+      await PlayFabManager.login(user.uid, user.displayName || 'Owner');
+    } catch (e) {
+      $('gateMsg').textContent = 'PlayFab sign-in failed: ' + e.message;
+      return;
+    }
+
+    // The gate is convenience — every action below is re-checked server-side
+    // in CloudScript, so hiding this page is not what makes it secure.
+    if (!PlayFabManager.isOwner) {
+      $('gateMsg').innerHTML = 'This account does not hold the <b>OWNER</b> role.' +
+        '<br><span style="font-size:10px;color:#8C8C8C">Signed in as ' + esc(user.email || user.displayName) + '</span>';
+      setTimeout(() => auth.signOut(), 2500);
+      return;
+    }
+
+    $('gate').style.display = 'none';
+    $('app').style.display = 'block';
+    $('whoName').textContent = user.displayName || user.email || 'Owner';
+    renderMe();
+    console.log('[Console] signed in as', PlayFabManager.playFabId);
+  });
+
+  $('signInBtn').onclick = () =>
+    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
+        .catch(e => $('gateMsg').textContent = 'Sign-in failed: ' + e.message);
+})();
+
+$('signOutBtn').onclick = () => auth.signOut().then(() => location.reload());
+
+/* ---------- tabs ---------- */
+document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
+  $('v-' + t.dataset.t).style.display = 'block';
+});
+
+/* ---------- log controls ---------- */
+$('logLevel').onchange = renderLog;
+$('logFilter').oninput = renderLog;
+$('logClear').onclick = () => { LOG.length = 0; renderLog(); };
+$('logCopy').onclick = () => {
+  const txt = LOG.map(l => `[${l.t}] ${l.lv.toUpperCase()}: ${l.msg}`).join('\n');
+  navigator.clipboard?.writeText(txt).then(() => {
+    $('logCopy').textContent = 'Copied'; setTimeout(() => $('logCopy').textContent = 'Copy', 1500);
+  });
+};
+
+/* ---------- helpers ---------- */
+async function run(outId, fn, okMsg) {
+  const el = $(outId);
+  el.textContent = 'Working…';
+  el.className = 'out';
+  try {
+    const r = await fn();
+    el.className = 'out ok';
+    el.textContent = okMsg ? okMsg(r) : JSON.stringify(r, null, 2);
+  } catch (e) {
+    el.className = 'out bad';
+    el.textContent = e.message;
+    console.error(e.message);
+  }
+}
+
+/* ---------- players ---------- */
+$('lookupBtn').onclick = () => {
+  const id = $('lookupId').value.trim();
+  if (!id) return;
+  run('lookupOut',
+      () => PlayFabManager.adminAction('lookup', { targetPlayFabId: id }),
+      r => JSON.stringify(r, null, 2));
+};
+
+$('banBtn').onclick = () => {
+  const id = $('modId').value.trim();
+  if (!id) { $('modOut').textContent = 'Enter a PlayFab ID.'; return; }
+  const hours = $('modHours').value;
+  const reason = $('modReason').value.trim() || 'Breaking the rules';
+  if (!confirm(`Ban ${id}${hours ? ' for ' + hours + 'h' : ' permanently'}?`)) return;
+  run('modOut',
+      () => PlayFabManager.adminAction('ban', { targetPlayFabId:id, hours: hours || undefined, reason }),
+      r => `Banned. Ban ID: ${r.banId || '(none returned)'}`);
+};
+
+$('unbanBtn').onclick = () => {
+  const banId = prompt('Ban ID to revoke:');
+  if (!banId) return;
+  run('modOut', () => PlayFabManager.adminAction('unban', { banId }), () => 'Ban revoked.');
+};
+
+$('makeMod').onclick = () => {
+  const id = $('roleId').value.trim();
+  if (!id) { $('roleOut').textContent = 'Enter a PlayFab ID.'; return; }
+  run('roleOut',
+      () => PlayFabManager.adminAction('setRole', { targetPlayFabId:id, roles:['MOD'] }),
+      () => 'Granted MOD. They need to reload the game to see it.');
+};
+
+$('stripRole').onclick = () => {
+  const id = $('roleId').value.trim();
+  if (!id) { $('roleOut').textContent = 'Enter a PlayFab ID.'; return; }
+  if (!confirm('Remove all roles from ' + id + '?')) return;
+  run('roleOut',
+      () => PlayFabManager.adminAction('setRole', { targetPlayFabId:id, roles:[] }),
+      () => 'All roles removed.');
+};
+
+/* ---------- economy ---------- */
+$('giveCoins').onclick = () => {
+  const amt = parseInt($('coinAmt').value, 10);
+  if (!amt) { $('coinOut').textContent = 'Enter an amount.'; return; }
+  const target = $('coinId').value.trim() || PlayFabManager.playFabId;
+  run('coinOut',
+      () => PlayFabManager.adminAction('giveCoins', { targetPlayFabId: target, amount: amt }),
+      r => `Granted ${amt.toLocaleString()}. New balance: ${r.balance ?? '?'}`);
+};
+
+$('giveItem').onclick = () => {
+  const item = $('itemPick').value;
+  const target = $('itemId').value.trim() || PlayFabManager.playFabId;
+  run('itemOut',
+      () => PlayFabManager.adminAction('giveItem', { targetPlayFabId: target, itemId: item }),
+      () => `Granted ${item}.`);
+};
+
+/* ---------- system ---------- */
+function renderMe() {
+  $('meGrid').innerHTML = [
+    ['PlayFab ID', PlayFabManager.playFabId || '—'],
+    ['Roles', (PlayFabManager.roles || []).join(', ') || 'none'],
+    ['Firebase UID', me?.uid?.slice(0, 16) + '…' || '—'],
+    ['Email', me?.email || '—']
+  ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('');
+}
+
+$('runChecks').onclick = async () => {
+  const out = $('sysOut');
+  out.className = 'out';
+  const lines = [];
+  const add = (n, ok, d) => lines.push(`${ok ? '✅' : '❌'} ${n}${d ? ' — ' + d : ''}`);
+
+  add('PlayFab', PlayFabManager.isReady, PlayFabManager.playFabId);
+  add('Firebase', !!me, me?.email);
+
+  try {
+    await PlayFabManager.getFriendRequests();
+    add('CloudScript', true, 'deployed and responding');
+  } catch (e) {
+    add('CloudScript', false, e.message);
+  }
+
+  try {
+    const r = await fetch('/api.json?cb=' + Date.now());
+    add('api.json', r.ok, 'HTTP ' + r.status);
+  } catch (e) { add('api.json', false, e.message); }
+
+  try {
+    const r = await fetch('/api/youtube?action=stats');
+    const j = await r.json();
+    add('YouTube proxy', r.ok && !j.error, j.error?.message || (j._source === 'rss' ? 'via RSS fallback' : 'Data API OK'));
+  } catch (e) { add('YouTube proxy', false, e.message); }
+
+  out.textContent = lines.join('\n');
+};
+</script>
+</body>
+</html>
