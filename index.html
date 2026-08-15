@@ -847,8 +847,13 @@ async function loadConfig() {
             MAIN_CHANNEL_HANDLE = siteConfig.youtube.mainChannel || MAIN_CHANNEL_HANDLE;
             if (Array.isArray(siteConfig.youtube.channels)) {
                 CHANNEL_DEFS = siteConfig.youtube.channels
-                    .filter(c => c.handle)
-                    .map(c => ({ handle: c.handle, name: c.name || c.handle, id: '' }));
+                    .filter(c => c.handle || c.id)
+                    .map(c => ({
+                        handle: c.handle || '',
+                        name: c.name || c.handle || 'Channel',
+                        // An explicit id skips the handle lookup entirely
+                        id: c.id || ''
+                    }));
             }
         }
     } catch (e) {
@@ -902,7 +907,11 @@ async function fetchVideosForChannel(ch) {
         const isMain = normalizeHandle(ch.handle) === normalizeHandle(MAIN_CHANNEL_HANDLE);
         if (!ch.id) {
             const resolved = await resolveChannelId(ch, apiKey);
-            if (!resolved) return;
+            if (!resolved) {
+                console.warn(`[YouTube] Could not resolve ${ch.handle}. ` +
+                             'Add an explicit "id" for this channel in api.json to skip the lookup.');
+                return;
+            }
             ch.id = resolved;
             if (isMain) CHANNEL_ID = resolved; // used by checkLiveStream()
         }
