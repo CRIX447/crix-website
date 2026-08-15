@@ -840,7 +840,7 @@ function showYouTubeError(msg) {
 
 async function loadConfig() {
     try {
-        const res = await fetch('api.json');
+        const res = await fetch('/api.json');
         siteConfig = await res.json();
         if (siteConfig.youtube) {
             API_KEY = siteConfig.youtube.apiKey || API_KEY;
