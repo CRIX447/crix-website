@@ -21,6 +21,8 @@
      server — which is exactly why roles live there.
    ============================================================ */
 
+var CLOUDSCRIPT_VERSION = "2026.08.16-a";
+
 var CURRENCY = "CN";              // must match api.json currencyCode
 var MAX_GRANT_PER_CALL = 5000;    // anti-abuse ceiling on normal gameplay grants
 
@@ -428,4 +430,16 @@ handlers.clearInvites = function () {
         Data: { invites: "[]" }
     });
     return { ok: true };
+};
+
+
+/* ---------- deployment check ----------
+   Lets the console confirm which revision is actually live, and which
+   handlers exist. Without this, a stale deployment is indistinguishable
+   from no deployment at all. */
+handlers.version = function () {
+    return {
+        version: CLOUDSCRIPT_VERSION,
+        handlers: Object.keys(handlers).sort()
+    };
 };
