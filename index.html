@@ -815,7 +815,8 @@ async function ytFetch(params) {
             quotaExceeded:       'Daily quota used up. It resets at midnight Pacific.',
             dailyLimitExceeded:  'Daily quota used up. It resets at midnight Pacific.',
             accessNotConfigured: 'YouTube Data API v3 is not enabled for this project. Enable it in Google Cloud → APIs & Services → Library.',
-            forbidden:           'The key exists but is not permitted to make this call.'
+            forbidden:           'The key exists but is not permitted to make this call.',
+            playlistNotFound:    'A cached channel ID is stale. Run clearYouTubeCache() in the console, or it will self-correct on the next load.'
         };
         console.error(`[YouTube] ${json.error.code} ${reason}: ${json.error.message}`);
         if (hints[reason]) console.error('[YouTube] → ' + hints[reason]);
@@ -861,6 +862,16 @@ async function loadConfig() {
 
 // Resolve an @handle to a channel ID using the official forHandle param.
 // Falls back to a small localStorage cache so repeat visits don't re-resolve.
+function clearChannelCache(handle) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(CHANNEL_ID_CACHE_KEY) || '{}');
+        if (handle) delete cache[handle]; else Object.keys(cache).forEach(k => delete cache[k]);
+        localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {}
+}
+// Run clearYouTubeCache() in the console to force a full re-resolve.
+window.clearYouTubeCache = () => { clearChannelCache(null); location.reload(); };
+
 async function resolveChannelId(ch, apiKey) {
     if (!ch.handle) return null;
     let cache = {};
@@ -871,7 +882,9 @@ async function resolveChannelId(ch, apiKey) {
         const handle = ch.handle.replace(/^@/, '');
         const data = await ytFetch({ action: 'resolve', handle });
         const id = data.items?.[0]?.id;
-        if (id) {
+        // Only cache something that looks like a real channel ID, otherwise a
+        // bad resolve gets stored in localStorage and keeps failing forever.
+        if (id && /^UC[\w-]{20,}$/.test(id)) {
             cache[ch.handle] = id;
             try { localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
             return id;
@@ -901,8 +914,19 @@ async function fetchVideosForChannel(ch) {
             document.getElementById('videoCount').textContent = formatNumber(parseInt(st.videoCount || 0));
             document.getElementById('viewCount').textContent = formatNumber(parseInt(st.viewCount || 0));
         }
-        const uploadsId = chanData.items[0].contentDetails.relatedPlaylists.uploads;
+        const uploadsId = chanData.items[0]?.contentDetails?.relatedPlaylists?.uploads;
+        if (!uploadsId) {
+            console.warn(`[YouTube] ${ch.name}: no uploads playlist on channel ${ch.id}. ` +
+                         'The cached channel ID is probably wrong — clearing it.');
+            clearChannelCache(ch.handle);
+            return;
+        }
         const vidData = await ytFetch({ action: 'uploads', playlistId: uploadsId });
+        if (vidData.error) {
+            // A stale/incorrect channel ID produces "playlistId cannot be found"
+            clearChannelCache(ch.handle);
+            throw new Error(`${ch.name}: ${vidData.error.message}`);
+        }
         if (!vidData.items) return;
         const long = [], shorts = [], live = [];
         vidData.items.forEach(item => {
