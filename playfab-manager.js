@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-firestore';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-firestore2';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -610,6 +610,22 @@ if (typeof window !== 'undefined') {
             throw new Error('Firestore is not available');
         return firebase.firestore();
     };
+
+    // Firestore says "Missing or insufficient permissions" for everything,
+    // which tells you nothing. Translate it into the actual fix.
+    function explain(e, what) {
+        const msg = String(e?.message || e);
+        if (/insufficient permissions|permission-denied/i.test(msg)) {
+            return new Error(
+                `Firestore rejected this (${what}). Publish firestore.rules in ` +
+                `Firebase Console → Firestore → Rules → Publish. ` +
+                `If you already have, check the rules saved without errors.`);
+        }
+        if (/requires an index/i.test(msg)) {
+            return new Error('Firestore needs an index — open the link in the browser console to create it.');
+        }
+        return e;
+    }
     const uid = () => {
         const u = firebase.auth().currentUser;
         if (!u) throw new Error('Sign in first');
@@ -782,6 +798,15 @@ if (typeof window !== 'undefined') {
         }
         return _admin.call(PFM, action, params);
     };
+
+    // Wrap every fallback method so permission errors explain themselves
+    Object.keys(PFM.fs).forEach(k => {
+        const orig = PFM.fs[k];
+        PFM.fs[k] = async function (...args) {
+            try { return await orig.apply(PFM.fs, args); }
+            catch (e) { throw explain(e, k); }
+        };
+    });
 
     PFM.cloudScriptAvailable = () => csAvailable;
 })(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
