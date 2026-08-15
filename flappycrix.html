@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0340";</script>
+    <script>window.__BUILD__ = "2026.08.16-0450";</script>
     
 
-    <script src="/filter.js?v=2026081604"></script>
-    <script src="/playfab-manager.js?v=2026081604"></script>
+    <script src="/filter.js?v=2026081605"></script>
+    <script src="/playfab-manager.js?v=2026081605"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -331,10 +331,16 @@
         
         /* ---- STATS GRID ---- */
         .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
             gap: 8px;
             margin: 12px 0;
+        }
+        .stats-grid > .cyber-stat {
+            flex: 1 1 0;
+            min-width: 84px;
+            max-width: 160px;
         }
         .cyber-stat {
             background: rgba(10,10,15,0.9);
@@ -508,7 +514,8 @@
         }
         @media (min-width: 760px) {
             .mp-room-list { max-height: 320px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-            .mp-mode-grid { gap: 14px; }
+            .mp-mode-grid {
+            justify-content: center; gap: 14px; }
             .mp-mode-card { padding: 16px 10px; }
             .mp-mode-icon { font-size: 30px; }
             .mp-player-list { max-height: 260px; overflow-y: auto; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -1791,7 +1798,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0340</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0450</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3572,7 +3579,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0340</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0450</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -7196,23 +7203,13 @@
                 el.style.opacity = comp ? '0.35' : '';
                 el.style.pointerEvents = comp ? 'none' : '';
             });
-            if (comp) {
-                mpSelectedPrivacy = 'public';
-                document.getElementById('mpPrivacyPublic').classList.add('selected');
-                document.getElementById('mpPrivacyFriends')?.classList.remove('selected');
-                document.getElementById('mpPrivacyInvite')?.classList.remove('selected');
-            }
+            if (comp) mpSetPrivacy('public');
         }
         document.getElementById('mpQueueCasual')?.addEventListener('click', () => { setQueue('casual'); playSound(selectSound); });
         document.getElementById('mpQueueComp')?.addEventListener('click', () => { setQueue('competitive'); playSound(selectSound); });
 
         // ---- FRIENDS-ONLY PRIVACY ----
-        document.getElementById('mpPrivacyFriends')?.addEventListener('click', () => {
-            mpSelectedPrivacy = 'friends';
-            document.getElementById('mpPrivacyFriends').classList.add('selected');
-            document.getElementById('mpPrivacyPublic').classList.remove('selected');
-            document.getElementById('mpPrivacyInvite').classList.remove('selected');
-        });
+
 
         // ---- HOST MATCH SETTINGS ----
         document.getElementById('vkCloseBtn')?.addEventListener('click', () =>
@@ -7253,16 +7250,24 @@
             mpLeaveLobby();
         });
 
-        document.getElementById('mpPrivacyPublic')?.addEventListener('click', () => {
-            mpSelectedPrivacy = 'public';
-            document.getElementById('mpPrivacyPublic').classList.add('selected');
-            document.getElementById('mpPrivacyInvite').classList.remove('selected');
-        });
-        document.getElementById('mpPrivacyInvite')?.addEventListener('click', () => {
-            mpSelectedPrivacy = 'invite';
-            document.getElementById('mpPrivacyInvite').classList.add('selected');
-            document.getElementById('mpPrivacyPublic').classList.remove('selected');
-        });
+        // Single handler for every privacy button. The old code had one
+        // listener per button that only deselected the buttons that existed
+        // at the time, so PUBLIC and FRIENDS could both look selected.
+        function mpSetPrivacy(value) {
+            mpSelectedPrivacy = value;
+            const map = { public:'mpPrivacyPublic', friends:'mpPrivacyFriends', invite:'mpPrivacyInvite' };
+            Object.entries(map).forEach(([val, id]) => {
+                document.getElementById(id)?.classList.toggle('selected', val === value);
+            });
+        }
+        Object.entries({ public:'mpPrivacyPublic', friends:'mpPrivacyFriends', invite:'mpPrivacyInvite' })
+            .forEach(([val, id]) => {
+                document.getElementById(id)?.addEventListener('click', () => {
+                    if (document.getElementById(id).disabled) return;
+                    mpSetPrivacy(val);
+                    playSound(selectSound);
+                });
+            });
 
         // Lobby
         document.getElementById('mpCopyCodeBtn')?.addEventListener('click', () => {
