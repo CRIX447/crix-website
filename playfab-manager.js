@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.15-fixes';
+const PLAYFAB_MANAGER_VERSION = '2026.08.15-friends2';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -566,6 +566,11 @@ if (typeof window !== 'undefined') {
     };
 
     PFM.sendFriendRequest    = id            => cs('sendFriendRequest', { targetPlayFabId: id });
+    PFM.cancelFriendRequest  = id            => cs('cancelFriendRequest', { targetPlayFabId: id });
+    PFM.removeFriendBoth     = id            => cs('removeFriendBoth', { targetPlayFabId: id });
+    PFM.blockPlayer          = id            => cs('blockPlayer', { targetPlayFabId: id });
+    PFM.unblockPlayer        = id            => cs('unblockPlayer', { targetPlayFabId: id });
+    PFM.setLobbyBlock        = (code, ids)   => cs('setLobbyBlock', { roomCode: code, blocked: ids });
     PFM.getFriendRequests    = ()            => cs('getFriendRequests').then(r => r.requests || []);
     PFM.respondFriendRequest = (id, accept)  => cs('respondToFriendRequest', { requesterPlayFabId: id, accept });
     PFM.sendInvite           = (id, code, mode) => cs('sendInvite', { targetPlayFabId: id, roomCode: code, mode });
