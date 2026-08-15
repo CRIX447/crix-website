@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-hosttransfer';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-firestore';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -159,6 +159,9 @@ const PlayFabManager = (() => {
            set up the previous way keep working.                        */
         _extractRoles(payload) {
             const found = [];
+            // Roles granted through the Firestore fallback are merged in by
+            // refreshRoles(); this handles the PlayFab-native sources.
+
 
             // Primary source: inventory items of class "role"
             const inv = payload.UserInventory || [];
@@ -189,6 +192,13 @@ const PlayFabManager = (() => {
                 UserInventory: invData.Inventory || [],
                 UserReadOnlyData: roData.Data || {}
             });
+            // Merge anything granted via the Firestore fallback
+            try {
+                if (this.fs && playFabId) {
+                    const extra = await this.fs.getRoles(playFabId);
+                    extra.forEach(r => { if (!roles.includes(r)) roles.push(r); });
+                }
+            } catch (e) {}
             return [...roles];
         },
 
@@ -580,6 +590,200 @@ if (typeof window !== 'undefined') {
     // Calls any handler by name — used by the console's health check
     PFM.callHandler          = (fn, params)  => cs(fn, params || {});
     PFM.clearInvites         = ()            => cs('clearInvites');
+})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
+
+
+/* ============================================================
+   FIRESTORE FALLBACK
+   ------------------------------------------------------------
+   Friend requests and role grants normally run through CloudScript,
+   because writing to another player's PlayFab data needs a server.
+   Firestore can do the same job with security rules, and it needs
+   no deployment step — so when CloudScript isn't available these
+   take over automatically and everything keeps working.
+   ============================================================ */
+(function (PFM) {
+    if (typeof PFM === 'undefined') return;
+
+    const db = () => {
+        if (typeof firebase === 'undefined' || !firebase.firestore)
+            throw new Error('Firestore is not available');
+        return firebase.firestore();
+    };
+    const uid = () => {
+        const u = firebase.auth().currentUser;
+        if (!u) throw new Error('Sign in first');
+        return u.uid;
+    };
+
+    PFM.fs = {
+        /* ---- friend requests ---- */
+        async sendRequest(targetPlayFabId, targetName) {
+            const me = firebase.auth().currentUser;
+            await db().collection('friendRequests').doc(`${uid()}_${targetPlayFabId}`).set({
+                fromUid: uid(),
+                fromPlayFabId: PFM.playFabId || null,
+                fromName: me.displayName || 'Player',
+                fromPhoto: me.photoURL || null,
+                toPlayFabId: targetPlayFabId,
+                toName: targetName || null,
+                status: 'pending',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return { ok: true };
+        },
+
+        async incoming() {
+            if (!PFM.playFabId) return [];
+            const snap = await db().collection('friendRequests')
+                .where('toPlayFabId', '==', PFM.playFabId)
+                .where('status', '==', 'pending')
+                .get();
+            return snap.docs.map(d => ({
+                id: d.id,
+                from: d.data().fromPlayFabId,
+                name: d.data().fromName || 'Player',
+                avatar: d.data().fromPhoto || null,
+                at: d.data().createdAt?.toMillis?.() || Date.now()
+            }));
+        },
+
+        async outgoing() {
+            const snap = await db().collection('friendRequests')
+                .where('fromUid', '==', uid())
+                .where('status', '==', 'pending')
+                .get();
+            return snap.docs.map(d => ({
+                id: d.id,
+                playFabId: d.data().toPlayFabId,
+                displayName: d.data().toName || d.data().toPlayFabId,
+                tags: ['outgoing']
+            }));
+        },
+
+        async respond(requestId, accept) {
+            const ref = db().collection('friendRequests').doc(requestId);
+            const doc = await ref.get();
+            if (!doc.exists) throw new Error('That request no longer exists');
+            const data = doc.data();
+            await ref.update({ status: accept ? 'accepted' : 'denied' });
+            if (accept && data.fromPlayFabId) {
+                // Both sides add each other — this part IS allowed client-side
+                await PFM.addFriend({ playFabId: data.fromPlayFabId }).catch(() => {});
+            }
+            return { ok: true, accepted: accept };
+        },
+
+        async cancel(requestId) {
+            await db().collection('friendRequests').doc(requestId).delete();
+            return { ok: true };
+        },
+
+        /* ---- roles ----
+           Firestore rules restrict writes here to existing owners, so this is
+           as safe as the CloudScript route. */
+        async setRole(targetPlayFabId, roles) {
+            await db().collection('roles').doc(targetPlayFabId).set({
+                roles,
+                grantedBy: PFM.playFabId || uid(),
+                grantedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return { ok: true, roles };
+        },
+
+        async getRoles(playFabId) {
+            const d = await db().collection('roles').doc(playFabId).get();
+            return d.exists ? (d.data().roles || []) : [];
+        },
+
+        /* ---- blocks ---- */
+        async block(targetPlayFabId) {
+            await db().collection('blocks').doc(`${uid()}_${targetPlayFabId}`).set({
+                byUid: uid(), byPlayFabId: PFM.playFabId || null,
+                blocked: targetPlayFabId,
+                at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return { ok: true };
+        },
+        async unblock(targetPlayFabId) {
+            await db().collection('blocks').doc(`${uid()}_${targetPlayFabId}`).delete();
+            return { ok: true };
+        },
+        async blocked() {
+            const snap = await db().collection('blocks').where('byUid', '==', uid()).get();
+            return snap.docs.map(d => ({
+                playFabId: d.data().blocked,
+                displayName: d.data().blocked,
+                tags: ['blocked']
+            }));
+        }
+    };
+
+    /* ---- automatic routing ----
+       Try CloudScript; if it isn't deployed, silently use Firestore. */
+    let csAvailable = null;
+
+    async function viaCloudScript(fn, args, fallback) {
+        if (csAvailable === false) return fallback();
+        try {
+            const r = await PFM.callHandler(fn, args);
+            csAvailable = true;
+            return r;
+        } catch (e) {
+            if (/not deployed|no function named/i.test(e.message)) {
+                if (csAvailable === null) {
+                    console.warn('[PlayFab] CloudScript is not deployed — using the Firestore fallback. ' +
+                                 'Everything still works; deploy cloudscript.js when convenient.');
+                }
+                csAvailable = false;
+                return fallback();
+            }
+            throw e;
+        }
+    }
+
+    const _send   = PFM.sendFriendRequest;
+    const _get    = PFM.getFriendRequests;
+    const _respond= PFM.respondFriendRequest;
+    const _cancel = PFM.cancelFriendRequest;
+    const _block  = PFM.blockPlayer;
+    const _unblock= PFM.unblockPlayer;
+
+    PFM.sendFriendRequest = (id, name) =>
+        viaCloudScript('sendFriendRequest', { targetPlayFabId: id }, () => PFM.fs.sendRequest(id, name));
+
+    PFM.getFriendRequests = () =>
+        viaCloudScript('getFriendRequests', {}, () => PFM.fs.incoming())
+            .then(r => Array.isArray(r) ? r : (r.requests || []));
+
+    PFM.respondFriendRequest = (id, accept) =>
+        viaCloudScript('respondToFriendRequest', { requesterPlayFabId: id, accept },
+            async () => {
+                // Firestore stores requests by document id
+                const list = await PFM.fs.incoming();
+                const match = list.find(x => x.from === id || x.id === id);
+                if (!match) throw new Error('Request not found');
+                return PFM.fs.respond(match.id, accept);
+            });
+
+    PFM.cancelFriendRequest = (id) =>
+        viaCloudScript('cancelFriendRequest', { targetPlayFabId: id },
+            () => PFM.fs.cancel(`${firebase.auth().currentUser.uid}_${id}`));
+
+    PFM.blockPlayer   = (id) => viaCloudScript('blockPlayer',   { targetPlayFabId: id }, () => PFM.fs.block(id));
+    PFM.unblockPlayer = (id) => viaCloudScript('unblockPlayer', { targetPlayFabId: id }, () => PFM.fs.unblock(id));
+
+    // adminAction('setRole') is the one people hit when granting MOD
+    const _admin = PFM.adminAction;
+    PFM.adminAction = function (action, params) {
+        if (action === 'setRole') {
+            return viaCloudScript('adminAction', { action, ...params },
+                () => PFM.fs.setRole(params.targetPlayFabId, params.roles || []));
+        }
+        return _admin.call(PFM, action, params);
+    };
+
+    PFM.cloudScriptAvailable = () => csAvailable;
 })(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
 
 /* Startup self-check: shouts loudly if a stale cached copy is running. */
