@@ -56,6 +56,19 @@
           "value": "public, max-age=3600"
         }
       ]
+    },
+    {
+      "source": "/console",
+      "headers": [
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
