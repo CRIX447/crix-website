@@ -296,32 +296,83 @@ let auth = null, me = null;
     $('gateMsg').textContent = 'Checking your role…';
     $('signInBtn').style.display = 'none';
 
+    // login() returns null on a soft failure rather than throwing, so the
+    // return value has to be checked — not just wrapped in try/catch.
+    let result = null;
     try {
-      await PlayFabManager.login(user.uid, user.displayName || 'Owner');
+      result = await PlayFabManager.login(user.uid, user.displayName || 'Owner');
     } catch (e) {
-      $('gateMsg').textContent = 'PlayFab sign-in failed: ' + e.message;
-      return;
+      return gateFail('PlayFab sign-in failed', e.message);
     }
 
-    // The gate is convenience — every action below is re-checked server-side
-    // in CloudScript, so hiding this page is not what makes it secure.
+    if (!result) {
+      return gateFail('Could not reach PlayFab',
+                      PlayFabManager.statusMessage || 'Check the Title ID in api.json.');
+    }
+
+    // The gate is convenience — every action is re-checked server-side in
+    // CloudScript, so this page being reachable is not a security problem.
     if (!PlayFabManager.isOwner) {
-      $('gateMsg').innerHTML = 'This account does not hold the <b>OWNER</b> role.' +
-        '<br><span style="font-size:10px;color:#8C8C8C">Signed in as ' + esc(user.email || user.displayName) + '</span>';
-      setTimeout(() => auth.signOut(), 2500);
-      return;
+      const roles = (PlayFabManager.roles || []);
+      return gateFail(
+        'This account does not have the OWNER role',
+        `Signed in as ${user.email || user.displayName}<br>` +
+        `PlayFab ID: <code style="color:#00CC7A">${esc(PlayFabManager.playFabId || '?')}</code><br>` +
+        `Roles found: ${roles.length ? roles.join(', ') : '<em>none</em>'}<br><br>` +
+        '<span style="font-size:10px">Grant it in PlayFab → Players → this account → Inventory → ' +
+        'Grant Item → <b>role_owner</b>, then reload.</span>'
+      );
     }
 
     $('gate').style.display = 'none';
     $('app').style.display = 'block';
     $('whoName').textContent = user.displayName || user.email || 'Owner';
     renderMe();
-    console.log('[Console] signed in as', PlayFabManager.playFabId);
+    console.log('[Console] signed in as', PlayFabManager.playFabId, '| roles', PlayFabManager.roles);
   });
 
-  $('signInBtn').onclick = () =>
-    auth.signInWithPopup(new firebase.auth.GoogleAuthProvider())
-        .catch(e => $('gateMsg').textContent = 'Sign-in failed: ' + e.message);
+  // Never sign the user out automatically — that made a failed check look
+  // like the button simply did nothing.
+  function gateFail(title, detail) {
+    $('gateMsg').innerHTML =
+      `<strong style="color:#FF4655">${esc(title)}</strong><br>` +
+      `<span style="font-size:11px;color:#A0A0A0;line-height:1.7">${detail}</span>`;
+    $('signInBtn').style.display = '';
+    $('signInBtn').textContent = 'Try a different account';
+    console.error('[Console]', title, '—', detail.replace(/<[^>]+>/g, ' '));
+  }
+
+  $('signInBtn').onclick = async () => {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    $('gateMsg').textContent = 'Opening Google sign-in…';
+    try {
+      await auth.signInWithPopup(provider);
+    } catch (e) {
+      console.error('[Console] popup sign-in failed:', e.code, e.message);
+      if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request' ||
+          e.code === 'auth/operation-not-supported-in-this-environment') {
+        // Popup blocked — redirect instead, which always works
+        $('gateMsg').textContent = 'Popup blocked — redirecting…';
+        return auth.signInWithRedirect(provider);
+      }
+      if (e.code === 'auth/popup-closed-by-user') {
+        $('gateMsg').textContent = 'Sign-in cancelled.';
+        $('signInBtn').style.display = '';
+        return;
+      }
+      const msgs = {
+        'auth/unauthorized-domain': 'This domain is not in Firebase → Authentication → Settings → Authorised domains.',
+        'auth/operation-not-allowed': 'Google sign-in is not enabled in Firebase → Authentication → Sign-in method.'
+      };
+      gateFail('Sign-in failed', msgs[e.code] || esc(e.message));
+    }
+  };
+
+  // Completes a redirect-based sign-in if the popup route was blocked
+  auth.getRedirectResult().catch(e => {
+    if (e.code) console.warn('[Console] redirect result:', e.code, e.message);
+  });
 })();
 
 $('signOutBtn').onclick = () => auth.signOut().then(() => location.reload());
