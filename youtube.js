@@ -30,6 +30,32 @@ const ACTIONS = {
     live:    ch => `search?part=snippet&channelId=${ch}&eventType=live&type=video`
 };
 
+// RSS needs no key and no quota — a reliable fallback when the Data API
+// fails for any reason (bad key, referrer restriction, quota exhausted).
+async function uploadsViaRss(channelId) {
+    const r = await fetch(`https://www.youtube.com/feeds/videos.xml?channel_id=${channelId}`);
+    if (!r.ok) throw new Error(`RSS returned ${r.status}`);
+    const xml = await r.text();
+    const items = [...xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)].map(m => {
+        const e = m[1];
+        const pick = (tag) => (e.match(new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\/${tag}>`)) || [,''])[1];
+        const id = pick('yt:videoId');
+        return {
+            snippet: {
+                title: pick('title').replace(/&amp;/g,'&').replace(/&#39;/g,"'").replace(/&quot;/g,'"'),
+                publishedAt: pick('published'),
+                description: '',
+                resourceId: { videoId: id },
+                thumbnails: {
+                    medium:  { url: `https://i.ytimg.com/vi/${id}/mqdefault.jpg` },
+                    default: { url: `https://i.ytimg.com/vi/${id}/default.jpg` }
+                }
+            }
+        };
+    });
+    return { items, _source: 'rss' };
+}
+
 export default async function handler(req, res) {
     const origin = req.headers.origin || '';
     if (ALLOWED_ORIGINS.includes(origin)) {
@@ -58,10 +84,34 @@ export default async function handler(req, res) {
     try {
         const r = await fetch(url);
         const data = await r.json();
-        // Cache at the edge so repeat visitors don't burn quota
+
+        // If the Data API can't serve uploads, fall back to the public RSS feed
+        // rather than showing the user an error.
+        if (data.error && (action === 'uploads' || action === 'stats')) {
+            const cid = channelId || CHANNEL;
+            if (cid) {
+                try {
+                    const rss = await uploadsViaRss(cid);
+                    console.warn('[youtube] Data API failed, served RSS instead:', data.error.message);
+                    res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
+                    return res.status(200).json(rss);
+                } catch (rssErr) {
+                    console.error('[youtube] RSS fallback also failed:', rssErr.message);
+                }
+            }
+        }
+
         res.setHeader('Cache-Control', 's-maxage=300, stale-while-revalidate=600');
         return res.status(r.status).json(data);
     } catch (e) {
+        // Total failure of the Data API — try RSS before giving up
+        if (action === 'uploads') {
+            const cid = channelId || CHANNEL;
+            if (cid) {
+                try { return res.status(200).json(await uploadsViaRss(cid)); }
+                catch (rssErr) { /* fall through */ }
+            }
+        }
         return res.status(502).json({ error: 'Upstream request failed', detail: e.message });
     }
 }
