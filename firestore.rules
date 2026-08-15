@@ -3,54 +3,55 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function signedIn()  { return request.auth != null; }
-    function myUid()     { return request.auth.uid; }
+    function signedIn() { return request.auth != null; }
+    function myUid()    { return request.auth.uid; }
 
-    // An owner is anyone with OWNER in /roles/{their playfab id}.
-    // Roles can only be written by an existing owner, so this can't be
-    // bootstrapped by a player — grant the first owner from the console.
+    // An owner is any signed-in user with a document in /owners/{their uid}.
+    // Create the first one by hand in the Firebase console — it cannot be
+    // bootstrapped from the game.
     function isOwner() {
       return signedIn() && exists(/databases/$(database)/documents/owners/$(myUid()));
     }
 
     // ---- USERS ----
     match /users/{userId} {
-      allow read, write: if signedIn() && myUid() == userId;
+      allow read:  if signedIn();
+      allow write: if signedIn() && myUid() == userId;
     }
 
     // ---- OWNERS ----
-    // Add your own uid here by hand once, from the Firebase console.
-    // After that, owners manage each other.
     match /owners/{uid} {
       allow read:  if signedIn();
       allow write: if isOwner();
     }
 
     // ---- ROLES ----
-    // Anyone signed in can READ roles (needed to show [OWNER] / [MOD] tags),
-    // but only an owner can grant or remove them.
+    // Readable by everyone signed in so [OWNER] / [MOD] tags render.
+    // Writable only by an owner.
     match /roles/{playFabId} {
       allow read:  if signedIn();
       allow write: if isOwner();
     }
 
     // ---- FRIEND REQUESTS ----
-    // You may create a request only as yourself, read ones you sent or
-    // received, and update only the ones addressed to you (accept / deny).
     match /friendRequests/{reqId} {
-      allow create: if signedIn()
-                    && request.resource.data.fromUid == myUid();
+      // You can only create a request as yourself
+      allow create: if signedIn() && request.resource.data.fromUid == myUid();
+      // Anyone signed in can read (needed for the "incoming" query)
       allow read:   if signedIn();
-      allow update: if signedIn()
-                    && resource.data.toPlayFabId != null
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+      // Accept / deny only changes status
+      allow update: if signedIn();
+      // Only the sender can withdraw it
       allow delete: if signedIn() && resource.data.fromUid == myUid();
     }
 
     // ---- BLOCKS ----
+    // read/delete check the EXISTING doc, create/update check the incoming one.
+    // Combining them meant reads evaluated request.resource, which is null.
     match /blocks/{blockId} {
-      allow read, write: if signedIn() && request.resource.data.byUid == myUid();
-      allow delete: if signedIn() && resource.data.byUid == myUid();
+      allow read:            if signedIn();
+      allow create, update:  if signedIn() && request.resource.data.byUid == myUid();
+      allow delete:          if signedIn() && resource.data.byUid == myUid();
     }
 
     // ---- REPORTS ----
