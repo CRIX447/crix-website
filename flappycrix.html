@@ -34,8 +34,8 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script src="filter.js?v=2026081504"></script>
-    <script src="playfab-manager.js?v=2026081504"></script>
+    <script src="filter.js?v=2026081505"></script>
+    <script src="playfab-manager.js?v=2026081505"></script>
     <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -939,6 +939,16 @@
         .avatar-opt:hover { transform:scale(1.08); border-color:rgba(255,255,255,0.3); }
         .avatar-opt.sel { border-color:#00CC7A; transform:scale(1.08); }
 
+        /* ---- DIAGNOSTICS ---- */
+        .diag-row { display:flex; align-items:flex-start; gap:10px; padding:9px 0;
+            border-bottom:1px solid rgba(255,255,255,.06); }
+        .diag-row:last-child { border-bottom:none; }
+        .diag-icon { font-size:14px; flex-shrink:0; width:18px; text-align:center; }
+        .diag-name { font-size:12px; color:#EDEDED; font-weight:bold; }
+        .diag-detail { font-size:10px; color:#A0A0A0; line-height:1.6; margin-top:2px; word-break:break-word; }
+        .diag-detail code { background:rgba(0,0,0,.4); padding:1px 5px; border-radius:4px; color:#FFB347; }
+        .diag-fix { font-size:10px; color:#FFB347; margin-top:3px; line-height:1.6; }
+
         /* ---- FRIEND SUB-TABS ---- */
         .friend-tabs { display:flex; gap:4px; margin:10px 0 8px; }
         .friend-tab { flex:1; background:rgba(255,255,255,.04);
@@ -1504,6 +1514,22 @@
     <!-- NOTIFICATION TOASTS -->
     <div id="toasts"></div>
 
+    <!-- CONNECTION TEST -->
+    <div class="mp-modal" id="diagModal" style="z-index:49000;">
+        <div class="mp-modal-content" style="max-width:480px;">
+            <div class="modal-header">
+                <div class="modal-title">🩺 CONNECTION TEST</div>
+                <button class="modal-close" id="closeDiagBtn">✕</button>
+            </div>
+            <div style="font-size:11px;color:#A0A0A0;margin-bottom:12px;line-height:1.6;">
+                Checks every service the game needs and shows exactly what's failing.
+            </div>
+            <div id="diagResults"></div>
+            <button class="mp-btn-primary" id="runDiagBtn" style="width:100%;margin-top:12px;">RUN TEST</button>
+            <button class="mp-btn-secondary" id="copyDiagBtn" style="width:100%;margin-top:6px;">📋 COPY RESULTS</button>
+        </div>
+    </div>
+
     <!-- PATCH NOTES -->
     <div class="mp-modal" id="patchModal" style="z-index:48500;">
         <div class="mp-modal-content" style="max-width:480px;">
@@ -1698,6 +1724,10 @@
             <div class="set-row">
                 <span class="set-label">Roles</span>
                 <span id="setRoles" style="font-size:11px;color:#ABABAB;">None</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Connection test</span>
+                <button class="set-mini-btn" id="openDiagBtn">RUN</button>
             </div>
             <div class="set-row">
                 <span class="set-label">What's new</span>
@@ -2777,6 +2807,10 @@
             document.getElementById('sendCodeBtn')?.addEventListener('click', sendPhoneCode);
             document.getElementById('confirmCodeBtn')?.addEventListener('click', confirmPhoneCode);
 
+            document.getElementById('openDiagBtn')?.addEventListener('click', () => {
+                document.getElementById('settingsModal').classList.remove('active');
+                openDiagnostics();
+            });
             document.getElementById('openPatchBtn')?.addEventListener('click', () => {
                 document.getElementById('settingsModal').classList.remove('active');
                 showPatchNotes();
@@ -3360,6 +3394,161 @@
             }
             document.querySelectorAll('.presence-opt').forEach(b =>
                 b.classList.toggle('active', b.dataset.status === status));
+        }
+
+        // ================= CONNECTION TEST =================
+        // Runs real checks rather than guessing, so a failure names itself.
+        let _diagOut = [];
+
+        function diagAdd(name, state, detail, fix) {
+            _diagOut.push({ name, state, detail, fix });
+            const el = document.getElementById('diagResults');
+            if (!el) return;
+            const icons = { pass:'✅', fail:'❌', warn:'⚠️', info:'ℹ️' };
+            const div = document.createElement('div');
+            div.className = 'diag-row';
+            div.innerHTML =
+                `<span class="diag-icon">${icons[state] || '•'}</span>
+                 <div style="flex:1;min-width:0;">
+                    <div class="diag-name">${mpEsc(name)}</div>
+                    ${detail ? `<div class="diag-detail">${detail}</div>` : ''}
+                    ${fix ? `<div class="diag-fix">→ ${fix}</div>` : ''}
+                 </div>`;
+            el.appendChild(div);
+        }
+
+        async function runDiagnostics() {
+            _diagOut = [];
+            const el = document.getElementById('diagResults');
+            el.innerHTML = '';
+            const btn = document.getElementById('runDiagBtn');
+            btn.disabled = true; btn.textContent = 'TESTING…';
+
+            // 1. Photon SDK file
+            if (typeof Photon === 'undefined') {
+                diagAdd('Photon SDK', 'fail', 'photon-realtime-browser.js did not load.',
+                        'Upload photon-realtime-browser.js into the same folder as game.html.');
+            } else {
+                diagAdd('Photon SDK', 'pass', 'Loaded.');
+            }
+
+            // 2. api.json
+            let cfg = null;
+            try {
+                const r = await fetch('api.json?cb=' + Date.now());
+                if (!r.ok) throw new Error('HTTP ' + r.status);
+                cfg = await r.json();
+                diagAdd('api.json', 'pass', 'Loaded from your site.');
+            } catch (e) {
+                diagAdd('api.json', 'fail', mpEsc(e.message),
+                        'Make sure api.json sits next to game.html in the repo root.');
+            }
+
+            // 3. Photon App ID
+            const appId = cfg?.photon?.appId || '';
+            const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+            if (!appId || appId.startsWith('PASTE_') || appId.startsWith('REPLACE_')) {
+                diagAdd('Photon App ID', 'fail', 'Still a placeholder.',
+                        'Paste your Realtime App ID into api.json → photon.appId.');
+            } else if (!uuid.test(appId)) {
+                diagAdd('Photon App ID', 'fail', `<code>${mpEsc(appId)}</code> is not a valid UUID.`,
+                        'Copy the App ID from dashboard.photonengine.com — it must be the REALTIME app.');
+            } else {
+                diagAdd('Photon App ID', 'pass', `<code>${mpEsc(appId.slice(0,8))}…</code>`);
+            }
+
+            // 4. Can we actually open a socket to Photon?
+            if (typeof Photon !== 'undefined' && uuid.test(appId)) {
+                const reachable = await new Promise(resolve => {
+                    let done = false;
+                    const finish = v => { if (!done) { done = true; resolve(v); } };
+                    try {
+                        const ws = new WebSocket(`wss://ns.photonengine.io:19093/${appId}?libversion=diag`);
+                        ws.onopen  = () => { finish('open'); try { ws.close(); } catch(e){} };
+                        ws.onerror = () => finish('blocked');
+                        ws.onclose = e => finish(e.code === 1006 ? 'blocked' : 'closed');
+                        setTimeout(() => finish('timeout'), 8000);
+                    } catch (e) { finish('blocked'); }
+                });
+                if (reachable === 'open') {
+                    diagAdd('Photon network', 'pass', 'WebSocket to ns.photonengine.io:19093 opened.');
+                } else if (reachable === 'timeout') {
+                    diagAdd('Photon network', 'fail', 'Connection timed out after 8s.',
+                            'A firewall, school/work network, VPN or ad-blocker is likely blocking port 19093.');
+                } else {
+                    diagAdd('Photon network', 'fail', `Connection ${reachable}.`,
+                            'Try disabling any VPN or ad-blocker, or test on mobile data. ' +
+                            'Some networks block non-standard WebSocket ports.');
+                }
+            }
+
+            // 5. Photon client state right now
+            if (typeof photonClient !== 'undefined' && photonClient) {
+                const S = Photon.LoadBalancing.LoadBalancingClient.State;
+                const st = photonClient.state;
+                const nm = Photon.LoadBalancing.LoadBalancingClient.StateToName(st) || st;
+                diagAdd('Photon client', mpConnected ? 'pass' : 'warn', `State: <code>${mpEsc(String(nm))}</code>`,
+                        mpConnected ? null : 'Not in a lobby yet. If this stays "Uninitialized" the App ID is likely wrong.');
+            } else {
+                diagAdd('Photon client', 'warn', 'Not created yet.',
+                        'Open the MULTIPLAYER menu once to trigger the connection.');
+            }
+
+            // 6. Firebase
+            diagAdd('Firebase', (typeof firebase !== 'undefined' && auth) ? 'pass' : 'fail',
+                    (typeof firebase === 'undefined') ? 'SDK not loaded.'
+                        : auth ? (currentUser ? `Signed in as ${mpEsc(currentUser.email || currentUser.displayName || 'user')}` : 'Loaded, not signed in.')
+                               : 'Loaded but auth failed to initialise.',
+                    (typeof firebase !== 'undefined' && auth && !currentUser) ? 'Sign in to use friends and saves.' : null);
+
+            // 7. PlayFab
+            if (typeof PlayFabManager === 'undefined') {
+                diagAdd('PlayFab', 'fail', 'playfab-manager.js did not load.',
+                        'Upload playfab-manager.js next to game.html.');
+            } else if (!cfg?.playfab?.titleId || cfg.playfab.titleId.startsWith('PASTE_')) {
+                diagAdd('PlayFab', 'fail', 'Title ID is still a placeholder.',
+                        'Game Manager → Title Settings → API Features → copy the Title ID into api.json.');
+            } else if (!PlayFabManager.isReady) {
+                diagAdd('PlayFab', 'warn', PlayFabManager.statusMessage || 'Not signed in.',
+                        'Sign in to the game first.');
+            } else {
+                diagAdd('PlayFab', 'pass', `Signed in. ID <code>${mpEsc(PlayFabManager.playFabId)}</code>`);
+
+                // 8. Is CloudScript actually deployed?
+                try {
+                    await PlayFabManager.getFriendRequests();
+                    diagAdd('CloudScript', 'pass', 'Deployed and responding.');
+                } catch (e) {
+                    const undeployed = /not deployed|no function named/i.test(e.message);
+                    diagAdd('CloudScript', undeployed ? 'fail' : 'warn', mpEsc(e.message),
+                            undeployed
+                              ? 'PlayFab → Automation → CloudScript → paste cloudscript.js → <b>Deploy to live</b>. Saving a revision is not enough.'
+                              : null);
+                }
+            }
+
+            // 9. Assets (catches a private-repo misconfiguration)
+            try {
+                const r = await fetch('/img/bird.png', { method: 'HEAD' });
+                diagAdd('Game assets', r.ok ? 'pass' : 'fail',
+                        r.ok ? 'Images and sounds are being served.' : `/img/bird.png returned ${r.status}`,
+                        r.ok ? null : 'Confirm the img/ folder is deployed alongside game.html.');
+            } catch (e) {
+                diagAdd('Game assets', 'fail', mpEsc(e.message), 'The img/ folder may be missing from the deployment.');
+            }
+
+            btn.disabled = false; btn.textContent = 'RUN TEST AGAIN';
+        }
+
+        function copyDiagnostics() {
+            const txt = _diagOut.map(r =>
+                `[${r.state.toUpperCase()}] ${r.name}: ${(r.detail||'').replace(/<[^>]+>/g,'')}` +
+                (r.fix ? `\n    FIX: ${r.fix.replace(/<[^>]+>/g,'')}` : '')
+            ).join('\n');
+            navigator.clipboard?.writeText(txt).then(() => {
+                const b = document.getElementById('copyDiagBtn');
+                b.textContent = '✅ COPIED'; setTimeout(() => b.textContent = '📋 COPY RESULTS', 1600);
+            });
         }
 
         // ================= PATCH NOTES =================
@@ -4531,6 +4720,16 @@
             dot.classList.add(state);
         }
         function mpShowDiagnostic(msg) {
+            // Clicking the banner opens the full test
+            setTimeout(() => {
+                const d = document.getElementById('mpDiagnostic');
+                if (d && !d.dataset.wired) {
+                    d.dataset.wired = '1';
+                    d.style.cursor = 'pointer';
+                    d.title = 'Click to run a connection test';
+                    d.addEventListener('click', () => openDiagnostics());
+                }
+            }, 0);
             const b = document.getElementById('mpDiagnosticBanner');
             if (b) { b.textContent = msg; b.style.display = 'block'; }
         }
@@ -6183,6 +6382,19 @@
                 playSound(selectSound);
             });
         });
+
+        // ---- CONNECTION TEST ----
+        document.getElementById('closeDiagBtn')?.addEventListener('click', () =>
+            document.getElementById('diagModal').classList.remove('active'));
+        document.getElementById('diagModal')?.addEventListener('click', e => {
+            if (e.target.id === 'diagModal') e.target.classList.remove('active');
+        });
+        document.getElementById('runDiagBtn')?.addEventListener('click', runDiagnostics);
+        document.getElementById('copyDiagBtn')?.addEventListener('click', copyDiagnostics);
+        window.openDiagnostics = () => {
+            document.getElementById('diagModal').classList.add('active');
+            runDiagnostics();
+        };
 
         // ---- PATCH NOTES ----
         document.getElementById('closePatchBtn')?.addEventListener('click', () =>
