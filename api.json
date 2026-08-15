@@ -1,6 +1,7 @@
 {
   "youtube": {
-    "_note": "apiKey here is a FALLBACK. Preferred setup: set YOUTUBE_API_KEY in Vercel env vars so /api/youtube.js proxies the calls and the key never reaches the browser. The site tries the proxy first and only uses this if the proxy isn't configured. Once the proxy works, delete apiKey below and regenerate it in Google Cloud.",
+    "_note": "apiKey is a FALLBACK only. Preferred: set YOUTUBE_API_KEY in Vercel env vars so /api/youtube.js proxies the calls server-side and the key never reaches the browser. Once that works, delete apiKey below and regenerate it in Google Cloud.",
+    "_tip": "Each channel can have an optional \"id\" (UC...). If present the site skips the handle lookup, which is faster and immune to handle changes. Find it at youtube.com > your channel > Settings > Advanced.",
     "apiKey": "AIzaSyBxTW3qvDHSMfJQ5d4WsF1SEcn4t17Sbxk",
     "mainChannel": "@CRIXGAMINGVR",
     "channels": [
@@ -18,7 +19,8 @@
       },
       {
         "handle": "@CRIXGAMINGVR",
-        "name": "CRIXGAMING VR"
+        "name": "CRIXGAMING VR",
+        "id": "UCjiqZo0vfIZsn8E50TrOV_g"
       },
       {
         "handle": "@CRIXGAMINGVR2",
