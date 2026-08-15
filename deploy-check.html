@@ -1,207 +1,1231 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Deployment Check — CRIXGAMING VR</title>
-<meta name="robots" content="noindex">
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0A0A0F;color:#EDEDED;font-family:system-ui,-apple-system,sans-serif;
-  padding:28px 18px;line-height:1.6}
-.wrap{max-width:760px;margin:0 auto}
-h1{font-size:22px;margin-bottom:6px}
-.sub{color:#8C8C8C;font-size:13px;margin-bottom:24px}
-.row{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.08);align-items:flex-start}
-.row:last-child{border-bottom:none}
-.ic{font-size:16px;width:22px;flex-shrink:0;text-align:center}
-.nm{font-weight:600;font-size:14px}
-.dt{font-size:12px;color:#A0A0A0;word-break:break-all;margin-top:2px}
-.fx{font-size:12px;color:#FFB347;margin-top:4px}
-code{background:rgba(0,0,0,.45);padding:1px 6px;border-radius:4px;color:#FFB347;font-size:11px}
-button{background:#FF4655;color:#fff;border:none;padding:11px 22px;border-radius:9px;
-  font-size:14px;font-weight:600;cursor:pointer;margin-top:20px}
-button:hover{background:#cc2233}
-button.ghost{background:#1C1C28;border:1px solid rgba(255,255,255,.12)}
-.box{background:#12121A;border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:18px;margin-top:20px}
-.box h2{font-size:14px;margin-bottom:10px;color:#FF6B35}
-.box ol{padding-left:20px}
-.box li{font-size:13px;color:#C9C9C9;margin-bottom:8px}
-a{color:#00CC7A}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRIXGAMING VR</title>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://crixgamingvr.com">
+    <meta property="og:site_name" content="CRIXGAMING VR">
+    <meta property="og:title" content="CRIXGAMING VR">
+    <meta property="og:description" content="The official CRIXGAMING VR hub. Watch videos, grab merch, play Flappy Crix, and explore all of CRIX's content.">
+    <meta property="og:image" content="/img/bird.png">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="CRIXGAMING VR">
+    <meta name="twitter:description" content="The official CRIXGAMING VR hub.">
+    <meta name="twitter:image" content="/img/bird.png">
+    <link rel="icon" type="image/png" href="/img/newfavicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+    <style>
+@font-face {
+    font-family: 'CRIX Pixel';
+    src: url('/img/font.otf') format('opentype');
+    font-weight: normal; font-style: normal; font-display: swap;
+}
+:root {
+    --neon-red:    #FF4655;
+    --neon-orange: #FF6B35;
+    --cyber-red:   #CC0030;
+    --cyber-orange:#CC5500;
+    --matrix-green:#00CC7A;
+    --dark-bg:     #0A0A0F;
+    --darker-bg:   #050508;
+    --card-bg:     rgba(10,10,18,0.9);
+    --grid-color:  rgba(255,70,85,0.05);
+    --line:        rgba(255,255,255,0.07);
+    --cartoon-shadow: 4px 4px 0 rgba(0,0,0,0.55);
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+    font-family: 'CRIX Pixel', 'Fredoka One', 'Courier New', monospace;
+    background: var(--dark-bg);
+    color: #F0F0F0;
+    background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 48px 48px;
+    overflow-x: hidden;
+}
+
+/* ── STICKY NAV ──────────────────────────────────────────── */
+.site-nav {
+    position: sticky; top: 0; z-index: 200;
+    background: rgba(5,5,8,0.96);
+    backdrop-filter: blur(12px);
+    border-bottom: 2px solid rgba(255,70,85,0.4);
+    height: 54px;
+    display: flex; align-items: center;
+    padding: 0 28px; gap: 0;
+}
+.nav-brand {
+    font-family: 'CRIX Pixel', monospace;
+    font-size: 16px; font-weight: bold;
+    color: white; text-decoration: none;
+    letter-spacing: 2px; text-transform: uppercase;
+    flex-shrink: 0; padding-right: 28px;
+    border-right: 1px solid var(--line);
+    margin-right: 20px;
+    background: linear-gradient(135deg, var(--neon-red), var(--neon-orange));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.nav-links { display: flex; align-items: center; gap: 4px; flex: 1; }
+.nav-link {
+    color: #999; text-decoration: none;
+    font-size: 12px; font-family: 'CRIX Pixel', monospace;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 5px 12px; border-radius: 6px;
+    transition: color 0.12s, background 0.12s;
+}
+.nav-link:hover { color: white; background: rgba(255,255,255,0.05); }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.nav-play {
+    background: linear-gradient(135deg, var(--neon-red), var(--neon-orange));
+    color: white; text-decoration: none;
+    font-size: 12px; font-weight: bold; font-family: 'CRIX Pixel', monospace;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 7px 18px; border-radius: 30px;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-bottom: 4px solid rgba(0,0,0,0.4);
+    box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+    transition: all 0.12s;
+}
+.nav-play:hover { transform: translateY(-1px); box-shadow: 2px 4px 0 rgba(0,0,0,0.4); }
+
+/* ── LAYOUT WRAPPER ──────────────────────────────────────── */
+.site-wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.hero {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 48px; align-items: center;
+    padding: 64px 0 56px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 0;
+}
+.hero-eyebrow {
+    display: inline-block;
+    color: var(--matrix-green);
+    font-size: 11px; letter-spacing: 3px;
+    text-transform: uppercase; margin-bottom: 16px;
+    padding: 4px 12px;
+    border: 1px solid rgba(0,204,122,0.3);
+    border-radius: 20px;
+    background: rgba(0,204,122,0.06);
+}
+.hero-title {
+    font-size: 62px; font-weight: bold;
+    text-transform: uppercase; line-height: 0.95;
+    letter-spacing: 2px; margin-bottom: 20px;
+    color: white;
+}
+.hero-title .red { color: var(--neon-red); }
+.hero-desc { color: #aaa; font-size: 14px; line-height: 1.75; margin-bottom: 28px; max-width: 480px; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+.game-button {
+    background: linear-gradient(135deg, var(--neon-red), var(--neon-orange));
+    color: white; border: 2px solid rgba(255,255,255,0.2);
+    border-bottom: 5px solid rgba(0,0,0,0.4);
+    padding: 14px 36px; font-size: 16px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: 2px;
+    cursor: pointer; transition: all 0.15s;
+    font-family: 'CRIX Pixel', monospace;
+    text-decoration: none; display: inline-block;
+    border-radius: 40px;
+    box-shadow: 0 5px 0 rgba(180,30,50,0.7);
+}
+.game-button:hover { transform: translateY(-2px); box-shadow: 0 7px 0 rgba(180,30,50,0.7); border-color: var(--matrix-green); }
+.game-button:active { transform: translateY(2px); box-shadow: 0 2px 0 rgba(180,30,50,0.7); }
+.secondary-link {
+    color: #aaa; text-decoration: none;
+    font-size: 12px; letter-spacing: 1px;
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    transition: color 0.12s, border-color 0.12s;
+}
+.secondary-link:hover { color: white; border-color: var(--neon-orange); }
+
+/* ── STATS CARD ───────────────────────────────────────────── */
+.stats-card {
+    background: var(--card-bg);
+    border: 2px solid rgba(255,107,53,0.4);
+    border-radius: 20px; padding: 24px 28px;
+    box-shadow: var(--cartoon-shadow);
+}
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 0; border-bottom: 1px solid var(--line); }
+.stat-row:first-child { padding-top: 0; }
+.stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+.stat-label { font-size: 11px; color: var(--matrix-green); text-transform: uppercase; letter-spacing: 1px; }
+.stat-number { font-size: 28px; font-weight: bold; color: var(--neon-orange); }
+
+/* ── SECTION SHELL ────────────────────────────────────────── */
+.section { padding: 56px 0; border-bottom: 1px solid var(--line); }
+.section:last-of-type { border-bottom: none; }
+.section-header { margin-bottom: 36px; }
+.section-label {
+    font-size: 10px; font-weight: bold; letter-spacing: 3px;
+    text-transform: uppercase; color: var(--neon-red);
+    margin-bottom: 6px; display: block;
+}
+.section-title {
+    font-size: 30px; font-weight: bold;
+    text-transform: uppercase; letter-spacing: 2px;
+    color: white; position: relative;
+    display: inline-block;
+}
+.section-title::after {
+    content: ''; position: absolute;
+    bottom: -10px; left: 0;
+    width: 48px; height: 3px;
+    background: linear-gradient(90deg, var(--neon-red), transparent);
+    border-radius: 2px;
+}
+.section-title.centered { display: block; text-align: center; }
+.section-title.centered::after {
+    left: 50%; transform: translateX(-50%);
+    width: 80px;
+}
+
+/* ── ABOUT ─────────────────────────────────────────────────── */
+.about-content {
+    max-width: 760px; margin: 0 auto;
+    color: #bbb; font-size: 14px; line-height: 1.9;
+    display: flex; flex-direction: column; gap: 14px;
+}
+.about-content .highlight { color: white; font-weight: bold; }
+.about-content .date {
+    color: var(--matrix-green); font-weight: bold;
+    background: rgba(0,204,122,0.08);
+    padding: 1px 8px; border-radius: 4px;
+    border: 1px solid rgba(0,204,122,0.2);
+    display: inline-block; font-size: 12px;
+}
+
+/* ── PILL GRIDS (channels / socials) ─────────────────────── */
+.pill-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.channel-card {
+    background: var(--card-bg);
+    border: 2px solid rgba(255,107,53,0.4);
+    border-bottom: 4px solid var(--cyber-orange);
+    border-radius: 50px; padding: 10px 20px;
+    display: flex; align-items: center; gap: 12px;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.5); text-decoration: none;
+}
+.channel-card:hover { transform: translateY(-3px); border-color: var(--matrix-green); border-bottom-color: #009955; box-shadow: 3px 6px 0 rgba(0,0,0,0.5); }
+.channel-card:active { transform: translateY(0); box-shadow: 1px 1px 0 rgba(0,0,0,0.5); }
+.channel-icon { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; border: 2px solid rgba(255,255,255,0.15); flex-shrink: 0; }
+.channel-name { font-size: 13px; color: white; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+.social-card {
+    background: var(--card-bg);
+    border: 2px solid rgba(0,204,122,0.4);
+    border-bottom: 4px solid #007744;
+    border-radius: 40px; padding: 8px 18px;
+    display: flex; align-items: center; gap: 9px;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.5); text-decoration: none;
+}
+.social-card:hover { transform: translateY(-2px); border-color: var(--neon-orange); border-bottom-color: var(--cyber-orange); box-shadow: 3px 5px 0 rgba(0,0,0,0.5); }
+.social-card:active { transform: translateY(0); }
+.social-icon { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+.social-name { font-size: 12px; color: white; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── VIDEO ─────────────────────────────────────────────────── */
+.video-tabs { display: flex; gap: 8px; margin-bottom: 28px; flex-wrap: wrap; }
+.video-tab {
+    background: var(--card-bg);
+    border: 2px solid rgba(255,107,53,0.4);
+    border-bottom: 4px solid var(--cyber-orange);
+    color: #aaa; padding: 8px 20px;
+    border-radius: 30px; cursor: pointer;
+    font-family: 'CRIX Pixel', monospace;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    transition: all 0.15s; box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+}
+.video-tab.active {
+    background: linear-gradient(135deg, var(--neon-red), var(--neon-orange));
+    border-color: var(--matrix-green); border-bottom-color: #007744;
+    color: white; box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+}
+.video-tab:hover:not(.active) { color: white; border-color: var(--matrix-green); transform: translateY(-1px); }
+.video-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
+.video-card {
+    background: rgba(12,12,20,0.98);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 14px; overflow: hidden;
+    cursor: pointer; transition: all 0.15s;
+    box-shadow: 3px 3px 0 rgba(0,0,0,0.45);
+}
+.video-card:hover { transform: translateY(-4px); border-color: var(--neon-orange); box-shadow: 3px 7px 0 rgba(0,0,0,0.45); }
+.video-card:hover .video-thumbnail { transform: scale(1.04); }
+.video-thumbnail-container { width: 100%; aspect-ratio: 16/9; overflow: hidden; }
+.video-thumbnail { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.3s; }
+.video-info { padding: 12px 14px; border-top: 1px solid rgba(255,107,53,0.15); }
+.video-title { font-size: 12px; color: white; margin-bottom: 6px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.4; }
+.video-date { font-size: 10px; color: var(--matrix-green); }
+
+/* ── MERCH ─────────────────────────────────────────────────── */
+.merch-top {
+    display: flex; align-items: center;
+    justify-content: space-between; gap: 16px;
+    margin-bottom: 28px; flex-wrap: wrap;
+}
+.merch-shop-link {
+    display: inline-flex; align-items: center; gap: 7px;
+    color: var(--matrix-green); text-decoration: none;
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    border: 1px solid rgba(0,204,122,0.3); padding: 6px 16px;
+    border-radius: 20px; transition: all 0.12s;
+    background: rgba(0,204,122,0.06);
+}
+.merch-shop-link:hover { border-color: var(--matrix-green); background: rgba(0,204,122,0.12); }
+.products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 14px; }
+.product-card {
+    background: rgba(12,12,20,0.98);
+    border: 1px solid rgba(255,107,53,0.3);
+    border-radius: 16px; overflow: hidden;
+    transition: all 0.15s; box-shadow: 3px 3px 0 rgba(0,0,0,0.45);
+}
+.product-card:hover { transform: translateY(-4px); border-color: var(--neon-orange); box-shadow: 3px 7px 0 rgba(0,0,0,0.45); }
+.product-image { width: 100%; height: 160px; object-fit: contain; padding: 14px; background: linear-gradient(45deg,#0e0e1e,#12121c); display: block; }
+.product-info { padding: 12px 14px; border-top: 1px solid rgba(255,107,53,0.15); }
+.product-name { font-size: 11px; color: white; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+.product-price { font-size: 16px; color: var(--neon-orange); font-weight: bold; margin-bottom: 10px; }
+.product-buy {
+    background: linear-gradient(135deg, var(--neon-red), var(--neon-orange));
+    color: white; border: none; padding: 7px 16px;
+    border-radius: 20px; text-decoration: none; display: inline-block;
+    font-size: 11px; font-weight: bold; font-family: 'CRIX Pixel', monospace;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    transition: all 0.12s; box-shadow: 2px 2px 0 rgba(0,0,0,0.4);
+}
+.product-buy:hover { transform: translateY(-1px); box-shadow: 2px 3px 0 rgba(0,0,0,0.4); }
+
+/* ── BIBLE ─────────────────────────────────────────────────── */
+.bible-box {
+    max-width: 680px; margin: 0 auto;
+    background: var(--card-bg);
+    border: 2px solid rgba(255,107,53,0.3);
+    border-radius: 20px; padding: 36px 40px;
+    text-align: center; box-shadow: var(--cartoon-shadow);
+}
+#bibleVerse { font-size: 17px; color: #ddd; line-height: 1.8; font-style: italic; margin-bottom: 12px; }
+#bibleRef { color: var(--neon-orange); font-size: 12px; font-weight: bold; margin-bottom: 22px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── LIVE ──────────────────────────────────────────────────── */
+.live-wrap { display: flex; gap: 18px; flex-wrap: wrap; align-items: flex-start; }
+.live-player-box { flex: 2; min-width: 260px; }
+.live-player-inner { position: relative; padding-top: 56.25%; background: #000; border-radius: 12px; overflow: hidden; border: 2px solid rgba(255,70,85,0.4); }
+.live-player-inner iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+.live-title-text { margin-top: 10px; font-size: 13px; color: #aaa; }
+.live-chat-box { flex: 1; min-width: 200px; }
+.live-chat-label { font-size: 10px; color: var(--neon-orange); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 8px; }
+.live-chat-box iframe { width: 100%; height: 380px; border: 1px solid rgba(255,107,53,0.3); border-radius: 12px; background: #0a0a1a; }
+
+/* ── FOOTER ────────────────────────────────────────────────── */
+.site-footer { padding: 28px 0 32px; }
+.footer-inner {
+    display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 12px;
+}
+.footer-copy { font-size: 11px; color: #8C8C8C; letter-spacing: 0.5px; }
+.footer-links { display: flex; gap: 20px; }
+.footer-link { color: #8C8C8C; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; transition: color 0.12s; }
+.footer-link:hover { color: var(--neon-orange); }
+
+/* ── MUSIC BTN ─────────────────────────────────────────────── */
+.music-control {
+    position: fixed; bottom: 20px; right: 20px; z-index: 9999;
+    width: 46px; height: 46px; border-radius: 50%;
+    background: linear-gradient(145deg, var(--neon-orange), var(--neon-red));
+    border: 2px solid var(--matrix-green); border-bottom: 4px solid #007744;
+    color: white; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; box-shadow: 2px 2px 0 rgba(0,0,0,0.5);
+}
+.music-control:hover { transform: scale(1.08) translateY(-1px); }
+.music-control.muted { background: linear-gradient(145deg,#333,#222); border-color:#555; border-bottom-color:#222; }
+
+/* ── FANMAIL ────────────────────────────────────────────────── */
+.fanmail-track-wrap {
+    overflow: hidden;
+    position: relative;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    padding: 12px 0;
+    background: var(--card-bg);
+}
+.fanmail-track-wrap::before,
+.fanmail-track-wrap::after {
+    content: '';
+    position: absolute; top: 0; width: 80px; height: 100%;
+    z-index: 2; pointer-events: none;
+}
+.fanmail-track-wrap::before { left: 0; background: linear-gradient(90deg, rgba(10,10,18,0.9), transparent); }
+.fanmail-track-wrap::after  { right: 0; background: linear-gradient(-90deg, rgba(10,10,18,0.9), transparent); }
+.fanmail-track {
+    display: flex; gap: 14px;
+    animation: scroll-fanmail 30s linear infinite;
+    width: max-content; padding: 0 14px;
+}
+.fanmail-track:hover { animation-play-state: paused; }
+@keyframes scroll-fanmail {
+    0%   { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+.fanmail-item {
+    position: relative; flex-shrink: 0;
+    width: 160px; height: 160px; border-radius: 12px;
+    overflow: hidden; cursor: pointer;
+    border: 1px solid rgba(255,107,53,0.3);
+    transition: border-color 0.15s;
+}
+.fanmail-item:hover { border-color: var(--neon-orange); }
+.fanmail-item img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.fanmail-item-label {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    color: white; font-size: 11px; font-weight: bold;
+    padding: 20px 8px 8px; text-align: center;
+    opacity: 0; transform: translateY(4px);
+    transition: opacity 0.2s, transform 0.2s;
+    letter-spacing: 0.5px; text-transform: uppercase;
+}
+.fanmail-item:hover .fanmail-item-label { opacity: 1; transform: translateY(0); }
+
+/* ── CHANNEL FILTER ─────────────────────────────────────────── */
+.channel-filter-row {
+    display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.channel-filter {
+    background: var(--card-bg); border: 1px solid var(--line);
+    color: #ABABAB; padding: 5px 14px; border-radius: 20px;
+    cursor: pointer; font-family: 'CRIX Pixel', monospace;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+    transition: all 0.12s; white-space: nowrap;
+}
+.channel-filter:hover { color: white; border-color: rgba(255,255,255,0.15); }
+.channel-filter.active {
+    background: rgba(255,70,85,0.15);
+    border-color: var(--neon-red); color: var(--neon-red);
+}
+
+/* ── EMAIL MODAL ───────────────────────────────────────────── */
+.email-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:99999; align-items:center; justify-content:center; backdrop-filter:blur(6px); }
+.email-modal.active { display:flex; }
+.email-modal-content { background:var(--darker-bg); border:2px solid var(--neon-red); border-bottom:5px solid rgba(150,20,35,0.7); border-radius:18px; padding:20px; max-width:300px; width:90%; box-shadow:var(--cartoon-shadow); }
+.email-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; color:var(--neon-orange); font-size:13px; font-weight:bold; text-transform:uppercase; letter-spacing:1px; }
+.email-modal-close { background:rgba(255,70,85,0.12); border:1px solid var(--neon-red); color:var(--neon-red); width:28px; height:28px; border-radius:50%; cursor:pointer; font-weight:bold; transition:all 0.1s; }
+.email-modal-body { display:flex; flex-direction:column; gap:7px; }
+.email-option { display:flex; align-items:center; gap:9px; background:rgba(255,107,53,0.05); border:1px solid rgba(255,107,53,0.35); border-radius:24px; padding:9px 14px; color:white; text-decoration:none; font-size:12px; cursor:pointer; transition:all 0.1s; font-family:inherit; }
+.email-option:hover { border-color:var(--matrix-green); }
+.email-option-copy { background:rgba(0,204,122,0.05); border-color:rgba(0,204,122,0.3); width:100%; text-align:left; }
+
+/* ── RESPONSIVE ────────────────────────────────────────────── */
+@media (max-width: 860px) {
+    .hero { grid-template-columns:1fr; gap:32px; padding:48px 0 40px; }
+    .hero-title { font-size:46px; }
+    .video-grid { grid-template-columns:repeat(2,1fr); }
+    .site-nav .nav-links { display:none; }
+    .site-wrap { padding:0 18px; }
+}
+@media (max-width: 520px) {
+    .hero-title { font-size:34px; }
+    .video-grid { grid-template-columns:1fr; }
+    .products-grid { grid-template-columns:repeat(2,1fr); }
+    .stat-number { font-size:22px; }
+    .section { padding:40px 0; }
+    .section-title { font-size:22px; }
+}
+    </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Deployment Check</h1>
-  <p class="sub">Verifies every required file is actually live on this domain, and whether your latest push made it here.</p>
 
-  <div id="results"></div>
-  <button id="run">Run check again</button>
-  <button id="copy" class="ghost">Copy results</button>
+<audio id="bgMusic" loop><source src="/img/music.mp3" type="audio/mpeg"></audio>
+<audio id="hoverSound" preload="auto"><source src="/img/hover.mp3" type="audio/mpeg"></audio>
+<audio id="clickSound" preload="auto"><source src="/img/click.mp3" type="audio/mpeg"></audio>
 
-  <div class="box" id="staleHelp" style="display:none;">
-    <h2>Your deployment looks out of date</h2>
-    <p style="font-size:13px;color:#C9C9C9;margin-bottom:10px;">
-      Making a GitHub repo private commonly breaks Vercel's access, so deploys stop
-      without any obvious error and the live site keeps serving old files.
-    </p>
-    <ol>
-      <li>Open <a href="https://vercel.com/dashboard" target="_blank">vercel.com/dashboard</a> → your project → <strong>Deployments</strong>. Is the newest one from your last push, or days old?</li>
-      <li>Go to <strong>Settings → Git</strong>. If it says the repository can't be found or access was revoked, click <strong>Reconnect</strong>.</li>
-      <li>On GitHub: <strong>Settings → Applications → Vercel → Configure</strong>, and grant it access to the private repo.</li>
-      <li>Back on Vercel, hit <strong>Redeploy</strong> on the latest commit.</li>
-    </ol>
-  </div>
+<button class="music-control" id="musicToggleBtn" title="Toggle Music">🔊</button>
+
+<!-- NAV -->
+<nav class="site-nav">
+    <a href="https://crixgamingvr.com" class="nav-brand">CRIXGAMING VR</a>
+    <div class="nav-links">
+        <a href="#story"    class="nav-link">Story</a>
+        <a href="#network"  class="nav-link">Channels</a>
+        <a href="#fanmail"  class="nav-link">Fan Art</a>
+        <a href="/evidence" class="nav-link">Evidence</a>
+        <a href="#videos"   class="nav-link">Videos</a>
+        <a href="#shop"     class="nav-link">Shop</a>
+        <a href="#evidence" class="nav-link" id="navEvidence" style="display:none;">Evidence</a>
+        <a href="#word"     class="nav-link">Daily Word</a>
+    </div>
+    <div class="nav-right">
+        <a href="https://crixgamingvr.com/flappycrix" class="nav-play">🎮 Play Now</a>
+    </div>
+</nav>
+
+<div class="site-wrap">
+
+    <!-- HERO -->
+    <div class="hero">
+        <div>
+            <div class="hero-eyebrow">who do you think i am 😂😂😂😂</div>
+            <h1 class="hero-title">CRIX<span class="red">GAMING</span><br>VR</h1>
+            <p class="hero-desc">VR gaming content, Minecraft, and more. Over 1K subscribers and growing. Come hang out.</p>
+            <div class="hero-actions">
+                <a href="https://crixgamingvr.com/flappycrix" class="game-button">🎮 Play Flappy Crix</a>
+                <a href="https://www.youtube.com/@CRIXGAMINGVR" target="_blank" class="secondary-link">Watch on YouTube →</a>
+            </div>
+        </div>
+        <div class="stats-card">
+            <div class="stat-row">
+                <span class="stat-label">Subscribers</span>
+                <span class="stat-number" id="subCount">—</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Videos</span>
+                <span class="stat-number" id="videoCount">—</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">Total Views</span>
+                <span class="stat-number" id="viewCount">—</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LIVE (hidden when not live) -->
+    <div class="section" id="liveSection" style="display:none;">
+        <div class="section-header">
+            <span class="section-label">Streaming now</span>
+            <h2 class="section-title">🔴 Live</h2>
+        </div>
+        <div class="live-wrap">
+            <div class="live-player-box">
+                <div class="live-player-inner">
+                    <iframe id="livePlayerIframe" allowfullscreen allow="autoplay; encrypted-media"></iframe>
+                </div>
+                <div class="live-title-text" id="liveStreamTitle"></div>
+            </div>
+            <div class="live-chat-box">
+                <div class="live-chat-label">💬 Live Chat</div>
+                <iframe id="liveChatIframe" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- STORY -->
+    <div class="section" id="story">
+        <div class="section-header">
+            <span class="section-label">Background</span>
+            <h2 class="section-title">The Story</h2>
+        </div>
+        <div class="about-content">
+            <p><span class="highlight">CRIXGAMING VR</span> started on <span class="date">January 19, 2024</span> with a channel called <span class="highlight">CRIX SMP</span> — Minecraft Bedrock videos, realm content, command tutorials. The kind of content made by someone learning how YouTube worked while building a small community around something he enjoyed.</p>
+            <p>Everything shifted when he picked up a <span class="highlight">Meta Quest 2</span> and found Gorilla Tag. First night in, he stayed up until sunrise. On <span class="date">April 12, 2025</span>, <span class="highlight">CRIXGAMING VR</span> launched — originally written as CRIX_GAMING_VR, the underscores got dropped fast.</p>
+            <p>After upgrading to a <span class="highlight">Meta Quest 3S</span> and later SteamVR, streaming became the core of the channel alongside Minecraft and other games. A short-form push started <span class="date">October 5, 2025</span>. First live stream followed ten days later.</p>
+            <p>On <span class="date">February 11, 2026</span>, <span class="highlight">CRIXGAMING VR reached 1,000 subscribers</span>. What started as a Minecraft realm grew into a channel built through persistence, experimentation, and community support.</p>
+            <p>The growth kept coming — on <span class="date">June 11, 2026</span>, the channel hit <span class="highlight">2,000 subscribers</span>. Every milestone is a reflection of the people who showed up, stayed, and kept watching.</p>
+        </div>
+    </div>
+
+    <!-- NETWORK -->
+    <div class="section" id="network">
+        <div class="section-header">
+            <span class="section-label">YouTube</span>
+            <h2 class="section-title">CRIX Network</h2>
+        </div>
+        <div class="pill-grid" id="channelsGrid"></div>
+
+        <div style="margin-top:48px;">
+            <div class="section-header" style="margin-bottom:24px;">
+                <span class="section-label">Socials</span>
+                <h2 class="section-title">Find CRIX</h2>
+            </div>
+            <div class="pill-grid" id="socialsGrid"></div>
+        </div>
+    </div>
+
+    <!-- FANMAIL -->
+    <div class="section" id="fanmail" style="display:none;">
+        <div class="section-header">
+            <span class="section-label">Community</span>
+            <h2 class="section-title">Fan Art</h2>
+        </div>
+        <div class="fanmail-track-wrap">
+            <div class="fanmail-track" id="fanmailTrack"></div>
+        </div>
+        <p style="margin-top:16px;font-size:11px;color:#8C8C8C;text-align:center;">Hover over an image to see who made it · Want to be featured? Send fan art to cgvr@crixgamingvr.com</p>
+    </div>
+
+    <!-- VIDEOS -->
+    <div class="section" id="videos">
+        <div class="section-header">
+            <span class="section-label">Content</span>
+            <h2 class="section-title">Latest Videos</h2>
+        </div>
+        <div class="channel-filter-row" id="channelFilterRow">
+            <button class="channel-filter active" data-channel="all">All Channels</button>
+        </div>
+        <div class="video-tabs" id="videoTabs">
+            <button class="video-tab active" data-tab="long">📼 Long Form</button>
+            <button class="video-tab" data-tab="shorts">🔥 Shorts</button>
+            <button class="video-tab" data-tab="live">🎬 Streams</button>
+        </div>
+        <div class="video-grid" id="videoGrid"></div>
+    </div>
+
+    <!-- SHOP -->
+    <div class="section" id="shop">
+        <div class="merch-top">
+            <div>
+                <span class="section-label">Merch</span>
+                <h2 class="section-title">CRIXGAMING VR Shop</h2>
+            </div>
+            <a href="https://shop.crixgamingvr.com" target="_blank" class="merch-shop-link" id="merchFavicon">Browse all →</a>
+        </div>
+        <div class="products-grid" id="productsGrid"></div>
+        <img id="merchFavicon2" src="" style="display:none;" alt="">
+    </div>
+
+    <!-- DAILY WORD -->
+    <div class="section" id="word">
+        <div class="section-header" style="text-align:center;">
+            <span class="section-label" style="display:block;text-align:center;">Scripture</span>
+            <h2 class="section-title centered">✝️ Daily Word</h2>
+        </div>
+        <div class="bible-box">
+            <div id="bibleVerse">Loading...</div>
+            <div id="bibleRef"></div>
+            <button id="newVerseBtn" class="game-button" style="font-size:12px;padding:10px 24px;">🙏 New Verse</button>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="footer-inner">
+            <span class="footer-copy">© 2024–2026 CRIXGAMING VR</span>
+            <div class="footer-links">
+                <a href="https://shop.crixgamingvr.com" target="_blank" class="footer-link">Shop</a>
+                <a href="#" id="businessEmailLink" class="footer-link">Contact</a>
+                <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" class="footer-link">Discord</a>
+            </div>
+        </div>
+    </footer>
+
+</div><!-- /site-wrap -->
+<!-- EMAIL MODAL -->
+<div class="email-modal" id="emailModal">
+    <div class="email-modal-content">
+        <div class="email-modal-header">
+            <span>📧 Open with</span>
+            <button class="email-modal-close" id="emailModalClose">✕</button>
+        </div>
+        <div class="email-modal-body">
+            <a class="email-option" id="emailOptDefault" href="#"><span>✉️</span> Default Mail App</a>
+            <a class="email-option" id="emailOptGmail" href="#" target="_blank"><span>📨</span> Gmail</a>
+            <a class="email-option" id="emailOptOutlook" href="#" target="_blank"><span>📩</span> Outlook</a>
+            <a class="email-option" id="emailOptYahoo" href="#" target="_blank"><span>📮</span> Yahoo Mail</a>
+            <button class="email-option email-option-copy" id="emailOptCopy"><span>📋</span> Copy Address</button>
+        </div>
+    </div>
 </div>
 
 <script>
-const EXPECTED_BUILD = '2026.08.15-1505';
+const channels = [
+    { name: "CRIXGAMING VR", icon: "crixgamingvr.png", url: "https://www.youtube.com/@CRIXGAMINGVR" },
+    { name: "CRIX PLAYZ MC", icon: "crixsmp.png", url: "https://www.youtube.com/@CRIXPLAYZMC" },
+    { name: "CRIX REACTS", icon: "crixreacts.png", url: "https://www.youtube.com/@CRIXREACTS123" },
+    { name: "CRIX YAPS", icon: "crixpodcasts.png", url: "https://www.youtube.com/@CRIXYAPS" },
+    { name: "CRIXGAMING VR 2", icon: "crixblox.png", url: "https://www.youtube.com/@CRIXGAMINGVR2" }
+];
+const socials = [
+    { name: "TikTok", icon: "tiktok.png", url: "https://tiktok.com/@crixgamingvr" },
+    { name: "Twitter", icon: "twitter.png", url: "https://x.com/CRIXGAMINGVR" },
+    { name: "Instagram", icon: "instagram.png", url: "https://instagram.com/crixgaming_vr" },
+    { name: "Twitch", icon: "twitch.png", url: "https://twitch.tv/crix_gaming_vr" },
+    { name: "Discord", icon: "discord.png", url: "https://discord.gg/MbQvJGDAst" },
+    { name: "Xbox", icon: "xbox.png", url: "https://xbox.com/en-AU/play/user/NVR CRIX447" }
+];
+const products = [
+    { name: "BUCKET HAT", desc: "Official bucket hat", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-bucket-hat", image: "bucket-hat.avif", price: 20.00 },
+    { name: "TANK TOP", desc: "Military-style tank top", link: "https://shop.crixgamingvr.com/products/crix-army-tank-top", image: "tank-top.avif", price: 16.99 },
+    { name: "PHONE CASE", desc: "Protective phone case", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-phone-case", image: "phone-case.avif", price: 16.00 },
+    { name: "DESK MAT", desc: "Large desk mat", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-desk-mat", image: "desk-mat.avif", price: 14.00 },
+    { name: "STICKERS", desc: "Vinyl sticker set", link: "https://shop.crixgamingvr.com/products/crix-stickers", image: "stickers.avif", price: 5.00 },
+    { name: "MUG", desc: "Ceramic mug", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-mug", image: "new-mug.png", price: 11.00 },
+    { name: "POSTER", desc: "High-quality poster", link: "https://shop.crixgamingvr.com/products/crix-poster", image: "poster.avif", price: 15.00 },
+    { name: "FACE MASK", desc: "Comfortable face mask", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-face-mask", image: "face-mask.avif", price: 12.00 },
+    { name: "HOODIE", desc: "Premium hoodie", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-mens-hoodie", image: "new-hoodie.png", price: 59.00 },
+    { name: "T-SHIRT", desc: "Classic t-shirt", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-t-shirt", image: "new-t-shirt.png", price: 26.00 },
+    { name: "BACKPACK", desc: "Durable backpack", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-backpack", image: "backpack.png", price: 35.00 },
+    { name: "CAP", desc: "Baseball cap", link: "https://shop.crixgamingvr.com/products/crixgaming-vr-baseball-cap", image: "cap.png", price: 15.00 },
+    { name: "CRIXALISA", desc: "Leonardo da Vinci style art", link: "https://shop.crixgamingvr.com/products/crixalisa", image: "crixalisa.png", price: 26.41 }
+];
+const currencies = {
+    US: { code: "USD", symbol: "$", rate: 1.0 },
+    AU: { code: "AUD", symbol: "A$", rate: 1.52 },
+    GB: { code: "GBP", symbol: "£", rate: 0.79 },
+    EU: { code: "EUR", symbol: "€", rate: 0.92 }
+};
+let currentCurrency = 'USD', currencySymbol = '$', currencyRate = 1.0, musicMuted = false;
+let longFormVideos = [], shortsVideos = [], liveVideos = [], currentTab = 'long';
+const channelsGrid = document.getElementById('channelsGrid');
+const socialsGrid = document.getElementById('socialsGrid');
+const productsGrid = document.getElementById('productsGrid');
+const videoGrid = document.getElementById('videoGrid');
+const bgMusic = document.getElementById('bgMusic');
+const hoverSound = document.getElementById('hoverSound');
+const clickSound = document.getElementById('clickSound');
+const musicToggle = document.getElementById('musicToggleBtn');
+const merchFavicon = document.getElementById('merchFavicon');
+const merchFavicon2 = document.getElementById('merchFavicon2');
+function playHoverSound() { hoverSound.currentTime = 0; hoverSound.play().catch(e => {}); }
+function playClickSound() { clickSound.currentTime = 0; clickSound.play().catch(e => {}); }
+function setupMusic() {
+    bgMusic.volume = 0.3;
+    const p = bgMusic.play();
+    if (p !== undefined) {
+        p.then(() => { musicMuted = false; musicToggle.innerHTML = '🔊'; })
+         .catch(() => { musicMuted = true; musicToggle.innerHTML = '🔇'; musicToggle.classList.add('muted'); });
+    }
+    musicToggle.addEventListener('click', () => {
+        if (musicMuted) { bgMusic.play(); musicToggle.innerHTML = '🔊'; musicToggle.classList.remove('muted'); musicMuted = false; }
+        else { bgMusic.pause(); musicToggle.innerHTML = '🔇'; musicToggle.classList.add('muted'); musicMuted = true; }
+        playClickSound();
+    });
+    musicToggle.addEventListener('mouseenter', playHoverSound);
+}
+async function detectCurrency() {
+    try {
+        const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        let cc = 'US';
+        if (tz.includes('Australia/')) cc = 'AU';
+        else if (tz.includes('Europe/London')) cc = 'GB';
+        else if (tz.includes('Europe/')) cc = 'EU';
+        if (currencies[cc]) { currentCurrency = currencies[cc].code; currencySymbol = currencies[cc].symbol; currencyRate = currencies[cc].rate; }
+    } catch(e) { currentCurrency = 'USD'; currencySymbol = '$'; currencyRate = 1.0; }
+    renderProducts();
+}
+function renderProducts() {
+    productsGrid.innerHTML = '';
+    products.forEach(product => {
+        const price = (product.price * currencyRate).toFixed(2);
+        const card = document.createElement('div');
+        card.className = 'product-card';
+        const imgBase = '/img/' + product.image.replace(/\.[^.]+$/, '');
+        card.innerHTML = `<img class="product-image" src="/img/${product.image}" alt="${product.name}" loading="lazy" onerror="var b=this.dataset.base,exts=['.png','.avif','.jpg','.webp'],i=parseInt(this.dataset.tried||'0')+1;this.dataset.tried=i;if(i<exts.length)this.src=b+exts[i];else this.style.opacity='0.2';" data-base="${imgBase}"><div class="product-info"><div class="product-name">${product.name}</div><div class="product-price">${currencySymbol}${price}</div><a href="${product.link}" target="_blank" class="product-buy">🛒 BUY</a></div>`;
+        const buyBtn = card.querySelector('.product-buy');
+        buyBtn.addEventListener('mouseenter', playHoverSound);
+        buyBtn.addEventListener('click', playClickSound);
+        productsGrid.appendChild(card);
+    });
+}
+function renderChannels() {
+    channelsGrid.innerHTML = '';
+    channels.forEach(channel => {
+        const card = document.createElement('div');
+        card.className = 'channel-card';
+        card.onclick = () => window.open(channel.url, '_blank');
+        card.innerHTML = `<img class="channel-icon" src="/img/${channel.icon}" alt="${channel.name}" onerror="this.style.display='none'"><span class="channel-name">${channel.name}</span>`;
+        card.addEventListener('mouseenter', playHoverSound);
+        card.addEventListener('click', playClickSound);
+        channelsGrid.appendChild(card);
+    });
+}
+function renderSocials() {
+    socialsGrid.innerHTML = '';
+    socials.forEach(social => {
+        const card = document.createElement('a');
+        card.className = 'social-card';
+        card.href = social.url;
+        card.target = '_blank';
+        card.innerHTML = `<img class="social-icon" src="/img/${social.icon}" alt="${social.name}" onerror="this.style.display='none'"><span class="social-name">${social.name}</span>`;
+        card.addEventListener('mouseenter', playHoverSound);
+        card.addEventListener('click', playClickSound);
+        socialsGrid.appendChild(card);
+    });
+}
+let CHANNEL_ID = '';
+let API_KEY = '';
+let MAIN_CHANNEL_HANDLE = '';
+let siteConfig = null;
+// Multi-channel video storage: { channelId: { long:[], shorts:[], live:[] } }
+let allChannelVideos = {};
+let activeChannelFilter = 'all';
+// Channel handles are read from youtube.txt (plain text, no JSON syntax needed).
+// IDs are resolved automatically at runtime via the forHandle API param —
+// no need to hunt down UC... IDs manually, and it self-heals if a handle changes.
+let CHANNEL_DEFS = [];
+const CHANNEL_ID_CACHE_KEY = 'crix_channel_id_cache_v1';
 
-const FILES = [
-  { path:'/game.html',                    need:true,  label:'Game page' },
-  { path:'/photon-realtime-browser.js',   need:true,  label:'Photon SDK',      contains:'Photon' },
-  { path:'/playfab-manager.js',           need:true,  label:'PlayFab manager', contains:'PLAYFAB_MANAGER_VERSION' },
-  { path:'/filter.js',                    need:true,  label:'Chat filter',     contains:'ChatFilter' },
-  { path:'/api.json',                     need:true,  label:'Config (api.json)', json:true },
-  { path:'/patchnotes.json',              need:false, label:'Patch notes',     json:true },
-  { path:'/img/bird.png',                 need:true,  label:'Images'  },
-  { path:'/img/font.otf',                 need:true,  label:'Font'    },
-  { path:'/img/jump.mp3',                 need:false, label:'Sounds'  }
+function normalizeHandle(h) {
+    return (h || '').replace(/^@/, '').toLowerCase();
+}
+
+// Calls the serverless proxy when it's available, and falls back to a direct
+// key from api.json if the Vercel env vars aren't configured yet. This means
+// the site keeps working during the migration instead of going blank.
+let _useProxy = null;   // null = not yet determined
+
+async function ytFetch(params) {
+    const qs = new URLSearchParams(params).toString();
+
+    if (_useProxy !== false) {
+        try {
+            const r = await fetch(`/api/youtube?${qs}`);
+            const j = await r.json().catch(() => null);
+            if (r.ok && j && !j.error) { _useProxy = true; return j; }
+            if (_useProxy === null) {
+                console.warn('[YouTube] Proxy returned', r.status,
+                             j?.error || j?.errorMessage || '(no body)',
+                             '— falling back to the key in api.json.');
+            }
+            _useProxy = false;
+        } catch (e) {
+            if (_useProxy === null) console.warn('[YouTube] Proxy unreachable:', e.message);
+            _useProxy = false;
+        }
+    }
+
+    // Fallback: direct call using the key from api.json (if present)
+    if (!API_KEY) throw new Error('No YouTube key available (proxy off and api.json has none)');
+    const { action, ...rest } = params;
+    const paths = {
+        stats:   () => `channels?part=statistics,contentDetails&id=${rest.channelId || CHANNEL_ID}`,
+        resolve: () => `channels?part=id,statistics,contentDetails&forHandle=${encodeURIComponent(String(rest.handle||'').replace(/^@/,''))}`,
+        uploads: () => `playlistItems?part=snippet&maxResults=50&playlistId=${encodeURIComponent(rest.playlistId||'')}`,
+        live:    () => `search?part=snippet&channelId=${rest.channelId || CHANNEL_ID}&eventType=live&type=video`
+    };
+    const path = paths[action] && paths[action]();
+    if (!path) throw new Error('Unknown YouTube action: ' + action);
+    const res = await fetch(`https://www.googleapis.com/youtube/v3/${path}&key=${API_KEY}`);
+    const json = await res.json();
+    if (json.error) {
+        const reason = json.error.errors?.[0]?.reason || '';
+        const hints = {
+            keyInvalid:          'The API key is wrong or has been deleted.',
+            ipRefererBlocked:    'The key is restricted to certain referrers/IPs and this domain is not allowed. In Google Cloud → Credentials, add https://crixgamingvr.com/* to the HTTP referrer list.',
+            quotaExceeded:       'Daily quota used up. It resets at midnight Pacific.',
+            dailyLimitExceeded:  'Daily quota used up. It resets at midnight Pacific.',
+            accessNotConfigured: 'YouTube Data API v3 is not enabled for this project. Enable it in Google Cloud → APIs & Services → Library.',
+            forbidden:           'The key exists but is not permitted to make this call.',
+            playlistNotFound:    'A cached channel ID is stale. Run clearYouTubeCache() in the console, or it will self-correct on the next load.'
+        };
+        console.error(`[YouTube] ${json.error.code} ${reason}: ${json.error.message}`);
+        if (hints[reason]) console.error('[YouTube] → ' + hints[reason]);
+        showYouTubeError(hints[reason] || json.error.message);
+    }
+    return json;
+}
+
+// Puts the failure on screen so it isn't invisible.
+function showYouTubeError(msg) {
+    if (document.getElementById('ytErrBanner')) return;
+    const b = document.createElement('div');
+    b.id = 'ytErrBanner';
+    b.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;max-width:640px;margin:0 auto;' +
+        'background:#1a1014;border:1px solid rgba(255,70,85,.5);border-radius:10px;padding:12px 16px;' +
+        'font-size:12px;color:#FFB3BA;z-index:9999;line-height:1.6;font-family:system-ui,sans-serif;';
+    b.innerHTML = `<strong style="color:#FF4655">YouTube data unavailable.</strong> ${msg}
+        <span onclick="this.parentElement.remove()" style="float:right;cursor:pointer;color:#888;padding-left:10px">✕</span>`;
+    document.body.appendChild(b);
+}
+
+async function loadConfig() {
+    try {
+        const res = await fetch('/api.json');
+        siteConfig = await res.json();
+        if (siteConfig.youtube) {
+            API_KEY = siteConfig.youtube.apiKey || API_KEY;
+            MAIN_CHANNEL_HANDLE = siteConfig.youtube.mainChannel || MAIN_CHANNEL_HANDLE;
+            if (Array.isArray(siteConfig.youtube.channels)) {
+                CHANNEL_DEFS = siteConfig.youtube.channels
+                    .filter(c => c.handle || c.id)
+                    .map(c => ({
+                        handle: c.handle || '',
+                        name: c.name || c.handle || 'Channel',
+                        // An explicit id skips the handle lookup entirely
+                        id: c.id || ''
+                    }));
+            }
+        }
+    } catch (e) {
+        console.error('[Config] api.json failed to load:', e.message);
+    }
+    console.log('[Config] channels:', CHANNEL_DEFS.length,
+                '| key in api.json:', API_KEY ? 'yes' : 'no',
+                '| main:', MAIN_CHANNEL_HANDLE || '(none)');
+    if (!CHANNEL_DEFS.length) console.error('[Config] No channels defined in api.json — nothing to load.');
+}
+
+// Resolve an @handle to a channel ID using the official forHandle param.
+// Falls back to a small localStorage cache so repeat visits don't re-resolve.
+function clearChannelCache(handle) {
+    try {
+        const cache = JSON.parse(localStorage.getItem(CHANNEL_ID_CACHE_KEY) || '{}');
+        if (handle) delete cache[handle]; else Object.keys(cache).forEach(k => delete cache[k]);
+        localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(cache));
+    } catch (e) {}
+}
+// Run clearYouTubeCache() in the console to force a full re-resolve.
+window.clearYouTubeCache = () => { clearChannelCache(null); location.reload(); };
+
+async function resolveChannelId(ch, apiKey) {
+    if (!ch.handle) return null;
+    let cache = {};
+    try { cache = JSON.parse(localStorage.getItem(CHANNEL_ID_CACHE_KEY) || '{}'); } catch(e) {}
+    if (cache[ch.handle]) return cache[ch.handle];
+
+    try {
+        const handle = ch.handle.replace(/^@/, '');
+        const data = await ytFetch({ action: 'resolve', handle });
+        const id = data.items?.[0]?.id;
+        // Only cache something that looks like a real channel ID, otherwise a
+        // bad resolve gets stored in localStorage and keeps failing forever.
+        if (id && /^UC[\w-]{20,}$/.test(id)) {
+            cache[ch.handle] = id;
+            try { localStorage.setItem(CHANNEL_ID_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+            return id;
+        }
+        console.warn('[YouTube] No channel found for handle', ch.handle);
+    } catch(e) {
+        console.warn('[YouTube] resolve failed for', ch.handle, '-', e.message);
+    }
+    return null;
+}
+
+async function fetchVideosForChannel(ch) {
+    try {
+        const apiKey = ch.apiKey || API_KEY;
+        const isMain = normalizeHandle(ch.handle) === normalizeHandle(MAIN_CHANNEL_HANDLE);
+        if (!ch.id) {
+            const resolved = await resolveChannelId(ch, apiKey);
+            if (!resolved) {
+                console.warn(`[YouTube] Could not resolve ${ch.handle}. ` +
+                             'Add an explicit "id" for this channel in api.json to skip the lookup.');
+                return;
+            }
+            ch.id = resolved;
+            if (isMain) CHANNEL_ID = resolved; // used by checkLiveStream()
+        }
+        const chanData = await ytFetch({ action: 'stats', channelId: ch.id });
+        if (!chanData.items?.[0]) return;
+        if (isMain) {
+            const st = chanData.items[0].statistics;
+            document.getElementById('subCount').textContent = formatNumber(parseInt(st.subscriberCount || 0));
+            document.getElementById('videoCount').textContent = formatNumber(parseInt(st.videoCount || 0));
+            document.getElementById('viewCount').textContent = formatNumber(parseInt(st.viewCount || 0));
+        }
+        const uploadsId = chanData.items[0]?.contentDetails?.relatedPlaylists?.uploads;
+        if (!uploadsId) {
+            console.warn(`[YouTube] ${ch.name}: no uploads playlist on channel ${ch.id}. ` +
+                         'The cached channel ID is probably wrong — clearing it.');
+            clearChannelCache(ch.handle);
+            return;
+        }
+        const vidData = await ytFetch({ action: 'uploads', playlistId: uploadsId });
+        if (vidData.error) {
+            // A stale/incorrect channel ID produces "playlistId cannot be found"
+            clearChannelCache(ch.handle);
+            throw new Error(`${ch.name}: ${vidData.error.message}`);
+        }
+        if (!vidData.items) return;
+        const long = [], shorts = [], live = [];
+        vidData.items.forEach(item => {
+            const sn = item.snippet, t = sn.title;
+            const isShort = t.toLowerCase().includes('#shorts') || sn.description?.toLowerCase().includes('#shorts');
+            const isLive = t.toLowerCase().includes('live') || t.toLowerCase().includes('stream') || t.includes('🔴');
+            const v = { id: sn.resourceId.videoId, title: t, channel: ch.name,
+                thumbnail: sn.thumbnails.medium?.url || sn.thumbnails.default?.url,
+                date: new Date(sn.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) };
+            if (isShort) shorts.push(v);
+            else if (isLive) live.push(v);
+            else long.push(v);
+        });
+        allChannelVideos[ch.id] = { long, shorts, live };
+    } catch(e) {
+        console.warn('[YouTube] failed loading', ch.name, '-', e.message);
+    }
+}
+
+async function fetchYouTubeData() {
+    if (!CHANNEL_DEFS.length) { useFallbackVideos(); return; }
+    try {
+        await Promise.all(CHANNEL_DEFS.map(ch => fetchVideosForChannel(ch)));
+        const resolved = CHANNEL_DEFS.filter(ch => ch.id);
+        buildChannelFilterUI(resolved);
+        renderCurrentTab();
+    } catch(e) {
+        document.getElementById('subCount').textContent = '2K+';
+        document.getElementById('videoCount').textContent = '154';
+        document.getElementById('viewCount').textContent = '52.78K';
+        useFallbackVideos();
+    }
+}
+
+function buildChannelFilterUI(channels) {
+    const row = document.getElementById('channelFilterRow');
+    row.innerHTML = '<button class="channel-filter active" data-channel="all">All Channels</button>';
+    channels.forEach(ch => {
+        const btn = document.createElement('button');
+        btn.className = 'channel-filter';
+        btn.dataset.channel = ch.id;
+        btn.textContent = ch.name;
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.channel-filter').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            activeChannelFilter = ch.id;
+            renderCurrentTab();
+        });
+        row.appendChild(btn);
+    });
+    row.querySelector('[data-channel="all"]').addEventListener('click', () => {
+        document.querySelectorAll('.channel-filter').forEach(b => b.classList.remove('active'));
+        row.querySelector('[data-channel="all"]').classList.add('active');
+        activeChannelFilter = 'all';
+        renderCurrentTab();
+    });
+}
+
+function getFilteredVideos(type) {
+    if (activeChannelFilter === 'all') {
+        const all = [];
+        Object.values(allChannelVideos).forEach(ch => all.push(...(ch[type] || [])));
+        return all.sort((a,b) => new Date(b.date) - new Date(a.date));
+    }
+    return (allChannelVideos[activeChannelFilter]?.[type] || []);
+}
+
+function useFallbackVideos() {
+    allChannelVideos['fallback'] = {
+        long: [
+            { id:'dQw4w9WgXcQ', title:'Gorilla Tag Gameplay', channel:'CRIXGAMING VR', thumbnail:'https://img.youtube.com/vi/dQw4w9WgXcQ/mqdefault.jpg', date:'Mar 16, 2026' }
+        ],
+        shorts: [{ id:'TNRli7rkreg', title:'Short clip', channel:'CRIXGAMING VR', thumbnail:'https://img.youtube.com/vi/TNRli7rkreg/mqdefault.jpg', date:'Recent' }],
+        live: []
+    };
+    renderCurrentTab();
+}
+// legacy compat aliases (declared above at line 679)
+
+function renderCurrentTab() {
+    const type = currentTab === 'long' ? 'long' : currentTab === 'shorts' ? 'shorts' : 'live';
+    const videos = getFilteredVideos(type).slice(0, 9);
+    videoGrid.innerHTML = '';
+    if (!videos.length) { videoGrid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:#ABABAB;">No videos found</div>'; return; }
+    videos.forEach(video => {
+        const card = document.createElement('div');
+        card.className = 'video-card';
+        card.onclick = () => window.open(`https://youtube.com/watch?v=${video.id}`, '_blank');
+        const chTag = video.channel ? `<span style="font-size:10px;color:var(--neon-orange);margin-bottom:4px;display:block;">${video.channel}</span>` : '';
+        card.innerHTML = `<div class="video-thumbnail-container"><img class="video-thumbnail" src="${video.thumbnail}" alt="${video.title}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${video.id}/mqdefault.jpg'"></div><div class="video-info">${chTag}<div class="video-date">${video.date}</div><div class="video-title" style="margin-top:4px;">${video.title}</div></div>`;
+        videoGrid.appendChild(card);
+    });
+}
+function formatNumber(num) {
+    if (num >= 1000000) return (num/1000000).toFixed(2) + 'M';
+    if (num >= 1000) return (num/1000).toFixed(2) + 'K';
+    return num.toString();
+}
+function setupTabs() {
+    document.querySelectorAll('.video-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            document.querySelectorAll('.video-tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentTab = tab.dataset.tab;
+            renderCurrentTab();
+            playClickSound();
+        });
+    });
+}
+function setupMerchClicks() {
+    [merchFavicon, merchFavicon2].forEach(el => {
+        if (!el) return;
+        el.addEventListener('mouseenter', playHoverSound);
+        el.addEventListener('click', () => { playClickSound(); window.open('https://shop.crixgamingvr.com', '_blank'); });
+    });
+}
+const BUSINESS_EMAIL = 'cgvr@crixgamingvr.com';
+function setupEmailPicker() {
+    const link = document.getElementById('businessEmailLink');
+    const modal = document.getElementById('emailModal');
+    const closeBtn = document.getElementById('emailModalClose');
+    const optDefault = document.getElementById('emailOptDefault');
+    const optGmail = document.getElementById('emailOptGmail');
+    const optOutlook = document.getElementById('emailOptOutlook');
+    const optYahoo = document.getElementById('emailOptYahoo');
+    const optCopy = document.getElementById('emailOptCopy');
+
+    const subject = encodeURIComponent('Business Inquiry');
+    optDefault.href = `mailto:${BUSINESS_EMAIL}?subject=${subject}`;
+    optGmail.href = `https://mail.google.com/mail/?view=cm&fs=1&to=${BUSINESS_EMAIL}&su=${subject}`;
+    optOutlook.href = `https://outlook.live.com/mail/0/deeplink/compose?to=${BUSINESS_EMAIL}&subject=${subject}`;
+    optYahoo.href = `https://compose.mail.yahoo.com/?to=${BUSINESS_EMAIL}&subject=${subject}`;
+
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        playClickSound();
+        modal.classList.add('active');
+    });
+    closeBtn.addEventListener('click', () => modal.classList.remove('active'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+    [optDefault, optGmail, optOutlook, optYahoo].forEach(opt => {
+        opt.addEventListener('click', () => { playClickSound(); modal.classList.remove('active'); });
+    });
+    optCopy.addEventListener('click', () => {
+        playClickSound();
+        navigator.clipboard?.writeText(BUSINESS_EMAIL).then(() => {
+            optCopy.querySelector('span').textContent = '✅';
+            optCopy.lastChild.textContent = ' Copied!';
+            setTimeout(() => { optCopy.querySelector('span').textContent = '📋'; optCopy.lastChild.textContent = ' Copy Address'; }, 1500);
+        }).catch(() => {
+            const ta = document.createElement('textarea');
+            ta.value = BUSINESS_EMAIL; document.body.appendChild(ta); ta.select();
+            document.execCommand('copy'); document.body.removeChild(ta);
+        });
+    });
+}
+async function init() {
+    await loadConfig();
+    renderChannels();
+    renderSocials();
+    setupMusic();
+    await detectCurrency();
+    setupMerchClicks();
+    setupTabs();
+    setupEmailPicker();
+    await fetchYouTubeData();
+    setInterval(fetchYouTubeData, 60000);
+    await checkLiveStream();
+    setInterval(checkLiveStream, 120000);
+    loadBibleVerse();
+    loadFanmail();
+    setupEvidence();
+}
+
+// =====================================================
+// LIVE STREAM — checks if CRIX is currently live
+// =====================================================
+async function checkLiveStream() {
+    if (!CHANNEL_ID) return;
+    try {
+        const data = await ytFetch({ action: 'live', channelId: CHANNEL_ID });
+        const liveItem = data.items && data.items[0];
+        const liveSection = document.getElementById('liveSection');
+        if (liveItem) {
+            const videoId = liveItem.id.videoId;
+            const title = liveItem.snippet.title;
+            document.getElementById('livePlayerIframe').src =
+                `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=0`;
+            document.getElementById('liveChatIframe').src =
+                `https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${window.location.hostname}`;
+            document.getElementById('liveStreamTitle').textContent = '🔴 ' + title;
+            liveSection.style.display = '';
+        } else {
+            liveSection.style.display = 'none';
+        }
+    } catch(e) { console.warn('Live check failed:', e); }
+}
+
+// =====================================================
+// BIBLE QUOTES — free API, no key needed
+// =====================================================
+const BIBLE_BOOKS = [
+    'John 3:16', 'Psalm 23:1', 'Philippians 4:13', 'Romans 8:28',
+    'Jeremiah 29:11', 'Isaiah 40:31', 'Proverbs 3:5-6', 'Matthew 6:33',
+    'Joshua 1:9', 'Romans 15:13', 'Psalm 46:1', 'Galatians 5:22-23',
+    'Matthew 5:16', '2 Timothy 1:7', 'Psalm 121:1-2', 'Hebrews 11:1',
+    'Romans 5:8', '1 Corinthians 13:4-7', 'Ephesians 2:8-9', 'Psalm 27:1'
 ];
 
-let out = [];
-const esc = s => { const d=document.createElement('div'); d.textContent=String(s??''); return d.innerHTML; };
+async function loadBibleVerse() {
+    const verseEl = document.getElementById('bibleVerse');
+    const refEl = document.getElementById('bibleRef');
+    if (!verseEl) return;
 
-function add(name, state, detail, fix) {
-  out.push({name,state,detail,fix});
-  const icons = {pass:'✅',fail:'❌',warn:'⚠️',info:'ℹ️'};
-  const el = document.createElement('div');
-  el.className = 'row';
-  el.innerHTML = `<span class="ic">${icons[state]||'•'}</span>
-    <div style="flex:1;min-width:0">
-      <div class="nm">${esc(name)}</div>
-      ${detail?`<div class="dt">${detail}</div>`:''}
-      ${fix?`<div class="fx">→ ${fix}</div>`:''}
-    </div>`;
-  document.getElementById('results').appendChild(el);
-}
+    // Pick a verse based on today's date so it changes daily
+    const dayIndex = new Date().getDate() % BIBLE_BOOKS.length;
+    const ref = BIBLE_BOOKS[dayIndex];
+    const encoded = encodeURIComponent(ref);
 
-async function check() {
-  out = [];
-  document.getElementById('results').innerHTML = '';
-  document.getElementById('staleHelp').style.display = 'none';
-  let stale = false, missing = 0;
-
-  add('Domain', 'info', esc(location.origin));
-
-  // Is the deployed game.html the build we expect?
-  try {
-    const r = await fetch('/game.html?cb=' + Date.now());
-    const txt = await r.text();
-    const m = txt.match(/__BUILD__\s*=\s*"([^"]+)"/);
-    if (!m) {
-      stale = true;
-      add('Live build', 'fail', 'No build stamp found in the deployed game.html.',
-          'The deployed file predates this check — your push has not gone live.');
-    } else if (m[1] !== EXPECTED_BUILD) {
-      stale = true;
-      add('Live build', 'fail',
-          `Live: <code>${esc(m[1])}</code> &nbsp; Expected: <code>${esc(EXPECTED_BUILD)}</code>`,
-          'Vercel is serving an older commit. See the steps below.');
-    } else {
-      add('Live build', 'pass', `<code>${esc(m[1])}</code> — up to date.`);
-    }
-  } catch(e) {
-    add('Live build', 'fail', esc(e.message), 'Could not fetch game.html at all.');
-    stale = true;
-  }
-
-  // Every required file
-  for (const f of FILES) {
+    verseEl.textContent = 'Loading...';
     try {
-      const r = await fetch(f.path + '?cb=' + Date.now());
-      if (!r.ok) {
-        if (f.need) missing++;
-        add(f.label, f.need ? 'fail' : 'warn', `<code>${f.path}</code> → HTTP ${r.status}`,
-            f.need ? 'This file is missing from the deployment. Confirm it is committed in the repo root.' : null);
-        continue;
-      }
-      const ct = r.headers.get('content-type') || '';
-      // A 200 that returns HTML usually means the SPA/404 page was served instead
-      if (f.path.endsWith('.js') && ct.includes('text/html')) {
-        if (f.need) missing++;
-        add(f.label, 'fail', `<code>${f.path}</code> returned HTML, not JavaScript.`,
-            'The file is not deployed — the server sent the 404 page instead.');
-        continue;
-      }
-      if (f.json) {
-        try { await r.clone().json(); }
-        catch { add(f.label, 'fail', `<code>${f.path}</code> is not valid JSON.`, 'Check for a trailing comma or stray character.'); continue; }
-      }
-      if (f.contains) {
-        const t = await r.clone().text();
-        if (!t.includes(f.contains)) {
-          add(f.label, 'warn', `<code>${f.path}</code> loaded but looks wrong.`,
-              `Expected it to contain "${esc(f.contains)}" — possibly an old or truncated copy.`);
-          continue;
+        const res = await fetch(`https://bible-api.com/${encoded}?translation=kjv`);
+        const data = await res.json();
+        if (data.text) {
+            verseEl.textContent = '"' + data.text.trim().replace(/\n/g, ' ') + '"';
+            refEl.textContent = '— ' + data.reference;
         }
-      }
-      add(f.label, 'pass', `<code>${f.path}</code> served OK`);
     } catch(e) {
-      if (f.need) missing++;
-      add(f.label, f.need ? 'fail' : 'warn', esc(e.message));
+        // Fallback to a hardcoded verse if API fails
+        verseEl.textContent = '"For God so loved the world, that he gave his only begotten Son, that whosoever believeth in him should not perish, but have everlasting life."';
+        refEl.textContent = '— John 3:16 (KJV)';
     }
-  }
-
-  // Config sanity
-  try {
-    const cfg = await (await fetch('/api.json?cb=' + Date.now())).json();
-    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    const appId = cfg?.photon?.appId || '';
-    add('Photon App ID', uuid.test(appId) ? 'pass' : 'fail',
-        appId ? `<code>${esc(appId.slice(0,8))}…</code>` : 'missing',
-        uuid.test(appId) ? null : 'Paste your Realtime App ID into api.json → photon.appId.');
-
-    const tid = cfg?.playfab?.titleId || '';
-    add('PlayFab Title ID', (tid && !tid.startsWith('PASTE_')) ? 'pass' : 'warn',
-        tid || 'missing',
-        (tid && !tid.startsWith('PASTE_')) ? null : 'Needed for coins, levels, friends and bans.');
-
-    const did = cfg?.discord?.clientId || '';
-    add('Discord Client ID', (did && !did.startsWith('PASTE_')) ? 'pass' : 'warn',
-        did || 'missing',
-        (did && !did.startsWith('PASTE_')) ? null : 'Needed only for Discord sign-in.');
-  } catch(e) {
-    add('Config values', 'fail', esc(e.message));
-  }
-
-  // Can this network even reach Photon?
-  const net = await new Promise(res => {
-    let done=false; const fin=v=>{if(!done){done=true;res(v);}};
-    try {
-      const ws = new WebSocket('wss://ns.photonengine.io:19093/diagnostic?libversion=check');
-      ws.onopen  = () => { fin('open'); try{ws.close();}catch(e){} };
-      ws.onerror = () => fin('blocked');
-      ws.onclose = e => fin(e.code===1006 ? 'blocked' : 'closed');
-      setTimeout(()=>fin('timeout'), 8000);
-    } catch(e){ fin('blocked'); }
-  });
-  add('Photon network', net==='open' ? 'pass' : 'fail',
-      net==='open' ? 'Port 19093 is reachable from this network.' : `Connection ${net}.`,
-      net==='open' ? null : 'A firewall, VPN, ad-blocker or school/work network is blocking port 19093. Try mobile data to confirm.');
-
-  if (stale || missing) document.getElementById('staleHelp').style.display = 'block';
 }
 
-document.getElementById('run').onclick = check;
-document.getElementById('copy').onclick = () => {
-  const t = out.map(r => `[${r.state.toUpperCase()}] ${r.name}: ${(r.detail||'').replace(/<[^>]+>/g,'')}` +
-                         (r.fix?`\n    FIX: ${r.fix.replace(/<[^>]+>/g,'')}`:'')).join('\n');
-  navigator.clipboard?.writeText(t).then(()=>{
-    const b=document.getElementById('copy'); b.textContent='Copied'; setTimeout(()=>b.textContent='Copy results',1600);
-  });
-};
-check();
+document.getElementById('newVerseBtn')?.addEventListener('click', async () => {
+    const verseEl = document.getElementById('bibleVerse');
+    const refEl = document.getElementById('bibleRef');
+    // Pick a random verse
+    const ref = BIBLE_BOOKS[Math.floor(Math.random() * BIBLE_BOOKS.length)];
+    verseEl.textContent = 'Loading...';
+    refEl.textContent = '';
+    try {
+        const res = await fetch(`https://bible-api.com/${encodeURIComponent(ref)}?translation=kjv`);
+        const data = await res.json();
+        if (data.text) {
+            verseEl.textContent = '"' + data.text.trim().replace(/\n/g, ' ') + '"';
+            refEl.textContent = '— ' + data.reference;
+        }
+    } catch(e) {
+        verseEl.textContent = '"I can do all things through Christ which strengtheneth me."';
+        refEl.textContent = '— Philippians 4:13 (KJV)';
+    }
+});
+// ── FANMAIL ────────────────────────────────────────────────
+async function loadFanmail() {
+    const track = document.getElementById('fanmailTrack');
+    const section = document.getElementById('fanmail');
+    if (!track) return;
+
+    let items = [];
+    try {
+        const res = await fetch('fanmail.json');
+        const data = await res.json();
+        items = (data.fanmail || []).filter(i => i && i.file && i.author);
+    } catch(e) {}
+
+    // No real entries — hide the whole section instead of showing a placeholder
+    if (!items.length) {
+        if (section) section.style.display = 'none';
+        return;
+    }
+    if (section) section.style.display = '';
+
+    // Duplicate items for seamless infinite scroll
+    const allItems = [...items, ...items];
+    track.innerHTML = allItems.map(item => `
+        <div class="fanmail-item">
+            <img src="img/fanmail/${item.file}" alt="Fan art by ${item.author}"
+                 onerror="this.closest('.fanmail-item').remove()">
+            <div class="fanmail-item-label">by ${item.author}</div>
+        </div>
+    `).join('');
+
+    // Adjust animation duration based on item count
+    const duration = Math.max(20, items.length * 4);
+    track.style.animationDuration = duration + 's';
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
 </script>
 </body>
 </html>
