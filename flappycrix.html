@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0120";</script>
+    <script>window.__BUILD__ = "2026.08.16-0230";</script>
     
 
-    <script src="/filter.js?v=2026081602"></script>
-    <script src="/playfab-manager.js?v=2026081602"></script>
+    <script src="/filter.js?v=2026081603"></script>
+    <script src="/playfab-manager.js?v=2026081603"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -584,6 +584,8 @@
         .mp-lobby-sub { text-align: center; font-size: 11px; color: #999; margin-bottom: 12px; }
         .mp-player-list { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
         .mp-player-row {
+            flex-wrap: nowrap;
+            gap: 4px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -593,7 +595,10 @@
             padding: 7px 12px;
         }
         .mp-player-avatar { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(145deg, var(--red), var(--orange)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white; flex-shrink: 0; }
-        .mp-player-name { font-size: 12px; font-weight: 600; color: white; flex: 1; }
+        .mp-player-name {
+            min-width: 0;
+            overflow: hidden;
+            text-overflow: ellipsis; font-size: 12px; font-weight: 600; color: white; flex: 1; }
         .mp-player-host-tag { background: gold; color: #332700; font-size: 9px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
         .mp-player-kick-btn { background: rgba(255,70,85,0.2); border: 1px solid var(--red); color: var(--red); font-size: 10px; padding: 3px 9px; border-radius: 20px; cursor: pointer; font-weight: 700; }
         .mp-player-kick-btn:hover { background: rgba(255,70,85,0.4); }
@@ -745,6 +750,8 @@
         .mp-mode-select:focus { outline: none; border-color: var(--green); }
         /* ---- REPORT / ADMIN ---- */
         .mp-player-report-btn {
+            flex-shrink: 0;
+            padding: 2px 4px;
             background: rgba(255,70,85,0.1); border: 1px solid var(--red);
             color: var(--red); font-size: 10px; padding: 3px 8px;
             border-radius: 20px; cursor: pointer; font-weight: 700;
@@ -1019,9 +1026,10 @@
         .spec-opt.sel { background:linear-gradient(135deg,#FF4655,#FF6B35); color:#fff; border-color:#00CC7A; }
 
         /* ---- TAGS / LEVEL / FRIENDS ---- */
-        .mp-level-chip { display:inline-block; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4);
+        .mp-level-chip { display:inline-block; vertical-align:middle; flex-shrink:0; background:rgba(255,215,0,0.15); border:1px solid rgba(255,215,0,0.4);
             color:#FFD700; font-size:9px; font-weight:bold; padding:1px 5px; border-radius:8px; margin-right:5px; }
-        .mp-player-friend-btn { background:none; border:none; font-size:15px; cursor:pointer; padding:0 4px; line-height:1; }
+        .mp-player-friend-btn {
+            flex-shrink: 0; background:none; border:none; font-size:15px; cursor:pointer; padding:0 4px; line-height:1; }
         .mp-player-friend-btn:hover { transform:scale(1.15); }
         .mp-hud-name { display:inline-block; max-width:none; }
 
@@ -1783,7 +1791,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0120</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0230</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3446,7 +3454,7 @@
             LOBBY_CHAT: 11, HOST_MODE_CHANGE: 12,
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
-            OWNER_EFFECT: 21, VOTE_CAST: 22,
+            OWNER_EFFECT: 21, VOTE_CAST: 22, HOST_CHANGED: 23,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -3553,7 +3561,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0120</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0230</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -5546,6 +5554,17 @@
                 // aborted the entire player loop, leaving the lobby empty.
                 const targetProtected = mpIsProtected(parseInt(nr));
 
+                // Host-only: hand the lobby over to someone else
+                if (mpIsHost && !isMe) {
+                    const cb = document.createElement('button');
+                    cb.className = 'mp-player-report-btn';
+                    cb.textContent = '👑';
+                    cb.title = 'Make this player the host';
+                    cb.style.color = '#FFD700';
+                    cb.onclick = () => mpTransferHost(parseInt(nr), p.name);
+                    row.appendChild(cb);
+                }
+
                 // Host-only: block someone from coming back
                 if (mpIsHost && !isMe && !targetProtected) {
                     const bb = document.createElement('button');
@@ -5740,6 +5759,26 @@
                 return true;
             }
             return false;
+        }
+
+        // Photon tracks the master client itself, so handing over is a matter of
+        // asking it to change — everyone then picks it up via the room update.
+        function mpTransferHost(actorNr, name) {
+            if (!mpIsHost) return;
+            if (!confirm(`Make ${name} the host? You'll lose host controls.`)) return;
+            try {
+                photonClient.myRoom().setMasterClient(actorNr);
+                mpRaiseEvent(MP_EV.HOST_CHANGED, { newHost: actorNr, name },
+                    { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+                mpLobbyChatAppend(null, `You handed the lobby to ${mpEsc(name)}.`, true);
+            } catch (e) {
+                console.warn('[MP] setMasterClient failed, falling back to an event:', e.message);
+                // Older SDKs don't expose setMasterClient — announce it instead
+                mpRaiseEvent(MP_EV.HOST_CHANGED, { newHost: actorNr, name },
+                    { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+            }
+            mpIsHost = false;
+            mpRenderLobby();
         }
 
         function mpKickPlayer(actorNr) {
@@ -6440,6 +6479,20 @@
                 case MP_EV.OWNER_EFFECT:
                     applyOwnerEffect(content.effect);
                     break;
+                case MP_EV.HOST_CHANGED: {
+                    const nh = content.newHost;
+                    Object.entries(mpPlayers).forEach(([k, pl]) => pl.isHost = (parseInt(k) === nh));
+                    const wasHost = mpIsHost;
+                    mpIsHost = (nh === mpLocalActor);
+                    if (mpIsHost && !wasHost) {
+                        toast({ kind:'invite', title:'👑 You are now host',
+                                body:'You can start matches and change settings.' });
+                    }
+                    mpLobbyChatAppend(null, `${mpEsc(content.name || 'A player')} is now the host.`, true);
+                    mpRenderLobby();
+                    if (typeof applyModeSettingVisibility === 'function') applyModeSettingVisibility();
+                    break;
+                }
                 case MP_EV.VOTE_CAST:
                     handleVoteCast(content, actorNr);
                     break;
