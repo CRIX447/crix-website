@@ -838,6 +838,22 @@ function showYouTubeError(msg) {
     document.body.appendChild(b);
 }
 
+// One-time cleanup: earlier builds could cache a bad channel ID forever.
+(function purgeBadCache() {
+    try {
+        const k = 'crix_channel_id_cache_v1';
+        const cache = JSON.parse(localStorage.getItem(k) || '{}');
+        let changed = false;
+        Object.entries(cache).forEach(([handle, id]) => {
+            if (!/^UC[\w-]{20,}$/.test(id)) { delete cache[handle]; changed = true; }
+        });
+        if (changed) {
+            localStorage.setItem(k, JSON.stringify(cache));
+            console.log('[YouTube] Removed invalid cached channel IDs.');
+        }
+    } catch (e) {}
+})();
+
 async function loadConfig() {
     try {
         const res = await fetch('/api.json');
@@ -852,7 +868,7 @@ async function loadConfig() {
                         handle: c.handle || '',
                         name: c.name || c.handle || 'Channel',
                         // An explicit id skips the handle lookup entirely
-                        id: c.id || ''
+                        id: (c.id && c.id.trim()) || ''
                     }));
             }
         }
@@ -923,17 +939,28 @@ async function fetchVideosForChannel(ch) {
             document.getElementById('videoCount').textContent = formatNumber(parseInt(st.videoCount || 0));
             document.getElementById('viewCount').textContent = formatNumber(parseInt(st.viewCount || 0));
         }
-        const uploadsId = chanData.items[0]?.contentDetails?.relatedPlaylists?.uploads;
+        // Every channel's uploads playlist is its ID with UC swapped for UU.
+        // Use the API's value when present, otherwise derive it — this makes
+        // the call work even if contentDetails is missing from the response.
+        let uploadsId = chanData.items[0]?.contentDetails?.relatedPlaylists?.uploads;
+        if (!uploadsId && /^UC/.test(ch.id)) {
+            uploadsId = 'UU' + ch.id.slice(2);
+            console.log(`[YouTube] ${ch.name}: derived uploads playlist ${uploadsId}`);
+        }
         if (!uploadsId) {
-            console.warn(`[YouTube] ${ch.name}: no uploads playlist on channel ${ch.id}. ` +
-                         'The cached channel ID is probably wrong — clearing it.');
+            console.warn(`[YouTube] ${ch.name}: channel ${ch.id} looks invalid.`);
             clearChannelCache(ch.handle);
             return;
         }
         const vidData = await ytFetch({ action: 'uploads', playlistId: uploadsId });
         if (vidData.error) {
-            // A stale/incorrect channel ID produces "playlistId cannot be found"
             clearChannelCache(ch.handle);
+            const reason = vidData.error.errors?.[0]?.reason || '';
+            if (reason === 'playlistNotFound') {
+                console.warn(`[YouTube] ${ch.name}: channel ID ${ch.id} has no uploads playlist — ` +
+                             'the ID is wrong. Add the correct "id" for this channel in api.json.');
+                return;   // skip this channel rather than failing the whole load
+            }
             throw new Error(`${ch.name}: ${vidData.error.message}`);
         }
         if (!vidData.items) return;
