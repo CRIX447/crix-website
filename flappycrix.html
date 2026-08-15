@@ -34,10 +34,10 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.15-1505";</script>
-    <script src="filter.js?v=2026081505"></script>
-    <script src="playfab-manager.js?v=2026081505"></script>
-    <script src="photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
+    <script>window.__BUILD__ = "2026.08.15-1640";</script>
+    <script src="/filter.js?v=2026081507"></script>
+    <script src="/playfab-manager.js?v=2026081507"></script>
+    <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
         if (window.__photonSdkStatus.loaded) console.log('[Photon] SDK loaded successfully from local file.');
@@ -1728,7 +1728,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1505</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.15-1640</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -1922,7 +1922,7 @@
 
         async function loadAppConfig() {
             try {
-                const res = await fetch('api.json');
+                const res = await fetch('/api.json');
                 if (!res.ok) {
                     console.error('[Config] api.json returned HTTP ' + res.status + ' — check that api.json is actually deployed at the site root (same folder as game.html).');
                 } else {
@@ -1950,6 +1950,43 @@
                 }
             }
             initPhoton();
+            reportConfigStatus(appConfig);
+        }
+
+        // One clear summary at startup so a broken service names itself
+        // instead of failing silently somewhere in the console noise.
+        function reportConfigStatus(cfg) {
+            const ph = cfg?.photon?.appId || '';
+            const pf = cfg?.playfab?.titleId || '';
+            const dc = cfg?.discord?.clientId || '';
+            const fb = cfg?.firebase?.apiKey || '';
+            const ph_ok = /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(ph);
+            const pf_ok = pf && !pf.startsWith('PASTE_');
+            const dc_ok = dc && !dc.startsWith('PASTE_');
+
+            console.log(
+                '%c[CRIX] config loaded',
+                'color:#FF6B35;font-weight:bold',
+                '\n  api.json     : ' + (cfg && Object.keys(cfg).length ? 'OK' : 'FAILED'),
+                '\n  firebase     : ' + (fb ? 'OK' : 'MISSING — auth and saves disabled'),
+                '\n  photon appId : ' + (ph_ok ? ph.slice(0,8) + '…' : 'INVALID/MISSING'),
+                '\n  playfab title: ' + (pf_ok ? pf : 'NOT SET — coins, levels and friends disabled'),
+                '\n  discord      : ' + (dc_ok ? 'OK' : 'not set — Discord sign-in disabled'),
+                '\n  SDKs         : firebase=' + (typeof firebase !== 'undefined') +
+                                  ' photon=' + (typeof Photon !== 'undefined') +
+                                  ' playfab=' + (typeof PlayFabManager !== 'undefined') +
+                                  ' filter=' + (typeof ChatFilter !== 'undefined')
+            );
+
+            const broken = [];
+            if (!fb) broken.push('Firebase');
+            if (!ph_ok) broken.push('Photon');
+            if (typeof Photon === 'undefined') broken.push('Photon SDK file');
+            if (typeof PlayFabManager === 'undefined') broken.push('playfab-manager.js');
+            if (broken.length) {
+                console.error('[CRIX] Not working: ' + broken.join(', ') +
+                              ' — open Settings → Connection test for details.');
+            }
         }
         
         // DOM elements
@@ -3247,7 +3284,7 @@
             let clientId = appConfig.discord?.clientId;
             if (!clientId || clientId.startsWith('PASTE_') || clientId.startsWith('REPLACE_')) {
                 try {
-                    const r = await fetch('api.json');
+                    const r = await fetch('/api.json');
                     const j = await r.json();
                     if (j.discord) { appConfig.discord = j.discord; clientId = j.discord.clientId; }
                 } catch(e) {}
@@ -3265,7 +3302,7 @@
             let redirectUri = appConfig.discord?.redirectUri;
             if (!redirectUri) {
                 try {
-                    const r = await fetch('api.json');
+                    const r = await fetch('/api.json');
                     const j = await r.json();
                     redirectUri = j.discord?.redirectUri;
                     if (j.discord) appConfig.discord = j.discord;
@@ -3430,7 +3467,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.15-1505</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.15-1640</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -3445,7 +3482,7 @@
             // 2. api.json
             let cfg = null;
             try {
-                const r = await fetch('api.json?cb=' + Date.now());
+                const r = await fetch('/api.json?cb=' + Date.now());
                 if (!r.ok) throw new Error('HTTP ' + r.status);
                 cfg = await r.json();
                 diagAdd('api.json', 'pass', 'Loaded from your site.');
@@ -3497,7 +3534,9 @@
                 const S = Photon.LoadBalancing.LoadBalancingClient.State;
                 const st = photonClient.state;
                 const nm = Photon.LoadBalancing.LoadBalancingClient.StateToName(st) || st;
-                diagAdd('Photon client', mpConnected ? 'pass' : 'warn', `State: <code>${mpEsc(String(nm))}</code>`,
+                diagAdd('Photon client', mpConnected ? 'pass' : 'warn',
+                        `State: <code>${mpEsc(String(nm))}</code>` +
+                        (mpActiveRegion ? ` · region <code>${mpEsc(mpActiveRegion)}</code>` : ''),
                         mpConnected ? null : 'Not in a lobby yet. If this stays "Uninitialized" the App ID is likely wrong.');
             } else {
                 diagAdd('Photon client', 'warn', 'Not created yet.',
@@ -4683,6 +4722,7 @@
             return tags.length ? ROLE_TAGS[tags[0]].colour : null;
         }
 
+        let mpActiveRegion = null;
         let _pfRetries = 0, _pfRetryTimer = null;
         function scheduleReconnect() {
             if (_pfRetryTimer) return;
@@ -4698,7 +4738,7 @@
                 _pfRetryTimer = null;
                 try {
                     mpSetStatusDot('connecting');
-                    photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
+                    photonClient.connectToRegionMaster(mpActiveRegion || appConfig.photon.region || 'eu');
                 } catch (e) {
                     console.warn('[Photon] reconnect threw:', e.message);
                     scheduleReconnect();
@@ -4865,7 +4905,47 @@
                     if (transient.includes(errCode) && !mpCurrentRoom) scheduleReconnect();
                 };
                 photonClient.myActor().setName(mpGetDisplayName());
-                photonClient.connectToRegionMaster(appConfig.photon.region || 'us');
+
+                const wanted = (appConfig.photon.region || '').toLowerCase();
+
+                // Photon apps have a Region Allowlist. Connecting to a region
+                // that isn't on it is rejected, so ask first rather than assume.
+                photonClient.onGetRegionsResult = function(errCode, errMsg, regions) {
+                    if (errCode !== 0 || !regions) {
+                        console.warn('[Photon] Could not list regions:', errMsg);
+                        photonClient.connectToRegionMaster(wanted || 'eu');
+                        return;
+                    }
+                    const codes = Object.keys(regions).map(r => r.toLowerCase());
+                    console.log('[Photon] Regions enabled for this app:', codes.join(', '));
+
+                    let pick;
+                    if (wanted && codes.includes(wanted)) {
+                        pick = wanted;
+                    } else {
+                        // Prefer something near the player, then fall back to
+                        // whatever the app actually has enabled.
+                        const tz = (Intl.DateTimeFormat().resolvedOptions().timeZone || '').toLowerCase();
+                        const preferred =
+                            tz.includes('australia') ? ['au','asia','jp','sa','us']
+                          : tz.includes('asia')      ? ['asia','jp','au','us']
+                          : tz.includes('europe')    ? ['eu','ru','us']
+                          : tz.includes('america')   ? ['us','usw','sa','eu']
+                          :                            ['eu','us'];
+                        pick = preferred.find(r => codes.includes(r)) || codes[0];
+                        if (wanted && pick !== wanted) {
+                            console.warn(`[Photon] Region "${wanted}" is not enabled for this app. ` +
+                                         `Using "${pick}" instead. Enable it in the Photon dashboard ` +
+                                         `under Region Allowlist, or change api.json to match.`);
+                        }
+                    }
+                    mpActiveRegion = pick;
+                    console.log('[Photon] connecting to region:', pick);
+                    photonClient.connectToRegionMaster(pick);
+                };
+
+                // Kicks off the region list, which then triggers the connect above
+                photonClient.connectToNameServer();
 
                 // If we're still not in a lobby after 12s, say so rather than
                 // sitting on a silent "connecting" dot forever.
