@@ -822,23 +822,14 @@ async function ytFetch(params) {
         if (hints[reason]) console.error('[YouTube] → ' + hints[reason]);
         // Only surface this if we have nothing to show — the proxy may still
         // have served RSS successfully.
-        if (!json.items || !json.items.length) showYouTubeError(hints[reason] || json.error.message);
+        // Logged only — visitors shouldn't see an error box on the site.
+        if (!json.items || !json.items.length) {
+            console.error('[YouTube] ' + (hints[reason] || json.error.message));
+        }
     }
     return json;
 }
 
-// Puts the failure on screen so it isn't invisible.
-function showYouTubeError(msg) {
-    if (document.getElementById('ytErrBanner')) return;
-    const b = document.createElement('div');
-    b.id = 'ytErrBanner';
-    b.style.cssText = 'position:fixed;bottom:12px;left:12px;right:12px;max-width:640px;margin:0 auto;' +
-        'background:#1a1014;border:1px solid rgba(255,70,85,.5);border-radius:10px;padding:12px 16px;' +
-        'font-size:12px;color:#FFB3BA;z-index:9999;line-height:1.6;font-family:system-ui,sans-serif;';
-    b.innerHTML = `<strong style="color:#FF4655">YouTube data unavailable.</strong> ${msg}
-        <span onclick="this.parentElement.remove()" style="float:right;cursor:pointer;color:#888;padding-left:10px">✕</span>`;
-    document.body.appendChild(b);
-}
 
 // One-time cleanup: earlier builds could cache a bad channel ID forever.
 (function purgeBadCache() {
