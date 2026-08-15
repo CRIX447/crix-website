@@ -1,596 +1,445 @@
 /* ============================================================
-   FLAPPY CRIX — PlayFab Manager
+   FLAPPY CRIX — PlayFab CloudScript
    ------------------------------------------------------------
-   Handles: login, currency, catalog, inventory, progress saving,
-            player roles/tags, and player reporting.
+   WHERE THIS GOES:
+     PlayFab Game Manager → Automation → CloudScript → Revisions
+     Paste this whole file in, Save, then click "Deploy to live".
 
-   Title ID goes in api.json under  "playfab": { "titleId": "XXXXX" }
-   (Get it from PlayFab Game Manager → Title Settings → API Features)
+   WHY IT EXISTS:
+     Granting currency and banning players require a secret key.
+     A browser can never hold that key safely. This code runs on
+     PlayFab's servers, so it can use the key — and it re-checks
+     the caller's role on every call. Editing the game's client
+     files gives a cheater nothing, because the real permission
+     check happens here.
 
-   IMPORTANT — what a browser is allowed to do:
-     Safe from the client:  login, read catalog, read inventory,
-                            PurchaseItem, ReportPlayer, read/write own data.
-     NOT safe / blocked:    granting currency, banning, editing other
-                            players. Those need a secret key and must live
-                            in CloudScript (see cloudscript.js).
+   HOW ROLES ARE SET (do this once, by hand):
+     Game Manager → Players → pick your account → Data (Read Only)
+       Key:   roles
+       Value: ["OWNER"]
+     Read-Only data can't be written by the player, only by the
+     server — which is exactly why roles live there.
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-hosttransfer';
-const PlayFabManager = (() => {
-    let titleId = null;
-    let sessionTicket = null;
-    let playFabId = null;
-    let ready = false;
-    let currencyCode = 'CN';          // overridden from api.json
-    let roles = [];                   // e.g. ['OWNER'] or ['MOD']
-    let status = 'not_started';       // machine-readable state
-    let statusDetail = '';            // human-readable reason
+var CLOUDSCRIPT_VERSION = "2026.08.16-a";
 
-    const api = (endpoint, body, useAuth = true) => {
-        if (!titleId) return Promise.reject(new Error('PlayFab titleId not set'));
-        const headers = { 'Content-Type': 'application/json' };
-        if (useAuth) {
-            if (!sessionTicket) return Promise.reject(new Error('Not logged in to PlayFab'));
-            headers['X-Authorization'] = sessionTicket;
-        }
-        return fetch(`https://${titleId}.playfabapi.com${endpoint}`, {
-            method: 'POST', headers, body: JSON.stringify(body)
-        }).then(async res => {
-            const json = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                const err = new Error(json.errorMessage || `PlayFab ${res.status}`);
-                err.playfabError = json.error;
-                err.errorCode = json.errorCode;
-                err.raw = json;
-                throw err;
-            }
-            return json.data;
+var CURRENCY = "CN";              // must match api.json currencyCode
+var MAX_GRANT_PER_CALL = 5000;    // anti-abuse ceiling on normal gameplay grants
+
+/* ---------- helpers ---------- */
+
+var ROLE_ITEMS = { OWNER: "role_owner", MOD: "role_mod" };
+
+/* Roles are catalog items in the player's inventory. Those items have no
+   price, so they can only ever arrive via a server-side grant.
+   ReadOnlyData is still read as a fallback for older accounts.          */
+function getRoles(playFabId) {
+    var found = [];
+
+    try {
+        var inv = server.GetUserInventory({ PlayFabId: playFabId });
+        (inv.Inventory || []).forEach(function (item) {
+            if (item.ItemId === ROLE_ITEMS.OWNER && found.indexOf("OWNER") === -1) found.push("OWNER");
+            if (item.ItemId === ROLE_ITEMS.MOD   && found.indexOf("MOD")   === -1) found.push("MOD");
         });
-    };
+    } catch (e) {}
 
-    return {
-        get isReady()   { return ready; },
-        get playFabId() { return playFabId; },
-        get _titleId()  { return titleId; },
-        get version()   { return PLAYFAB_MANAGER_VERSION; },
-        get _ticket()   { return sessionTicket; },
-        get status()    { return status; },
-        get statusDetail() { return statusDetail; },
-
-        /* One-line explanation of exactly why login isn't working,
-           so the Settings panel can tell the user what to fix. */
-        get statusMessage() {
-            switch (status) {
-                case 'ok':            return null;
-                case 'no_title_id':   return 'PlayFab not set up — add your Title ID to api.json';
-                case 'no_firebase':   return 'Sign in to the game first';
-                case 'configured':    return 'Sign in to get your Player ID';
-                case 'account_missing':
-                    return 'No PlayFab account yet — enable "Allow client to create account" in PlayFab (see below)';
-                case 'login_failed':  return 'PlayFab login failed: ' + statusDetail;
-                case 'banned':        return 'This account is banned';
-                default:              return 'PlayFab not connected';
-            }
-        },
-        get roles()     { return [...roles]; },
-        get currencyCode() { return currencyCode; },
-
-        /* ---- SETUP ------------------------------------------------ */
-        async init(config) {
-            titleId = config?.titleId || null;
-            currencyCode = config?.currencyCode || 'CN';
-            if (!titleId || titleId.startsWith('PASTE_') || titleId.trim() === '') {
-                status = 'no_title_id';
-                statusDetail = 'api.json -> playfab.titleId is still the placeholder';
-                console.warn('[PlayFab] ' + statusDetail);
-                return false;
-            }
-            status = 'configured';
-            return true;
-        },
-
-        /* ---- LOGIN ------------------------------------------------
-           customId should be stable per player. We use the Firebase UID
-           so PlayFab and Firebase accounts stay linked.               */
-        async login(customId, displayName) {
-            if (!titleId) { status = 'no_title_id'; return null; }
-            if (!customId) {
-                status = 'no_firebase';
-                statusDetail = 'no Firebase UID to use as PlayFab CustomId';
-                return null;
-            }
-            try {
-                const data = await api('/Client/LoginWithCustomID', {
-                    TitleId: titleId,
-                    CustomId: customId,
-                    CreateAccount: true,
-                    InfoRequestParameters: {
-                        GetUserVirtualCurrency: true,
-                        GetUserInventory: true,
-                        GetPlayerProfile: true,
-                        GetUserData: true,
-                        GetUserReadOnlyData: true
-                    }
-                }, false);
-
-                sessionTicket = data.SessionTicket;
-                playFabId     = data.PlayFabId;
-                ready         = true;
-
-                roles = this._extractRoles(data.InfoResultPayload || {});
-                PlayFabManager._ownedItems =
-                    (data.InfoResultPayload?.UserInventory || []).map(i => i.ItemId);
-                status = 'ok';
-                statusDetail = '';
-                console.log('[PlayFab] Signed in. PlayFabId:', playFabId, '| roles:', roles);
-
-                if (displayName) this.setDisplayName(displayName).catch(() => {});
-                return data;
-            } catch (e) {
-                // AccountBanned = 1002. Surfaced so the caller can show a ban screen.
-                if (e.playfabError === 'AccountBanned') {
-                    status = 'banned'; e.isBan = true; throw e;
-                }
-                // PlayFab disabled client-side account creation for titles made
-                // after 30 Jun 2025. Without it, a first-time login has nothing
-                // to log in to. This is by far the most common setup failure.
-                if (e.playfabError === 'AccountNotFound' ||
-                    e.errorCode === 1001 || e.errorCode === 1002) {
-                    status = 'account_missing';
-                } else {
-                    status = 'login_failed';
-                }
-                statusDetail = e.message || String(e);
-                console.error('[PlayFab] Login failed —', e.playfabError || '', e.message);
-                console.error('[PlayFab] Full response:', e.raw);
-                return null;
-            }
-        },
-
-        async setDisplayName(name) {
-            return api('/Client/UpdateUserTitleDisplayName', { DisplayName: name.slice(0, 25) });
-        },
-
-        /* ---- ROLES ------------------------------------------------
-           Roles are catalog items in the player's inventory (role_owner,
-           role_mod). Those items have NO price, so PurchaseItem can never
-           buy them — only a server-side grant can add them.
-           ReadOnlyData is still checked as a fallback so older accounts
-           set up the previous way keep working.                        */
-        _extractRoles(payload) {
-            const found = [];
-
-            // Primary source: inventory items of class "role"
-            const inv = payload.UserInventory || [];
-            inv.forEach(item => {
-                if (item.ItemId === 'role_owner') found.push('OWNER');
-                else if (item.ItemId === 'role_mod') found.push('MOD');
+    try {
+        var res = server.GetUserReadOnlyData({ PlayFabId: playFabId, Keys: ["roles"] });
+        if (res.Data && res.Data.roles) {
+            JSON.parse(res.Data.roles.Value).forEach(function (r) {
+                if (found.indexOf(r) === -1) found.push(r);
             });
+        }
+    } catch (e) {}
 
-            // Fallback: legacy ReadOnlyData roles array
-            const ro = payload.UserReadOnlyData || {};
-            if (ro.roles?.Value) {
-                try {
-                    JSON.parse(ro.roles.Value).forEach(r => {
-                        if (!found.includes(r)) found.push(r);
-                    });
-                } catch (e) {}
-            }
-            return found;
-        },
-
-        /* Re-check roles without a full re-login (after a grant). */
-        async refreshRoles() {
-            const [invData, roData] = await Promise.all([
-                api('/Client/GetUserInventory', {}),
-                api('/Client/GetUserReadOnlyData', { Keys: ['roles'] }).catch(() => ({ Data: {} }))
-            ]);
-            roles = this._extractRoles({
-                UserInventory: invData.Inventory || [],
-                UserReadOnlyData: roData.Data || {}
-            });
-            return [...roles];
-        },
-
-        /* ---- CURRENCY --------------------------------------------- */
-        async getCurrency() {
-            const data = await api('/Client/GetUserInventory', {});
-            return data.VirtualCurrency?.[currencyCode] ?? 0;
-        },
-
-        /* Spending is client-safe (it can only ever reduce balance). */
-        async spendCurrency(amount) {
-            return api('/Client/SubtractUserVirtualCurrency', {
-                VirtualCurrency: currencyCode, Amount: Math.floor(amount)
-            });
-        },
-
-        /* Granting must go through CloudScript — the direct grant API
-           requires a secret key and is not callable from a browser.    */
-        async grantCurrency(amount, reason = 'gameplay') {
-            return api('/Client/ExecuteCloudScript', {
-                FunctionName: 'grantCoins',
-                FunctionParameter: { amount: Math.floor(amount), reason },
-                GeneratePlayStreamEvent: true
-            }).then(r => {
-                if (r.Error) throw new Error(r.Error.Message || 'CloudScript error');
-                return r.FunctionResult;
-            });
-        },
-
-        /* ---- CATALOG / INVENTORY ---------------------------------- */
-        async getCatalog(version = 'Main') {
-            const data = await api('/Client/GetCatalogItems', { CatalogVersion: version });
-            return data.Catalog || [];
-        },
-
-        async getInventory() {
-            const data = await api('/Client/GetUserInventory', {});
-            return {
-                items: data.Inventory || [],
-                currency: data.VirtualCurrency?.[currencyCode] ?? 0
-            };
-        },
-
-        async purchaseItem(itemId, price, version = 'Main') {
-            return api('/Client/PurchaseItem', {
-                CatalogVersion: version,
-                ItemId: itemId,
-                Price: Math.floor(price),
-                VirtualCurrency: currencyCode
-            });
-        },
-
-        /* ---- PROGRESS SAVING --------------------------------------
-           Player-writable data. Anything the player must NOT be able to
-           edit (currency, roles, bans) is deliberately not stored here. */
-        async saveProgress(progress) {
-            return api('/Client/UpdateUserData', {
-                Data: { progress: JSON.stringify(progress) },
-                Permission: 'Private'
-            });
-        },
-
-        async loadProgress() {
-            const data = await api('/Client/GetUserData', { Keys: ['progress'] });
-            const raw = data.Data?.progress?.Value;
-            if (!raw) return null;
-            try { return JSON.parse(raw); } catch { return null; }
-        },
-
-        /* ---- REPORTING (client-safe, shows in PlayFab Game Manager) */
-        async reportPlayer(targetPlayFabId, comment) {
-            return api('/Client/ReportPlayer', {
-                ReporteeId: targetPlayFabId,
-                Comment: (comment || '').slice(0, 1000)
-            });
-        },
-
-        /* ---- OWNER/MOD ACTIONS ------------------------------------
-           All of these are CloudScript calls. The server re-checks the
-           caller's role, so a player editing this file client-side
-           achieves nothing.                                            */
-        async adminAction(action, params = {}) {
-            return api('/Client/ExecuteCloudScript', {
-                FunctionName: 'adminAction',
-                FunctionParameter: { action, ...params },
-                GeneratePlayStreamEvent: true
-            }).then(r => {
-                if (r.Error) {
-                    const msg = r.Error.Message || 'CloudScript error';
-                    if (/no function named/i.test(msg)) {
-                        throw new Error('CloudScript is not deployed. Paste cloudscript.js into ' +
-                            'PlayFab → Automation → CloudScript and click "Deploy to live".');
-                    }
-                    throw new Error(msg);
-                }
-                if (r.FunctionResult?.error) throw new Error(r.FunctionResult.error);
-                return r.FunctionResult;
-            });
-        },
-
-        hasRole(role) { return roles.includes(role); },
-        get isOwner()  { return roles.includes('OWNER'); },
-        get isMod()    { return roles.includes('OWNER') || roles.includes('MOD'); },
-
-        logout() { sessionTicket = null; playFabId = null; ready = false; roles = []; }
-    };
-})();
-
-if (typeof window !== 'undefined') {
-    window.PlayFabManager = PlayFabManager;
-    window.PLAYFAB_MANAGER_VERSION = PLAYFAB_MANAGER_VERSION;
+    return found;
 }
 
-/* ============================================================
-   FRIENDS / PRESENCE / PROGRESS  (extension)
-   Appended so the core object above stays readable.
-   ============================================================ */
-(function (PFM) {
-    if (typeof PFM === 'undefined') return;
+function isOwner(playFabId) { return getRoles(playFabId).indexOf("OWNER") !== -1; }
+function isMod(playFabId) {
+    var r = getRoles(playFabId);
+    return r.indexOf("OWNER") !== -1 || r.indexOf("MOD") !== -1;
+}
 
-    const call = (endpoint, body) => {
-        if (!PFM.isReady) return Promise.reject(new Error('Not logged in to PlayFab'));
-        return fetch(`https://${PFM._titleId}.playfabapi.com${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Authorization': PFM._ticket },
-            body: JSON.stringify(body)
-        }).then(async res => {
-            const j = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                const e = new Error(j.errorMessage || `PlayFab ${res.status}`);
-                e.playfabError = j.error; e.errorCode = j.errorCode; e.raw = j;
-                throw e;
-            }
-            return j.data;
-        });
-    };
+/* ---------- normal gameplay currency grant ---------- */
 
-    /* ---- FRIENDS ---------------------------------------------
-       PlayFab tags are how we mark favourites — they survive on
-       the server, so favourites follow the account, not the device. */
-    PFM.addFriend = function (opts) {
-        const body = {};
-        if (opts.playFabId)   body.FriendPlayFabId = opts.playFabId;
-        if (opts.displayName) body.FriendTitleDisplayName = opts.displayName;
-        if (opts.username)    body.FriendUsername = opts.username;
-        if (opts.email)       body.FriendEmail = opts.email;
-        return call('/Client/AddFriend', body);
-    };
+handlers.grantCoins = function (args, context) {
+    var amount = parseInt(args.amount, 10);
+    if (isNaN(amount) || amount <= 0) return { error: "Invalid amount" };
 
-    PFM.removeFriend = function (playFabId) {
-        return call('/Client/RemoveFriend', { FriendPlayFabId: playFabId });
-    };
-
-    PFM.getFriends = function () {
-        return call('/Client/GetFriendsList', {
-            ProfileConstraints: {
-                ShowDisplayName: true,
-                ShowAvatarUrl: true,
-                ShowLastLogin: true,
-                ShowStatistics: true
-            }
-        }).then(d => (d.Friends || []).map(f => ({
-            playFabId:   f.FriendPlayFabId,
-            displayName: f.TitleDisplayName || f.Profile?.DisplayName || 'Player',
-            avatarUrl:   f.Profile?.AvatarUrl || null,
-            lastLogin:   f.Profile?.LastLogin || null,
-            tags:        f.Tags || [],
-            favourite:   (f.Tags || []).includes('favourite'),
-            statistics:  f.Profile?.Statistics || []
-        })));
-    };
-
-    /* ---- FRIEND REQUESTS ----
-       All four go through CloudScript because PlayFab's client AddFriend
-       only writes to your own list — the other person would never see it. */
-    PFM.sendFriendRequest = function (targetPlayFabId) {
-        return PFM.adminAction ? cloud('sendFriendRequest', { targetPlayFabId })
-                               : Promise.reject(new Error('not ready'));
-    };
-    PFM.respondToFriendRequest = function (requesterPlayFabId, accept) {
-        return cloud('respondToFriendRequest', { requesterPlayFabId, accept: !!accept });
-    };
-    PFM.cancelFriendRequest = function (targetPlayFabId) {
-        return cloud('cancelFriendRequest', { targetPlayFabId });
-    };
-    PFM.removeFriendBoth = function (targetPlayFabId) {
-        return cloud('removeFriendBoth', { targetPlayFabId });
-    };
-
-    function cloud(fn, params) {
-        return call('/Client/ExecuteCloudScript', {
-            FunctionName: fn,
-            FunctionParameter: params,
-            GeneratePlayStreamEvent: true
-        }).then(r => {
-            if (r.Error) throw new Error(r.Error.Message || 'CloudScript error');
-            if (r.FunctionResult && r.FunctionResult.error) throw new Error(r.FunctionResult.error);
-            return r.FunctionResult;
-        });
+    // Owners bypass the ceiling; everyone else is capped so a tampered
+    // client can't mint a billion coins in one call.
+    if (!isOwner(currentPlayerId) && amount > MAX_GRANT_PER_CALL) {
+        amount = MAX_GRANT_PER_CALL;
     }
 
-    /* Friends split by request state. */
-    PFM.getFriendsSplit = function () {
-        return PFM.getFriends().then(all => ({
-            friends:  all.filter(f => !f.tags.includes('incoming') && !f.tags.includes('outgoing')),
-            incoming: all.filter(f =>  f.tags.includes('incoming')),
-            outgoing: all.filter(f =>  f.tags.includes('outgoing'))
-        }));
-    };
+    var res = server.AddUserVirtualCurrency({
+        PlayFabId: currentPlayerId,
+        VirtualCurrency: CURRENCY,
+        Amount: amount
+    });
 
-    /* Favourites are stored as a PlayFab friend tag. */
-    PFM.setFavourite = function (playFabId, isFav) {
-        // Preserve 'friend' — SetFriendTags replaces the whole list
-        return call('/Client/SetFriendTags', {
-            FriendPlayFabId: playFabId,
-            Tags: isFav ? ['friend', 'favourite'] : ['friend']
-        });
-    };
+    return { balance: res.Balance, granted: amount, reason: args.reason || "gameplay" };
+};
 
-    /* ---- PRESENCE --------------------------------------------
-       Stored as Public UserData so it persists across sessions.
-       Live status for players in your current room comes over
-       Photon instead — see broadcastPresence() in game.html.     */
-    PFM.setPresence = function (status) {
-        return call('/Client/UpdateUserData', {
-            Data: { presence: status, presenceAt: String(Date.now()) },
-            Permission: 'Public'
-        });
-    };
+/* ---------- owner / mod actions ---------- */
 
-    /* ---- PROGRESS (level / RP / stats) ------------------------
-       Statistics are used rather than UserData because they can be
-       leaderboard-ranked later without a migration.                */
-    PFM.saveStats = function (stats) {
-        const updates = Object.entries(stats).map(([k, v]) => ({
-            StatisticName: k, Value: Math.floor(v)
-        }));
-        return call('/Client/UpdatePlayerStatistics', { Statistics: updates });
-    };
+handlers.adminAction = function (args, context) {
+    var action = args.action;
+    var target = args.targetPlayFabId;
 
-    PFM.loadStats = function (names) {
-        return call('/Client/GetPlayerStatistics', { StatisticNames: names })
-            .then(d => {
-                const out = {};
-                (d.Statistics || []).forEach(s => { out[s.StatisticName] = s.Value; });
-                return out;
-            });
-    };
-})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
+    // Every action is gated here, server-side.
+    var ownerOnly = ["giveCoins", "giveItem", "setRole", "reviveAll", "killAll", "bigAll"];
+    var modOrOwner = ["kick", "ban", "unban", "lookup"];
 
+    if (ownerOnly.indexOf(action) !== -1 && !isOwner(currentPlayerId)) {
+        return { error: "Owner only" };
+    }
+    if (modOrOwner.indexOf(action) !== -1 && !isMod(currentPlayerId)) {
+        return { error: "Moderator or owner only" };
+    }
 
-/* ============================================================
-   FRIEND CODES / AVATAR / PRIVACY  (extension 2)
-   ------------------------------------------------------------
-   Friend codes work by baking a short code into the PlayFab
-   display name as "Name#AB12". PlayFab's AddFriend already
-   supports exact display-name lookup, so no custom backend is
-   needed — the code IS part of the name.
-   ============================================================ */
-(function (PFM) {
-    if (typeof PFM === 'undefined') return;
+    switch (action) {
 
-    const call = (endpoint, body) => {
-        if (!PFM.isReady) return Promise.reject(new Error('Not logged in to PlayFab'));
-        return fetch(`https://${PFM._titleId}.playfabapi.com${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Authorization': PFM._ticket },
-            body: JSON.stringify(body)
-        }).then(async res => {
-            const j = await res.json().catch(() => ({}));
-            if (!res.ok) {
-                const e = new Error(j.errorMessage || `PlayFab ${res.status}`);
-                e.playfabError = j.error; e.errorCode = j.errorCode; e.raw = j;
-                throw e;
-            }
-            return j.data;
-        });
-    };
-
-    /* Deterministic 4-character code derived from the PlayFab ID, so the
-       same account always produces the same code. Ambiguous characters
-       (0/O, 1/I) are excluded so codes are easy to read out loud. */
-    PFM.friendCodeFor = function (playFabId) {
-        const ALPHA = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        if (!playFabId) return null;
-        let h = 0;
-        for (let i = 0; i < playFabId.length; i++) {
-            h = ((h << 5) - h + playFabId.charCodeAt(i)) | 0;
+        case "lookup": {
+            if (!target) return { error: "No target" };
+            var info = { playFabId: target };
+            try {
+                var p = server.GetPlayerProfile({
+                    PlayFabId: target,
+                    ProfileConstraints: { ShowDisplayName: true, ShowCreated: true, ShowLastLogin: true, ShowBannedUntil: true }
+                });
+                info.displayName = p.PlayerProfile && p.PlayerProfile.DisplayName;
+                info.created     = p.PlayerProfile && p.PlayerProfile.Created;
+                info.lastLogin   = p.PlayerProfile && p.PlayerProfile.LastLogin;
+            } catch (e) { info.profileError = e.message; }
+            try {
+                var inv = server.GetUserInventory({ PlayFabId: target });
+                info.currency = inv.VirtualCurrency;
+                info.items = (inv.Inventory || []).map(function (i) { return i.ItemId; });
+            } catch (e) { info.inventoryError = e.message; }
+            try {
+                var b = server.GetUserBans({ PlayFabId: target });
+                info.bans = (b.BanData || []).filter(function (x) { return x.Active; })
+                    .map(function (x) { return { banId: x.BanId, reason: x.Reason, expires: x.Expires }; });
+            } catch (e) {}
+            info.roles = getRoles(target);
+            return info;
         }
-        h = Math.abs(h);
-        let code = '';
-        for (let i = 0; i < 4; i++) { code += ALPHA[h % ALPHA.length]; h = Math.floor(h / ALPHA.length) + 7; }
-        return code;
-    };
 
-    /* Sets the display name to "Name#CODE" so friend lookups work. */
-    PFM.setNameWithCode = async function (baseName) {
-        const code = PFM.friendCodeFor(PFM.playFabId);
-        if (!code) return null;
-        const clean = String(baseName).replace(/#.*$/, '').trim().slice(0, 18);
-        const full = `${clean}#${code}`;
-        await call('/Client/UpdateUserTitleDisplayName', { DisplayName: full });
-        return full;
-    };
+        case "giveCoins": {
+            var amt = parseInt(args.amount, 10);
+            if (isNaN(amt)) return { error: "Invalid amount" };
+            var r = server.AddUserVirtualCurrency({
+                PlayFabId: target || currentPlayerId,
+                VirtualCurrency: CURRENCY,
+                Amount: amt
+            });
+            return { ok: true, balance: r.Balance };
+        }
 
-    /* Add by the full "Name#CODE" string. */
-    PFM.addFriendByCode = function (nameWithCode) {
-        return call('/Client/AddFriend', { FriendTitleDisplayName: nameWithCode.trim() });
-    };
+        case "giveItem": {
+            if (!args.itemId) return { error: "No itemId" };
+            server.GrantItemsToUser({
+                PlayFabId: target || currentPlayerId,
+                CatalogVersion: args.catalogVersion || "Main",
+                ItemIds: [args.itemId]
+            });
+            return { ok: true, granted: args.itemId };
+        }
 
-    /* Does the player own a given catalog item? Cached from login,
-       refreshable after a purchase. */
-    PFM._ownedItems = [];
-    PFM.refreshInventory = function () {
-        return call('/Client/GetUserInventory', {}).then(d => {
-            PFM._ownedItems = (d.Inventory || []).map(i => i.ItemId);
-            return { items: PFM._ownedItems, currency: d.VirtualCurrency || {} };
-        });
-    };
-    PFM.owns = function (itemId) { return PFM._ownedItems.includes(itemId); };
+        case "setRole": {
+            if (!target) return { error: "No target" };
+            var newRoles = args.roles || [];          // e.g. ["MOD"] or [] to strip all
+            var catalog  = args.catalogVersion || "Main";
 
-    /* Avatar. PlayFab stores a URL — we don't host uploads. */
-    PFM.setAvatar = function (url) {
-        return call('/Client/UpdateAvatarUrl', { ImageUrl: url });
-    };
+            // Work out what they already hold so we only add/remove the difference
+            var current = [];
+            var inv = server.GetUserInventory({ PlayFabId: target });
+            var instanceByRole = {};
+            (inv.Inventory || []).forEach(function (item) {
+                if (item.ItemId === ROLE_ITEMS.OWNER) { current.push("OWNER"); instanceByRole.OWNER = item.ItemInstanceId; }
+                if (item.ItemId === ROLE_ITEMS.MOD)   { current.push("MOD");   instanceByRole.MOD   = item.ItemInstanceId; }
+            });
 
-    /* Privacy preference. Stored public so a lookup can honour it. */
-    PFM.setAllowFriendRequests = function (allow) {
-        return call('/Client/UpdateUserData', {
-            Data: { allowFriendRequests: allow ? 'true' : 'false' },
-            Permission: 'Public'
-        });
-    };
+            // Grant anything newly added
+            var toGrant = [];
+            newRoles.forEach(function (r) {
+                if (ROLE_ITEMS[r] && current.indexOf(r) === -1) toGrant.push(ROLE_ITEMS[r]);
+            });
+            if (toGrant.length) {
+                server.GrantItemsToUser({
+                    PlayFabId: target,
+                    CatalogVersion: catalog,
+                    ItemIds: toGrant
+                });
+            }
 
-    PFM.getMyPrivacy = function () {
-        return call('/Client/GetUserData', { Keys: ['allowFriendRequests'] })
-            .then(d => d.Data?.allowFriendRequests?.Value !== 'false');
-    };
-})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
+            // Revoke anything removed
+            current.forEach(function (r) {
+                if (newRoles.indexOf(r) === -1 && instanceByRole[r]) {
+                    server.RevokeInventoryItem({
+                        PlayFabId: target,
+                        ItemInstanceId: instanceByRole[r]
+                    });
+                }
+            });
 
+            // Keep legacy ReadOnlyData in sync so nothing stale lingers
+            server.UpdateUserReadOnlyData({
+                PlayFabId: target,
+                Data: { roles: JSON.stringify(newRoles) }
+            });
+
+            return { ok: true, roles: newRoles, granted: toGrant };
+        }
+
+        case "ban": {
+            if (!target) return { error: "No target" };
+            var ban = {
+                PlayFabId: target,
+                Reason: args.reason || "Violation of the rules"
+            };
+            // Omitting DurationInHours makes the ban permanent.
+            if (args.hours && parseInt(args.hours, 10) > 0) {
+                ban.DurationInHours = parseInt(args.hours, 10);
+            }
+            var banRes = server.BanUsers({ Bans: [ban] });
+            return { ok: true, banId: banRes.BanData[0].BanId };
+        }
+
+        case "unban": {
+            if (!args.banId) return { error: "No banId" };
+            server.RevokeBans({ BanIds: [args.banId] });
+            return { ok: true };
+        }
+
+        // kick / killAll / reviveAll / bigAll are live match effects.
+        // They're broadcast over Photon by the client after this call
+        // confirms the caller actually has permission.
+        case "kick":
+        case "killAll":
+        case "reviveAll":
+        case "bigAll":
+            return { ok: true, action: action, authorised: true };
+
+        default:
+            return { error: "Unknown action: " + action };
+    }
+};
+
+/* ---------- read a player's ban state for the ban screen ---------- */
+
+handlers.getMyBanInfo = function (args, context) {
+    var res = server.GetUserBans({ PlayFabId: currentPlayerId });
+    var active = (res.BanData || []).filter(function (b) { return b.Active; });
+    if (!active.length) return { banned: false };
+    var b = active[0];
+    return {
+        banned: true,
+        reason: b.Reason || "No reason given",
+        expires: b.Expires || null,          // null = permanent
+        banId: b.BanId
+    };
+};
 
 /* ============================================================
-   FRIEND REQUESTS / INVITES  (extension 3)
-   All of these call CloudScript, because writing to another
-   player's data requires the server.
+   FRIEND REQUESTS
+   ------------------------------------------------------------
+   PlayFab's AddFriend only writes to the caller's own list, so a
+   client can't notify anyone that it wants to be friends. The
+   server can write to both sides, so the request flow lives here.
+
+   State is modelled with friend tags:
+     outgoing  – I sent this person a request
+     incoming  – this person sent me a request
+     friend    – accepted, both directions
    ============================================================ */
-(function (PFM) {
-    if (typeof PFM === 'undefined') return;
 
-    const cs = (fn, params = {}) => {
-        if (!PFM.isReady) return Promise.reject(new Error('Not logged in to PlayFab'));
-        return fetch(`https://${PFM._titleId}.playfabapi.com/Client/ExecuteCloudScript`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-Authorization': PFM._ticket },
-            body: JSON.stringify({ FunctionName: fn, FunctionParameter: params, GeneratePlayStreamEvent: false })
-        })
-        .then(r => r.json())
-        .then(j => {
-            const d = j.data;
-            if (!d) throw new Error(j.errorMessage || 'CloudScript call failed');
-            if (d.Error) {
-                const msg = d.Error.Message || 'CloudScript error';
-                if (/no function named/i.test(msg)) {
-                    throw new Error(
-                        `"${fn}" is not deployed to PlayFab. Paste cloudscript.js into ` +
-                        `Game Manager → Automation → CloudScript, then click "Deploy to live" ` +
-                        `(saving a revision alone is not enough).`);
-                }
-                throw new Error(msg);
-            }
-            const res = d.FunctionResult || {};
-            if (res.error) throw new Error(res.error);
-            return res;
-        });
-    };
+function setTags(playFabId, friendId, tags) {
+    server.SetFriendTags({
+        PlayFabId: playFabId,
+        FriendPlayFabId: friendId,
+        Tags: tags
+    });
+}
 
-    PFM.cloudScriptVersion   = ()            => cs('version');
-    PFM.sendFriendRequest    = id            => cs('sendFriendRequest', { targetPlayFabId: id });
-    PFM.cancelFriendRequest  = id            => cs('cancelFriendRequest', { targetPlayFabId: id });
-    PFM.removeFriendBoth     = id            => cs('removeFriendBoth', { targetPlayFabId: id });
-    PFM.blockPlayer          = id            => cs('blockPlayer', { targetPlayFabId: id });
-    PFM.unblockPlayer        = id            => cs('unblockPlayer', { targetPlayFabId: id });
-    PFM.setLobbyBlock        = (code, ids)   => cs('setLobbyBlock', { roomCode: code, blocked: ids });
-    PFM.getFriendRequests    = ()            => cs('getFriendRequests').then(r => r.requests || []);
-    PFM.respondFriendRequest = (id, accept)  => cs('respondToFriendRequest', { requesterPlayFabId: id, accept });
-    PFM.sendInvite           = (id, code, mode) => cs('sendInvite', { targetPlayFabId: id, roomCode: code, mode });
-    PFM.getInvites           = ()            => cs('getInvites').then(r => r.invites || []);
-    PFM.csVersion            = ()            => cs('version');
-    // Calls any handler by name — used by the console's health check
-    PFM.callHandler          = (fn, params)  => cs(fn, params || {});
-    PFM.clearInvites         = ()            => cs('clearInvites');
-})(typeof PlayFabManager !== 'undefined' ? PlayFabManager : undefined);
-
-/* Startup self-check: shouts loudly if a stale cached copy is running. */
-(function () {
-    if (typeof window === 'undefined') return;
-    const need = ['addFriend','getFriends','removeFriend','setFavourite','setPresence','saveStats','loadStats','friendCodeFor','addFriendByCode','setAvatar','setNameWithCode','owns','refreshInventory','sendFriendRequest','getFriendRequests','respondFriendRequest','getInvites','sendFriendRequest','respondToFriendRequest','getFriendsSplit'];
-    const missing = need.filter(fn => typeof PlayFabManager[fn] !== 'function');
-    if (missing.length) {
-        console.error('[PlayFab] STALE FILE — playfab-manager.js is missing:', missing.join(', '),
-                      '\nYour browser is running an old cached copy. Hard-refresh with Ctrl+Shift+R (Cmd+Shift+R on Mac).');
-    } else {
-        console.log('[PlayFab] playfab-manager.js', PLAYFAB_MANAGER_VERSION, '— all methods loaded ✓');
+function friendEntry(playFabId, friendId) {
+    var res = server.GetFriendsList({ PlayFabId: playFabId });
+    var list = res.Friends || [];
+    for (var i = 0; i < list.length; i++) {
+        if (list[i].FriendPlayFabId === friendId) return list[i];
     }
-})();
+    return null;
+}
+
+handlers.sendFriendRequest = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    if (target === currentPlayerId) return { error: "You can't add yourself" };
+
+    // Respect the recipient's privacy setting
+    var pref = server.GetUserData({ PlayFabId: target, Keys: ["allowFriendRequests"] });
+    if (pref.Data && pref.Data.allowFriendRequests &&
+        pref.Data.allowFriendRequests.Value === "false") {
+        return { error: "This player isn't accepting friend requests" };
+    }
+
+    var existing = friendEntry(currentPlayerId, target);
+    if (existing) {
+        var t = existing.Tags || [];
+        if (t.indexOf("friend") !== -1)   return { error: "Already friends" };
+        if (t.indexOf("outgoing") !== -1) return { error: "Request already sent" };
+        // They already asked us — treat this as accepting
+        if (t.indexOf("incoming") !== -1) {
+            setTags(currentPlayerId, target, ["friend"]);
+            setTags(target, currentPlayerId, ["friend"]);
+            return { ok: true, autoAccepted: true };
+        }
+    }
+
+    // Write both directions so each side sees the request
+    server.AddFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: target });
+    server.AddFriend({ PlayFabId: target, FriendPlayFabId: currentPlayerId });
+    setTags(currentPlayerId, target, ["outgoing"]);
+    setTags(target, currentPlayerId, ["incoming"]);
+
+    return { ok: true, sent: true };
+};
+
+handlers.respondToFriendRequest = function (args) {
+    var requester = args.requesterPlayFabId;
+    var accept = args.accept === true || args.accept === "true";
+    if (!requester) return { error: "No requester" };
+
+    var entry = friendEntry(currentPlayerId, requester);
+    if (!entry || (entry.Tags || []).indexOf("incoming") === -1) {
+        return { error: "No pending request from that player" };
+    }
+
+    if (accept) {
+        setTags(currentPlayerId, requester, ["friend"]);
+        setTags(requester, currentPlayerId, ["friend"]);
+        return { ok: true, accepted: true };
+    }
+
+    // Declined — remove from both lists so it doesn't linger
+    server.RemoveFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: requester });
+    server.RemoveFriend({ PlayFabId: requester, FriendPlayFabId: currentPlayerId });
+    return { ok: true, declined: true };
+};
+
+handlers.cancelFriendRequest = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    server.RemoveFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: target });
+    server.RemoveFriend({ PlayFabId: target, FriendPlayFabId: currentPlayerId });
+    return { ok: true };
+};
+
+/* Removing a friend should clear both sides, not just yours. */
+handlers.removeFriendBoth = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    server.RemoveFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: target });
+    server.RemoveFriend({ PlayFabId: target, FriendPlayFabId: currentPlayerId });
+    return { ok: true };
+};
+
+
+handlers.getFriendRequests = function () {
+    // Incoming requests are friends tagged "incoming" — no separate storage needed.
+    var out = [];
+    try {
+        var res = server.GetFriendsList({ PlayFabId: currentPlayerId });
+        (res.Friends || []).forEach(function (f) {
+            if ((f.Tags || []).indexOf("incoming") !== -1) {
+                out.push({
+                    from: f.FriendPlayFabId,
+                    name: f.TitleDisplayName || (f.Profile && f.Profile.DisplayName) || "Player",
+                    avatar: (f.Profile && f.Profile.AvatarUrl) || null,
+                    at: Date.now()
+                });
+            }
+        });
+    } catch (e) {}
+    return { requests: out };
+};
+
+handlers.blockPlayer = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    // A block is just a tag — it survives on PlayFab and needs no extra storage
+    setTags(currentPlayerId, target, ["blocked"]);
+    try { server.RemoveFriend({ PlayFabId: target, FriendPlayFabId: currentPlayerId }); } catch (e) {}
+    return { ok: true };
+};
+
+handlers.unblockPlayer = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target) return { error: "No target" };
+    try { server.RemoveFriend({ PlayFabId: currentPlayerId, FriendPlayFabId: target }); } catch (e) {}
+    return { ok: true };
+};
+
+/* Lobby invites — same storage pattern, separate key. */
+handlers.sendInvite = function (args) {
+    var target = args.targetPlayFabId;
+    if (!target || !args.roomCode) return { error: "Missing target or room code" };
+
+    var me = server.GetPlayerProfile({
+        PlayFabId: currentPlayerId,
+        ProfileConstraints: { ShowDisplayName: true }
+    });
+
+    var existing = [];
+    try {
+        var r = server.GetUserInternalData({ PlayFabId: target, Keys: ["invites"] });
+        if (r.Data && r.Data.invites) existing = JSON.parse(r.Data.invites.Value);
+    } catch (e) {}
+
+    existing.push({
+        from: currentPlayerId,
+        name: (me.PlayerProfile && me.PlayerProfile.DisplayName) || "Player",
+        roomCode: args.roomCode,
+        mode: args.mode || "freemode",
+        at: Date.now()
+    });
+
+    server.UpdateUserInternalData({
+        PlayFabId: target,
+        Data: { invites: JSON.stringify(existing.slice(-10)) }
+    });
+    return { ok: true };
+};
+
+handlers.getInvites = function () {
+    try {
+        var r = server.GetUserInternalData({ PlayFabId: currentPlayerId, Keys: ["invites"] });
+        var list = (r.Data && r.Data.invites) ? JSON.parse(r.Data.invites.Value) : [];
+        // Invites older than 10 minutes are stale
+        var fresh = list.filter(function (i) { return Date.now() - i.at < 600000; });
+        return { invites: fresh };
+    } catch (e) { return { invites: [] }; }
+};
+
+handlers.clearInvites = function () {
+    server.UpdateUserInternalData({
+        PlayFabId: currentPlayerId,
+        Data: { invites: "[]" }
+    });
+    return { ok: true };
+};
+
+
+/* ---------- deployment check ----------
+   Lets the console confirm which revision is actually live, and which
+   handlers exist. Without this, a stale deployment is indistinguishable
+   from no deployment at all. */
+handlers.version = function () {
+    return {
+        version: CLOUDSCRIPT_VERSION,
+        handlers: Object.keys(handlers).sort()
+    };
+};
