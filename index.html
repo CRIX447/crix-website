@@ -820,7 +820,9 @@ async function ytFetch(params) {
         };
         console.error(`[YouTube] ${json.error.code} ${reason}: ${json.error.message}`);
         if (hints[reason]) console.error('[YouTube] → ' + hints[reason]);
-        showYouTubeError(hints[reason] || json.error.message);
+        // Only surface this if we have nothing to show — the proxy may still
+        // have served RSS successfully.
+        if (!json.items || !json.items.length) showYouTubeError(hints[reason] || json.error.message);
     }
     return json;
 }
@@ -964,6 +966,9 @@ async function fetchVideosForChannel(ch) {
             throw new Error(`${ch.name}: ${vidData.error.message}`);
         }
         if (!vidData.items) return;
+        if (vidData._source === 'rss') {
+            console.log(`[YouTube] ${ch.name}: using RSS feed (Data API unavailable)`);
+        }
         const long = [], shorts = [], live = [];
         vidData.items.forEach(item => {
             const sn = item.snippet, t = sn.title;
