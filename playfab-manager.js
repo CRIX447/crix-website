@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-firestore2';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-friendfix';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -682,17 +682,91 @@ if (typeof window !== 'undefined') {
             const doc = await ref.get();
             if (!doc.exists) throw new Error('That request no longer exists');
             const data = doc.data();
-            await ref.update({ status: accept ? 'accepted' : 'denied' });
             if (accept && data.fromPlayFabId) {
-                // Both sides add each other — this part IS allowed client-side
-                await PFM.addFriend({ playFabId: data.fromPlayFabId }).catch(() => {});
+                // Adds the sender to MY list. PlayFab's AddFriend only ever
+                // writes to the caller's own list, so the sender completes
+                // their side separately (see completeAcceptedRequests).
+                // This used to be wrapped in a silent catch, which hid the
+                // failure and left the accepter with no friend at all.
+                try {
+                    await PFM.addFriend({ playFabId: data.fromPlayFabId });
+                } catch (e) {
+                    if (!/already/i.test(e.message)) {
+                        throw new Error('Could not add them to your friends list: ' + e.message);
+                    }
+                }
             }
+            await ref.update({ status: accept ? 'accepted' : 'denied' });
             return { ok: true, accepted: accept };
         },
 
         async cancel(requestId) {
             await db().collection('friendRequests').doc(requestId).delete();
             return { ok: true };
+        },
+
+        /* Live listener — Firestore pushes changes instantly, so a request
+           arrives in about a second instead of waiting up to 45s for a poll. */
+        watchRequests(onChange) {
+            const u = firebase.auth().currentUser;
+            if (!u || !PFM.playFabId) return () => {};
+            const unsubs = [];
+
+            // Incoming requests addressed to me
+            unsubs.push(
+                db().collection('friendRequests')
+                    .where('toPlayFabId', '==', PFM.playFabId)
+                    .where('status', '==', 'pending')
+                    .onSnapshot(
+                        snap => onChange('incoming', snap.docs.map(d => ({
+                            id: d.id,
+                            from: d.data().fromPlayFabId,
+                            name: d.data().fromName || 'Player',
+                            avatar: d.data().fromPhoto || null,
+                            at: d.data().createdAt?.toMillis?.() || Date.now()
+                        }))),
+                        err => console.warn('[Friends] incoming listener:', err.message)
+                    )
+            );
+
+            // Requests I sent being accepted, so the UI updates immediately
+            unsubs.push(
+                db().collection('friendRequests')
+                    .where('fromUid', '==', u.uid)
+                    .where('status', '==', 'accepted')
+                    .onSnapshot(
+                        snap => { if (!snap.empty) onChange('accepted', snap.size); },
+                        err => console.warn('[Friends] accepted listener:', err.message)
+                    )
+            );
+
+            return () => unsubs.forEach(fn => { try { fn(); } catch(e) {} });
+        },
+
+        /* Requests the player SENT that have since been accepted. PlayFab's
+           AddFriend only writes to the caller's own list, so the sender has to
+           add the other person themselves — otherwise only one side sees the
+           friendship. Runs on load and after each poll. */
+        async completeAccepted() {
+            const u = firebase.auth().currentUser;
+            if (!u) return 0;
+            const snap = await db().collection('friendRequests')
+                .where('fromUid', '==', u.uid)
+                .where('status', '==', 'accepted')
+                .get();
+            let done = 0;
+            for (const d of snap.docs) {
+                const to = d.data().toPlayFabId;
+                if (!to) { await d.ref.delete().catch(() => {}); continue; }
+                try {
+                    await PFM.addFriend({ playFabId: to });
+                    done++;
+                } catch (e) {
+                    if (!/already/i.test(e.message)) continue;   // retry next time
+                }
+                await d.ref.delete().catch(() => {});   // handshake complete
+            }
+            return done;
         },
 
         /* ---- roles ----
