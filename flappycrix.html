@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0620";</script>
+    <script>window.__BUILD__ = "2026.08.16-0910";</script>
     
 
-    <script src="/filter.js?v=2026081606"></script>
-    <script src="/playfab-manager.js?v=2026081606"></script>
+    <script src="/filter.js?v=2026081608"></script>
+    <script src="/playfab-manager.js?v=2026081608"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1798,7 +1798,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0620</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0910</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3118,6 +3118,10 @@
                     loadStatsFromPlayFab();
                     // Finish any friendships accepted while we were offline
                     if (PlayFabManager.fs) PlayFabManager.fs.completeAccepted().catch(() => {});
+                    startHeartbeat();
+                    // Load friends up front so [FRIEND] tags render in lobbies
+                    // without needing the Friends tab to be opened first.
+                    loadPlayFabFriends().catch(() => {});
                     pollNotifications(false);              // seed without toasting
                     startFriendWatcher();                  // instant updates
                     startRequestPolling();
@@ -3581,7 +3585,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0620</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0910</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4589,6 +4593,43 @@
             el.style.color = '#27A9F5'; el.style.fontSize = '16px';
         }
 
+        // ---- PRESENCE HEARTBEAT ----
+        // Publishes where we are every 30s so friends see accurate status and
+        // can join. Stops cleanly on sign-out and page close.
+        let _hbTimer = null, _presenceWatcher = null, _friendPresence = {};
+
+        function presenceState() {
+            const joinable = !!(mpCurrentRoom &&
+                                mpCurrentRoom.privacy !== 'invite' &&
+                                !mpMatchActive);
+            return {
+                name: mpGetDisplayName(),
+                photo: currentAvatar(),
+                status: myPresence,
+                roomCode: mpCurrentRoom ? mpCurrentRoom.code : null,
+                roomMode: mpCurrentRoom ? mpCurrentRoom.mode : null,
+                joinable,
+                level: playerLevel
+            };
+        }
+
+        function sendHeartbeat() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady || !PlayFabManager.fs) return;
+            PlayFabManager.fs.heartbeat(presenceState()).catch(() => {});
+        }
+
+        function startHeartbeat() {
+            if (_hbTimer) clearInterval(_hbTimer);
+            sendHeartbeat();
+            _hbTimer = setInterval(sendHeartbeat, 30000);
+        }
+
+        window.addEventListener('beforeunload', () => {
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.fs) {
+                PlayFabManager.fs.clearPresence();
+            }
+        });
+
         // ---- PLAYFAB FRIENDS ----
         let pfFriends = [];
         let friendTab = 'friends';
@@ -4618,9 +4659,26 @@
                 fList.friends.push(...untagged);
                 updateFriendCounts();
                 renderFriendsList();
+                watchFriendPresence();
+                // Tags depend on this list, so refresh anything showing names
+                if (mpCurrentRoom) mpRenderLobby();
             } catch (e) {
                 list.innerHTML = `<div class="mp-empty-state" style="color:#FF4655;">${mpEsc(e.message)}</div>`;
             }
+        }
+
+        // Subscribes to live presence for everyone on the friends list
+        function watchFriendPresence() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
+            const ids = fList.friends.map(f => f.playFabId).filter(Boolean);
+            if (!ids.length) return;
+            try {
+                if (_presenceWatcher) _presenceWatcher();
+                _presenceWatcher = PlayFabManager.fs.watchPresence(ids, p => {
+                    _friendPresence = p;
+                    if (friendTab === 'friends') renderFriendsList();
+                });
+            } catch (e) { console.warn('[Presence]', e.message); }
         }
 
         function updateFriendCounts() {
@@ -4684,15 +4742,18 @@
                 : rows;
 
             list.innerHTML = sorted.map(f => {
+                // Real presence from Firestore, not just "are they in my lobby"
+                const pres = _friendPresence[f.playFabId] || {};
                 const inRoom = Object.values(mpPlayers || {}).find(p => p.pfId === f.playFabId);
-                const status = inRoom ? (inRoom.presence || 'online') : 'offline';
+                const status = pres.status || (inRoom ? 'online' : 'offline');
                 const meta = PRESENCE_META[status] || { label:'Offline', colour:'#8C8C8C' };
-                const joinable = !!inRoom && status !== 'offline';
+                const joinable = !!pres.joinable && !!pres.roomCode && pres.roomCode !== mpCurrentRoom?.code;
 
                 let actions = '';
                 if (friendTab === 'friends') {
                     actions =
                         `<button class="friend-btn fav"  data-act="fav"    title="Favourite">${f.favourite ? '★' : '☆'}</button>` +
+                        (joinable ? `<button class="friend-btn join" data-act="joinlobby" title="Join their lobby">▶</button>` : '') +
                         (mpCurrentRoom ? `<button class="friend-btn join" data-act="invite" title="Invite to your lobby">✉</button>` : '') +
                         `<button class="friend-btn"      data-act="block"  title="Block" style="color:#FFB347">⊘</button>` +
                         `<button class="friend-btn rm"   data-act="remove" title="Remove">✕</button>`;
@@ -4707,7 +4768,9 @@
                 }
 
                 const sub = friendTab === 'friends'
-                    ? `<span class="dot" style="background:${meta.colour}"></span>${meta.label}${joinable ? ' · in a lobby' : ''}`
+                    ? `<span class="dot" style="background:${meta.colour}"></span>${meta.label}` +
+                      (pres.roomCode ? ` · ${joinable ? 'in a joinable lobby' : 'in a match'}` : '') +
+                      (pres.level ? ` · lvl ${pres.level}` : '')
                     : friendTab === 'incoming' ? 'wants to be friends'
                     : friendTab === 'outgoing' ? 'request pending'
                     : 'blocked';
@@ -4765,6 +4828,21 @@
                     case 'fav':
                         await PlayFabManager.setFavourite(id, !f.favourite);
                         break;
+                    case 'joinlobby': {
+                        const pres = _friendPresence[id];
+                        if (!pres?.roomCode) {
+                            toast({ kind:'warn', title:'Cannot join', body:'They are no longer in a joinable lobby.' });
+                            return;
+                        }
+                        if (mpCurrentRoom) mpLeaveLobby();
+                        document.getElementById('mpModal')?.classList.add('active');
+                        const input = document.getElementById('mpJoinCodeInput');
+                        if (input) input.value = pres.roomCode;
+                        mpShowView('mpViewJoinCode');
+                        setTimeout(() => mpJoinByCode(), 300);
+                        toast({ kind:'invite', title:'Joining…', body:`${mpEsc(f.displayName)}'s lobby` });
+                        return;
+                    }
                     case 'invite':
                         if (!mpCurrentRoom) { toast({kind:'warn',title:'Not in a lobby',body:'Create or join one first.'}); return; }
                         await PlayFabManager.sendInvite(id, mpCurrentRoom.code, mpCurrentRoom.mode);
@@ -4877,9 +4955,15 @@
             try {
                 const s = await PlayFabManager.loadStats(['level','xp','rp','highScore','coins']);
                 // Server wins where it's ahead, so a fresh device doesn't wipe progress
-                if (s.level    > playerLevel) playerLevel = Math.min(s.level, MAX_LEVEL);
-                if (s.xp      != null && s.level >= playerLevel) playerXp = s.xp;
-                if (s.rp       > playerRP)    playerRP = s.rp;
+                if (typeof s.level === 'number') playerLevel = Math.min(s.level, MAX_LEVEL);
+                if (typeof s.xp === 'number') playerXp = s.xp;
+                // Ranked must trust the server absolutely — taking the higher of
+                // the two would let an edited local value stick permanently.
+                if (typeof s.rp === 'number') {
+                    if (s.rp !== playerRP) console.log(`[Rank] RP corrected from ${playerRP} to ${s.rp} (server)`);
+                    playerRP = s.rp;
+                    try { localStorage.setItem(RP_KEY, String(playerRP)); } catch(e) {}
+                }
                 if (s.highScore > highScore)  { highScore = s.highScore; document.getElementById('highScore').textContent = highScore; }
                 if (s.coins    > coinCount)   { coinCount = s.coins; updateCoinDisplay(); }
                 refreshSettingsUI();
@@ -4919,6 +5003,16 @@
         }
         function isFriend(p) {
             if (!p) return false;
+            // Real friends live in PlayFab (fList.friends). The old localStorage
+            // list is kept only as an offline fallback — checking it alone meant
+            // the [FRIEND] tag never appeared for anyone.
+            if (typeof fList !== 'undefined' && fList.friends && fList.friends.length) {
+                const hit = fList.friends.some(f =>
+                    (p.pfId && f.playFabId === p.pfId) ||
+                    (f.displayName && p.name &&
+                     f.displayName.replace(/#.*$/, '').toLowerCase() === p.name.toLowerCase()));
+                if (hit) return true;
+            }
             return myFriends.some(f => (p.pfId && f.pfId === p.pfId) || f.name === p.name);
         }
         function addFriend(p) {
@@ -5315,7 +5409,12 @@
         ];
         const RP_KEY = 'crix_rp_v1';
         let playerRP = 0;
-        function loadRP() { try { playerRP = parseInt(localStorage.getItem(RP_KEY)) || 0; } catch(e) { playerRP = 0; } }
+        function loadRP() {
+            // Local value is a cache for offline play only — PlayFab overrides it
+            // in loadStatsFromPlayFab() once signed in, so an edited localStorage
+            // value is discarded the moment the server value arrives.
+            try { playerRP = parseInt(localStorage.getItem(RP_KEY)) || 0; } catch(e) { playerRP = 0; }
+        }
         function saveRP() {
             try { localStorage.setItem(RP_KEY, String(playerRP)); } catch(e) {}
             syncStatsToPlayFab();
@@ -5416,6 +5515,7 @@
 
             // Get master client ID — SDK stores it on room as masterClientId
             const masterNr = room.masterClientId || 1;
+            setTimeout(() => { if (typeof sendHeartbeat === 'function') sendHeartbeat(); }, 300);
             mpIsHost = createdByMe || (masterNr === (photonClient.myActor().actorNr));
 
             // myActor().actorNr is set by the SDK from the server Join response
@@ -5913,6 +6013,7 @@
         function mpLeaveLobby() {
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
+            if (typeof sendHeartbeat === 'function') sendHeartbeat();
             mpMatchActive = false; mpSpectating = false;
             mpMatchMode = 'freemode';   // reset so coinrush rates don't leak into single player
             mpLobbyBlocklist = { ids: [], names: [], setBy: null };
@@ -6062,7 +6163,20 @@
                             body: 'Ranked matches need at least 2 players.' });
                 } else {
                     const _i = results.findIndex(r => r.actor === mpLocalActor);
-                    if (_i !== -1) awardRP(_i + 1, results.length);
+                    if (_i !== -1) {
+                        // Re-read from the server first so RP is applied to the
+                        // authoritative value, not a stale or edited local one.
+                        const applyRP = () => awardRP(_i + 1, results.length);
+                        if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) {
+                            PlayFabManager.loadStats(['rp'])
+                                .then(s => { if (typeof s.rp === 'number') playerRP = s.rp; })
+                                .catch(() => {})
+                                .finally(applyRP);
+                        } else {
+                            toast({ kind:'warn', title:'No rank points',
+                                    body:'Ranked needs you signed in to PlayFab.' });
+                        }
+                    }
                 }
             }
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
