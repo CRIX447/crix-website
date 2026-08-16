@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-presence';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-bans';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -831,6 +831,60 @@ if (typeof window !== 'undefined') {
             return done;
         },
 
+        /* ---- BANS ----
+           A real PlayFab account ban needs the secret key, which a browser
+           can never hold. These records live in Firestore instead: only an
+           owner can write them, and the game checks them at sign-in and
+           before entering multiplayer. */
+        async banPlayer(targetPlayFabId, opts) {
+            opts = opts || {};
+            const hours = opts.hours ? parseInt(opts.hours, 10) : null;
+            const expires = hours ? Date.now() + hours * 3600000 : null;
+            await db().collection('bans').doc(targetPlayFabId).set({
+                playFabId: targetPlayFabId,
+                name: opts.name || null,
+                reason: opts.reason || 'Breaking the rules',
+                note: opts.note || null,
+                bannedBy: PFM.playFabId || uid(),
+                bannedByName: firebase.auth().currentUser?.displayName || 'Staff',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                expiresAt: expires,          // null = permanent
+                active: true
+            });
+            return { ok: true, banId: targetPlayFabId, expires };
+        },
+
+        async unbanPlayer(targetPlayFabId) {
+            await db().collection('bans').doc(targetPlayFabId).delete();
+            return { ok: true };
+        },
+
+        /* Returns null when not banned. Expired bans clean themselves up. */
+        async checkBan(playFabId) {
+            if (!playFabId) return null;
+            const d = await db().collection('bans').doc(playFabId).get();
+            if (!d.exists) return null;
+            const b = d.data();
+            if (!b.active) return null;
+            if (b.expiresAt && Date.now() > b.expiresAt) {
+                await d.ref.delete().catch(() => {});   // served their time
+                return null;
+            }
+            return {
+                reason: b.reason || 'Breaking the rules',
+                note: b.note || null,
+                expires: b.expiresAt || null,
+                bannedBy: b.bannedByName || 'Staff'
+            };
+        },
+
+        async listBans() {
+            const snap = await db().collection('bans').get();
+            const now = Date.now();
+            return snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                            .filter(b => !b.expiresAt || b.expiresAt > now);
+        },
+
         /* ---- roles ----
            Firestore rules restrict writes here to existing owners, so this is
            as safe as the CloudScript route. */
@@ -931,6 +985,14 @@ if (typeof window !== 'undefined') {
         if (action === 'setRole') {
             return viaCloudScript('adminAction', { action, ...params },
                 () => PFM.fs.setRole(params.targetPlayFabId, params.roles || []));
+        }
+        if (action === 'ban') {
+            return viaCloudScript('adminAction', { action, ...params },
+                () => PFM.fs.banPlayer(params.targetPlayFabId, params));
+        }
+        if (action === 'unban') {
+            return viaCloudScript('adminAction', { action, ...params },
+                () => PFM.fs.unbanPlayer(params.banId || params.targetPlayFabId));
         }
         return _admin.call(PFM, action, params);
     };
