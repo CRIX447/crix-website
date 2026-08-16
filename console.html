@@ -9,7 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="/playfab-manager.js?v=2026081607"></script>
+<script src="/playfab-manager.js?v=2026081608"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -192,9 +192,15 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         </div>
         <div class="row">
           <button class="btn sm danger" id="banBtn">Ban</button>
-          <button class="btn sm ghost" id="unbanBtn">Unban (needs ban ID)</button>
+          <button class="btn sm ghost" id="unbanBtn">Unban</button>
         </div>
         <div class="out" id="modOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Active bans</h2>
+        <div class="row"><button class="btn sm" id="listBansBtn">Show active bans</button></div>
+        <div class="out" id="bansOut">—</div>
       </div>
 
       <div class="panel">
@@ -506,15 +512,20 @@ $('banBtn').onclick = () => {
   const hours = $('modHours').value;
   const reason = $('modReason').value.trim() || 'Breaking the rules';
   if (!confirm(`Ban ${id}${hours ? ' for ' + hours + 'h' : ' permanently'}?`)) return;
+  const note = prompt('Moderator note (optional, shown to the player):', '') || null;
   run('modOut',
-      () => PlayFabManager.adminAction('ban', { targetPlayFabId:id, hours: hours || undefined, reason }),
-      r => `Banned. Ban ID: ${r.banId || '(none returned)'}`);
+      () => PlayFabManager.adminAction('ban', {
+        targetPlayFabId: id, hours: hours || undefined, reason, note
+      }),
+      r => `Banned${r.expires ? ' until ' + new Date(r.expires).toLocaleString() : ' permanently'}.`);
 };
 
 $('unbanBtn').onclick = () => {
-  const banId = prompt('Ban ID to revoke:');
-  if (!banId) return;
-  run('modOut', () => PlayFabManager.adminAction('unban', { banId }), () => 'Ban revoked.');
+  const id = $('modId').value.trim() || prompt('PlayFab ID to unban:');
+  if (!id) return;
+  run('modOut',
+      () => PlayFabManager.adminAction('unban', { banId: id, targetPlayFabId: id }),
+      () => 'Ban lifted.');
 };
 
 $('makeMod').onclick = () => {
@@ -784,7 +795,7 @@ async function runHealth() {
 }
 
 /* ---------- DEPLOY TAB ---------- */
-const EXPECTED_BUILD = '2026.08.16-0910';
+const EXPECTED_BUILD = '2026.08.16-1030';
 const DEP_FILES = [
   ['/game.html','Game page',null],
   ['/photon-realtime-browser.js','Photon SDK','Photon'],
@@ -854,6 +865,20 @@ function copyRows(rows, btnId, label) {
     b.textContent = 'Copied'; setTimeout(() => b.textContent = label, 1500);
   });
 }
+bind('listBansBtn', () => {
+  const out = $('bansOut');
+  out.textContent = 'Loading…'; out.className = 'out';
+  PlayFabManager.fs.listBans().then(list => {
+    out.className = 'out';
+    out.textContent = list.length
+      ? list.map(b =>
+          `${b.name || b.playFabId}  ·  ${b.reason}` +
+          (b.expiresAt ? `  ·  until ${new Date(b.expiresAt).toLocaleString()}` : '  ·  permanent') +
+          (b.note ? `\n   note: ${b.note}` : '')
+        ).join('\n')
+      : 'Nobody is currently banned.';
+  }).catch(e => { out.className = 'out bad'; out.textContent = e.message; });
+});
 bind('recheckBtn', runSetupChecks);
 bind('hRun', runHealth);
 bind('hCopy', () => copyRows(hOut, 'hCopy', 'Copy results'));
