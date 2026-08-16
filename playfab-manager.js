@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-friendfix';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-presence';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -703,6 +703,68 @@ if (typeof window !== 'undefined') {
         async cancel(requestId) {
             await db().collection('friendRequests').doc(requestId).delete();
             return { ok: true };
+        },
+
+        /* ---- GLOBAL PRESENCE ----
+           Previously a friend only showed as online if they happened to be in
+           YOUR lobby. A heartbeat document per player gives real presence
+           anywhere, and carries the room code so friends can join. */
+        async heartbeat(state) {
+            const u = firebase.auth().currentUser;
+            if (!u || !PFM.playFabId) return;
+            await db().collection('presence').doc(PFM.playFabId).set({
+                uid: u.uid,
+                playFabId: PFM.playFabId,
+                name: state.name || u.displayName || 'Player',
+                photo: state.photo || u.photoURL || null,
+                status: state.status || 'online',      // online | dnd | offline
+                roomCode: state.roomCode || null,      // null when not in a lobby
+                roomMode: state.roomMode || null,
+                joinable: !!state.joinable,
+                level: state.level || 1,
+                at: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        },
+
+        async clearPresence() {
+            const u = firebase.auth().currentUser;
+            if (!u || !PFM.playFabId) return;
+            await db().collection('presence').doc(PFM.playFabId)
+                      .set({ status: 'offline', roomCode: null, joinable: false,
+                             at: firebase.firestore.FieldValue.serverTimestamp() },
+                           { merge: true }).catch(() => {});
+        },
+
+        /* Live presence for a list of friends. A heartbeat older than 90s is
+           treated as offline, so a closed tab doesn't linger as "online". */
+        watchPresence(playFabIds, onChange) {
+            if (!playFabIds || !playFabIds.length) return () => {};
+            const unsubs = [];
+            // Firestore 'in' queries cap at 10, so batch them
+            for (let i = 0; i < playFabIds.length; i += 10) {
+                const batch = playFabIds.slice(i, i + 10);
+                unsubs.push(
+                    db().collection('presence')
+                        .where('playFabId', 'in', batch)
+                        .onSnapshot(snap => {
+                            const out = {};
+                            snap.forEach(d => {
+                                const v = d.data();
+                                const age = v.at?.toMillis ? Date.now() - v.at.toMillis() : 1e9;
+                                const stale = age > 90000;
+                                out[v.playFabId] = {
+                                    status: (stale || v.status === 'offline') ? 'offline' : v.status,
+                                    roomCode: stale ? null : v.roomCode,
+                                    roomMode: v.roomMode,
+                                    joinable: !stale && !!v.joinable && v.status !== 'offline',
+                                    name: v.name, photo: v.photo, level: v.level
+                                };
+                            });
+                            onChange(out);
+                        }, err => console.warn('[Presence]', err.message))
+                );
+            }
+            return () => unsubs.forEach(fn => { try { fn(); } catch(e) {} });
         },
 
         /* Live listener — Firestore pushes changes instantly, so a request
