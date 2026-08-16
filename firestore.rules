@@ -54,6 +54,15 @@ service cloud.firestore {
       allow delete:          if signedIn() && resource.data.byUid == myUid();
     }
 
+    // ---- PRESENCE ----
+    // Readable by anyone signed in (friends need to see status and room codes),
+    // writable only to your own document.
+    match /presence/{playFabId} {
+      allow read:   if signedIn();
+      allow create, update: if signedIn() && request.resource.data.uid == myUid();
+      allow delete: if signedIn() && resource.data.uid == myUid();
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();
