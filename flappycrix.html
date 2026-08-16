@@ -3814,8 +3814,13 @@
             if (!wrap) return;
             const el = document.createElement('div');
             el.className = 'toast ' + type;
+            // bodyHtml is for trusted markup only. Plain `body` is always escaped,
+            // because usernames end up in there and could otherwise inject HTML.
+            const bodyMarkup = arguments[0].bodyHtml
+                ? arguments[0].bodyHtml
+                : (body ? mpEsc(body) : '');
             el.innerHTML = `<div class="toast-title">${mpEsc(title)}</div>` +
-                           (body ? `<div class="toast-body">${mpEsc(body)}</div>` : '') +
+                           (bodyMarkup ? `<div class="toast-body">${bodyMarkup}</div>` : '') +
                            (actions ? `<div class="toast-actions">
                                 <button class="toast-btn yes">${mpEsc(actions.yesLabel||'Accept')}</button>
                                 <button class="toast-btn no">${mpEsc(actions.noLabel||'Decline')}</button>
@@ -4287,7 +4292,7 @@
                         toast({
                             kind: 'friend',
                             title: '👤 Friend request',
-                            body: `<strong>${mpEsc(r.name)}</strong> wants to be friends.`,
+                            body: `${mpEsc(r.name)} wants to be friends.`,
                             timeout: 0,
                             actions: [
                                 { label: 'Accept', style: 'yes', onClick: () => respondRequest(r.from, true, r.name) },
@@ -4300,7 +4305,7 @@
                         toast({
                             kind: 'invite',
                             title: '🎮 Lobby invite',
-                            body: `<strong>${mpEsc(i.name)}</strong> invited you to a ${mpEsc(i.mode)} match.`,
+                            body: `${mpEsc(i.name)} invited you to a ${mpEsc(i.mode)} match.`,
                             timeout: 0,
                             actions: [
                                 { label: 'Join',    style: 'yes', onClick: () => acceptInvite(i) },
