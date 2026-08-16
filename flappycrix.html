@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0450";</script>
+    <script>window.__BUILD__ = "2026.08.16-0620";</script>
     
 
-    <script src="/filter.js?v=2026081605"></script>
-    <script src="/playfab-manager.js?v=2026081605"></script>
+    <script src="/filter.js?v=2026081606"></script>
+    <script src="/playfab-manager.js?v=2026081606"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1798,7 +1798,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0450</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0620</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3116,8 +3116,10 @@
                 if (!res) console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
                 if (res) {
                     loadStatsFromPlayFab();
+                    // Finish any friendships accepted while we were offline
+                    if (PlayFabManager.fs) PlayFabManager.fs.completeAccepted().catch(() => {});
                     pollNotifications(false);              // seed without toasting
-                    setInterval(() => pollNotifications(true), 45000);
+                    startFriendWatcher();                  // instant updates
                     startRequestPolling();
                     PlayFabManager.setPresence(myPresence).catch(() => {});
                 }
@@ -3579,7 +3581,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0450</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-0620</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4277,6 +4279,48 @@
             b.style.display = n ? 'flex' : 'none';
         }
 
+        // Firestore pushes changes as they happen, so requests appear in about
+        // a second. Polling stays as a fallback if the listener can't attach.
+        let _friendWatcher = null;
+        function startFriendWatcher() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
+            try {
+                if (_friendWatcher) _friendWatcher();
+                _friendWatcher = PlayFabManager.fs.watchRequests(async (kind, data) => {
+                    if (kind === 'incoming') {
+                        const known = new Set(pendingRequests.map(r => r.from));
+                        data.filter(r => !known.has(r.from)).forEach(r => {
+                            toast({
+                                kind: 'friend',
+                                title: '👤 Friend request',
+                                body: `${r.name} wants to be friends.`,
+                                actions: [
+                                    { label:'Accept', style:'yes', onClick: () => respondRequest(r.from, true, r.name) },
+                                    { label:'Deny',   style:'no',  onClick: () => respondRequest(r.from, false, r.name) }
+                                ]
+                            });
+                        });
+                        pendingRequests = data;
+                        updateNotifBadge();
+                        renderNotifList();
+                        if (document.getElementById('friendsPanel')?.style.display !== 'none') loadPlayFabFriends();
+                    } else if (kind === 'accepted') {
+                        // Someone accepted a request we sent — finish our side
+                        const n = await PlayFabManager.fs.completeAccepted().catch(() => 0);
+                        if (n) {
+                            toast({ kind:'friend', title:'✅ Friend request accepted',
+                                    body:`You have ${n} new friend${n===1?'':'s'}.` });
+                            loadPlayFabFriends();
+                        }
+                    }
+                });
+                console.log('[Friends] live listener attached');
+            } catch (e) {
+                console.warn('[Friends] listener failed, falling back to polling:', e.message);
+                setInterval(() => pollNotifications(true), 45000);
+            }
+        }
+
         async function pollNotifications(announce = true) {
             if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) return;
             if (typeof PlayFabManager.getFriendRequests !== 'function') return;
@@ -4331,7 +4375,7 @@
                 toast({ kind: accept ? 'friend' : 'info',
                         title: accept ? '✅ Friend added' : 'Request declined',
                         body: accept ? `${mpEsc(name)} is now on your friends list.` : '' });
-                if (accept) loadPlayFabFriends();
+                await loadPlayFabFriends();
             } catch (e) {
                 toast({ kind: 'warn', title: 'Failed', body: mpEsc(e.message) });
             }
@@ -4439,6 +4483,12 @@
         async function setAvatar(url) {
             mpProfile.avatar = url;
             mpSaveProfile();
+            // Persist on the Firebase account too, so it survives a new device
+            if (currentUser) {
+                currentUser.updateProfile({ photoURL: url }).catch(() => {});
+                if (db) db.collection('users').doc(currentUser.uid)
+                          .set({ photoURL: url }, { merge: true }).catch(() => {});
+            }
             renderAvatarGrid();
             // Persist to PlayFab so friends see it too
             if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady &&
@@ -4591,9 +4641,26 @@
         }
 
         function friendAvatar(f) {
+            const initial = mpEsc((f.displayName || '?').charAt(0).toUpperCase());
             return f.avatarUrl
-                ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="">`
-                : `<div class="friend-av" style="background:#FF4655">${mpEsc((f.displayName||'?').charAt(0).toUpperCase())}</div>`;
+                ? `<img class="friend-av" src="${mpEsc(f.avatarUrl)}" alt="" data-fallback="${initial}">`
+                : `<div class="friend-av" style="background:#FF4655">${initial}</div>`;
+        }
+
+        // Swaps any avatar that fails to load for a coloured initial, so a
+        // dead URL never leaves a broken-image icon.
+        function attachAvatarFallbacks(root) {
+            (root || document).querySelectorAll('img[data-fallback]').forEach(img => {
+                if (img.dataset.wired) return;
+                img.dataset.wired = '1';
+                img.addEventListener('error', function () {
+                    const d = document.createElement('div');
+                    d.className = this.className;
+                    d.style.background = this.dataset.colour || '#FF4655';
+                    d.textContent = this.dataset.fallback || '?';
+                    this.replaceWith(d);
+                });
+            });
         }
 
         function renderFriendsList() {
@@ -4657,6 +4724,7 @@
                 </div>`;
             }).join('');
 
+            attachAvatarFallbacks(list);
             list.querySelectorAll('.friend-row').forEach(row => {
                 const id = row.dataset.id;
                 row.querySelectorAll('[data-act]').forEach(btn =>
