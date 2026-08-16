@@ -8,6 +8,7 @@
 <link rel="icon" href="/img/newfavicon.png">
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/playfab-manager.js"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
@@ -623,6 +624,242 @@ $('runChecks').onclick = async () => {
 
   out.textContent = lines.join('\n');
 };
+
+/* ============================================================
+   SETUP / HEALTH / DEPLOY
+   Appended at the end so it can't fail on a missing anchor.
+   ============================================================ */
+const CS_HANDLERS = ['getFriendRequests','getInvites','getMyBanInfo','sendFriendRequest',
+  'respondToFriendRequest','cancelFriendRequest','removeFriendBoth','blockPlayer',
+  'unblockPlayer','sendInvite','clearInvites','grantCoins','adminAction'];
+
+function mkRow(container, name, state, detail) {
+  const icons = { pass:'✅', fail:'❌', warn:'⚠️' };
+  const el = document.createElement('div');
+  el.className = 'row';
+  el.style.cssText = 'margin:0;padding:7px 0;border-bottom:1px solid var(--line);align-items:flex-start';
+  el.innerHTML = '<span style="width:20px">' + (icons[state]||'•') + '</span>' +
+    '<span style="flex:0 0 170px;font-size:12px">' + esc(name) + '</span>' +
+    '<span style="flex:1;font-size:11px;color:' +
+      (state==='pass'?'#8C8C8C':state==='warn'?'#FFB347':'#ff6b74') +
+      ';word-break:break-word">' + esc(detail||'') + '</span>';
+  container.appendChild(el);
+}
+function mkHeader(container, t) {
+  const el = document.createElement('div');
+  el.style.cssText = 'font-size:11px;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin:16px 0 6px';
+  el.textContent = t;
+  container.appendChild(el);
+}
+
+/* ---------- SETUP TAB ---------- */
+async function runSetupChecks() {
+  const el = $('setupList');
+  if (!el) return;
+  el.innerHTML = '';
+  let csOk = false;
+
+  mkRow(el, 'PlayFab sign-in', PlayFabManager.isReady ? 'pass' : 'fail',
+        PlayFabManager.playFabId || PlayFabManager.statusMessage || 'not signed in');
+  mkRow(el, 'Owner role', PlayFabManager.isOwner ? 'pass' : 'warn',
+        (PlayFabManager.roles || []).join(', ') || 'none');
+
+  try { await PlayFabManager.getFriendRequests(); csOk = true;
+        mkRow(el, 'Friend requests', 'pass', 'working'); }
+  catch (e) { mkRow(el, 'Friend requests', 'fail', e.message); }
+
+  try {
+    const uid = firebase.auth().currentUser && firebase.auth().currentUser.uid;
+    const o = uid ? await firebase.firestore().collection('owners').doc(uid).get() : null;
+    mkRow(el, 'Firestore owner record', o && o.exists ? 'pass' : 'fail',
+          o && o.exists ? 'registered' :
+          'Add a document at owners/' + (uid||'<your uid>') + ' in the Firebase console.');
+  } catch (e) { mkRow(el, 'Firestore owner record', 'fail', e.message); }
+
+  const p = $('csPanel');
+  if (p) p.style.display = csOk ? 'none' : 'block';
+}
+
+/* ---------- PLAYFAB HEALTH TAB ---------- */
+let hOut = [];
+async function runHealth() {
+  const out = $('hResults'); if (!out) return;
+  hOut = []; out.innerHTML = '';
+  if ($('hSummary')) $('hSummary').innerHTML = '';
+  const btn = $('hRun'); btn.disabled = true; btn.textContent = 'Testing…';
+  const add = (n,s,d) => { hOut.push({n,s,d}); mkRow(out,n,s,d); };
+
+  mkHeader(out, 'CloudScript');
+  let deployed = [];
+  try {
+    const v = await PlayFabManager.csVersion();
+    deployed = v.handlers || [];
+    add('Deployed revision', 'pass', v.version + ' · ' + v.count + ' handlers');
+  } catch (e) {
+    const missing = /not deployed|no function named/i.test(e.message);
+    add('Deployed revision', missing ? 'warn' : 'fail',
+        missing ? 'Not deployed — the Firestore fallback handles this instead.' : e.message);
+  }
+  if (deployed.length) CS_HANDLERS.forEach(fn =>
+    add(fn, deployed.indexOf(fn) !== -1 ? 'pass' : 'fail',
+        deployed.indexOf(fn) !== -1 ? 'present' : 'missing from the deployed revision'));
+
+  mkHeader(out, 'Firestore');
+  if (typeof firebase === 'undefined' || !firebase.firestore) {
+    add('Firestore SDK', 'fail', 'not loaded');
+  } else {
+    const fdb = firebase.firestore();
+    const uid = firebase.auth().currentUser ? firebase.auth().currentUser.uid : null;
+    add('Signed-in UID', uid ? 'pass' : 'fail', uid || 'not signed in');
+
+    try { await fdb.collection('config').doc('__probe').get();
+          add('Database reachable', 'pass', 'reads working'); }
+    catch (e) {
+      add('Database reachable', 'fail', /permission/i.test(e.message)
+        ? 'Read denied — publish firestore.rules, and check api.json points at the same Firebase project.'
+        : e.message);
+    }
+
+    if (uid) {
+      try {
+        const o = await fdb.collection('owners').doc(uid).get();
+        add('Owner record', o.exists ? 'pass' : 'fail',
+            o.exists ? 'registered' :
+            'Missing — create owners/' + uid + ' in Firebase Console → Firestore.');
+      } catch (e) { add('Owner record', 'fail', e.message); }
+
+      const writes = [
+        ['friendRequests write', () => fdb.collection('friendRequests').doc(uid+'_probe'),
+         { fromUid: uid, fromPlayFabId: PlayFabManager.playFabId || null, toPlayFabId:'probe', status:'pending' }],
+        ['blocks write', () => fdb.collection('blocks').doc(uid+'_probe'),
+         { byUid: uid, blocked:'probe' }],
+        ['roles write (owner only)', () => fdb.collection('roles').doc('__probe'),
+         { roles: [], grantedBy: uid }]
+      ];
+      for (const [name, ref, data] of writes) {
+        try {
+          await ref().set(data);
+          await ref().delete().catch(function(){});
+          add(name, 'pass', 'allowed');
+        } catch (e) {
+          const denied = /permission/i.test(e.message);
+          if (denied && name.indexOf('roles') === 0)
+            add(name, 'warn', 'Denied — expected unless you are in the owners collection.');
+          else
+            add(name, 'fail', denied
+              ? 'Denied — publish firestore.rules (Firestore → Rules → Publish).'
+              : e.message);
+        }
+      }
+    }
+  }
+
+  mkHeader(out, 'PlayFab client APIs');
+  const apis = [
+    ['Login',       () => PlayFabManager.isReady ? 'signed in' : Promise.reject(new Error('not signed in'))],
+    ['Inventory',   () => PlayFabManager.refreshInventory().then(r => r.items.length + ' items')],
+    ['Currency',    () => PlayFabManager.getCurrency().then(v => v + ' coins')],
+    ['Catalog',     () => PlayFabManager.getCatalog().then(c => c.length ? c.length + ' items'
+                          : Promise.reject(new Error('empty — upload catalog.json')))],
+    ['Friends',     () => PlayFabManager.getFriends().then(r => r.length + ' friends')],
+    ['Read stats',  () => PlayFabManager.loadStats(['level','xp','rp']).then(() => 'OK')],
+    ['Write stats', () => PlayFabManager.saveStats({ healthcheck: 1 }).then(() => 'OK')],
+    ['Roles',       () => PlayFabManager.refreshRoles().then(r => r.join(', ') || 'none')]
+  ];
+  for (const [n, f] of apis) {
+    try { add(n, 'pass', await f()); }
+    catch (e) {
+      add(n, 'fail', e.message + (n === 'Write stats'
+        ? ' — enable "Allow client to post player statistics" in Title Settings → API Features' : ''));
+    }
+  }
+
+  const fails = hOut.filter(r => r.s === 'fail').length;
+  const passes = hOut.filter(r => r.s === 'pass').length;
+  if ($('hSummary')) $('hSummary').innerHTML =
+    '<div class="out ' + (fails ? 'bad' : 'ok') + '" style="font-size:13px">' +
+    (fails ? fails + ' problem' + (fails===1?'':'s') + ' found · ' + passes + ' working'
+           : 'Everything is working (' + passes + ' checks passed)') + '</div>';
+  btn.disabled = false; btn.textContent = 'Run full test again';
+}
+
+/* ---------- DEPLOY TAB ---------- */
+const EXPECTED_BUILD = '2026.08.16-0450';
+const DEP_FILES = [
+  ['/game.html','Game page',null],
+  ['/photon-realtime-browser.js','Photon SDK','Photon'],
+  ['/playfab-manager.js','PlayFab manager','PLAYFAB_MANAGER_VERSION'],
+  ['/filter.js','Chat filter','ChatFilter'],
+  ['/api.json','Config',null],
+  ['/img/bird.png','Images',null],
+  ['/img/font.otf','Font',null]
+];
+let depOut = [];
+
+async function runDeployCheck() {
+  const out = $('depResults'); if (!out) return;
+  depOut = []; out.innerHTML = '';
+  if ($('depStale')) $('depStale').style.display = 'none';
+  const add = (n,s,d) => { depOut.push({n,s,d}); mkRow(out,n,s,d); };
+  let stale = false;
+
+  try {
+    const txt = await (await fetch('/game.html?cb=' + Date.now())).text();
+    const m = txt.match(/__BUILD__\s*=\s*"([^"]+)"/);
+    if (!m) { stale = true; add('Live build','fail','No build stamp — your push has not gone live.'); }
+    else if (m[1] !== EXPECTED_BUILD) {
+      stale = true;
+      add('Live build','fail','Live: ' + m[1] + ' · Expected: ' + EXPECTED_BUILD);
+    } else add('Live build','pass', m[1] + ' — current');
+  } catch (e) { stale = true; add('Live build','fail',e.message); }
+
+  for (const [path, label, contains] of DEP_FILES) {
+    try {
+      const r = await fetch(path + '?cb=' + Date.now());
+      if (!r.ok) { add(label,'fail',path + ' → HTTP ' + r.status); continue; }
+      const ct = r.headers.get('content-type') || '';
+      if (path.slice(-3) === '.js' && ct.indexOf('text/html') !== -1) {
+        add(label,'fail',path + ' returned HTML — the file is not deployed.'); continue;
+      }
+      if (contains) {
+        const t = await r.clone().text();
+        if (t.indexOf(contains) === -1) { add(label,'warn','Loaded but looks like an old copy.'); continue; }
+      }
+      add(label,'pass',path);
+    } catch (e) { add(label,'fail',e.message); }
+  }
+
+  const net = await new Promise(res => {
+    let done = false; const fin = v => { if (!done) { done = true; res(v); } };
+    try {
+      const ws = new WebSocket('wss://ns.photonengine.io:19093/diag?libversion=check');
+      ws.onopen = () => { fin('open'); try { ws.close(); } catch(e){} };
+      ws.onerror = () => fin('blocked');
+      ws.onclose = e => fin(e.code === 1006 ? 'blocked' : 'closed');
+      setTimeout(() => fin('timeout'), 8000);
+    } catch (e) { fin('blocked'); }
+  });
+  add('Photon network', net === 'open' ? 'pass' : 'fail',
+      net === 'open' ? 'port 19093 reachable' : 'connection ' + net + ' — a firewall or VPN may be blocking it');
+
+  if (stale && $('depStale')) $('depStale').style.display = 'block';
+}
+
+/* ---------- wiring ---------- */
+function bind(id, fn) { const el = $(id); if (el) el.onclick = fn; }
+function copyRows(rows, btnId, label) {
+  const t = rows.map(r => '[' + (r.s||r.state||'').toUpperCase() + '] ' + (r.n||r.name) + ': ' + (r.d||r.detail||'')).join('\n');
+  navigator.clipboard.writeText(t).then(() => {
+    const b = $(btnId); if (!b) return;
+    b.textContent = 'Copied'; setTimeout(() => b.textContent = label, 1500);
+  });
+}
+bind('recheckBtn', runSetupChecks);
+bind('hRun', runHealth);
+bind('hCopy', () => copyRows(hOut, 'hCopy', 'Copy results'));
+bind('depRun', runDeployCheck);
+bind('depCopy', () => copyRows(depOut, 'depCopy', 'Copy results'));
+
 </script>
 </body>
 </html>
