@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-0910";</script>
+    <script>window.__BUILD__ = "2026.08.16-1030";</script>
     
 
-    <script src="/filter.js?v=2026081608"></script>
-    <script src="/playfab-manager.js?v=2026081608"></script>
+    <script src="/filter.js?v=2026081609"></script>
+    <script src="/playfab-manager.js?v=2026081609"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1798,7 +1798,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-0910</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-1030</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3119,6 +3119,7 @@
                     // Finish any friendships accepted while we were offline
                     if (PlayFabManager.fs) PlayFabManager.fs.completeAccepted().catch(() => {});
                     startHeartbeat();
+                    checkMyBan();
                     // Load friends up front so [FRIEND] tags render in lobbies
                     // without needing the Friends tab to be opened first.
                     loadPlayFabFriends().catch(() => {});
@@ -3153,9 +3154,12 @@
 
         // ---- BAN SCREEN ----
         function showBanScreen(banErr) {
+            // Accepts both shapes: a PlayFab error object, and the plain record
+            // returned by the Firestore ban check.
             const info = banErr?.raw || {};
-            const reason = info.BanReason || banErr?.banReason || 'Violation of the rules';
-            const expires = info.BanExpiration || banErr?.banExpires || null;
+            const reason = banErr?.reason || info.BanReason || banErr?.banReason || 'Violation of the rules';
+            const expires = banErr?.expires || info.BanExpiration || banErr?.banExpires || null;
+            const note = banErr?.note || null;
             let durationText;
             if (!expires) {
                 durationText = 'This ban is permanent.';
@@ -3171,6 +3175,12 @@
             if (!el) return;
             document.getElementById('banReasonText').textContent = reason;
             document.getElementById('banDurationText').textContent = durationText;
+            const noteWrap = document.getElementById('banNoteWrap');
+            const noteText = document.getElementById('banNoteText');
+            if (noteWrap && noteText) {
+                noteWrap.style.display = note ? 'block' : 'none';
+                noteText.textContent = note || '';
+            }
             el.style.display = 'flex';
         }
 
@@ -3585,7 +3595,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-0910</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-1030</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4591,6 +4601,26 @@
             const code = PlayFabManager.friendCodeFor(PlayFabManager.playFabId);
             el.textContent = `${mpGetDisplayName().replace(/#.*$/,'')}#${code}`;
             el.style.color = '#27A9F5'; el.style.fontSize = '16px';
+        }
+
+        // ---- BAN CHECK ----
+        // __crixBanned was read before multiplayer but nothing ever set it, so
+        // bans had no effect. Checked at sign-in and again before joining.
+        async function checkMyBan() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs || !PlayFabManager.playFabId) return false;
+            try {
+                const ban = await PlayFabManager.fs.checkBan(PlayFabManager.playFabId);
+                window.__crixBanned = !!ban;
+                window.__crixBanInfo = ban || null;
+                if (ban) {
+                    console.warn('[Ban] This account is banned:', ban.reason);
+                    if (mpCurrentRoom) mpLeaveLobby();
+                }
+                return !!ban;
+            } catch (e) {
+                console.warn('[Ban] check failed:', e.message);
+                return false;
+            }
         }
 
         // ---- PRESENCE HEARTBEAT ----
@@ -7088,6 +7118,10 @@
             selectSound.play();
             // Banned players can still play single player, just not multiplayer
             if (window.__crixBanned) { showBanScreen(window.__crixBanInfo || {}); return; }
+            // Re-check live so a ban issued mid-session takes effect at once
+            checkMyBan().then(banned => {
+                if (banned) showBanScreen(window.__crixBanInfo || {});
+            });
             if (!currentUser) {
                 mpShowView('mpViewSignInRequired');
                 document.getElementById('mpModal').classList.add('active');
