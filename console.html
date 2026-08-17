@@ -9,7 +9,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="/playfab-manager.js?v=2026081608"></script>
+<script src="/playfab-manager.js?v=2026081609"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -564,13 +564,34 @@ $('giveItem').onclick = () => {
 };
 
 /* ---------- system ---------- */
-function renderMe() {
-  $('meGrid').innerHTML = [
-    ['PlayFab ID', PlayFabManager.playFabId || '—'],
-    ['Roles', (PlayFabManager.roles || []).join(', ') || 'none'],
-    ['Firebase UID', me?.uid?.slice(0, 16) + '…' || '—'],
-    ['Email', me?.email || '—']
-  ].map(([k, v]) => `<div class="stat"><div class="k">${k}</div><div class="v">${esc(v)}</div></div>`).join('');
+async function renderMe() {
+  const cfg = await fetch('/api.json?cb=' + Date.now()).then(r => r.json()).catch(() => ({}));
+  const mask = s => s ? (String(s).slice(0, 8) + '…') : '—';
+  const set  = s => (s && !String(s).startsWith('PASTE_') && !String(s).startsWith('KEEP_')) ? s : 'not set';
+
+  let coins = '—', items = '—';
+  try { coins = (await PlayFabManager.getCurrency()) + ''; } catch (e) {}
+  try { items = (await PlayFabManager.refreshInventory()).items.length + ''; } catch (e) {}
+
+  const rows = [
+    ['PlayFab ID',      PlayFabManager.playFabId || '—'],
+    ['Roles',           (PlayFabManager.roles || []).join(', ') || 'none'],
+    ['Coins',           coins],
+    ['Inventory',       items + ' items'],
+    ['Firebase UID',    me ? me.uid : '—'],
+    ['Email',           (me && me.email) || '—'],
+    ['PlayFab title',   set(cfg.playfab && cfg.playfab.titleId)],
+    ['Currency code',   (cfg.playfab && cfg.playfab.currencyCode) || '—'],
+    ['Catalog version', (cfg.playfab && cfg.playfab.catalogVersion) || 'Main'],
+    ['Photon app',      mask(cfg.photon && cfg.photon.appId)],
+    ['Photon region',   (cfg.photon && cfg.photon.region) || 'auto'],
+    ['Firebase project',(cfg.firebase && cfg.firebase.projectId) || '—'],
+    ['Auth domain',     (cfg.firebase && cfg.firebase.authDomain) || '—'],
+    ['Discord client',  set(cfg.discord && cfg.discord.clientId) === 'not set' ? 'not set' : mask(cfg.discord.clientId)],
+    ['Backend',         PlayFabManager.cloudScriptAvailable() === false ? 'Firestore fallback' : 'CloudScript']
+  ];
+  $('meGrid').innerHTML = rows.map(([k, v]) =>
+    `<div class="stat"><div class="k">${esc(k)}</div><div class="v" style="font-size:13px">${esc(v)}</div></div>`).join('');
 }
 
 const _csBtn = $('copyCsBtn');
@@ -795,7 +816,7 @@ async function runHealth() {
 }
 
 /* ---------- DEPLOY TAB ---------- */
-const EXPECTED_BUILD = '2026.08.16-1030';
+const EXPECTED_BUILD = '2026.08.16-1150';
 const DEP_FILES = [
   ['/game.html','Game page',null],
   ['/photon-realtime-browser.js','Photon SDK','Photon'],
