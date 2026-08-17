@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-bans';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-fullfallback';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -581,7 +581,6 @@ if (typeof window !== 'undefined') {
     PFM.removeFriendBoth     = id            => cs('removeFriendBoth', { targetPlayFabId: id });
     PFM.blockPlayer          = id            => cs('blockPlayer', { targetPlayFabId: id });
     PFM.unblockPlayer        = id            => cs('unblockPlayer', { targetPlayFabId: id });
-    PFM.setLobbyBlock        = (code, ids)   => cs('setLobbyBlock', { roomCode: code, blocked: ids });
     PFM.getFriendRequests    = ()            => cs('getFriendRequests').then(r => r.requests || []);
     PFM.respondFriendRequest = (id, accept)  => cs('respondToFriendRequest', { requesterPlayFabId: id, accept });
     PFM.sendInvite           = (id, code, mode) => cs('sendInvite', { targetPlayFabId: id, roomCode: code, mode });
@@ -831,6 +830,79 @@ if (typeof window !== 'undefined') {
             return done;
         },
 
+        /* ---- FRIEND REMOVAL ----
+           PlayFab's RemoveFriend only affects the caller's own list, so the
+           other side is asked to drop us via a pending record they act on
+           next time they load. */
+        async removeFriend(targetPlayFabId) {
+            await PFM.removeFriend(targetPlayFabId).catch(() => {});
+            const u = firebase.auth().currentUser;
+            if (u && PFM.playFabId) {
+                await db().collection('friendRemovals')
+                    .doc(`${targetPlayFabId}_${PFM.playFabId}`)
+                    .set({
+                        forPlayFabId: targetPlayFabId,
+                        removePlayFabId: PFM.playFabId,
+                        byUid: u.uid,
+                        at: firebase.firestore.FieldValue.serverTimestamp()
+                    }).catch(() => {});
+            }
+            return { ok: true };
+        },
+
+        /* Applies removals other people queued for us. */
+        async applyPendingRemovals() {
+            if (!PFM.playFabId) return 0;
+            const snap = await db().collection('friendRemovals')
+                .where('forPlayFabId', '==', PFM.playFabId).get();
+            let n = 0;
+            for (const d of snap.docs) {
+                try {
+                    await PFM.removeFriend(d.data().removePlayFabId);
+                    n++;
+                } catch (e) {}
+                await d.ref.delete().catch(() => {});
+            }
+            return n;
+        },
+
+        /* ---- LOBBY INVITES ---- */
+        async sendInvite(targetPlayFabId, roomCode, mode) {
+            const u = firebase.auth().currentUser;
+            await db().collection('invites').doc(`${targetPlayFabId}_${PFM.playFabId}`).set({
+                toPlayFabId: targetPlayFabId,
+                fromPlayFabId: PFM.playFabId,
+                fromUid: u ? u.uid : null,
+                name: u?.displayName || 'Player',
+                roomCode, mode: mode || 'freemode',
+                at: Date.now()
+            });
+            return { ok: true };
+        },
+
+        async getInvites() {
+            if (!PFM.playFabId) return [];
+            const snap = await db().collection('invites')
+                .where('toPlayFabId', '==', PFM.playFabId).get();
+            const fresh = [];
+            for (const d of snap.docs) {
+                const v = d.data();
+                // Invites older than 10 minutes are stale
+                if (Date.now() - (v.at || 0) > 600000) { await d.ref.delete().catch(() => {}); continue; }
+                fresh.push({ id: d.id, from: v.fromPlayFabId, name: v.name,
+                             roomCode: v.roomCode, mode: v.mode, at: v.at });
+            }
+            return fresh;
+        },
+
+        async clearInvites() {
+            if (!PFM.playFabId) return { ok: true };
+            const snap = await db().collection('invites')
+                .where('toPlayFabId', '==', PFM.playFabId).get();
+            await Promise.all(snap.docs.map(d => d.ref.delete().catch(() => {})));
+            return { ok: true };
+        },
+
         /* ---- BANS ----
            A real PlayFab account ban needs the secret key, which a browser
            can never hold. These records live in Firestore instead: only an
@@ -975,6 +1047,29 @@ if (typeof window !== 'undefined') {
     PFM.cancelFriendRequest = (id) =>
         viaCloudScript('cancelFriendRequest', { targetPlayFabId: id },
             () => PFM.fs.cancel(`${firebase.auth().currentUser.uid}_${id}`));
+
+    PFM.removeFriendBoth = (id) =>
+        viaCloudScript('removeFriendBoth', { targetPlayFabId: id }, () => PFM.fs.removeFriend(id));
+
+    PFM.sendInvite = (id, code, mode) =>
+        viaCloudScript('sendInvite', { targetPlayFabId: id, roomCode: code, mode },
+                       () => PFM.fs.sendInvite(id, code, mode));
+
+    PFM.getInvites = () =>
+        viaCloudScript('getInvites', {}, () => PFM.fs.getInvites())
+            .then(r => Array.isArray(r) ? r : (r.invites || []));
+
+    PFM.clearInvites = () =>
+        viaCloudScript('clearInvites', {}, () => PFM.fs.clearInvites());
+
+    // version has no Firestore equivalent — report it cleanly instead of throwing
+    const _csVersion = PFM.csVersion;
+    PFM.csVersion = () => _csVersion().catch(e => {
+        if (/not deployed|no function named/i.test(e.message)) {
+            return { version: 'not deployed', handlers: [], count: 0, fallback: 'firestore' };
+        }
+        throw e;
+    });
 
     PFM.blockPlayer   = (id) => viaCloudScript('blockPlayer',   { targetPlayFabId: id }, () => PFM.fs.block(id));
     PFM.unblockPlayer = (id) => viaCloudScript('unblockPlayer', { targetPlayFabId: id }, () => PFM.fs.unblock(id));
