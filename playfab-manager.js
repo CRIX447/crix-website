@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-fullfallback';
+const PLAYFAB_MANAGER_VERSION = '2026.08.16-online';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -828,6 +828,42 @@ if (typeof window !== 'undefined') {
                 await d.ref.delete().catch(() => {});   // handshake complete
             }
             return done;
+        },
+
+        /* Live count of everyone online, and who's in a joinable lobby.
+           Heartbeats older than 90s are ignored so closed tabs drop off. */
+        watchOnline(onChange) {
+            const cutoff = () => new Date(Date.now() - 90000);
+            // A '!=' filter needs a composite index; reading all and filtering
+            // in code avoids that and the collection stays small.
+            const unsub = db().collection('presence')
+                .onSnapshot(snap => {
+                    const now = Date.now();
+                    const live = [];
+                    snap.forEach(d => {
+                        const v = d.data();
+                        const age = v.at?.toMillis ? now - v.at.toMillis() : 1e9;
+                        if (age > 90000) return;              // stale heartbeat
+                        if (v.status === 'offline') return;    // invisible / signed out
+                        live.push({
+                            playFabId: v.playFabId,
+                            name: v.name || 'Player',
+                            photo: v.photo || null,
+                            level: v.level || 1,
+                            status: v.status,
+                            roomCode: v.roomCode || null,
+                            roomMode: v.roomMode || null,
+                            joinable: !!v.joinable
+                        });
+                    });
+                    onChange({
+                        total: live.length,
+                        inLobby: live.filter(p => p.roomCode).length,
+                        joinable: live.filter(p => p.joinable).length,
+                        players: live
+                    });
+                }, err => console.warn('[Online]', err.message));
+            return unsub;
         },
 
         /* ---- FRIEND REMOVAL ----
