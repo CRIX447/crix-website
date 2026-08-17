@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-1150";</script>
+    <script>window.__BUILD__ = "2026.08.16-1310";</script>
     
 
-    <script src="/filter.js?v=2026081610"></script>
-    <script src="/playfab-manager.js?v=2026081610"></script>
+    <script src="/filter.js?v=2026081611"></script>
+    <script src="/playfab-manager.js?v=2026081611"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -967,6 +967,23 @@
         .diag-detail code { background:rgba(0,0,0,.4); padding:1px 5px; border-radius:4px; color:#FFB347; }
         .diag-fix { font-size:10px; color:#FFB347; margin-top:3px; line-height:1.6; }
 
+        /* ---- ONLINE COUNT ---- */
+        .online-count { background:rgba(0,204,122,.2); border:1px solid rgba(0,204,122,.45);
+            color:#00CC7A; font-size:9px; font-weight:bold; padding:1px 7px;
+            border-radius:10px; margin-left:6px; vertical-align:middle; }
+        .online-bar { display:flex; align-items:center; gap:8px; font-size:11px;
+            color:#C9C9C9; background:rgba(0,204,122,.06);
+            border:1px solid rgba(0,204,122,.25); border-radius:10px;
+            padding:8px 12px; margin-bottom:10px; }
+        .online-list { max-height:190px; overflow-y:auto; margin-bottom:10px;
+            display:flex; flex-direction:column; gap:5px; }
+        .online-row { display:flex; align-items:center; gap:9px;
+            background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.07);
+            border-radius:10px; padding:6px 10px; font-size:11px; }
+        .online-av { width:26px; height:26px; border-radius:50%; object-fit:cover;
+            flex-shrink:0; display:flex; align-items:center; justify-content:center;
+            font-weight:bold; font-size:11px; color:#fff; }
+
         /* ---- FRIEND SUB-TABS ---- */
         .friend-tabs { display:flex; gap:4px; margin:10px 0 8px; }
         .friend-tab { flex:1; background:rgba(255,255,255,.04);
@@ -1212,6 +1229,7 @@
         <!-- Primary action -->
         <button class="mp-banner-btn" id="multiplayerBtn">
             🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
+            <span id="onlineCount" class="online-count" style="display:none;"></span>
         </button>
 
         <!-- Everything else collapses into one icon row -->
@@ -1339,6 +1357,13 @@
                     <button class="mp-btn-secondary" id="mpJoinByCodeBtn">🔑 JOIN CODE</button>
                     <button class="mp-btn-secondary" id="mpEditProfileBtn" style="background:linear-gradient(135deg,#444,#222);">👤 PROFILE</button>
                 </div>
+                <div id="onlineBar" class="online-bar" style="display:none;">
+                    <span class="dot" style="background:#00CC7A"></span>
+                    <span id="onlineBarText">—</span>
+                    <button class="set-mini-btn" id="onlineListBtn" style="margin-left:auto;">WHO'S ON</button>
+                </div>
+                <div id="onlineList" class="online-list" style="display:none;"></div>
+
                 <div class="queue-tabs">
                     <button class="queue-tab active" data-queue="casual">🎮 CASUAL</button>
                     <button class="queue-tab" data-queue="competitive">🏆 COMPETITIVE</button>
@@ -1798,7 +1823,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-1150</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-1310</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3123,6 +3148,7 @@
                         PlayFabManager.fs.applyPendingRemovals().catch(() => {});
                     }
                     startHeartbeat();
+                    startOnlineWatcher();
                     checkMyBan();
                     // Load friends up front so [FRIEND] tags render in lobbies
                     // without needing the Friends tab to be opened first.
@@ -3599,7 +3625,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-1150</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-1310</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4607,6 +4633,78 @@
             el.style.color = '#27A9F5'; el.style.fontSize = '16px';
         }
 
+        // ---- ONLINE PLAYERS ----
+        let _onlineWatcher = null, _onlineData = { total:0, inLobby:0, joinable:0, players:[] };
+
+        function startOnlineWatcher() {
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
+            try {
+                if (_onlineWatcher) _onlineWatcher();
+                _onlineWatcher = PlayFabManager.fs.watchOnline(data => {
+                    _onlineData = data;
+                    renderOnlineCount();
+                });
+            } catch (e) { console.warn('[Online]', e.message); }
+        }
+
+        function renderOnlineCount() {
+            const { total, inLobby, joinable } = _onlineData;
+            const chip = document.getElementById('onlineCount');
+            if (chip) {
+                chip.style.display = total ? '' : 'none';
+                chip.textContent = total + ' online';
+            }
+            const bar = document.getElementById('onlineBar');
+            const txt = document.getElementById('onlineBarText');
+            if (bar && txt) {
+                bar.style.display = total ? 'flex' : 'none';
+                txt.innerHTML = `<strong style="color:#fff">${total}</strong> online` +
+                    (inLobby ? ` · ${inLobby} in a lobby` : '') +
+                    (joinable ? ` · <span style="color:#00CC7A">${joinable} joinable</span>` : '');
+            }
+            if (document.getElementById('onlineList')?.style.display !== 'none') renderOnlineList();
+        }
+
+        function renderOnlineList() {
+            const el = document.getElementById('onlineList');
+            if (!el) return;
+            const players = _onlineData.players.filter(p => p.playFabId !== PlayFabManager?.playFabId);
+            if (!players.length) {
+                el.innerHTML = '<div class="mp-empty-state">Nobody else is online right now.</div>';
+                return;
+            }
+            // Joinable first, then by level
+            players.sort((a,b) => (b.joinable - a.joinable) || (b.level - a.level));
+            el.innerHTML = players.map(p => {
+                const initial = mpEsc((p.name||'?').charAt(0).toUpperCase());
+                const av = p.photo
+                    ? `<img class="online-av" src="${mpEsc(p.photo)}" alt="" data-fallback="${initial}">`
+                    : `<div class="online-av" style="background:#FF4655">${initial}</div>`;
+                const where = p.roomCode
+                    ? (p.joinable ? `in a ${mpEsc(p.roomMode||'')} lobby` : 'in a match')
+                    : 'in the menu';
+                return `<div class="online-row">
+                    ${av}
+                    <div style="flex:1;min-width:0;">
+                        <div style="color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            <span class="mp-level-chip">${p.level}</span>${mpEsc(p.name)}
+                        </div>
+                        <div style="font-size:9px;color:#8C8C8C;">${where}</div>
+                    </div>
+                    ${p.joinable ? `<button class="fr-accept" data-join="${mpEsc(p.roomCode)}">JOIN</button>` : ''}
+                </div>`;
+            }).join('');
+            attachAvatarFallbacks(el);
+            el.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => {
+                const code = b.dataset.join;
+                if (mpCurrentRoom) mpLeaveLobby();
+                const input = document.getElementById('mpJoinCodeInput');
+                if (input) input.value = code;
+                mpShowView('mpViewJoinCode');
+                setTimeout(() => mpJoinByCode(), 250);
+            }));
+        }
+
         // ---- BAN CHECK ----
         // __crixBanned was read before multiplayer but nothing ever set it, so
         // bans had no effect. Checked at sign-in and again before joining.
@@ -4655,7 +4753,18 @@
         function startHeartbeat() {
             if (_hbTimer) clearInterval(_hbTimer);
             sendHeartbeat();
-            _hbTimer = setInterval(sendHeartbeat, 30000);
+            _hbTimer = setInterval(() => {
+                sendHeartbeat();
+                // Ban issued mid-session should take effect without a reload
+                if (mpCurrentRoom) {
+                    checkMyBan().then(banned => {
+                        if (banned) {
+                            mpLeaveLobby();
+                            showBanScreen(window.__crixBanInfo || {});
+                        }
+                    });
+                }
+            }, 30000);
         }
 
         window.addEventListener('beforeunload', () => {
@@ -5544,6 +5653,12 @@
 
         // ----- JOINED ROOM -----
         function mpHandleJoinedRoom(createdByMe) {
+            // Last line of defence — a ban applied while they were connecting
+            if (window.__crixBanned) {
+                console.warn('[Ban] Banned account reached a room — removing.');
+                setTimeout(() => { mpLeaveLobby(); showBanScreen(window.__crixBanInfo || {}); }, 100);
+                return;
+            }
             const room = photonClient.myRoom();
             const props = room.getCustomProperties ? room.getCustomProperties() : {};
 
@@ -7118,14 +7233,16 @@
         MP_ACHIEVEMENTS.forEach(a => { if (localStorage.getItem('crix_mp_ach_' + a.id)) a.unlocked = true; });
 
         // ----- DOM EVENT WIRING -----
-        document.getElementById('multiplayerBtn')?.addEventListener('click', () => {
+        document.getElementById('multiplayerBtn')?.addEventListener('click', async () => {
             selectSound.play();
-            // Banned players can still play single player, just not multiplayer
+            // Banned players keep single player, but must not reach multiplayer.
+            // This used to start the check and carry straight on, so the modal
+            // opened underneath the ban screen and they were already in.
             if (window.__crixBanned) { showBanScreen(window.__crixBanInfo || {}); return; }
-            // Re-check live so a ban issued mid-session takes effect at once
-            checkMyBan().then(banned => {
-                if (banned) showBanScreen(window.__crixBanInfo || {});
-            });
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) {
+                const banned = await checkMyBan();
+                if (banned) { showBanScreen(window.__crixBanInfo || {}); return; }
+            }
             if (!currentUser) {
                 mpShowView('mpViewSignInRequired');
                 document.getElementById('mpModal').classList.add('active');
@@ -7442,6 +7559,14 @@
         document.getElementById('vkSubmitBtn')?.addEventListener('click', mpSubmitVoteKick);
         document.getElementById('vpYes')?.addEventListener('click', () => castVote(true));
         document.getElementById('vpNo')?.addEventListener('click', () => castVote(false));
+
+        document.getElementById('onlineListBtn')?.addEventListener('click', () => {
+            const el = document.getElementById('onlineList');
+            const showing = el.style.display !== 'none';
+            el.style.display = showing ? 'none' : 'flex';
+            document.getElementById('onlineListBtn').textContent = showing ? "WHO'S ON" : 'HIDE';
+            if (!showing) renderOnlineList();
+        });
 
         document.getElementById('mpClearBlocksBtn')?.addEventListener('click', mpClearLobbyBlocks);
         document.getElementById('mpAllowSpectate')?.addEventListener('click', function() {
