@@ -44,7 +44,7 @@
   "photon": {
     "appId": "56ff5627-b073-412c-ac63-95fd3dc28484",
     "appVersion": "1.0",
-    "region": "",
+    "region": "us",
     "chatAppId": "56ff5627-b073-412c-ac63-95fd3dc28484",
     "_region": "Leave blank to auto-pick a region your app allows (recommended). Set a code like 'au', 'us', 'eu', 'asia' to force one \u2014 but it must be enabled in the Photon dashboard under Region Allowlist, or the connection is rejected.",
     "_appId": "Your live site is using 56ff5627-... \u2014 keep whatever is already in YOUR api.json, do not paste this file over it. Replace the line above with your real Realtime App ID before pushing."
