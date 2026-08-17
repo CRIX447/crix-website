@@ -63,6 +63,21 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == myUid();
     }
 
+    // ---- LOBBY INVITES ----
+    match /invites/{inviteId} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.fromUid == myUid();
+      allow delete: if signedIn();
+    }
+
+    // ---- FRIEND REMOVALS ----
+    // A queued request asking the other person to drop us from their list.
+    match /friendRemovals/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn() && request.resource.data.byUid == myUid();
+      allow delete: if signedIn();
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();
