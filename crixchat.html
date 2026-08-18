@@ -13,6 +13,7 @@
 <script src="/filter.js?v=2026081613"></script>
 <script src="/playfab-manager.js?v=2026081613"></script>
 <style>
+@keyframes spin{to{transform:rotate(360deg)}}
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--blue:#27A9F5;
   --bg:#0A0A0F;--panel:#101018;--panel2:#15151F;--line:rgba(255,255,255,.07);--dim:#9A9A9A}
@@ -122,7 +123,13 @@ button,input,textarea{font-family:inherit}
 <body>
 
 <!-- GATE -->
-<div id="gate">
+<div id="boot" style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px">
+  <div style="width:34px;height:34px;border:3px solid rgba(255,107,53,.2);border-top-color:var(--orange);
+              border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div style="font-size:11px;color:var(--dim);letter-spacing:2px;text-transform:uppercase">CRIX CHAT</div>
+</div>
+
+<div id="gate" style="display:none">
   <div class="card">
     <div class="logo">CRIX CHAT</div>
     <div class="tag">Private chat &amp; calls with your Flappy Crix friends</div>
@@ -153,6 +160,22 @@ button,input,textarea{font-family:inherit}
     </div>
   </div>
   <div id="list"></div>
+  <button id="newGroup" style="position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));
+    width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;font-size:22px;color:#fff;
+    background:linear-gradient(135deg,var(--red),var(--orange));box-shadow:0 6px 20px rgba(0,0,0,.5);z-index:50">+</button>
+</div>
+
+<div id="groupModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:150;
+  align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="max-width:400px">
+    <div style="font-size:16px;font-weight:bold;margin-bottom:4px">New group</div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:14px">Pick who to include</div>
+    <input class="inp" id="groupName" placeholder="Group name" maxlength="30">
+    <div id="groupPick" style="max-height:220px;overflow-y:auto;margin:10px 0"></div>
+    <button class="btn" id="groupCreate">Create group</button>
+    <button class="btn" id="groupCancel" style="background:var(--panel2);border-color:var(--line);margin-top:8px">Cancel</button>
+    <div class="err" id="groupErr"></div>
+  </div>
 </div>
 
 <!-- CHAT -->
@@ -226,6 +249,7 @@ let pc = null, localStream = null, callDoc = null, callTimer = null;
   // Firebase persists the session per-origin, so signing in on Flappy Crix
   // signs you in here automatically and vice versa — nothing extra needed.
   auth.onAuthStateChanged(async user => {
+    $('boot').style.display = 'none';
     if (!user) { $('gate').style.display = 'flex'; $('app').style.display = 'none'; $('chat').style.display = 'none'; return; }
     me = user;
     $('gate').style.display = 'none';
@@ -369,11 +393,12 @@ async function watchFriends() {
       const age = v.at?.toMillis ? now - v.at.toMillis() : 1e9;
       if (age < 120000 && v.status !== 'offline') pres[v.playFabId] = v;
     });
-    renderFriends(friends, pres);
+    loadGroups().then(g => { window.__groups = g; renderFriends(friends, pres); });
   }, () => renderFriends(friends, {}));
 }
 
 function renderFriends(friends, pres) {
+  allFriends = friends;
   const online = friends.filter(f => pres[f.playFabId]);
   const offline = friends.filter(f => !pres[f.playFabId]);
   const row = f => {
@@ -390,9 +415,22 @@ function renderFriends(friends, pres) {
       <button class="callbtn" data-call="${esc(f.playFabId)}">📞</button>
     </div>`;
   };
+  const groupRows = (window.__groups || []).map(g => `
+    <div class="f" data-group="${esc(g.id)}" data-name="${esc(g.name)}">
+      <div class="av" style="width:44px;height:44px;font-size:17px;background:var(--blue)">👥</div>
+      <div class="info">
+        <div class="nm">${esc(g.name)}</div>
+        <div class="sub">${(g.members||[]).length} members</div>
+      </div>
+    </div>`).join('');
+
   $('list').innerHTML =
+    (groupRows ? `<div class="hint">Groups</div>` + groupRows : '') +
     (online.length ? `<div class="hint">Online — ${online.length}</div>` + online.map(row).join('') : '') +
     (offline.length ? `<div class="hint">Offline</div>` + offline.map(row).join('') : '');
+
+  $('list').querySelectorAll('[data-group]').forEach(el =>
+    el.onclick = () => openChat(el.dataset.group, el.dataset.name, null, true));
 
   $('list').querySelectorAll('.f').forEach(el => {
     el.onclick = e => {
@@ -409,16 +447,23 @@ function renderFriends(friends, pres) {
 }
 
 /* ---------- DIRECT MESSAGES ---------- */
-// One document per pair, ids sorted so both sides resolve the same thread
+// DM ids are the two member ids sorted, so both sides resolve the same
+// document without needing a lookup. Groups get a generated id instead.
 function threadId(a, b) { return [a, b].sort().join('__'); }
+function activeThread() {
+  return peer?.group ? peer.id : threadId(profile.pfId || profile.uid, peer.id);
+}
 
-function openChat(id, name, photo) {
-  peer = { id, name, photo: photo || null };
+function openChat(id, name, photo, group) {
+  peer = { id, name, photo: photo || null, group: !!group };
   $('app').style.display = 'none';
   $('chat').style.display = 'flex';
   $('peerName').textContent = name;
   $('peerAv').outerHTML = avatar({ uid:id, name, photo }, 34).replace('class="av "', 'class="av" id="peerAv"');
-  $('peerStat').textContent = 'Messages disappear after 24 hours';
+  $('peerStat').textContent = peer.group
+    ? 'Group · messages disappear after 24 hours'
+    : 'Messages disappear after 24 hours';
+  $('callBtn').style.display = peer.group ? 'none' : '';   // calls are 1:1 only
   listenMessages();
   markRead(id);
 }
@@ -431,7 +476,7 @@ $('backBtn').onclick = () => {
 
 function listenMessages() {
   if (unsubMsgs) unsubMsgs();
-  const t = threadId(profile.pfId || profile.uid, peer.id);
+  const t = activeThread();
   $('msgs').innerHTML = '<div class="expiry">Loading…</div>';
 
   unsubMsgs = db.collection('dms').doc(t).collection('messages')
@@ -469,7 +514,10 @@ function renderMessages(msgs) {
     const t = m.at?.toDate ? m.at.toDate() : new Date();
     const time = t.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
     const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy">` : '';
-    return `<div class="b ${isMe?'me':'them'}">${esc(m.text||'')}${img}</div>
+    // In a group you need to know who said what
+    const who = (peer.group && !isMe)
+      ? `<div style="font-size:10px;color:var(--orange);margin-bottom:3px">${esc(m.name||'')}</div>` : '';
+    return `<div class="b ${isMe?'me':'them'}">${who}${esc(m.text||'')}${img}</div>
             <div class="bt" style="align-self:${isMe?'flex-end':'flex-start'}">${time}</div>`;
   }).join('');
   box.querySelectorAll('.b img').forEach(i => i.onclick = () => {
@@ -518,18 +566,101 @@ $('fileBtn').onclick = () => $('file').click();
 $('file').onchange = async function () {
   const f = this.files && this.files[0]; this.value = '';
   if (!f) return;
-  if (f.size > 3*1024*1024) { $('peerStat').textContent = 'Images must be under 3MB'; return; }
-  $('peerStat').textContent = 'Uploading…';
+  $('peerStat').textContent = 'Preparing…';
   try {
-    const r = storage.ref(`dm/${threadId(profile.pfId||profile.uid, peer.id)}/${Date.now()}`);
-    const s = await r.put(f, { contentType: f.type });
+    // Shrink first — large phone photos would otherwise fail the size cap
+    const blob = await shrink(f, 1280);
+    $('peerStat').textContent = 'Uploading…';
+    const r = storage.ref(`dm/${activeThread()}/${Date.now()}.jpg`);
+    const s = await r.put(blob, { contentType: 'image/jpeg' });
     await send(await s.ref.getDownloadURL());
     $('peerStat').textContent = 'Messages disappear after 24 hours';
   } catch (e) {
-    $('peerStat').textContent = /unauthorized/i.test(e.message) ? 'Allow dm/ in Storage rules' : 'Upload failed';
+    console.error('[Upload]', e.code, e.message);
+    const msgs = {
+      'storage/unauthorized': 'Blocked — publish storage.rules in Firebase Console → Storage → Rules.',
+      'storage/unauthenticated': 'Sign in again and retry.',
+      'storage/unknown': 'Storage may not be set up. Firebase Console → Storage → Get started.',
+      'storage/retry-limit-exceeded': 'Upload timed out — check your connection.',
+      'storage/quota-exceeded': 'Storage quota is full.'
+    };
+    $('peerStat').textContent = msgs[e.code] || ('Upload failed: ' + e.message);
+    setTimeout(() => { $('peerStat').textContent = 'Messages disappear after 24 hours'; }, 6000);
   }
 };
 $('lb').onclick = () => $('lb').style.display = 'none';
+
+// Downscales to `max` px on the long edge and re-encodes as JPEG
+function shrink(file, max) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => {
+      let { width:w, height:h } = img;
+      if (w > max || h > max) { const s = max / Math.max(w, h); w = Math.round(w*s); h = Math.round(h*s); }
+      const cv = document.createElement('canvas');
+      cv.width = w; cv.height = h;
+      cv.getContext('2d').drawImage(img, 0, 0, w, h);
+      cv.toBlob(b => b ? res(b) : rej(new Error('Could not process that image')), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => rej(new Error('That file is not a readable image'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+/* ---------- GROUPS ---------- */
+let allFriends = [];
+
+$('newGroup').onclick = () => {
+  if (!allFriends.length) { alert('Add friends in Flappy Crix first.'); return; }
+  $('groupName').value = '';
+  $('groupErr').textContent = '';
+  $('groupPick').innerHTML = allFriends.map(f => {
+    const n = esc(f.displayName.replace(/#.*$/, ''));
+    return `<label style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:10px;cursor:pointer">
+      <input type="checkbox" value="${esc(f.playFabId)}" data-name="${n}" style="width:17px;height:17px;accent-color:#FF4655">
+      ${avatar({ uid:f.playFabId, name:n, photo:f.avatarUrl }, 30)}
+      <span style="font-size:13px">${n}</span>
+    </label>`;
+  }).join('');
+  $('groupModal').style.display = 'flex';
+};
+$('groupCancel').onclick = () => $('groupModal').style.display = 'none';
+
+$('groupCreate').onclick = async () => {
+  const picked = [...$('groupPick').querySelectorAll('input:checked')];
+  const name = $('groupName').value.trim();
+  if (picked.length < 2) { $('groupErr').textContent = 'Pick at least 2 people — use a direct message for one.'; return; }
+  if (!name) { $('groupErr').textContent = 'Give the group a name.'; return; }
+
+  const mine = profile.pfId || profile.uid;
+  const members = [mine, ...picked.map(p => p.value)];
+  const id = 'g_' + Math.random().toString(36).slice(2, 10);
+
+  try {
+    await db.collection('dms').doc(id).set({
+      group: true, name, members,
+      memberNames: Object.fromEntries(
+        [[mine, profile.name], ...picked.map(p => [p.value, p.dataset.name])]),
+      createdBy: mine, createdUid: profile.uid,
+      updated: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    $('groupModal').style.display = 'none';
+    openChat(id, name, null, true);
+    watchFriends();
+  } catch (e) {
+    $('groupErr').textContent = /permission/i.test(e.message)
+      ? 'Blocked — publish firestore.rules.' : e.message;
+  }
+};
+
+// Groups the player belongs to, shown above the friends list
+async function loadGroups() {
+  const mine = profile.pfId || profile.uid;
+  try {
+    const snap = await db.collection('dms').where('members','array-contains',mine).get();
+    return snap.docs.map(d => ({ id:d.id, ...d.data() })).filter(g => g.group);
+  } catch { return []; }
+}
 
 /* ---------- UNREAD ---------- */
 function markRead(id) {
