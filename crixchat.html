@@ -9,7 +9,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
 <script src="/filter.js?v=2026081613"></script>
 <script src="/playfab-manager.js?v=2026081613"></script>
 <style>
@@ -227,7 +226,7 @@ const $ = i => document.getElementById(i);
 const esc = s => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
 const MSG_TTL = 24 * 60 * 60 * 1000;   // messages vanish after 24 hours
 
-let auth, db, storage, me = null, profile = {}, peer = null;
+let auth, db, me = null, profile = {}, peer = null;
 let unsubMsgs = null, unsubFriends = null, unsubCalls = null, isSignUp = false;
 let pc = null, localStream = null, callDoc = null, callTimer = null;
 
@@ -240,7 +239,7 @@ let pc = null, localStream = null, callDoc = null, callTimer = null;
 
   try {
     firebase.initializeApp(cfg.firebase);
-    auth = firebase.auth(); db = firebase.firestore(); storage = firebase.storage();
+    auth = firebase.auth(); db = firebase.firestore();
   } catch (e) { $('gErr').textContent = 'Firebase failed: ' + e.message; return; }
 
   if (typeof PlayFabManager !== 'undefined') await PlayFabManager.init(cfg.playfab || {});
@@ -568,30 +567,33 @@ $('file').onchange = async function () {
   if (!f) return;
   $('peerStat').textContent = 'Preparing…';
   try {
-    // Shrink first — large phone photos would otherwise fail the size cap
-    const blob = await shrink(f, 1280);
-    $('peerStat').textContent = 'Uploading…';
-    const r = storage.ref(`dm/${activeThread()}/${Date.now()}.jpg`);
-    const s = await r.put(blob, { contentType: 'image/jpeg' });
-    await send(await s.ref.getDownloadURL());
+    // Images are stored inline in the message document rather than uploaded
+    // to Cloud Storage. Firestore allows ~1MB per document and a shrunken
+    // photo is well under that, so this needs no extra Firebase product —
+    // which matters because new projects must enable billing to use Storage.
+    const dataUrl = await shrinkToDataUrl(f, 900, 0.78);
+    const kb = Math.round(dataUrl.length * 0.75 / 1024);
+    if (dataUrl.length > 700000) {
+      $('peerStat').textContent = 'That image is too detailed to send — try a smaller one.';
+      setTimeout(() => { $('peerStat').textContent = 'Messages disappear after 24 hours'; }, 5000);
+      return;
+    }
+    $('peerStat').textContent = `Sending (${kb}KB)…`;
+    await send(dataUrl);
     $('peerStat').textContent = 'Messages disappear after 24 hours';
   } catch (e) {
-    console.error('[Upload]', e.code, e.message);
-    const msgs = {
-      'storage/unauthorized': 'Blocked — publish storage.rules in Firebase Console → Storage → Rules.',
-      'storage/unauthenticated': 'Sign in again and retry.',
-      'storage/unknown': 'Storage may not be set up. Firebase Console → Storage → Get started.',
-      'storage/retry-limit-exceeded': 'Upload timed out — check your connection.',
-      'storage/quota-exceeded': 'Storage quota is full.'
-    };
-    $('peerStat').textContent = msgs[e.code] || ('Upload failed: ' + e.message);
+    console.error('[Image]', e.message);
+    $('peerStat').textContent = /permission/i.test(e.message)
+      ? 'Blocked — publish firestore.rules.'
+      : 'Could not send that image: ' + e.message;
     setTimeout(() => { $('peerStat').textContent = 'Messages disappear after 24 hours'; }, 6000);
   }
 };
 $('lb').onclick = () => $('lb').style.display = 'none';
 
-// Downscales to `max` px on the long edge and re-encodes as JPEG
-function shrink(file, max) {
+// Downscales and returns a JPEG data URL, dropping quality further if the
+// result is still too large for a Firestore document.
+function shrinkToDataUrl(file, max, quality) {
   return new Promise((res, rej) => {
     const img = new Image();
     img.onload = () => {
@@ -600,7 +602,11 @@ function shrink(file, max) {
       const cv = document.createElement('canvas');
       cv.width = w; cv.height = h;
       cv.getContext('2d').drawImage(img, 0, 0, w, h);
-      cv.toBlob(b => b ? res(b) : rej(new Error('Could not process that image')), 'image/jpeg', 0.85);
+      let q = quality, url = cv.toDataURL('image/jpeg', q);
+      // Step the quality down rather than rejecting a busy photo outright
+      while (url.length > 650000 && q > 0.35) { q -= 0.12; url = cv.toDataURL('image/jpeg', q); }
+      URL.revokeObjectURL(img.src);
+      res(url);
     };
     img.onerror = () => rej(new Error('That file is not a readable image'));
     img.src = URL.createObjectURL(file);
