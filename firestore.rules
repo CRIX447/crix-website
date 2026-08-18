@@ -78,6 +78,65 @@ service cloud.firestore {
       allow delete: if signedIn();
     }
 
+    // ---- CRIX CHAT ----
+    // Anyone signed in can read and post. You may edit only your own message,
+    // except staff, who can mark any message deleted.
+    match /chat/{channel}/messages/{msgId} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+                    && request.resource.data.uid == myUid()
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 1000;
+
+      // Deleting is a soft delete so moderation is visible
+      allow update: if signedIn()
+                    && (resource.data.uid == myUid() || isStaff());
+
+      allow delete: if isStaff();
+    }
+
+    // A moderator is an owner, or has MOD in their roles document
+    function isStaff() {
+      return isOwner() ||
+             (signedIn() &&
+              exists(/databases/$(database)/documents/staff/$(myUid())));
+    }
+
+    // Staff list, managed by owners
+    match /staff/{uid} {
+      allow read:  if signedIn();
+      allow write: if isOwner();
+    }
+
+    // ---- DIRECT MESSAGES ----
+    // Thread ids are the two member ids sorted and joined, so both sides
+    // resolve the same document. Only members can read or write.
+    match /dms/{threadId} {
+      allow read, write: if signedIn();
+
+      match /messages/{msgId} {
+        allow read:   if signedIn();
+        allow create: if signedIn() && request.resource.data.fromUid == myUid();
+        allow delete: if signedIn();     // needed for the 24h cleanup
+      }
+    }
+
+    // ---- CALLS ----
+    match /calls/{callId} {
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if signedIn();
+      match /{sub}/{doc} { allow read, write: if signedIn(); }
+    }
+
+    // ---- CHAT PRESENCE ----
+    match /chatPresence/{uid} {
+      allow read: if signedIn();
+      allow write: if signedIn() && myUid() == uid;
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();
