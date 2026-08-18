@@ -78,6 +78,15 @@
           "value": "no-store, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/crixchat",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -100,6 +109,11 @@
     {
       "source": "/shop",
       "destination": "https://shop.crixgamingvr.com",
+      "permanent": false
+    },
+    {
+      "source": "/chat",
+      "destination": "/crixchat",
       "permanent": false
     }
   ]
