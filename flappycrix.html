@@ -35,11 +35,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.16-1310";</script>
+    <script>window.__BUILD__ = "2026.08.16-1430";</script>
     
 
-    <script src="/filter.js?v=2026081611"></script>
-    <script src="/playfab-manager.js?v=2026081611"></script>
+    <script src="/filter.js?v=2026081612"></script>
+    <script src="/playfab-manager.js?v=2026081612"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1823,7 +1823,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-1310</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.16-1430</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3625,7 +3625,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.16-1310</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.16-1430</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -5211,8 +5211,10 @@
 
         let _regionTimer = null;
 
+        let _regionBusy = false;
         function tryNextRegion() {
             if (mpRegionSettled) return;
+            if (_regionBusy) { console.log('[Photon] already connecting — ignoring duplicate attempt'); return; }
             if (_regionTimer) { clearTimeout(_regionTimer); _regionTimer = null; }
             if (mpRegionIndex >= mpRegionQueue.length) {
                 mpShowDiagnostic('⚠️ Photon refused every region. This usually means the App ID ' +
@@ -5223,8 +5225,13 @@
             }
             const region = mpRegionQueue[mpRegionIndex++];
             mpActiveRegion = region;
+            _regionBusy = true;
+            // Fully disconnect first — starting a new region mid-connect caused
+            // "checkNextState fail: ConnectingToNameServer -> ConnectingToNameServer"
+            try { photonClient.disconnect(); } catch (e) {}
             console.log(`[Photon] trying region "${region}" (${mpRegionIndex}/${mpRegionQueue.length})`);
             mpSetStatusDot('connecting');
+            setTimeout(() => { _regionBusy = false; }, 1500);
             try {
                 photonClient.connectToRegionMaster(region);
             } catch (e) {
@@ -5235,14 +5242,28 @@
 
             // A rejected region can stall at ConnectedToNameServer with no error
             // at all, so a timeout is the only way to move on.
-            _regionTimer = setTimeout(() => {
+            // `state` is a getter FUNCTION on this SDK build, so reading it as a
+            // property returned the function itself. Call it properly.
+            const watchRegion = () => {
                 if (mpRegionSettled) return;
-                const st = photonClient.state;
+                let st;
+                try { st = (typeof photonClient.state === 'function') ? photonClient.state() : photonClient.state; }
+                catch (e) { st = -1; }
+                const S = Photon.LoadBalancing.LoadBalancingClient.State;
+                // Mid-handshake states mean it IS working — give it longer rather
+                // than tearing down a connection that was about to succeed.
+                if (st === S.ConnectingToMasterserver || st === S.ConnectedToMaster ||
+                    st === S.ConnectingToGameserver  || st === S.Joined) {
+                    console.log(`[Photon] region "${region}" still negotiating — waiting`);
+                    _regionTimer = setTimeout(watchRegion, 6000);
+                    return;
+                }
                 const nm = Photon.LoadBalancing.LoadBalancingClient.StateToName(st) || st;
-                console.warn(`[Photon] region "${region}" stalled at ${nm} after 6s — trying next`);
+                console.warn(`[Photon] region "${region}" stalled at ${nm} — trying next`);
                 try { photonClient.disconnect(); } catch(e) {}
-                setTimeout(tryNextRegion, 300);
-            }, 6000);
+                setTimeout(tryNextRegion, 400);
+            };
+            _regionTimer = setTimeout(watchRegion, 10000);
         }
         let _pfRetries = 0, _pfRetryTimer = null;
         function scheduleReconnect() {
@@ -5371,6 +5392,12 @@
                     if (state === S.ConnectedToMaster || state === S.JoinedLobby) {
                         console.log('[Photon] master server reached ✓');
                     }
+                    if (state === S.ConnectedToMaster && !mpRegionSettled) {
+                        // Authenticated against a region — stop trying others
+                        mpRegionSettled = true;
+                        if (_regionTimer) { clearTimeout(_regionTimer); _regionTimer = null; }
+                        console.log(`[Photon] region "${mpActiveRegion}" accepted us`);
+                    }
                     if (state === S.JoinedLobby) {
                         mpConnected = true;
                         mpRegionSettled = true;
@@ -5437,7 +5464,7 @@
                         1001: 'Authentication failed — the App ID is wrong or the app is disabled in the Photon dashboard.',
                         1002: 'Photon app is over its CCU limit (20 on the free plan) or disabled.',
                         32757: 'No free slots / room full.',
-                        32758: 'Room not found — the code may be wrong or the lobby closed.',
+                        32758: 'That lobby no longer exists — the host may have left or the code is wrong.',
                         32764: 'Room name already in use.',
                         32766: 'Game does not exist.'
                     };
@@ -5641,7 +5668,13 @@
             try { photonClient.joinRoom(roomName); } catch(e) { console.warn('joinRoom failed', e); }
         }
 
+        let _joinInFlight = false;
         function mpJoinByCode() {
+            // Guards against the same code being submitted several times —
+            // the log showed three simultaneous joins for one room.
+            if (_joinInFlight) { console.log('[MP] join already in progress'); return; }
+            _joinInFlight = true;
+            setTimeout(() => { _joinInFlight = false; }, 4000);
             const code = document.getElementById('mpJoinCodeInput').value.trim().toUpperCase();
             const errEl = document.getElementById('mpJoinError');
             if (code.length !== 4) { errEl.textContent = 'Enter a 4-character code'; return; }
@@ -5762,6 +5795,7 @@
             };
             
             if (mpEnforceBlocklist(actor)) return;
+            _joinInFlight = false;
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             if (isFriend({ name: actor.name, pfId: null })) {
                 notify({ type:'invite', title:'Friend joined', body: `${actor.name} is in your lobby`, store:false });
