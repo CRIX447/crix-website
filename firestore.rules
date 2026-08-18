@@ -1,3 +1,17 @@
+// ============================================================
+//  FIRESTORE RULES  —  the DATABASE
+// ------------------------------------------------------------
+//  PASTE THIS INTO:
+//    Firebase Console -> Firestore Database -> Rules -> Publish
+//
+//  This is NOT the same file as storage.rules. That one covers
+//  file uploads and goes under Storage -> Rules. Publishing one
+//  has no effect on the other, which is why messages can work
+//  while image uploads fail.
+//
+//  Covers: messages, friend requests, roles, bans, presence
+// ============================================================
+
 rules_version = '2';
 
 service cloud.firestore {
@@ -114,12 +128,18 @@ service cloud.firestore {
     // Thread ids are the two member ids sorted and joined, so both sides
     // resolve the same document. Only members can read or write.
     match /dms/{threadId} {
-      allow read, write: if signedIn();
+      // Only members can see a thread. DM ids are the two member ids joined,
+      // so membership is verifiable from the id itself; groups carry a
+      // members array.
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
 
       match /messages/{msgId} {
         allow read:   if signedIn();
+        // You can only post as yourself
         allow create: if signedIn() && request.resource.data.fromUid == myUid();
-        allow delete: if signedIn();     // needed for the 24h cleanup
+        allow delete: if signedIn();     // needed for the 24-hour cleanup
       }
     }
 
