@@ -2,662 +2,688 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CRIX CHAT</title>
 <link rel="icon" href="/img/newfavicon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-<script src="/filter.js?v=2026081611"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+<script src="/filter.js?v=2026081613"></script>
+<script src="/playfab-manager.js?v=2026081613"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
-:root{
-  --red:#FF4655; --orange:#FF6B35; --green:#00CC7A; --blue:#27A9F5;
-  --bg:#0A0A0F; --bg2:#101018; --bg3:#16161F; --line:rgba(255,255,255,.08);
-  --text:#EDEDED; --dim:#9A9A9A;
-}
+:root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--blue:#27A9F5;
+  --bg:#0A0A0F;--panel:#101018;--panel2:#15151F;--line:rgba(255,255,255,.07);--dim:#9A9A9A}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-html,body{height:100%}
-body{background:var(--bg);color:var(--text);
-  font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;font-size:14px;overflow:hidden}
+html,body{height:100%;overscroll-behavior:none}
+body{background:var(--bg);color:#EDEDED;font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
+  font-size:14px;overflow:hidden}
 button,input,textarea{font-family:inherit}
 
-/* ---------- AUTH ---------- */
-#gate{height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
-  background-image:linear-gradient(rgba(255,70,85,.04) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(255,70,85,.04) 1px,transparent 1px);
-  background-size:48px 48px}
-.gate-card{background:var(--bg2);border:2px solid var(--red);border-bottom:5px solid rgba(150,20,35,.7);
-  border-radius:20px;padding:34px 30px;max-width:380px;width:100%;box-shadow:5px 5px 0 rgba(0,0,0,.6)}
-.gate-logo{font-size:24px;font-weight:bold;letter-spacing:2px;text-align:center;margin-bottom:4px;
+/* GATE */
+#gate{height:100%;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:var(--panel);border:2px solid var(--red);border-bottom:5px solid rgba(150,20,35,.7);
+  border-radius:22px;padding:32px 28px;max-width:380px;width:100%;box-shadow:5px 5px 0 rgba(0,0,0,.6)}
+.logo{font-size:26px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;text-align:center;
   background:linear-gradient(135deg,var(--red),var(--orange));-webkit-background-clip:text;
   -webkit-text-fill-color:transparent;background-clip:text}
-.gate-sub{text-align:center;color:var(--dim);font-size:11px;margin-bottom:22px}
-.field{width:100%;background:#0b0b12;border:1px solid var(--line);color:var(--text);
-  border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:9px}
-.field:focus{outline:none;border-color:var(--orange)}
-.btn{border:none;border-radius:10px;padding:11px 18px;font-size:13px;font-weight:bold;
-  cursor:pointer;width:100%;letter-spacing:.5px}
-.btn-primary{background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;
-  border:2px solid rgba(255,255,255,.15);border-bottom:4px solid rgba(0,0,0,.4)}
-.btn-primary:hover{filter:brightness(1.08)}
-.btn-google{background:#fff;color:#1a1a1a;margin-bottom:10px;display:flex;align-items:center;
-  justify-content:center;gap:9px}
-.btn-google:hover{background:#f0f0f0}
-.divider{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:10px;margin:14px 0}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--line)}
-.switch{text-align:center;color:var(--blue);font-size:11px;margin-top:14px;cursor:pointer}
-.switch:hover{text-decoration:underline}
-.err{font-size:11px;text-align:center;min-height:16px;margin-top:8px;line-height:1.5;color:var(--red)}
-.back{display:block;text-align:center;color:var(--dim);font-size:10px;margin-top:16px;text-decoration:none}
-.back:hover{color:var(--text)}
+.tag{text-align:center;font-size:11px;color:var(--dim);margin:4px 0 20px}
+.inp{width:100%;background:#0b0b12;border:1px solid var(--line);color:#fff;border-radius:10px;
+  padding:11px 14px;font-size:13px;margin-bottom:9px}
+.inp:focus{outline:none;border-color:var(--orange)}
+.btn{width:100%;background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;
+  border:2px solid rgba(255,255,255,.15);border-bottom:4px solid rgba(0,0,0,.4);border-radius:30px;
+  padding:11px;font-size:13px;font-weight:bold;cursor:pointer;text-transform:uppercase;letter-spacing:1px}
+.btn.g{background:#fff;color:#222;border-color:#ccc}
+.btn.d{background:#5865F2;border-color:#4752C4}
+.sep{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:10px;margin:14px 0}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--line)}
+.swap{text-align:center;font-size:11px;color:var(--blue);cursor:pointer;margin-top:12px}
+.err{color:var(--red);font-size:11px;text-align:center;min-height:15px;margin-top:8px;line-height:1.5}
 
-/* ---------- SHELL ---------- */
-#app{display:none;height:100vh;grid-template-columns:200px 1fr 190px;grid-template-rows:48px 1fr}
-@media(max-width:820px){
-  #app{grid-template-columns:1fr;grid-template-rows:48px 1fr}
-  #channels,#members{display:none}
-  #channels.open,#members.open{display:flex;position:fixed;top:48px;bottom:0;width:230px;z-index:60}
-  #members.open{right:0}
-}
-.topbar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 14px;
-  background:#08080d;border-bottom:2px solid rgba(255,70,85,.35)}
-.brand{font-size:15px;font-weight:bold;letter-spacing:1.5px;
+/* APP */
+#app{display:none;height:100%;flex-direction:column}
+.top{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-shrink:0}
+.top .name{font-size:16px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;
   background:linear-gradient(135deg,var(--red),var(--orange));-webkit-background-clip:text;
   -webkit-text-fill-color:transparent;background-clip:text}
-.chan-title{color:var(--dim);font-size:12px}
-.chan-title strong{color:var(--text)}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
-.icon-btn{background:none;border:1px solid var(--line);color:var(--dim);width:30px;height:30px;
-  border-radius:8px;cursor:pointer;font-size:13px;align-items:center;justify-content:center;display:none}
-.icon-btn.always{display:flex}
-@media(max-width:820px){.icon-btn{display:flex}}
-.me{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--dim)}
+.ib{background:none;border:none;color:var(--dim);cursor:pointer;font-size:17px;padding:4px 6px}
+.ib:hover{color:#fff}
+.av{border-radius:50%;object-fit:cover;flex-shrink:0;display:flex;align-items:center;
+  justify-content:center;font-weight:bold;color:#fff}
 
-/* ---------- CHANNELS ---------- */
-#channels{background:var(--bg2);border-right:1px solid var(--line);
-  display:flex;flex-direction:column;overflow-y:auto;padding:10px 8px}
-.sec{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;padding:8px 8px 5px}
-.chan{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:8px;
-  cursor:pointer;color:var(--dim);font-size:13px;white-space:nowrap;overflow:hidden}
-.chan:hover{background:rgba(255,255,255,.05);color:var(--text)}
-.chan.active{background:rgba(255,70,85,.15);color:var(--red)}
-.chan .hash{opacity:.6}
-.chan-add{margin-top:auto;font-size:11px;color:var(--dim);background:none;
-  border:1px dashed var(--line);border-radius:8px;padding:8px;cursor:pointer;width:100%}
-.chan-add:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
-
-/* ---------- MESSAGES ---------- */
-#main{display:flex;flex-direction:column;min-width:0;background:var(--bg)}
-#messages{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
-.msg{display:flex;gap:10px;padding:5px 8px;border-radius:8px;position:relative}
-.msg:hover{background:rgba(255,255,255,.025)}
-.msg.grouped{padding-top:1px}
-.msg.grouped .msg-av{visibility:hidden;height:0;margin:0}
-.msg.grouped .msg-head{display:none}
-.msg.mention{background:rgba(255,70,85,.08);border-left:2px solid var(--red)}
-.av{border-radius:50%;object-fit:cover;flex-shrink:0;display:flex;
-  align-items:center;justify-content:center;font-weight:bold;color:#fff}
-.msg-av{width:34px;height:34px;font-size:14px}
-.sm-av{width:26px;height:26px;font-size:11px}
-.msg-body{flex:1;min-width:0}
-.msg-head{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;margin-bottom:1px}
-.msg-name{font-size:13px;font-weight:bold;color:#fff}
-.msg-time{font-size:9px;color:var(--dim)}
-.msg-text{font-size:13px;line-height:1.55;color:#DDD;word-wrap:break-word;
-  overflow-wrap:anywhere;white-space:pre-wrap}
-.msg-text a{color:var(--blue)}
-.mention-chip{background:rgba(255,70,85,.25);color:#FF8A94;padding:0 4px;border-radius:4px;font-weight:bold}
-.tag{font-size:9px;font-weight:bold;padding:1px 6px;border-radius:8px}
-.msg-del{position:absolute;top:4px;right:6px;background:rgba(0,0,0,.65);border:1px solid var(--line);
-  color:var(--red);font-size:10px;padding:2px 7px;border-radius:6px;cursor:pointer;display:none}
-.msg:hover .msg-del{display:block}
-.day{text-align:center;color:var(--dim);font-size:10px;margin:14px 0 6px;position:relative}
-.day::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--line);z-index:0}
-.day span{background:var(--bg);padding:0 10px;position:relative;z-index:1}
-.empty{color:var(--dim);font-size:12px;text-align:center;padding:40px 20px;line-height:1.8}
-
-/* ---------- COMPOSER ---------- */
-#composer{padding:10px 16px 14px;border-top:1px solid var(--line);position:relative}
-.compose-row{display:flex;gap:8px;align-items:flex-end;background:var(--bg3);
-  border:1px solid var(--line);border-radius:12px;padding:8px 10px}
-.compose-row:focus-within{border-color:var(--orange)}
-#input{flex:1;background:none;border:none;color:var(--text);font-size:13px;resize:none;
-  max-height:120px;line-height:1.5;outline:none}
-.send{background:var(--red);border:none;color:#fff;border-radius:8px;padding:7px 14px;
-  font-size:12px;font-weight:bold;cursor:pointer}
-.hint{font-size:9px;color:var(--dim);margin-top:5px}
-.mention-pop{position:absolute;bottom:100%;left:16px;right:16px;background:var(--bg3);
-  border:1px solid var(--orange);border-radius:10px;max-height:150px;overflow-y:auto;
-  display:none;margin-bottom:6px;z-index:20}
-.mention-pop.open{display:block}
-.mention-opt{padding:7px 11px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:8px}
-.mention-opt:hover,.mention-opt.sel{background:rgba(255,107,53,.15)}
-
-/* ---------- MEMBERS ---------- */
-#members{background:var(--bg2);border-left:1px solid var(--line);overflow-y:auto;
-  display:flex;flex-direction:column;padding:10px 8px}
-.member{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:8px;font-size:12px}
-.member:hover{background:rgba(255,255,255,.04)}
-.member-name{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* FRIEND LIST */
+#list{flex:1;overflow-y:auto;padding:8px}
+.hint{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:1.5px;padding:12px 10px 6px}
+.f{display:flex;align-items:center;gap:11px;padding:11px;border-radius:14px;cursor:pointer;
+  margin-bottom:4px;background:var(--panel2);border:1px solid var(--line)}
+.f:active{transform:scale(.99)}
+.f .av{width:44px;height:44px;font-size:17px}
+.f .info{flex:1;min-width:0}
+.f .nm{font-size:14px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.f .sub{font-size:11px;color:var(--dim);margin-top:2px;display:flex;align-items:center;gap:5px}
+.f .unread{background:var(--red);color:#fff;font-size:10px;font-weight:bold;
+  min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 6px}
 .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-.offline{opacity:.45}
+.callbtn{background:rgba(0,204,122,.15);border:1px solid rgba(0,204,122,.4);color:var(--green);
+  width:36px;height:36px;border-radius:50%;cursor:pointer;font-size:15px;flex-shrink:0}
+.empty{text-align:center;color:var(--dim);font-size:12px;padding:40px 20px;line-height:1.8}
+
+/* CHAT */
+#chat{display:none;flex-direction:column;height:100%}
+.chead{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel);
+  border-bottom:1px solid var(--line);flex-shrink:0}
+.chead .av{width:34px;height:34px;font-size:14px}
+#msgs{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:7px}
+.b{max-width:76%;padding:9px 13px;border-radius:18px;font-size:13px;line-height:1.5;
+  word-wrap:break-word;white-space:pre-wrap}
+.b.me{align-self:flex-end;background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;
+  border-bottom-right-radius:5px}
+.b.them{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);
+  border-bottom-left-radius:5px}
+.b img{max-width:100%;border-radius:12px;display:block;margin-top:5px;cursor:pointer}
+.bt{font-size:9px;color:var(--dim);margin:0 6px;align-self:flex-end}
+.b.me + .bt{align-self:flex-end}
+.expiry{text-align:center;font-size:10px;color:var(--dim);padding:8px;line-height:1.7}
+.comp{display:flex;gap:8px;align-items:flex-end;padding:10px 12px;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));background:var(--panel);
+  border-top:1px solid var(--line);flex-shrink:0}
+#input{flex:1;background:#0b0b12;border:1px solid var(--line);color:#fff;border-radius:20px;
+  padding:10px 14px;font-size:13px;resize:none;max-height:110px;line-height:1.4}
+#input:focus{outline:none;border-color:var(--orange)}
+.send{background:var(--red);border:none;color:#fff;width:38px;height:38px;border-radius:50%;
+  cursor:pointer;font-size:15px;flex-shrink:0}
+.send:disabled{opacity:.35}
+
+/* CALL */
+#call{display:none;position:fixed;inset:0;background:#07070b;z-index:200;
+  flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:24px}
+#call .av{width:110px;height:110px;font-size:42px}
+.cname{font-size:20px;font-weight:bold}
+.cstat{font-size:12px;color:var(--dim)}
+.crow{display:flex;gap:14px;margin-top:14px}
+.cbtn{width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;font-size:22px;color:#fff}
+.cbtn.end{background:var(--red)}
+.cbtn.mute{background:#2a2a38}
+.cbtn.answer{background:var(--green)}
+#ring{display:none;position:fixed;top:14px;left:14px;right:14px;background:var(--panel);
+  border:2px solid var(--green);border-radius:16px;padding:14px;z-index:210;
+  align-items:center;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.6)}
+#ring .av{width:42px;height:42px;font-size:16px}
+
+#lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:220;
+  align-items:center;justify-content:center;cursor:zoom-out}
+#lb img{max-width:94vw;max-height:90vh;border-radius:12px}
 </style>
 </head>
 <body>
 
-<!-- ================= AUTH ================= -->
+<!-- GATE -->
 <div id="gate">
-  <div class="gate-card">
-    <div class="gate-logo">CRIX CHAT</div>
-    <div class="gate-sub">Talk with the community</div>
-
-    <button class="btn btn-google" id="googleBtn">
-      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45 24c0-1.6-.1-2.7-.4-4H24v7.5h12c-.2 2-1.5 5-4.4 7l6.7 5.2C42.2 36 45 30.6 45 24z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-6.7-5.2c-1.9 1.3-4.4 2.2-7.8 2.2-6 0-11-4-12.8-9.5l-7 5.4C7.8 40.9 15.3 46 24 46z"/><path fill="#FBBC05" d="M11.2 28.2c-.5-1.4-.7-2.8-.7-4.2s.3-2.9.7-4.2l-7-5.4C2.8 17.3 2 20.5 2 24s.8 6.7 2.2 9.6l7-5.4z"/><path fill="#EA4335" d="M24 10.7c3.3 0 6.2 1.1 8.5 3.3l6-6C34.9 4.6 29.9 2 24 2 15.3 2 7.8 7.1 4.2 14.4l7 5.4C13 14.7 18 10.7 24 10.7z"/></svg>
-      Continue with Google
-    </button>
-
-    <div class="divider">or</div>
-
-    <input class="field" type="email" id="email" placeholder="Email" autocomplete="email">
-    <input class="field" type="password" id="password" placeholder="Password" autocomplete="current-password">
-    <input class="field" type="text" id="username" placeholder="Display name" style="display:none">
-    <button class="btn btn-primary" id="submitBtn">Sign in</button>
-
-    <div class="switch" id="switchMode">New here? Create an account</div>
-    <div class="err" id="err"></div>
-    <a class="back" href="/">← Back to the main site</a>
+  <div class="card">
+    <div class="logo">CRIX CHAT</div>
+    <div class="tag">Private chat &amp; calls with your Flappy Crix friends</div>
+    <button class="btn g" id="gGoogle">Continue with Google</button>
+    <button class="btn d" id="gDiscord" style="margin-top:8px;">Continue with Discord</button>
+    <div class="sep">or</div>
+    <input class="inp" type="email" id="email" placeholder="Email" autocomplete="email">
+    <input class="inp" type="password" id="pass" placeholder="Password" autocomplete="current-password">
+    <input class="inp" type="text" id="dname" placeholder="Display name" style="display:none">
+    <button class="btn" id="gAuth">Sign in</button>
+    <div class="swap" id="gSwap">Need an account? Sign up</div>
+    <div class="err" id="gErr"></div>
+    <div style="margin-top:16px;text-align:center;font-size:10px;color:var(--dim);line-height:1.7">
+      Same account as <a href="/flappycrix" style="color:var(--green)">Flappy Crix</a>.
+      Sign in here and you're signed in there too.
+    </div>
   </div>
 </div>
 
-<!-- ================= APP ================= -->
+<!-- APP -->
 <div id="app">
-  <div class="topbar">
-    <button class="icon-btn" id="chanToggle">☰</button>
-    <span class="brand">CRIX CHAT</span>
-    <span class="chan-title">#<strong id="curChan">general</strong></span>
-    <div class="topbar-right">
-      <button class="icon-btn" id="memToggle">👥</button>
-      <div class="me" id="meBox"></div>
-      <button class="icon-btn always" id="signOut" title="Sign out">⏻</button>
+  <div class="top">
+    <div class="av" id="meAv" style="width:32px;height:32px;font-size:13px"></div>
+    <span class="name">CRIX CHAT</span>
+    <div style="margin-left:auto;display:flex;gap:2px">
+      <button class="ib" id="playBtn" title="Play Flappy Crix">🎮</button>
+      <button class="ib" id="outBtn" title="Sign out">⏻</button>
     </div>
   </div>
+  <div id="list"></div>
+</div>
 
-  <div id="channels">
-    <div class="sec">Channels</div>
-    <div id="chanList"></div>
-    <button class="chan-add" id="addChan" style="display:none">+ New channel</button>
-  </div>
-
-  <div id="main">
-    <div id="messages"><div class="empty">Loading…</div></div>
-    <div id="composer">
-      <div class="mention-pop" id="mentionPop"></div>
-      <div class="compose-row">
-        <textarea id="input" rows="1" placeholder="Message #general" maxlength="1000"></textarea>
-        <button class="send" id="sendBtn">Send</button>
-      </div>
-      <div class="hint">Enter to send · Shift+Enter for a new line · @ to mention</div>
+<!-- CHAT -->
+<div id="chat">
+  <div class="chead">
+    <button class="ib" id="backBtn">←</button>
+    <div class="av" id="peerAv"></div>
+    <div style="flex:1;min-width:0">
+      <div id="peerName" style="font-size:14px;color:#fff"></div>
+      <div id="peerStat" style="font-size:10px;color:var(--dim)"></div>
     </div>
+    <button class="callbtn" id="callBtn" title="Voice call">📞</button>
   </div>
-
-  <div id="members">
-    <div class="sec" id="memCount">Members</div>
-    <div id="memList"></div>
+  <div id="msgs"></div>
+  <div class="comp">
+    <input type="file" id="file" accept="image/*" style="display:none">
+    <button class="ib" id="fileBtn" style="font-size:20px">＋</button>
+    <textarea id="input" rows="1" placeholder="Message" maxlength="1000"></textarea>
+    <button class="send" id="sendBtn" disabled>➤</button>
   </div>
 </div>
+
+<!-- CALL -->
+<div id="call">
+  <div class="av" id="callAv"></div>
+  <div class="cname" id="callName"></div>
+  <div class="cstat" id="callStat">Calling…</div>
+  <div class="crow">
+    <button class="cbtn mute" id="muteBtn">🎤</button>
+    <button class="cbtn end" id="endBtn">📵</button>
+  </div>
+  <audio id="remoteAudio" autoplay></audio>
+</div>
+
+<div id="ring">
+  <div class="av" id="ringAv"></div>
+  <div style="flex:1;min-width:0">
+    <div id="ringName" style="font-size:14px;color:#fff"></div>
+    <div style="font-size:10px;color:var(--dim)">Incoming call</div>
+  </div>
+  <button class="cbtn answer" id="ansBtn" style="width:44px;height:44px;font-size:17px">📞</button>
+  <button class="cbtn end" id="declineBtn" style="width:44px;height:44px;font-size:17px">✕</button>
+</div>
+
+<div id="lb"><img id="lbImg" src="" alt=""></div>
 
 <script>
-/* ============================================================
-   CRIX CHAT
-   Shares the Firebase project, roles and account system with the
-   game, so sign-ins and [OWNER]/[MOD] tags carry across.
-   ============================================================ */
-const $ = id => document.getElementById(id);
+const $ = i => document.getElementById(i);
 const esc = s => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
+const MSG_TTL = 24 * 60 * 60 * 1000;   // messages vanish after 24 hours
 
-const ROLE_TAGS = {
-  OWNER: { label:'OWNER', colour:'#FF0000', order:1 },
-  MOD:   { label:'MOD',   colour:'#00ffd5', order:2 }
-};
-const DEFAULT_CHANNELS = [
-  { id:'general',     name:'general',     desc:'Anything goes',            order:0 },
-  { id:'flappy-crix', name:'flappy-crix', desc:'Talk about the game',      order:1 },
-  { id:'clips',       name:'clips',       desc:'Share your best moments',  order:2 },
-  { id:'help',        name:'help',        desc:'Stuck? Ask here',          order:3 }
-];
+let auth, db, storage, me = null, profile = {}, peer = null;
+let unsubMsgs = null, unsubFriends = null, unsubCalls = null, isSignUp = false;
+let pc = null, localStream = null, callDoc = null, callTimer = null;
 
-let auth, db, me = null, myRoles = [], isSignUp = false;
-let channels = [], curChannel = 'general';
-let unsubMsgs = null, unsubPresence = null, members = [];
-
-/* ---------- boot ---------- */
-(async function init() {
+/* ---------- BOOT ---------- */
+(async function () {
   let cfg;
-  try {
-    cfg = await (await fetch('/api.json?cb=' + Date.now())).json();
-  } catch (e) { return fail('Could not load api.json — is it deployed?'); }
+  try { cfg = await (await fetch('/api.json?cb=' + Date.now())).json(); }
+  catch { $('gErr').textContent = 'Could not load configuration.'; return; }
+  window.__cfg = cfg;
 
   try {
     firebase.initializeApp(cfg.firebase);
-    auth = firebase.auth();
-    db   = firebase.firestore();
-  } catch (e) { return fail('Firebase failed to start: ' + e.message); }
+    auth = firebase.auth(); db = firebase.firestore(); storage = firebase.storage();
+  } catch (e) { $('gErr').textContent = 'Firebase failed: ' + e.message; return; }
 
+  if (typeof PlayFabManager !== 'undefined') await PlayFabManager.init(cfg.playfab || {});
+  handleDiscordReturn();
+
+  // Firebase persists the session per-origin, so signing in on Flappy Crix
+  // signs you in here automatically and vice versa — nothing extra needed.
   auth.onAuthStateChanged(async user => {
+    if (!user) { $('gate').style.display = 'flex'; $('app').style.display = 'none'; $('chat').style.display = 'none'; return; }
     me = user;
-    if (!user) {
-      $('gate').style.display = 'flex';
-      $('app').style.display  = 'none';
-      return;
-    }
     $('gate').style.display = 'none';
-    $('app').style.display  = 'grid';
-    await loadMyRoles();
-    renderMe();
-    await ensureChannels();
-    openChannel(localStorage.getItem('crixchat_channel') || 'general');
-    watchMembers();
-    heartbeat();
-    setInterval(heartbeat, 30000);
-  });
+    $('app').style.display = 'flex';
 
-  auth.getRedirectResult().catch(e => { if (e.code) fail(authMsg(e)); });
+    try {
+      if (typeof PlayFabManager !== 'undefined' && !PlayFabManager.isReady)
+        await PlayFabManager.login(user.uid, user.displayName || 'Player');
+      const s = await PlayFabManager.loadStats(['level']).catch(() => ({}));
+      profile = { uid:user.uid, name:user.displayName || (user.email||'').split('@')[0] || 'Player',
+                  photo:user.photoURL || null, roles:PlayFabManager.roles || [],
+                  level:s.level || 1, pfId:PlayFabManager.playFabId || null };
+    } catch {
+      profile = { uid:user.uid, name:user.displayName || 'Player', photo:user.photoURL || null,
+                  roles:[], level:1, pfId:null };
+    }
+    renderMe();
+    watchFriends();
+    watchCalls();
+    purgeOld();
+  });
 })();
 
-function fail(msg) { $('err').textContent = msg; }
-
-/* ---------- auth ---------- */
-$('googleBtn').onclick = async () => {
+/* ---------- AUTH ---------- */
+$('gSwap').onclick = () => {
+  isSignUp = !isSignUp;
+  $('dname').style.display = isSignUp ? '' : 'none';
+  $('gAuth').textContent = isSignUp ? 'Create account' : 'Sign in';
+  $('gSwap').textContent = isSignUp ? 'Already have one? Sign in' : 'Need an account? Sign up';
+  $('gErr').textContent = '';
+};
+$('gGoogle').onclick = async () => {
   const p = new firebase.auth.GoogleAuthProvider();
-  p.setCustomParameters({ prompt: 'select_account' });
-  fail('');
+  p.setCustomParameters({ prompt:'select_account' });
   try { await auth.signInWithPopup(p); }
   catch (e) {
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
-      return auth.signInWithRedirect(p);      // popup blocked, use redirect
-    }
-    if (e.code !== 'auth/popup-closed-by-user') fail(authMsg(e));
+    if (e.code === 'auth/popup-blocked') return auth.signInWithRedirect(p);
+    if (e.code !== 'auth/popup-closed-by-user') $('gErr').textContent = e.message;
   }
 };
-
-$('switchMode').onclick = () => {
-  isSignUp = !isSignUp;
-  $('username').style.display = isSignUp ? 'block' : 'none';
-  $('submitBtn').textContent  = isSignUp ? 'Create account' : 'Sign in';
-  $('switchMode').textContent = isSignUp
-    ? 'Already have an account? Sign in' : 'New here? Create an account';
-  fail('');
-};
-
-$('submitBtn').onclick = async () => {
-  const email = $('email').value.trim(), pass = $('password').value;
-  const name  = $('username').value.trim();
-  if (!email || !pass) return fail('Enter an email and password.');
-  if (isSignUp && !name) return fail('Choose a display name.');
-  if (isSignUp && pass.length < 6) return fail('Password must be at least 6 characters.');
-
-  $('submitBtn').disabled = true;
-  $('submitBtn').textContent = isSignUp ? 'Creating…' : 'Signing in…';
-  fail('');
+$('gAuth').onclick = async () => {
+  const em = $('email').value.trim(), pw = $('pass').value, nm = $('dname').value.trim();
+  if (!em || !pw) { $('gErr').textContent = 'Enter an email and password.'; return; }
+  if (isSignUp && !nm) { $('gErr').textContent = 'Choose a display name.'; return; }
+  $('gAuth').disabled = true;
   try {
     if (isSignUp) {
-      const cred = await auth.createUserWithEmailAndPassword(email, pass);
-      await cred.user.updateProfile({ displayName: name });
-      cred.user.sendEmailVerification().catch(() => {});
-    } else {
-      await auth.signInWithEmailAndPassword(email, pass);
-    }
-  } catch (e) { fail(authMsg(e)); }
-  finally {
-    $('submitBtn').disabled = false;
-    $('submitBtn').textContent = isSignUp ? 'Create account' : 'Sign in';
-  }
-};
-
-['email','password','username'].forEach(id =>
-  $(id).addEventListener('keypress', e => { if (e.key === 'Enter') $('submitBtn').click(); }));
-
-function authMsg(e) {
-  return ({
-    'auth/email-already-in-use':'That email already has an account — try signing in.',
-    'auth/invalid-email':'That email address is not valid.',
-    'auth/wrong-password':'Incorrect password.',
-    'auth/user-not-found':'No account with that email.',
-    'auth/invalid-credential':'Incorrect email or password.',
-    'auth/weak-password':'Password must be at least 6 characters.',
-    'auth/too-many-requests':'Too many attempts — wait a few minutes.',
-    'auth/unauthorized-domain':'This domain is not authorised in Firebase → Authentication → Settings.',
-    'auth/operation-not-allowed':'That sign-in method is not enabled in Firebase.'
-  })[e.code] || e.message;
-}
-
-$('signOut').onclick = () => {
-  if (unsubMsgs) unsubMsgs();
-  if (unsubPresence) unsubPresence();
-  auth.signOut();
-};
-
-/* ---------- roles ---------- */
-async function loadMyRoles() {
-  myRoles = [];
-  // Owners come from the same collection the game and console use
-  try {
-    const o = await db.collection('owners').doc(me.uid).get();
-    if (o.exists) myRoles.push('OWNER');
-  } catch (e) {}
-  try {
-    const r = await db.collection('chatRoles').doc(me.uid).get();
-    if (r.exists) (r.data().roles || []).forEach(x => { if (!myRoles.includes(x)) myRoles.push(x); });
-  } catch (e) {}
-  if (myRoles.includes('OWNER')) $('addChan').style.display = 'block';
-}
-
-function tagHtml(roles) {
-  return (roles || [])
-    .filter(r => ROLE_TAGS[r])
-    .sort((a, b) => ROLE_TAGS[a].order - ROLE_TAGS[b].order)
-    .map(r => `<span class="tag" style="color:${ROLE_TAGS[r].colour};background:${ROLE_TAGS[r].colour}22">${ROLE_TAGS[r].label}</span>`)
-    .join('');
-}
-
-/* Avatars are built as elements with a data-fallback, not an inline onerror,
-   so a name containing an apostrophe can't break the attribute. */
-function avatarHtml(url, name, cls) {
-  const initial = esc((name || '?').charAt(0).toUpperCase());
-  return url
-    ? `<img class="av ${cls}" src="${esc(url)}" alt="" data-fallback="${initial}">`
-    : `<div class="av ${cls}" style="background:#FF4655">${initial}</div>`;
-}
-function wireAvatars(root) {
-  (root || document).querySelectorAll('img.av[data-fallback]').forEach(img => {
-    if (img.dataset.wired) return;
-    img.dataset.wired = '1';
-    img.addEventListener('error', function () {
-      const d = document.createElement('div');
-      d.className = this.className;
-      d.style.background = '#FF4655';
-      d.textContent = this.dataset.fallback || '?';
-      this.replaceWith(d);
-    });
-  });
-}
-
-function renderMe() {
-  $('meBox').innerHTML = avatarHtml(me.photoURL, me.displayName || me.email, 'sm-av') +
-    `<span>${esc((me.displayName || me.email || 'You').slice(0, 14))}</span>`;
-  wireAvatars($('meBox'));
-}
-
-/* ---------- channels ---------- */
-async function ensureChannels() {
-  try {
-    const snap = await db.collection('chatChannels').orderBy('order').get();
-    if (snap.empty) {
-      await Promise.all(DEFAULT_CHANNELS.map(c =>
-        db.collection('chatChannels').doc(c.id).set(c).catch(() => {})));
-      channels = DEFAULT_CHANNELS.slice();
-    } else {
-      channels = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
+      const c = await auth.createUserWithEmailAndPassword(em, pw);
+      await c.user.updateProfile({ displayName: nm });
+      await c.user.sendEmailVerification().catch(()=>{});
+    } else await auth.signInWithEmailAndPassword(em, pw);
   } catch (e) {
-    console.warn('[Chat] channel load failed, using defaults:', e.message);
-    channels = DEFAULT_CHANNELS.slice();
+    const m = { 'auth/email-already-in-use':'That email already has an account.',
+      'auth/wrong-password':'Incorrect password.','auth/user-not-found':'No account with that email.',
+      'auth/invalid-credential':'Incorrect email or password.','auth/invalid-email':'Invalid email.' };
+    $('gErr').textContent = m[e.code] || e.message;
+  } finally { $('gAuth').disabled = false; }
+};
+$('outBtn').onclick = () => { endCall(); auth.signOut(); };
+$('playBtn').onclick = () => location.href = '/flappycrix';
+
+/* ---------- DISCORD ---------- */
+$('gDiscord').onclick = () => {
+  const d = window.__cfg?.discord || {};
+  if (!d.clientId || d.clientId.startsWith('PASTE_')) {
+    $('gErr').textContent = 'Discord is not configured — add clientId to api.json.';
+    return;
   }
-  renderChannels();
-}
-
-function renderChannels() {
-  $('chanList').innerHTML = channels.map(c =>
-    `<div class="chan ${c.id === curChannel ? 'active' : ''}" data-id="${esc(c.id)}" title="${esc(c.desc || '')}">
-       <span class="hash">#</span><span>${esc(c.name)}</span>
-     </div>`).join('');
-  $('chanList').querySelectorAll('.chan').forEach(el =>
-    el.onclick = () => { openChannel(el.dataset.id); $('channels').classList.remove('open'); });
-}
-
-$('addChan').onclick = async () => {
-  const raw = prompt('Channel name (lowercase, no spaces):');
-  if (!raw) return;
-  const id = raw.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 24);
-  if (!id) return;
-  try {
-    await db.collection('chatChannels').doc(id).set({
-      id, name: id, desc: '', order: channels.length
-    });
-    await ensureChannels();
-    openChannel(id);
-  } catch (e) { alert('Could not create it: ' + e.message); }
+  const state = Math.random().toString(36).slice(2);
+  try { sessionStorage.setItem('dc_state', state); } catch {}
+  const u = new URL('https://discord.com/api/oauth2/authorize');
+  u.searchParams.set('client_id', d.clientId);
+  u.searchParams.set('redirect_uri', d.redirectUri || location.origin + '/chat');
+  u.searchParams.set('response_type', 'code');
+  u.searchParams.set('scope', 'identify');
+  u.searchParams.set('state', state);
+  location.href = u.toString();
 };
 
-function openChannel(id) {
-  if (!channels.find(c => c.id === id)) id = channels[0] ? channels[0].id : 'general';
-  curChannel = id;
-  try { localStorage.setItem('crixchat_channel', id); } catch (e) {}
-  $('curChan').textContent = id;
-  $('input').placeholder = 'Message #' + id;
-  renderChannels();
-  watchMessages();
+async function handleDiscordReturn() {
+  const q = new URLSearchParams(location.search);
+  const code = q.get('code');
+  if (!code) return;
+  history.replaceState(null, '', location.pathname);
+  $('gErr').style.color = 'var(--green)';
+  $('gErr').textContent = 'Signing in with Discord…';
+  try {
+    const r = await fetch('/api/discord-auth', {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code })
+    });
+    if (r.status === 404) throw new Error('/api/discord-auth is not deployed. Push the api/ folder and package.json.');
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('json')) throw new Error('The auth function returned ' + r.status + ' — it is missing or crashed.');
+    const d = await r.json();
+    if (!r.ok || !d.token) throw new Error(d.detail || d.error || 'Server returned ' + r.status);
+    await auth.signInWithCustomToken(d.token);
+  } catch (e) {
+    $('gErr').style.color = 'var(--red)';
+    $('gErr').textContent = 'Discord: ' + e.message;
+    console.error('[Discord]', e);
+  }
 }
 
-/* ---------- messages ---------- */
-function watchMessages() {
-  if (unsubMsgs) unsubMsgs();
-  $('messages').innerHTML = '<div class="empty">Loading…</div>';
-
-  unsubMsgs = db.collection('chatMessages')
-    .where('channel', '==', curChannel)
-    .orderBy('at', 'desc')
-    .limit(100)
-    .onSnapshot(
-      snap => renderMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })).reverse()),
-      err => {
-        const needsIndex = /index/i.test(err.message);
-        $('messages').innerHTML =
-          `<div class="empty" style="color:#FF4655">Could not load messages.<br>
-           <span style="font-size:10px;color:#9A9A9A">${esc(err.message)}</span>
-           ${needsIndex ? '<br><span style="font-size:10px">Firestore needs an index — open the link in the browser console to create it.</span>' : ''}</div>`;
-      }
-    );
+/* ---------- FRIENDS ---------- */
+function colour(uid) {
+  const p = ['#FF4655','#FF6B35','#00CC7A','#27A9F5','#FFD700','#B47AFF','#FF8AC4'];
+  let h = 0; for (let i=0;i<(uid||'').length;i++) h = (h*31 + uid.charCodeAt(i))|0;
+  return p[Math.abs(h) % p.length];
+}
+function avatar(o, size, cls) {
+  const ini = esc((o.name||'?').charAt(0).toUpperCase());
+  return o.photo
+    ? `<img class="av ${cls||''}" src="${esc(o.photo)}" style="width:${size}px;height:${size}px" alt="">`
+    : `<div class="av ${cls||''}" style="width:${size}px;height:${size}px;font-size:${size*0.4}px;background:${colour(o.uid)}">${ini}</div>`;
 }
 
-function renderMessages(msgs) {
-  const box = $('messages');
-  const atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
-
-  if (!msgs.length) {
-    box.innerHTML = `<div class="empty">Nothing here yet.<br>Say something in #${esc(curChannel)}.</div>`;
+async function watchFriends() {
+  $('list').innerHTML = '<div class="empty">Loading friends…</div>';
+  let friends = [];
+  try {
+    friends = await PlayFabManager.getFriends();
+    friends = friends.filter(f => (f.tags||[]).includes('friend') || !(f.tags||[]).length);
+  } catch (e) {
+    $('list').innerHTML = `<div class="empty">Could not load friends.<br><span style="font-size:10px">${esc(e.message)}</span></div>`;
+    return;
+  }
+  if (!friends.length) {
+    $('list').innerHTML = `<div class="empty">No friends yet.<br><br>
+      Add people in <a href="/flappycrix" style="color:var(--green)">Flappy Crix</a> —
+      they show up here automatically.</div>`;
     return;
   }
 
-  const myName = (me.displayName || me.email || '').toLowerCase();
-  let html = '', prevUid = null, prevDay = null;
+  // live presence + unread counts
+  if (unsubFriends) unsubFriends();
+  unsubFriends = db.collection('presence').onSnapshot(snap => {
+    const pres = {};
+    const now = Date.now();
+    snap.forEach(d => {
+      const v = d.data();
+      const age = v.at?.toMillis ? now - v.at.toMillis() : 1e9;
+      if (age < 120000 && v.status !== 'offline') pres[v.playFabId] = v;
+    });
+    renderFriends(friends, pres);
+  }, () => renderFriends(friends, {}));
+}
 
-  msgs.forEach(m => {
-    const when = m.at && m.at.toDate ? m.at.toDate() : new Date();
-    const day  = when.toDateString();
-    if (day !== prevDay) {
-      html += `<div class="day"><span>${day === new Date().toDateString() ? 'Today' : esc(day)}</span></div>`;
-      prevDay = day; prevUid = null;
-    }
-    const grouped = m.uid === prevUid;      // consecutive messages collapse
-    prevUid = m.uid;
-
-    const mentioned = myName &&
-      new RegExp('@' + myName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, ''), 'i')
-        .test(m.text || '');
-    const canDelete = m.uid === me.uid || myRoles.includes('OWNER') || myRoles.includes('MOD');
-
-    html += `<div class="msg${grouped ? ' grouped' : ''}${mentioned ? ' mention' : ''}">
-      ${avatarHtml(m.photo, m.name, 'msg-av')}
-      <div class="msg-body">
-        <div class="msg-head">
-          <span class="msg-name">${esc(m.name || 'Player')}</span>
-          ${tagHtml(m.roles)}
-          <span class="msg-time">${when.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}</span>
-        </div>
-        <div class="msg-text">${format(m.text || '')}</div>
+function renderFriends(friends, pres) {
+  const online = friends.filter(f => pres[f.playFabId]);
+  const offline = friends.filter(f => !pres[f.playFabId]);
+  const row = f => {
+    const p = pres[f.playFabId];
+    const o = { uid:f.playFabId, name:f.displayName.replace(/#.*$/,''), photo:f.avatarUrl };
+    const where = p ? (p.roomCode ? 'In a Flappy Crix lobby' : 'Online') : 'Offline';
+    return `<div class="f" data-id="${esc(f.playFabId)}" data-name="${esc(o.name)}" data-photo="${esc(o.photo||'')}">
+      ${avatar(o, 44)}
+      <div class="info">
+        <div class="nm">${esc(o.name)}</div>
+        <div class="sub"><span class="dot" style="background:${p?'var(--green)':'#555'}"></span>${where}</div>
       </div>
-      ${canDelete ? `<button class="msg-del" data-del="${esc(m.id)}">delete</button>` : ''}
+      <span class="unread" data-unread="${esc(f.playFabId)}" style="display:none">0</span>
+      <button class="callbtn" data-call="${esc(f.playFabId)}">📞</button>
     </div>`;
-  });
+  };
+  $('list').innerHTML =
+    (online.length ? `<div class="hint">Online — ${online.length}</div>` + online.map(row).join('') : '') +
+    (offline.length ? `<div class="hint">Offline</div>` + offline.map(row).join('') : '');
 
-  box.innerHTML = html;
-  wireAvatars(box);
-  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => deleteMsg(b.dataset.del));
-  if (atBottom) box.scrollTop = box.scrollHeight;
+  $('list').querySelectorAll('.f').forEach(el => {
+    el.onclick = e => {
+      if (e.target.dataset.call) return;
+      openChat(el.dataset.id, el.dataset.name, el.dataset.photo);
+    };
+  });
+  $('list').querySelectorAll('[data-call]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    const f = b.closest('.f');
+    startCall(f.dataset.id, f.dataset.name, f.dataset.photo);
+  });
+  countUnread();
 }
 
-/* Escape FIRST, then add links and mention chips — never the other way round,
-   or a message could inject markup. */
-function format(text) {
-  let s = esc(text);
-  s = s.replace(/(https?:\/\/[^\s<]+)/g,
-    u => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`);
-  s = s.replace(/@([\w-]{2,25})/g, (full, n) => {
-    const hit = members.find(m => (m.name || '').toLowerCase().replace(/\s+/g, '') === n.toLowerCase());
-    return hit ? `<span class="mention-chip">@${esc(hit.name)}</span>` : full;
-  });
-  return s;
+/* ---------- DIRECT MESSAGES ---------- */
+// One document per pair, ids sorted so both sides resolve the same thread
+function threadId(a, b) { return [a, b].sort().join('__'); }
+
+function openChat(id, name, photo) {
+  peer = { id, name, photo: photo || null };
+  $('app').style.display = 'none';
+  $('chat').style.display = 'flex';
+  $('peerName').textContent = name;
+  $('peerAv').outerHTML = avatar({ uid:id, name, photo }, 34).replace('class="av "', 'class="av" id="peerAv"');
+  $('peerStat').textContent = 'Messages disappear after 24 hours';
+  listenMessages();
+  markRead(id);
+}
+$('backBtn').onclick = () => {
+  if (unsubMsgs) unsubMsgs();
+  peer = null;
+  $('chat').style.display = 'none';
+  $('app').style.display = 'flex';
+};
+
+function listenMessages() {
+  if (unsubMsgs) unsubMsgs();
+  const t = threadId(profile.pfId || profile.uid, peer.id);
+  $('msgs').innerHTML = '<div class="expiry">Loading…</div>';
+
+  unsubMsgs = db.collection('dms').doc(t).collection('messages')
+    .orderBy('at','desc').limit(100)
+    .onSnapshot(snap => {
+      const now = Date.now();
+      const msgs = snap.docs.map(d => ({ id:d.id, ...d.data() }))
+        .filter(m => {
+          const age = m.at?.toMillis ? now - m.at.toMillis() : 0;
+          if (age > MSG_TTL) {
+            // Expired — remove it rather than showing stale history
+            db.collection('dms').doc(t).collection('messages').doc(m.id).delete().catch(()=>{});
+            return false;
+          }
+          return true;
+        }).reverse();
+      renderMessages(msgs);
+      markRead(peer.id);
+    }, err => {
+      $('msgs').innerHTML = `<div class="expiry" style="color:var(--red)">
+        ${/permission/i.test(err.message) ? 'Publish firestore.rules to enable messages.' : esc(err.message)}</div>`;
+    });
 }
 
-async function sendMessage() {
-  const input = $('input');
-  let text = input.value.trim();
-  if (!text) return;
-  if (typeof ChatFilter !== 'undefined') text = ChatFilter.clean(text);
+function renderMessages(msgs) {
+  const box = $('msgs');
+  const bottom = box.scrollHeight - box.scrollTop - box.clientHeight < 140;
+  if (!msgs.length) {
+    box.innerHTML = '<div class="expiry">No messages yet.<br>Anything sent here disappears after 24 hours.</div>';
+    return;
+  }
+  const mine = profile.pfId || profile.uid;
+  box.innerHTML = '<div class="expiry">Messages disappear after 24 hours</div>' + msgs.map(m => {
+    const isMe = m.from === mine;
+    const t = m.at?.toDate ? m.at.toDate() : new Date();
+    const time = t.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+    const img = m.image ? `<img src="${esc(m.image)}" alt="" loading="lazy">` : '';
+    return `<div class="b ${isMe?'me':'them'}">${esc(m.text||'')}${img}</div>
+            <div class="bt" style="align-self:${isMe?'flex-end':'flex-start'}">${time}</div>`;
+  }).join('');
+  box.querySelectorAll('.b img').forEach(i => i.onclick = () => {
+    $('lbImg').src = i.src; $('lb').style.display = 'flex';
+  });
+  if (bottom) box.scrollTop = box.scrollHeight;
+}
 
-  input.value = '';
+const input = $('input');
+input.oninput = () => {
   input.style.height = 'auto';
+  input.style.height = Math.min(input.scrollHeight, 110) + 'px';
+  $('sendBtn').disabled = !input.value.trim();
+};
+input.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } };
+$('sendBtn').onclick = () => send();
+
+let lastSent = 0;
+async function send(image) {
+  const raw = input.value.trim();
+  if (!raw && !image) return;
+  if (Date.now() - lastSent < 800) return;
+  lastSent = Date.now();
+  const clean = typeof ChatFilter !== 'undefined' ? ChatFilter.clean(raw) : raw;
+  input.value = ''; input.style.height = 'auto'; $('sendBtn').disabled = true;
+
+  const mine = profile.pfId || profile.uid;
+  const t = threadId(mine, peer.id);
   try {
-    await db.collection('chatMessages').add({
-      channel: curChannel,
-      uid: me.uid,
-      name: me.displayName || (me.email ? me.email.split('@')[0] : 'Player'),
-      photo: me.photoURL || null,
-      roles: myRoles,
-      text: text.slice(0, 1000),
-      at: firebase.firestore.FieldValue.serverTimestamp()
+    await db.collection('dms').doc(t).set({
+      members: [mine, peer.id], updated: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge:true });
+    await db.collection('dms').doc(t).collection('messages').add({
+      from: mine, fromUid: profile.uid, name: profile.name,
+      text: clean, image: image || null,
+      at: firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt: Date.now() + MSG_TTL
     });
   } catch (e) {
-    input.value = text;               // don't lose what they typed
-    alert('Could not send: ' + e.message);
+    $('peerStat').textContent = /permission/i.test(e.message)
+      ? 'Blocked — publish firestore.rules' : 'Could not send';
   }
 }
 
-async function deleteMsg(id) {
-  if (!confirm('Delete this message?')) return;
-  try { await db.collection('chatMessages').doc(id).delete(); }
-  catch (e) { alert('Could not delete: ' + e.message); }
-}
-
-$('sendBtn').onclick = sendMessage;
-$('input').addEventListener('input', function () {
-  this.style.height = 'auto';
-  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
-  updateMentionPop(this);
-});
-
-/* ---------- @mentions ---------- */
-let mentionSel = 0, mentionMatches = [];
-
-function updateMentionPop(input) {
-  const pop = $('mentionPop');
-  const upto = input.value.slice(0, input.selectionStart);
-  const m = upto.match(/@([\w-]*)$/);
-  if (!m) return pop.classList.remove('open');
-  const q = m[1].toLowerCase();
-  mentionMatches = members
-    .filter(x => (x.name || '').toLowerCase().replace(/\s+/g, '').startsWith(q))
-    .slice(0, 6);
-  if (!mentionMatches.length) return pop.classList.remove('open');
-  mentionSel = 0;
-  pop.innerHTML = mentionMatches.map((x, i) =>
-    `<div class="mention-opt${i === 0 ? ' sel' : ''}" data-n="${esc(x.name)}">
-       ${avatarHtml(x.photo, x.name, 'sm-av')}<span>${esc(x.name)}</span></div>`).join('');
-  pop.classList.add('open');
-  wireAvatars(pop);
-  pop.querySelectorAll('.mention-opt').forEach(o =>
-    o.addEventListener('mousedown', ev => { ev.preventDefault(); pickMention(o.dataset.n); }));
-}
-
-function pickMention(name) {
-  const input = $('input');
-  const start = input.selectionStart;
-  input.value = input.value.slice(0, start).replace(/@([\w-]*)$/, '@' + name.replace(/\s+/g, '') + ' ')
-              + input.value.slice(start);
-  input.focus();
-  $('mentionPop').classList.remove('open');
-}
-
-// Single keydown handler so mention navigation and sending don't fight
-$('input').addEventListener('keydown', e => {
-  const pop = $('mentionPop');
-  if (pop.classList.contains('open')) {
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-      e.preventDefault();
-      mentionSel = (mentionSel + (e.key === 'ArrowDown' ? 1 : -1) + mentionMatches.length) % mentionMatches.length;
-      pop.querySelectorAll('.mention-opt').forEach((o, i) => o.classList.toggle('sel', i === mentionSel));
-      return;
-    }
-    if (e.key === 'Tab' || e.key === 'Enter') {
-      e.preventDefault(); pickMention(mentionMatches[mentionSel].name); return;
-    }
-    if (e.key === 'Escape') { pop.classList.remove('open'); return; }
+$('fileBtn').onclick = () => $('file').click();
+$('file').onchange = async function () {
+  const f = this.files && this.files[0]; this.value = '';
+  if (!f) return;
+  if (f.size > 3*1024*1024) { $('peerStat').textContent = 'Images must be under 3MB'; return; }
+  $('peerStat').textContent = 'Uploading…';
+  try {
+    const r = storage.ref(`dm/${threadId(profile.pfId||profile.uid, peer.id)}/${Date.now()}`);
+    const s = await r.put(f, { contentType: f.type });
+    await send(await s.ref.getDownloadURL());
+    $('peerStat').textContent = 'Messages disappear after 24 hours';
+  } catch (e) {
+    $('peerStat').textContent = /unauthorized/i.test(e.message) ? 'Allow dm/ in Storage rules' : 'Upload failed';
   }
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-});
-$('input').addEventListener('blur', () =>
-  setTimeout(() => $('mentionPop').classList.remove('open'), 150));
+};
+$('lb').onclick = () => $('lb').style.display = 'none';
 
-/* ---------- members ---------- */
-function heartbeat() {
-  if (!me) return;
-  db.collection('chatPresence').doc(me.uid).set({
-    uid: me.uid,
-    name: me.displayName || (me.email ? me.email.split('@')[0] : 'Player'),
-    photo: me.photoURL || null,
-    roles: myRoles,
-    at: firebase.firestore.FieldValue.serverTimestamp()
-  }, { merge: true }).catch(() => {});
+/* ---------- UNREAD ---------- */
+function markRead(id) {
+  try { localStorage.setItem('read_' + id, String(Date.now())); } catch {}
+}
+async function countUnread() {
+  const mine = profile.pfId || profile.uid;
+  document.querySelectorAll('[data-unread]').forEach(async el => {
+    const id = el.dataset.unread;
+    let since = 0;
+    try { since = parseInt(localStorage.getItem('read_' + id)) || 0; } catch {}
+    try {
+      const snap = await db.collection('dms').doc(threadId(mine, id))
+        .collection('messages').where('from','==',id).orderBy('at','desc').limit(20).get();
+      const n = snap.docs.filter(d => (d.data().at?.toMillis?.() || 0) > since).length;
+      el.style.display = n ? 'flex' : 'none';
+      el.textContent = n > 9 ? '9+' : n;
+    } catch {}
+  });
 }
 
-window.addEventListener('beforeunload', () => {
-  if (me) db.collection('chatPresence').doc(me.uid)
-            .set({ at: new Date(0) }, { merge: true }).catch(() => {});
-});
+/* ---------- 24 HOUR CLEANUP ---------- */
+// Firestore has no client-side TTL, so expired messages are removed whenever
+// a thread is opened, plus a sweep of recent threads on sign-in.
+async function purgeOld() {
+  const mine = profile.pfId || profile.uid;
+  try {
+    const threads = await db.collection('dms').where('members','array-contains',mine).limit(20).get();
+    const cutoff = Date.now() - MSG_TTL;
+    for (const t of threads.docs) {
+      const old = await t.ref.collection('messages').where('expiresAt','<',cutoff).limit(50).get();
+      await Promise.all(old.docs.map(d => d.ref.delete().catch(()=>{})));
+    }
+  } catch {}
+}
 
-function watchMembers() {
-  if (unsubPresence) unsubPresence();
-  unsubPresence = db.collection('chatPresence').onSnapshot(snap => {
-    const now = Date.now();
-    members = snap.docs.map(d => {
+/* ---------- VOICE CALLS (WebRTC) ---------- */
+const ICE = { iceServers:[{ urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302'] }] };
+
+async function startCall(id, name, photo) {
+  const mine = profile.pfId || profile.uid;
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+  } catch {
+    alert('Microphone access is needed to make a call.');
+    return;
+  }
+  showCall({ uid:id, name, photo }, 'Calling…');
+
+  pc = new RTCPeerConnection(ICE);
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; $('callStat').textContent = 'Connected'; };
+
+  callDoc = db.collection('calls').doc();
+  const offerCands = callDoc.collection('offerCandidates');
+  const answerCands = callDoc.collection('answerCandidates');
+  pc.onicecandidate = e => e.candidate && offerCands.add(e.candidate.toJSON());
+
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  await callDoc.set({
+    from: mine, fromName: profile.name, fromPhoto: profile.photo || null,
+    to: id, status:'ringing',
+    offer: { sdp: offer.sdp, type: offer.type },
+    at: Date.now()
+  });
+
+  callTimer = callDoc.onSnapshot(s => {
+    const d = s.data();
+    if (!d) return;
+    if (d.status === 'declined') { $('callStat').textContent = 'Declined'; setTimeout(endCall, 1200); }
+    if (d.answer && !pc.currentRemoteDescription) {
+      pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+      $('callStat').textContent = 'Connected';
+    }
+  });
+  answerCands.onSnapshot(s => s.docChanges().forEach(ch => {
+    if (ch.type === 'added') pc.addIceCandidate(new RTCIceCandidate(ch.doc.data()));
+  }));
+
+  // Give up if nobody answers
+  setTimeout(() => { if (pc && !pc.currentRemoteDescription) { $('callStat').textContent = 'No answer'; setTimeout(endCall, 1200); } }, 40000);
+}
+
+function watchCalls() {
+  const mine = profile.pfId || profile.uid;
+  if (unsubCalls) unsubCalls();
+  unsubCalls = db.collection('calls').where('to','==',mine).where('status','==','ringing')
+    .onSnapshot(s => {
+      const d = s.docs[0];
+      if (!d) { $('ring').style.display = 'none'; return; }
       const v = d.data();
-      const age = v.at && v.at.toMillis ? now - v.at.toMillis() : 1e9;
-      return Object.assign({}, v, { online: age < 90000 });   // stale = offline
-    }).sort((a, b) => (b.online - a.online) || (a.name || '').localeCompare(b.name || ''));
-    renderMembers();
-  }, err => console.warn('[Chat] presence:', err.message));
+      if (Date.now() - (v.at||0) > 60000) { d.ref.delete().catch(()=>{}); return; }
+      $('ringName').textContent = v.fromName || 'Someone';
+      $('ringAv').outerHTML = avatar({ uid:v.from, name:v.fromName, photo:v.fromPhoto }, 42)
+                                .replace('class="av "','class="av" id="ringAv"');
+      $('ring').style.display = 'flex';
+      $('ansBtn').onclick = () => answer(d.ref, v);
+      $('declineBtn').onclick = () => { d.ref.update({ status:'declined' }); $('ring').style.display='none'; };
+    }, () => {});
 }
 
-function renderMembers() {
-  const online = members.filter(m => m.online).length;
-  $('memCount').textContent = `Members — ${online} online`;
-  $('memList').innerHTML = members.map(m =>
-    `<div class="member${m.online ? '' : ' offline'}">
-       ${avatarHtml(m.photo, m.name, 'sm-av')}
-       <span class="member-name">${esc(m.name || 'Player')}</span>
-       ${tagHtml(m.roles)}
-       <span class="dot" style="background:${m.online ? '#00CC7A' : '#555'}"></span>
-     </div>`).join('') || '<div class="empty">Nobody here yet.</div>';
-  wireAvatars($('memList'));
+async function answer(ref, v) {
+  $('ring').style.display = 'none';
+  try { localStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+  catch { alert('Microphone access is needed to answer.'); return; }
+
+  showCall({ uid:v.from, name:v.fromName, photo:v.fromPhoto }, 'Connecting…');
+  callDoc = ref;
+  pc = new RTCPeerConnection(ICE);
+  localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
+  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; $('callStat').textContent = 'Connected'; };
+  pc.onicecandidate = e => e.candidate && ref.collection('answerCandidates').add(e.candidate.toJSON());
+
+  await pc.setRemoteDescription(new RTCSessionDescription(v.offer));
+  const ans = await pc.createAnswer();
+  await pc.setLocalDescription(ans);
+  await ref.update({ status:'active', answer:{ sdp:ans.sdp, type:ans.type } });
+
+  ref.collection('offerCandidates').onSnapshot(s => s.docChanges().forEach(ch => {
+    if (ch.type === 'added') pc.addIceCandidate(new RTCIceCandidate(ch.doc.data()));
+  }));
+  callTimer = ref.onSnapshot(s => { if (!s.exists || s.data()?.status === 'ended') endCall(); });
 }
 
-/* ---------- mobile panels ---------- */
-$('chanToggle').onclick = () => $('channels').classList.toggle('open');
-$('memToggle').onclick  = () => $('members').classList.toggle('open');
+function showCall(o, status) {
+  $('callAv').outerHTML = avatar(o, 110).replace('class="av "','class="av" id="callAv"');
+  $('callName').textContent = o.name;
+  $('callStat').textContent = status;
+  $('call').style.display = 'flex';
+}
+
+function endCall() {
+  if (callTimer) { callTimer(); callTimer = null; }
+  if (pc) { try { pc.close(); } catch {} pc = null; }
+  if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+  if (callDoc) { callDoc.update({ status:'ended' }).catch(()=>{}); callDoc.delete?.().catch?.(()=>{}); callDoc = null; }
+  $('call').style.display = 'none';
+  $('remoteAudio').srcObject = null;
+}
+$('endBtn').onclick = endCall;
+$('muteBtn').onclick = function () {
+  if (!localStream) return;
+  const track = localStream.getAudioTracks()[0];
+  track.enabled = !track.enabled;
+  this.textContent = track.enabled ? '🎤' : '🔇';
+  this.style.background = track.enabled ? '#2a2a38' : 'var(--red)';
+};
+$('callBtn').onclick = () => peer && startCall(peer.id, peer.name, peer.photo);
+window.addEventListener('beforeunload', endCall);
+
+function renderMe() {
+  $('meAv').outerHTML = avatar(profile, 32).replace('class="av "','class="av" id="meAv"');
+}
 </script>
 </body>
 </html>
