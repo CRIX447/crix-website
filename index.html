@@ -115,6 +115,28 @@ body {
     transition: all 0.12s;
 }
 .nav-play:hover { transform: translateY(-1px); box-shadow: 2px 4px 0 rgba(0,0,0,0.4); }
+.nav-discord {
+    background: rgba(88,101,242,.15);
+    border: 2px solid rgba(88,101,242,.6);
+    border-bottom: 4px solid rgba(50,60,160,.7);
+    color: #8A93F5; text-decoration: none;
+    font-size: 12px; font-weight: bold; font-family: 'CRIX Pixel', monospace;
+    text-transform: uppercase; letter-spacing: 1px;
+    padding: 7px 16px; border-radius: 30px; margin-left: 8px;
+    box-shadow: 2px 2px 0 rgba(0,0,0,.4); transition: all .12s;
+}
+.nav-discord:hover { transform: translateY(-1px); box-shadow: 2px 4px 0 rgba(0,0,0,.4);
+    background: rgba(88,101,242,.28); color: #fff; }
+.game-button.discord {
+    background: linear-gradient(135deg, #5865F2, #4048C4);
+    box-shadow: 0 5px 0 rgba(35,42,120,.8);
+}
+.game-button.discord:hover { box-shadow: 0 7px 0 rgba(35,42,120,.8); border-color: #A3ABFF; }
+.game-button.discord:active { box-shadow: 0 2px 0 rgba(35,42,120,.8); }
+@media (max-width: 560px) {
+    .nav-discord { padding: 7px 11px; font-size: 11px; margin-left: 5px; }
+    .nav-play { padding: 7px 12px; font-size: 11px; }
+}
 @media (max-width: 520px) { }
 
 /* ── LAYOUT WRAPPER ──────────────────────────────────────── */
@@ -510,8 +532,9 @@ body {
         <a href="#word"    class="nav-link">Daily Word</a>
     </div>
     <div class="nav-right">
-        <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="nav-play">
-            💬 Join Discord
+        <a href="/flappycrix" class="nav-play">🎮 Play</a>
+        <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="nav-discord">
+            💬 Discord
         </a>
     </div>
 </nav>
@@ -525,7 +548,8 @@ body {
             <h1 class="hero-title">CRIX<span class="red">GAMING</span><br>VR</h1>
             <p class="hero-desc">VR gaming content, Minecraft, and more. Over 1K subscribers and growing. Come hang out.</p>
             <div class="hero-actions">
-                <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="game-button">
+                <a href="/flappycrix" class="game-button">🎮 Play Flappy Crix</a>
+                <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="game-button discord">
                     💬 Join the Discord
                 </a>
                 <a href="https://www.youtube.com/@CRIXGAMINGVR" target="_blank" class="secondary-link">Watch on YouTube →</a>
