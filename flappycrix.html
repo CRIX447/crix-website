@@ -38,11 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.17-0530";</script>
+    <script>window.__BUILD__ = "2026.08.17-0700";</script>
     
 
-    <script src="/filter.js?v=2026081704"></script>
-    <script src="/playfab-manager.js?v=2026081704"></script>
+    <script src="/filter.js?v=2026081705"></script>
+    <script src="/android-bridge.js?v=2026081705"></script>
+    <script src="/playfab-manager.js?v=2026081705"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -300,6 +301,14 @@
             filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
         }
         
+        /* ---- ANDROID APP ---- */
+        :root { --kb-height: 0px; }
+        /* Lifts inputs clear of the on-screen keyboard */
+        body.keyboard-open .mp-chat-input-row,
+        body.keyboard-open .composer { padding-bottom: var(--kb-height); }
+        /* The native shell draws its own status bar, so no extra inset needed */
+        html.android-app .game-container { padding-top: 6px; }
+
         /* ---- SETTINGS PANEL ---- */
         /* 19 rows overflowed the modal on shorter screens; the body scrolls
            on its own now so the header and close button stay reachable. */
@@ -1885,7 +1894,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0530</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0700</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2676,7 +2685,7 @@
             if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
             if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
         }
-        function startGame(){ if(animationId) cancelAnimationFrame(animationId); resetGame(); gameRunning=true; gameOver=false; gamesPlayed++; animationId=requestAnimationFrame(gameLoop); if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); } selectSound.play(); checkAchievements(); if (typeof mpOnLocalStart === 'function') mpOnLocalStart(); }
+        function startGame(){ window.dispatchEvent(new Event('crix:gamestart')); if(animationId) cancelAnimationFrame(animationId); resetGame(); gameRunning=true; gameOver=false; gamesPlayed++; animationId=requestAnimationFrame(gameLoop); if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); } selectSound.play(); checkAchievements(); if (typeof mpOnLocalStart === 'function') mpOnLocalStart(); }
         function updateHighScore(){
             if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
             // Note: fail sound only plays at end of MP match, not on individual deaths.
@@ -3654,6 +3663,11 @@
             try {
                 const provider = new firebase.auth.GoogleAuthProvider();
                 provider.setCustomParameters({ prompt: 'select_account' });
+                // Popups are unreliable inside an Android webview
+                if (window.__FORCE_REDIRECT_AUTH__) {
+                    await auth.signInWithRedirect(provider);
+                    return;
+                }
                 await auth.signInWithPopup(provider);
                 authModalEl.classList.remove('active');
                 selectSound.play();
@@ -3798,7 +3812,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.17-0530</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.17-0700</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4439,6 +4453,7 @@
                 case 'killAll':
                     if (gameRunning && !gameOver) {
                         gameOver = true; playSound(deathSound);
+                        window.dispatchEvent(new Event('crix:death'));
                         if (typeof mpReportDeath === 'function') mpReportDeath();
                     }
                     mpLobbyChatAppend(null, '💀 An owner killed everyone', true);
