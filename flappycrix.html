@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0A0A0F">
+    <link rel="manifest" href="/manifest.json">
     <title>FLAPPY CRIX • CRIXGAMING VR</title>
     
     <!-- Open Graph / Link Preview -->
@@ -34,11 +38,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.17-0230";</script>
+    <script>window.__BUILD__ = "2026.08.17-0400";</script>
     
 
-    <script src="/filter.js?v=2026081702"></script>
-    <script src="/playfab-manager.js?v=2026081702"></script>
+    <script src="/filter.js?v=2026081703"></script>
+    <script src="/playfab-manager.js?v=2026081703"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -296,6 +300,36 @@
             filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.5));
         }
         
+        /* ---- TOUCH & PERFORMANCE ---- */
+        /* Stops the double-tap-to-zoom delay and text selection on rapid taps,
+           which made the game feel laggy on phones. */
+        * { -webkit-tap-highlight-color: transparent; }
+        button, .cyber-stat, .icon-btn, canvas {
+            touch-action: manipulation;
+            user-select: none; -webkit-user-select: none;
+        }
+        body { overscroll-behavior: none; }
+        /* Promotes the canvas to its own layer so scrolling never repaints it */
+        canvas { will-change: transform; transform: translateZ(0); }
+
+        /* Bigger targets on touch devices — 44px is the accepted minimum */
+        @media (pointer: coarse) {
+            .icon-btn { min-height: 52px; }
+            .action-btn, .mp-banner-btn { min-height: 50px; font-size: 14px; }
+            .mp-btn-primary, .mp-btn-secondary, .mp-btn-danger { min-height: 46px; }
+            .friend-btn, .mp-player-report-btn { min-width: 38px; min-height: 38px; font-size: 16px; }
+            .queue-tab, .friend-tab { min-height: 44px; }
+            .mp-input, input, select, textarea { font-size: 16px; }  /* stops iOS zoom-on-focus */
+            .modal-close { min-width: 44px; min-height: 44px; }
+        }
+
+        /* Respect the notch / home indicator */
+        .game-container { padding-bottom: env(safe-area-inset-bottom); }
+        .mp-modal-content, .modal-content {
+            padding-bottom: max(20px, env(safe-area-inset-bottom));
+            max-height: 88vh; max-height: 88dvh;
+        }
+
         /* ---- CANVAS ---- */
         .canvas-wrapper {
             display: flex;
@@ -1822,7 +1856,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0230</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0400</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2152,28 +2186,91 @@
         // Audio elements
         const jumpSound = document.getElementById('jumpSound'), deathSound = document.getElementById('deathSound'), coinSound = document.getElementById('coinSound'), selectSound = document.getElementById('selectSound'), powerupSound = document.getElementById('powerupSound'), victorySound = document.getElementById('victorySound'), sixtySevenSound = document.getElementById('sixtySevenSound'), boomSound = document.getElementById('boomSound'), achSound = document.getElementById('achSound'), bgMusic = document.getElementById('bgMusic'), failSound = document.getElementById('failSound');
 
-        // ---- EXTRA SOUND EFFECTS ----
-        // Loaded lazily and silently skipped if a file isn't present yet, so
-        // the game runs fine before every sound has been added to /img.
-        const sfx = {};
-        ['whoosh','levelup','purchase','error','notify','message','join','leave',
-         'countdown','start','tick','rank','unlock','swoosh','pop'].forEach(name => {
+        // ---- SOUND EFFECTS ----
+        // Generated with the Web Audio API rather than loaded from files, so
+        // there is nothing to download or host and they work immediately.
+        // If an mp3 of the same name exists in /img it is used instead.
+        let _actx = null;
+        function audioCtx() {
+            if (!_actx) {
+                try { _actx = new (window.AudioContext || window.webkitAudioContext)(); }
+                catch (e) { return null; }
+            }
+            if (_actx.state === 'suspended') _actx.resume().catch(() => {});
+            return _actx;
+        }
+
+        // note: [frequency, startTime, duration, type, volume]
+        const SFX_DEFS = {
+            pop:       [[520, 0,    .05, 'square',   .18]],
+            tick:      [[900, 0,    .03, 'square',   .10]],
+            swoosh:    [[300, 0,    .07, 'sine',     .07]],
+            whoosh:    [[220, 0,    .12, 'sine',     .10]],
+            join:      [[440, 0,    .07, 'square',   .14], [660, .07, .09, 'square', .14]],
+            leave:     [[660, 0,    .07, 'square',   .13], [440, .07, .09, 'square', .13]],
+            message:   [[780, 0,    .04, 'sine',     .12]],
+            notify:    [[880, 0,    .07, 'sine',     .16], [1170,.09, .10, 'sine',  .14]],
+            send:      [[620, 0,    .04, 'sine',     .09]],
+            error:     [[200, 0,    .16, 'sawtooth', .13], [150, .09, .16, 'sawtooth', .11]],
+            purchase:  [[660, 0,    .06, 'square',   .15], [880, .06, .06, 'square', .15],
+                        [1320,.13,  .14, 'square',   .13]],
+            unlock:    [[880, 0,    .06, 'sine',     .15], [1100,.06, .06, 'sine',  .15],
+                        [1320,.12,  .06, 'sine',     .15], [1760,.18, .18, 'sine',  .13]],
+            levelup:   [[523, 0,    .09, 'square',   .16], [659, .09, .09, 'square', .16],
+                        [784, .18,  .09, 'square',   .16], [1047,.27, .24, 'square', .15]],
+            rank:      [[392, 0,    .10, 'square',   .16], [523, .10, .10, 'square', .16],
+                        [659, .20,  .10, 'square',   .16], [880, .30, .28, 'square', .15]],
+            start:     [[440, 0,    .08, 'square',   .16], [554, .08, .08, 'square', .16],
+                        [659, .16,  .20, 'square',   .16]],
+            countdown: [[600, 0,    .10, 'square',   .16]]
+        };
+
+        // A real file wins if you drop one in /img with a matching name
+        const sfxFiles = {};
+        Object.keys(SFX_DEFS).forEach(name => {
             const a = new Audio('/img/' + name + '.mp3');
-            a.preload = 'auto';
-            a.addEventListener('error', () => { sfx[name] = null; }, { once: true });
-            sfx[name] = a;
+            a.preload = 'none';
+            a.addEventListener('canplaythrough', () => { sfxFiles[name] = a; }, { once: true });
+            a.addEventListener('error', () => {}, { once: true });
         });
 
         function playSfx(name, volume) {
-            const a = sfx[name];
-            if (!a) return;
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            try {
-                const clone = a.cloneNode();          // lets sounds overlap
-                clone.volume = (volume ?? 1) * ((typeof settings !== 'undefined' && settings.sfxVolume) ?? 1);
-                clone.play().catch(() => {});
-            } catch (e) {}
+            const vol = (volume ?? 1) * ((typeof settings !== 'undefined' && settings.sfxVolume != null)
+                        ? settings.sfxVolume : 1);
+            if (vol <= 0) return;
+
+            // Prefer a real file when one has loaded
+            const file = sfxFiles[name];
+            if (file) {
+                try { const c2 = file.cloneNode(); c2.volume = Math.min(1, vol); c2.play().catch(() => {}); }
+                catch (e) {}
+                return;
+            }
+
+            const def = SFX_DEFS[name];
+            const ctx = audioCtx();
+            if (!def || !ctx) return;
+
+            def.forEach(([freq, at, dur, type, amp]) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = type || 'square';
+                osc.frequency.setValueAtTime(freq, ctx.currentTime + at);
+                const peak = amp * vol;
+                // Short attack and exponential release keeps it from clicking
+                gain.gain.setValueAtTime(0.0001, ctx.currentTime + at);
+                gain.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), ctx.currentTime + at + .008);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + at);
+                osc.stop(ctx.currentTime + at + dur + .02);
+            });
         }
+
+        // Browsers block audio until the first interaction — unlock on any tap
+        ['pointerdown','keydown','touchstart'].forEach(ev =>
+            window.addEventListener(ev, () => audioCtx(), { once: true, passive: true }));
         // Fix slow sound — ensure playbackRate is 1.0 on all audio elements
         [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
         function playSound(snd) {
@@ -2516,7 +2613,19 @@
         const TICK_MS = 1000 / 60;
         let _lastTime = 0, _accum = 0, _fps = 0, _fpsAccum = 0, _fpsFrames = 0;
 
+        // Pausing off-screen work saves a lot of battery on mobile
+        let _pageHidden = false;
+        document.addEventListener('visibilitychange', () => {
+            _pageHidden = document.hidden;
+            if (_pageHidden && bgMusic && !bgMusic.paused) { bgMusic.pause(); window.__musicWasPlaying = true; }
+            else if (!_pageHidden && window.__musicWasPlaying && settings.musicEnabled !== false) {
+                bgMusic.play().catch(() => {}); window.__musicWasPlaying = false;
+            }
+            _lastTime = 0;   // avoids a huge delta spike on return
+        });
+
         function gameLoop(now){
+            if (_pageHidden) { animationId = requestAnimationFrame(gameLoop); return; }
             now = now || performance.now();
             if (!_lastTime) _lastTime = now;
             let delta = now - _lastTime;
@@ -3659,7 +3768,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.17-0230</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.17-0400</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -7773,6 +7882,9 @@
         loadRP();
         loadPresence();
         loadRoster();
+        document.body.addEventListener('touchmove', e => {
+            if (gameRunning) e.preventDefault();
+        }, { passive: false });
         setupSettings();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
