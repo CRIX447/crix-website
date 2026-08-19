@@ -34,11 +34,11 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.17-0100";</script>
+    <script>window.__BUILD__ = "2026.08.17-0230";</script>
     
 
-    <script src="/filter.js?v=2026081701"></script>
-    <script src="/playfab-manager.js?v=2026081701"></script>
+    <script src="/filter.js?v=2026081702"></script>
+    <script src="/playfab-manager.js?v=2026081702"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1822,7 +1822,11 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0100</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0230</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Sound effects</span>
+                <div class="mp-toggle-switch active" id="sfxToggle"></div>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -2147,6 +2151,29 @@
         
         // Audio elements
         const jumpSound = document.getElementById('jumpSound'), deathSound = document.getElementById('deathSound'), coinSound = document.getElementById('coinSound'), selectSound = document.getElementById('selectSound'), powerupSound = document.getElementById('powerupSound'), victorySound = document.getElementById('victorySound'), sixtySevenSound = document.getElementById('sixtySevenSound'), boomSound = document.getElementById('boomSound'), achSound = document.getElementById('achSound'), bgMusic = document.getElementById('bgMusic'), failSound = document.getElementById('failSound');
+
+        // ---- EXTRA SOUND EFFECTS ----
+        // Loaded lazily and silently skipped if a file isn't present yet, so
+        // the game runs fine before every sound has been added to /img.
+        const sfx = {};
+        ['whoosh','levelup','purchase','error','notify','message','join','leave',
+         'countdown','start','tick','rank','unlock','swoosh','pop'].forEach(name => {
+            const a = new Audio('/img/' + name + '.mp3');
+            a.preload = 'auto';
+            a.addEventListener('error', () => { sfx[name] = null; }, { once: true });
+            sfx[name] = a;
+        });
+
+        function playSfx(name, volume) {
+            const a = sfx[name];
+            if (!a) return;
+            if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
+            try {
+                const clone = a.cloneNode();          // lets sounds overlap
+                clone.volume = (volume ?? 1) * ((typeof settings !== 'undefined' && settings.sfxVolume) ?? 1);
+                clone.play().catch(() => {});
+            } catch (e) {}
+        }
         // Fix slow sound — ensure playbackRate is 1.0 on all audio elements
         [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
         function playSound(snd) {
@@ -2725,6 +2752,8 @@
         // ================= SETTINGS =================
         const SETTINGS_KEY = 'crix_settings_v1';
         const DEFAULT_SETTINGS = {
+            sfxEnabled: true,
+            sfxVolume: 1,
             showFps: false, showNames: true, reducedMotion: false,
             musicVol: 30, sfxVol: 100, mentionNotify: true, pfIdVisible: false
         };
@@ -2942,6 +2971,12 @@
             });
             document.getElementById('sendCodeBtn')?.addEventListener('click', sendPhoneCode);
             document.getElementById('confirmCodeBtn')?.addEventListener('click', confirmPhoneCode);
+            document.getElementById('sfxToggle')?.addEventListener('click', function () {
+                this.classList.toggle('active');
+                settings.sfxEnabled = this.classList.contains('active');
+                saveSettings();
+                if (settings.sfxEnabled) playSfx('pop', .6);
+            });
             document.getElementById('openDiagBtn')?.addEventListener('click', () => {
                 document.getElementById('settingsModal').classList.remove('active');
                 openDiagnostics();
@@ -3624,7 +3659,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.17-0100</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.17-0230</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -3872,6 +3907,7 @@
                               </div>` : '');
             wrap.appendChild(el);
             playSound(achSound);
+            playSfx('unlock', .8);
 
             const close = () => { el.classList.add('leaving'); setTimeout(() => el.remove(), 250); };
             if (actions) {
@@ -4079,6 +4115,7 @@
 
                 err.style.color = '#00CC7A';
                 err.textContent = 'Unlocked!';
+                playSfx('purchase');
                 playSound(achSound);
                 setTimeout(() => {
                     err.textContent = '';
@@ -5612,6 +5649,7 @@
             refreshSettingsUI();
         }
         function showRPChange(delta) {
+            playSfx(delta >= 0 ? 'rank' : 'error', .7);
             const r = rankFor(playerRP);
             const n = document.createElement('div');
             n.style.cssText = 'position:fixed;bottom:130px;right:16px;background:#0F0F17;border:2px solid '+r.colour+';border-radius:14px;padding:12px 18px;z-index:50000;font-size:13px;color:#fff;';
@@ -5790,6 +5828,7 @@
             
             if (mpEnforceBlocklist(actor)) return;
             _joinInFlight = false;
+            playSfx('join', .5);
             mpLobbyChatAppend(null, `${mpEsc(actor.name || 'A player')} joined`, true);
             if (isFriend({ name: actor.name, pfId: null })) {
                 notify({ type:'invite', title:'Friend joined', body: `${actor.name} is in your lobby`, store:false });
@@ -6215,6 +6254,7 @@
 
         let _mpMatchStarted = false;
         function mpBeginMatchLocally(mode, seed) {
+            playSfx('start');
             if (mpIsHost) {
                 try { photonClient.myRoom().setCustomProperties({ matchInProgress: true }); } catch(e) {}
             }
