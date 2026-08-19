@@ -51,6 +51,27 @@ body {
 }
 
 /* ── STICKY NAV ──────────────────────────────────────────── */
+/* ── COLLAPSIBLE SECTIONS ───────────────────────────────────── */
+.section-header { cursor:pointer; user-select:none; position:relative; padding-right:40px; }
+.section-header::after {
+    content:'−'; position:absolute; right:0; top:50%; transform:translateY(-50%);
+    width:30px; height:30px; border-radius:50%;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+    color:#A0A0A0; font-size:17px; line-height:27px; text-align:center; transition:all .15s;
+}
+.section-header:hover::after { color:#fff; border-color:rgba(255,255,255,.3); }
+.section.collapsed .section-header::after { content:'+'; }
+.section-body { overflow:hidden; transition:max-height .3s ease, opacity .2s ease; }
+.section.collapsed .section-body { max-height:0 !important; opacity:0; }
+.section.collapsed { padding-bottom:20px; }
+.collapse-all {
+    display:block; margin:0 auto 18px; background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.12); color:#A0A0A0; font-family:inherit;
+    font-size:11px; text-transform:uppercase; letter-spacing:1px;
+    padding:8px 18px; border-radius:20px; cursor:pointer;
+}
+.collapse-all:hover { color:#fff; border-color:rgba(255,255,255,.25); }
+
 .site-nav {
     position: sticky; top: 0; z-index: 200;
     background: rgba(5,5,8,0.96);
@@ -94,19 +115,7 @@ body {
     transition: all 0.12s;
 }
 .nav-play:hover { transform: translateY(-1px); box-shadow: 2px 4px 0 rgba(0,0,0,0.4); }
-.nav-chat {
-    background: rgba(39,169,245,.12);
-    border: 2px solid rgba(39,169,245,.5);
-    border-bottom: 4px solid rgba(20,90,130,.6);
-    color: #27A9F5; text-decoration: none;
-    font-size: 12px; font-weight: bold; font-family: 'CRIX Pixel', monospace;
-    text-transform: uppercase; letter-spacing: 1px;
-    padding: 7px 16px; border-radius: 30px; margin-right: 8px;
-    box-shadow: 2px 2px 0 rgba(0,0,0,.4); transition: all .12s;
-}
-.nav-chat:hover { transform: translateY(-1px); box-shadow: 2px 4px 0 rgba(0,0,0,.4);
-    background: rgba(39,169,245,.2); }
-@media (max-width: 520px) { .nav-chat { padding: 7px 12px; font-size: 11px; } }
+@media (max-width: 520px) { }
 
 /* ── LAYOUT WRAPPER ──────────────────────────────────────── */
 .site-wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
@@ -501,8 +510,9 @@ body {
         <a href="#word"    class="nav-link">Daily Word</a>
     </div>
     <div class="nav-right">
-        <a href="/crixchat" class="nav-chat">💬 Chat</a>
-        <a href="/flappycrix" class="nav-play">🎮 Play</a>
+        <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="nav-play">
+            💬 Join Discord
+        </a>
     </div>
 </nav>
 
@@ -515,8 +525,9 @@ body {
             <h1 class="hero-title">CRIX<span class="red">GAMING</span><br>VR</h1>
             <p class="hero-desc">VR gaming content, Minecraft, and more. Over 1K subscribers and growing. Come hang out.</p>
             <div class="hero-actions">
-                <a href="/flappycrix" class="game-button">🎮 Play Flappy Crix</a>
-                <a href="/crixchat" class="game-button chat">💬 Open CRIX Chat</a>
+                <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="game-button">
+                    💬 Join the Discord
+                </a>
                 <a href="https://www.youtube.com/@CRIXGAMINGVR" target="_blank" class="secondary-link">Watch on YouTube →</a>
             </div>
         </div>
@@ -542,6 +553,7 @@ body {
             <span class="section-label">Streaming now</span>
             <h2 class="section-title">🔴 Live</h2>
         </div>
+        <div class="section-body">
         <div class="live-wrap">
             <div class="live-player-box">
                 <div class="live-player-inner">
@@ -554,6 +566,7 @@ body {
                 <iframe id="liveChatIframe" allowfullscreen></iframe>
             </div>
         </div>
+        </div>
     </div>
 
     <!-- STORY -->
@@ -562,12 +575,14 @@ body {
             <span class="section-label">Background</span>
             <h2 class="section-title">The Story</h2>
         </div>
+        <div class="section-body">
         <div class="about-content">
             <p><span class="highlight">CRIXGAMING VR</span> started on <span class="date">January 19, 2024</span> with a channel called <span class="highlight">CRIX SMP</span> — Minecraft Bedrock videos, realm content, command tutorials. The kind of content made by someone learning how YouTube worked while building a small community around something he enjoyed.</p>
             <p>Everything shifted when he picked up a <span class="highlight">Meta Quest 2</span> and found Gorilla Tag. First night in, he stayed up until sunrise. On <span class="date">April 12, 2025</span>, <span class="highlight">CRIXGAMING VR</span> launched — originally written as CRIX_GAMING_VR, the underscores got dropped fast.</p>
             <p>After upgrading to a <span class="highlight">Meta Quest 3S</span> and later SteamVR, streaming became the core of the channel alongside Minecraft and other games. A short-form push started <span class="date">October 5, 2025</span>. First live stream followed ten days later.</p>
             <p>On <span class="date">February 11, 2026</span>, <span class="highlight">CRIXGAMING VR reached 1,000 subscribers</span>. What started as a Minecraft realm grew into a channel built through persistence, experimentation, and community support.</p>
             <p>The growth kept coming — on <span class="date">June 11, 2026</span>, the channel hit <span class="highlight">2,000 subscribers</span>. Every milestone is a reflection of the people who showed up, stayed, and kept watching.</p>
+        </div>
         </div>
     </div>
 
@@ -577,6 +592,7 @@ body {
             <span class="section-label">YouTube</span>
             <h2 class="section-title">CRIX Network</h2>
         </div>
+        <div class="section-body">
         <div class="pill-grid" id="channelsGrid"></div>
 
         <div style="margin-top:48px;">
@@ -586,6 +602,7 @@ body {
             </div>
             <div class="pill-grid" id="socialsGrid"></div>
         </div>
+        </div>
     </div>
 
     <!-- FANMAIL -->
@@ -594,10 +611,12 @@ body {
             <span class="section-label">Community</span>
             <h2 class="section-title">Fan Art</h2>
         </div>
+        <div class="section-body">
         <div class="fanmail-track-wrap">
             <div class="fanmail-track" id="fanmailTrack"></div>
         </div>
         <p style="margin-top:16px;font-size:11px;color:#8C8C8C;text-align:center;">Hover over an image to see who made it · Want to be featured? Send fan art to cgvr@crixgamingvr.com</p>
+        </div>
     </div>
 
     <!-- VIDEOS -->
@@ -606,6 +625,7 @@ body {
             <span class="section-label">Content</span>
             <h2 class="section-title">Latest Videos</h2>
         </div>
+        <div class="section-body">
         <div class="channel-filter-row" id="channelFilterRow">
             <button class="channel-filter active" data-channel="all">All Channels</button>
         </div>
@@ -615,6 +635,7 @@ body {
             <button class="video-tab" data-tab="live">🎬 Streams</button>
         </div>
         <div class="video-grid" id="videoGrid"></div>
+        </div>
     </div>
 
     <!-- SHOP -->
@@ -636,6 +657,7 @@ body {
             <span class="section-label">Community</span>
             <h2 class="section-title">CRIX Chat</h2>
         </div>
+        <div class="section-body">
         <div class="chat-promo">
             <div class="chat-promo-text">
                 <p>Private messages and voice calls with your Flappy Crix friends.
@@ -650,6 +672,7 @@ body {
             </div>
             <div class="chat-promo-art">💬</div>
         </div>
+        </div>
     </div>
 
     <!-- DAILY WORD -->
@@ -658,10 +681,12 @@ body {
             <span class="section-label" style="display:block;text-align:center;">Scripture</span>
             <h2 class="section-title centered">✝️ Daily Word</h2>
         </div>
+        <div class="section-body">
         <div class="bible-box">
             <div id="bibleVerse">Loading...</div>
             <div id="bibleRef"></div>
             <button id="newVerseBtn" class="game-button" style="font-size:12px;padding:10px 24px;">🙏 New Verse</button>
+        </div>
         </div>
     </div>
 
@@ -1308,6 +1333,83 @@ async function loadFanmail() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
+// ── COLLAPSIBLE SECTIONS ───────────────────────────────────
+// Remembers what you closed, so the page stays how you left it.
+(function () {
+    const KEY = 'crix_collapsed';
+    let collapsed = [];
+    try { collapsed = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch {}
+
+    function apply(sec, isCollapsed, animate) {
+        const body = sec.querySelector('.section-body');
+        if (!body) return;
+        if (isCollapsed) {
+            if (animate) { body.style.maxHeight = body.scrollHeight + 'px'; body.offsetHeight; }
+            body.style.maxHeight = '0px';
+            sec.classList.add('collapsed');
+        } else {
+            sec.classList.remove('collapsed');
+            body.style.maxHeight = body.scrollHeight + 'px';
+            // Release the fixed height once open so content can still grow
+            if (animate) setTimeout(() => { if (!sec.classList.contains('collapsed')) body.style.maxHeight = 'none'; }, 320);
+            else body.style.maxHeight = 'none';
+        }
+    }
+
+    document.querySelectorAll('.section').forEach(sec => {
+        const id = sec.id;
+        const header = sec.querySelector('.section-header');
+        if (!header || !sec.querySelector('.section-body')) return;
+
+        if (collapsed.includes(id)) apply(sec, true, false);
+
+        header.setAttribute('role', 'button');
+        header.setAttribute('tabindex', '0');
+        const toggle = () => {
+            const nowCollapsed = !sec.classList.contains('collapsed');
+            apply(sec, nowCollapsed, true);
+            collapsed = collapsed.filter(x => x !== id);
+            if (nowCollapsed) collapsed.push(id);
+            try { localStorage.setItem(KEY, JSON.stringify(collapsed)); } catch {}
+        };
+        header.addEventListener('click', toggle);
+        header.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+        });
+    });
+
+    // Collapse or expand everything at once
+    const btn = document.createElement('button');
+    btn.className = 'collapse-all';
+    const anyOpen = () => [...document.querySelectorAll('.section')].some(s =>
+        s.querySelector('.section-body') && !s.classList.contains('collapsed'));
+    btn.textContent = anyOpen() ? '⌃ Collapse all' : '⌄ Expand all';
+    btn.onclick = () => {
+        const collapseThem = anyOpen();
+        collapsed = [];
+        document.querySelectorAll('.section').forEach(sec => {
+            if (!sec.querySelector('.section-body')) return;
+            apply(sec, collapseThem, true);
+            if (collapseThem) collapsed.push(sec.id);
+        });
+        try { localStorage.setItem(KEY, JSON.stringify(collapsed)); } catch {}
+        btn.textContent = collapseThem ? '⌄ Expand all' : '⌃ Collapse all';
+    };
+    const wrap = document.querySelector('.site-wrap');
+    const first = wrap && wrap.querySelector('.section');
+    if (first) wrap.insertBefore(btn, first);
+
+    // Opening a section via a nav link should expand it
+    document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', () => {
+        const t = document.querySelector(a.getAttribute('href'));
+        if (t && t.classList.contains('collapsed')) {
+            apply(t, false, true);
+            collapsed = collapsed.filter(x => x !== t.id);
+            try { localStorage.setItem(KEY, JSON.stringify(collapsed)); } catch {}
+        }
+    }));
+})();
+
 </script>
 </body>
 </html>
