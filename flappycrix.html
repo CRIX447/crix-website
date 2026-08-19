@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.17-0700";</script>
+    <script>window.__BUILD__ = "2026.08.19-1900";</script>
     
 
-    <script src="/filter.js?v=2026081705"></script>
-    <script src="/android-bridge.js?v=2026081705"></script>
-    <script src="/playfab-manager.js?v=2026081705"></script>
+    <script src="/filter.js?v=2026081901"></script>
+    <script src="/android-bridge.js?v=2026081901"></script>
+    <script src="/playfab-manager.js?v=2026081901"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -312,11 +312,12 @@
         /* ---- SETTINGS PANEL ---- */
         /* 19 rows overflowed the modal on shorter screens; the body scrolls
            on its own now so the header and close button stay reachable. */
-        .settings-shell { display:flex; flex-direction:column; max-height:88vh; max-height:88dvh; }
+        .settings-shell { display:flex; flex-direction:column; max-height:88vh; max-height:88dvh; overflow:hidden; }
         .settings-shell .modal-header { flex-shrink:0; }
         .settings-body { overflow-y:auto; flex:1; padding-right:4px; -webkit-overflow-scrolling:touch; }
         .settings-body .mp-section-title { position:sticky; top:0; z-index:2;
-            background:#12121A; padding-top:10px; padding-bottom:6px; margin-top:8px; }
+            background:var(--panel, #12121A); padding-top:10px; padding-bottom:6px;
+            margin-top:8px; }
         .settings-body .mp-section-title:first-child { margin-top:0; }
         .set-value { font-size:12px; color:#fff; text-align:right; word-break:break-all; max-width:60%; }
 
@@ -348,6 +349,10 @@
         .mp-modal-content, .modal-content {
             padding-bottom: max(20px, env(safe-area-inset-bottom));
             max-height: 88vh; max-height: 88dvh;
+            /* Without this the height cap simply clipped the content and
+               there was no way to reach the bottom of a modal. */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* ---- CANVAS ---- */
@@ -1114,7 +1119,7 @@
         .set-row {
             display:flex; justify-content:space-between; align-items:center;
             padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.06);
-            gap:12px; min-height:44px; flex-wrap:wrap;
+            gap:12px; min-height:44px;
         }
         .set-row:last-child { border-bottom:none; }
         /* The label may wrap; the control on the right must not shrink away */
@@ -1894,7 +1899,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.17-0700</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.19-1900</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3812,7 +3817,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.17-0700</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.19-1900</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
