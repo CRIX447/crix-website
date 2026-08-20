@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2330";</script>
+    <script>window.__BUILD__ = "2026.08.20-2359";</script>
     
 
-    <script src="/filter.js?v=2026082008"></script>
-    <script src="/android-bridge.js?v=2026082008"></script>
-    <script src="/playfab-manager.js?v=2026082008"></script>
+    <script src="/filter.js?v=2026082009"></script>
+    <script src="/android-bridge.js?v=2026082009"></script>
+    <script src="/playfab-manager.js?v=2026082009"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -320,6 +320,48 @@
 
 
 
+
+        /* ═══════════ DESKTOP RESET ═══════════
+           Explicitly undoes anything phone-shaped above 700px. Defensive, but
+           a single leaking rule was throwing the whole layout off. */
+        @media (min-width: 701px) {
+            html, body { height: auto; overflow: auto; }
+            body { display: flex; align-items: center; justify-content: center; padding: 15px; }
+
+            .game-container {
+                position: static !important; inset: auto !important;
+                width: auto !important; height: auto !important;
+                max-width: 520px !important; margin: 0 auto !important;
+                display: block !important;
+            }
+            .canvas-wrapper {
+                position: relative !important; inset: auto !important;
+                width: fit-content !important; height: auto !important;
+                margin: 12px auto !important;
+            }
+            /* These overlays anchor to the wrapper; keep them inside it */
+            .hud-live, .ingame-bar, .race-meter, .death-screen {
+                position: absolute !important;
+            }
+            .stats-grid {
+                position: static !important; display: flex !important;
+                margin: 12px 0 !important;
+            }
+            .game-header, .game-controls, .icon-bar, .mp-banner-btn, .menu-footer {
+                position: static !important; inset: auto !important;
+                width: auto !important; margin-left: 0 !important; margin-right: 0 !important;
+            }
+            .mp-modal, .store-modal, .locker-modal, .achievements-modal {
+                align-items: center !important; padding: 20px !important;
+            }
+            .mp-modal-content, .modal-content {
+                position: relative !important; bottom: auto !important;
+                border-radius: 20px !important; width: auto !important;
+                margin: auto !important; animation: none !important;
+            }
+            .mp-modal-content::before, .modal-content::before { display: none !important; }
+        }
+
         /* ═══════════════ SCREEN STATES ═══════════════
            Three states, never overlapping: menu, playing, dead.
            Previously the canvas sat behind the menu, so pipes and the
@@ -398,112 +440,7 @@
            A phone gets a real game layout: a title screen, then the game.
            Not both stacked on one scrolling page.
            Desktop is untouched below 701px. */
-        /* Phone layout is driven by WIDTH. Using `, (pointer: coarse)` made
-           it an OR, so touchscreen laptops and desktops got the phone shell. */
-        @media (max-width: 700px) {
 
-            html, body { height: 100%; overflow: hidden; }
-            body { padding: 0; margin: 0; display: block; }
-
-            .game-container {
-                position: fixed; inset: 0;
-                max-width: none; width: 100%; height: 100dvh;
-                margin: 0; padding: 0;
-                border: none; border-radius: 0; box-shadow: none;
-                background: radial-gradient(ellipse at 50% 0%, #16161f 0%, #08080d 70%);
-                display: block;
-            }
-
-            /* ---- canvas sits behind everything ---- */
-            .canvas-wrapper {
-                position: absolute; inset: 0;
-                width: 100%; height: 100%; max-width: none;
-                margin: 0; padding: 0; border: none; border-radius: 0;
-                background: transparent; box-shadow: none;
-                display: flex; align-items: center; justify-content: center;
-            }
-            canvas {
-                width: 100%; height: auto; max-width: 100%; max-height: 100dvh;
-                border-radius: 0; box-shadow: none;
-            }
-
-            /* ---- everything else floats over it ---- */
-            .user-section,
-            .cheat-container { display: none !important; }
-
-            /* ---- TITLE SCREEN (shown when not playing) ---- */
-            .game-header {
-                position: absolute; top: 0; left: 0; right: 0; z-index: 30;
-                margin: 0; padding: calc(26px + env(safe-area-inset-top)) 20px 0;
-                text-align: center; pointer-events: none;
-            }
-            .game-title { font-size: clamp(34px, 11vw, 52px); line-height: 1.05; }
-            .game-sub { font-size: 11px; margin-top: 6px; }
-
-            /* ---- STAT PILLS ---- */
-            .stats-grid {
-                position: absolute; z-index: 30;
-                top: calc(118px + env(safe-area-inset-top)); left: 14px; right: 14px;
-                display: flex; gap: 7px; margin: 0;
-            }
-            .cyber-stat {
-                flex: 1; padding: 8px 6px; border-width: 1px; border-bottom-width: 3px;
-                border-radius: 14px; background: rgba(12,12,20,.9);
-                backdrop-filter: blur(8px);
-            }
-            .stat-label { font-size: 7px; letter-spacing: .5px; }
-            .stat-value { font-size: 15px; margin-top: 2px; }
-
-            /* ---- BOTTOM CONTROL DECK ---- */
-            .game-controls,
-            .mp-banner-btn,
-            .icon-bar,
-            .menu-footer {
-                position: absolute; z-index: 30; left: 14px; right: 14px;
-                width: auto; margin: 0;
-            }
-            .menu-footer  { bottom: calc(10px + env(safe-area-inset-bottom)); }
-            .icon-bar     { bottom: calc(58px + env(safe-area-inset-bottom));
-                            grid-template-columns: repeat(6, 1fr); gap: 5px; }
-            .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
-            .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
-                            display: flex; gap: 10px; }
-
-            .game-btn { flex: 1; min-height: 58px; font-size: 17px; border-radius: 30px; }
-            .mp-banner-btn { min-height: 52px; font-size: 15px; }
-            .icon-btn { padding: 9px 2px 7px; border-radius: 14px; min-height: 54px; }
-            .icon-btn span { font-size: 19px; }
-            .icon-btn label { font-size: 7px; }
-            .foot-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 9px; }
-
-            /* ---- IN GAME: hide the menu, leave the playfield ---- */
-            body.playing .game-header,
-            body.playing .stats-grid,
-            body.playing .game-controls,
-            body.playing .mp-banner-btn,
-            body.playing .icon-bar,
-            body.playing .menu-footer { display: none !important; }
-
-            body.playing .hud-live { display: flex !important; }
-
-            /* ---- BOTTOM SHEETS ---- */
-            .mp-modal, .store-modal, .locker-modal, .achievements-modal {
-                align-items: flex-end; padding: 0;
-            }
-            .mp-modal-content, .modal-content {
-                width: 100%; max-width: none;
-                border-radius: 24px 24px 0 0;
-                max-height: 90dvh;
-                margin: 0; padding: 16px 18px max(20px, env(safe-area-inset-bottom));
-                animation: sheetUp .24s cubic-bezier(.2,.8,.3,1);
-            }
-            .mp-modal-content::before, .modal-content::before {
-                content: ''; display: block; width: 40px; height: 4px;
-                border-radius: 2px; background: rgba(255,255,255,.22);
-                margin: 0 auto 14px;
-            }
-            @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
-        }
 
         /* Live score while playing, phone only */
         .hud-live {
@@ -1036,7 +973,31 @@
 
         /* ---- IN-GAME MULTIPLAYER HUD ---- */
         /* Must sit below the modals or it covers the lobby view */
-        .mp-hud { z-index: 15 !important; }
+        .mp-hud {
+            display: none;
+            position: absolute; top: 50px; right: 8px; z-index: 25;
+            background: rgba(8,8,14,.94); backdrop-filter: blur(8px);
+            border: 1px solid rgba(255,107,53,.35);
+            border-radius: 14px; padding: 10px 12px;
+            min-width: 150px; max-width: 210px; max-height: 60%;
+            overflow-y: auto; font-size: 11px;
+            box-shadow: 0 6px 24px rgba(0,0,0,.6);
+        }
+        .mp-hud.open { display: block; }
+        .mp-hud-btn {
+            position: absolute; top: 12px; right: 12px; z-index: 26;
+            width: 38px; height: 38px; border-radius: 50%;
+            border: 1px solid rgba(255,107,53,.4);
+            background: rgba(12,12,20,.85); backdrop-filter: blur(6px);
+            color: #FF6B35; font-size: 15px; cursor: pointer; display: none;
+        }
+        .mp-hud-btn.on { display: block; }
+        .mp-hud-btn .badge {
+            position: absolute; top: -3px; right: -3px;
+            background: #FF4655; color: #fff; font-size: 9px; font-weight: bold;
+            min-width: 16px; height: 16px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+        }
         .mp-hud-orig {
             display: none;
             position: absolute;
@@ -1605,6 +1566,118 @@
             .action-btn, .game-btn { padding: 7px 14px; font-size: 11px; min-width: 70px; }
             .game-title { font-size: 24px; }
         }
+
+        /* ═══════════ RESPONSIVE — MUST STAY LAST ═══════════
+           These override the base layout, so they have to come after it.
+           Sitting earlier in the file meant base rules defined later won
+           instead, which broke both layouts. */
+        /* Phone layout is driven by WIDTH. Using `, (pointer: coarse)` made
+           it an OR, so touchscreen laptops and desktops got the phone shell. */
+        @media (max-width: 700px) {
+
+            html, body { height: 100%; overflow: hidden; }
+            body { padding: 0; margin: 0; display: block; }
+
+            .game-container {
+                position: fixed; inset: 0;
+                max-width: none; width: 100%; height: 100dvh;
+                margin: 0; padding: 0;
+                border: none; border-radius: 0; box-shadow: none;
+                background: radial-gradient(ellipse at 50% 0%, #16161f 0%, #08080d 70%);
+                display: block;
+            }
+
+            /* ---- canvas sits behind everything ---- */
+            .canvas-wrapper {
+                position: absolute; inset: 0;
+                width: 100%; height: 100%; max-width: none;
+                margin: 0; padding: 0; border: none; border-radius: 0;
+                background: transparent; box-shadow: none;
+                display: flex; align-items: center; justify-content: center;
+            }
+            canvas {
+                width: 100%; height: auto; max-width: 100%; max-height: 100dvh;
+                border-radius: 0; box-shadow: none;
+            }
+
+            /* ---- everything else floats over it ---- */
+            .user-section,
+            .cheat-container { display: none !important; }
+
+            /* ---- TITLE SCREEN (shown when not playing) ---- */
+            .game-header {
+                position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+                margin: 0; padding: calc(26px + env(safe-area-inset-top)) 20px 0;
+                text-align: center; pointer-events: none;
+            }
+            .game-title { font-size: clamp(34px, 11vw, 52px); line-height: 1.05; }
+            .game-sub { font-size: 11px; margin-top: 6px; }
+
+            /* ---- STAT PILLS ---- */
+            .stats-grid {
+                position: absolute; z-index: 30;
+                top: calc(118px + env(safe-area-inset-top)); left: 14px; right: 14px;
+                display: flex; gap: 7px; margin: 0;
+            }
+            .cyber-stat {
+                flex: 1; padding: 8px 6px; border-width: 1px; border-bottom-width: 3px;
+                border-radius: 14px; background: rgba(12,12,20,.9);
+                backdrop-filter: blur(8px);
+            }
+            .stat-label { font-size: 7px; letter-spacing: .5px; }
+            .stat-value { font-size: 15px; margin-top: 2px; }
+
+            /* ---- BOTTOM CONTROL DECK ---- */
+            .game-controls,
+            .mp-banner-btn,
+            .icon-bar,
+            .menu-footer {
+                position: absolute; z-index: 30; left: 14px; right: 14px;
+                width: auto; margin: 0;
+            }
+            .menu-footer  { bottom: calc(10px + env(safe-area-inset-bottom)); }
+            .icon-bar     { bottom: calc(58px + env(safe-area-inset-bottom));
+                            grid-template-columns: repeat(6, 1fr); gap: 5px; }
+            .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
+            .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
+                            display: flex; gap: 10px; }
+
+            .game-btn { flex: 1; min-height: 58px; font-size: 17px; border-radius: 30px; }
+            .mp-banner-btn { min-height: 52px; font-size: 15px; }
+            .icon-btn { padding: 9px 2px 7px; border-radius: 14px; min-height: 54px; }
+            .icon-btn span { font-size: 19px; }
+            .icon-btn label { font-size: 7px; }
+            .foot-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 9px; }
+
+            /* ---- IN GAME: hide the menu, leave the playfield ---- */
+            body.playing .game-header,
+            body.playing .stats-grid,
+            body.playing .game-controls,
+            body.playing .mp-banner-btn,
+            body.playing .icon-bar,
+            body.playing .menu-footer { display: none !important; }
+
+            body.playing .hud-live { display: flex !important; }
+
+            /* ---- BOTTOM SHEETS ---- */
+            .mp-modal, .store-modal, .locker-modal, .achievements-modal {
+                align-items: flex-end; padding: 0;
+            }
+            .mp-modal-content, .modal-content {
+                width: 100%; max-width: none;
+                border-radius: 24px 24px 0 0;
+                max-height: 90dvh;
+                margin: 0; padding: 16px 18px max(20px, env(safe-area-inset-bottom));
+                animation: sheetUp .24s cubic-bezier(.2,.8,.3,1);
+            }
+            .mp-modal-content::before, .modal-content::before {
+                content: ''; display: block; width: 40px; height: 4px;
+                border-radius: 2px; background: rgba(255,255,255,.22);
+                margin: 0 auto 14px;
+            }
+            @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+        }
+
     </style>
 </head>
 <body>
@@ -1689,6 +1762,9 @@
                 <span class="hud-coins" id="hudCoins">🪙 0</span>
                 <span class="hud-rush" id="hudRush" style="display:none;">⏱ <b id="hudRushTime">5:00</b></span>
             </div>
+            <button class="mp-hud-btn" id="mpHudBtn" title="Standings">
+                🏁<span class="badge" id="mpHudCount">0</span>
+            </button>
             <div class="mp-hud" id="mpHud"></div>
             <div class="mp-chat-godmode-banner" id="mpGodmodeBanner">⚡ TYPING GODMODE</div>
             <button class="mp-chat-toggle-btn" id="mpChatToggleBtn">💬</button>
@@ -2462,7 +2538,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2330</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2359</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3137,6 +3213,12 @@
                 if(magnetActive){ const dx = bird.x - coinsArr[i].x; const dy = bird.y - coinsArr[i].y; const dist = Math.sqrt(dx*dx+dy*dy); if(dist < 150){ coinsArr[i].x += dx * 0.08; coinsArr[i].y += dy * 0.08; } } 
                 if(!coinsArr[i].collected && bird.x+15>coinsArr[i].x && bird.x-15<coinsArr[i].x+20 && bird.y+15>coinsArr[i].y && bird.y-15<coinsArr[i].y+20){
                     coinsArr[i].collected=true;
+                    // Coin Rush scores by coins collected, so track them here
+                    if (mpMatchActive && mpMatchMode === 'coinrush') {
+                        mpCoinsThisMatch++;
+                        if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].coins = mpCoinsThisMatch;
+                        mpRaiseEvent(MP_EV.SCORE, { score: mpCoinsThisMatch, coins: mpCoinsThisMatch });
+                    }
                     const multiplier = (mpMatchActive && mpMatchMode === 'coinrush') ? 1 : coinMultiplier;
                     coinCount += multiplier;
                     playSound(coinSound); updateCoinDisplay(); checkAchievements(); autoSave();
@@ -4287,6 +4369,8 @@
                 if (db && auth.currentUser) {
                     await db.collection('users').doc(auth.currentUser.uid).set({
                         discordId: p.id, discordUsername: p.username,
+                        playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                        notifyUpdates: true,   // they can turn this off in Settings
                         displayName: p.displayName, photoURL: p.photoURL || null,
                         loginMethod: 'discord',
                         lastSeen: firebase.firestore.FieldValue.serverTimestamp()
@@ -4516,7 +4600,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2330</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2359</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4819,6 +4903,10 @@
 
         // Staff menu during a match — useful for dealing with someone
         // mid-game rather than having to leave first.
+        document.getElementById('mpHudBtn')?.addEventListener('click', () => {
+            document.getElementById('mpHud')?.classList.toggle('open');
+            playSfx('pop', .4);
+        });
         document.getElementById('ingameMusicBtn')?.addEventListener('click', () => setMusic(musicMuted));
         document.getElementById('ingameSandboxBtn')?.addEventListener('click', () => {
             refreshPlayerMenu();
@@ -7584,6 +7672,9 @@
 
         let _mpMatchStarted = false;
         let mpMatchTimer = null, mpMatchSecondsLeft = 0;
+        // Coins collected during the current Coin Rush. This was read by the
+        // HUD but never declared or incremented, so it always showed nothing.
+        let mpCoinsThisMatch = 0;
 
         // Ranked matches are capped so a lobby cannot stall forever. When it
         // expires the standings at that moment decide the result.
@@ -7616,6 +7707,7 @@
         }
 
         function mpBeginMatchLocally(mode, seed) {
+            mpCoinsThisMatch = 0;
             startMatchTimer();
             playSfx('start');
             if (mpIsHost) {
@@ -7879,6 +7971,14 @@
 
         // ----- HUD -----
         function mpUpdateHud() {
+            // The standings panel is a popup now, so surface the count on the
+            // button rather than leaving a panel permanently over the game.
+            const btn = document.getElementById('mpHudBtn');
+            const cnt = document.getElementById('mpHudCount');
+            const n = Object.keys(mpPlayers || {}).length;
+            if (btn) btn.classList.toggle('on', !!mpCurrentRoom && n > 0);
+            if (cnt) cnt.textContent = n;
+
             const hud = document.getElementById('mpHud');
             if (!mpCurrentRoom) return;
             const icons = {freemode:'🕊️', race:'🏁', lastone:'💀', coinrush:'🪙'};
@@ -8233,6 +8333,7 @@
                     if (mpSpectating) setTimeout(renderSpectateBar, 0);
                     if (p) {
                         p.score = content.score;
+                        if (content.coins !== undefined) p.coins = content.coins;
                         if (mpMatchMode === 'coinrush') mpCoinRushCoins[actorNr] = content.score;
                     }
                     mpUpdateHud();
