@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2200";</script>
+    <script>window.__BUILD__ = "2026.08.20-2330";</script>
     
 
-    <script src="/filter.js?v=2026082007"></script>
-    <script src="/android-bridge.js?v=2026082007"></script>
-    <script src="/playfab-manager.js?v=2026082007"></script>
+    <script src="/filter.js?v=2026082008"></script>
+    <script src="/android-bridge.js?v=2026082008"></script>
+    <script src="/playfab-manager.js?v=2026082008"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -398,7 +398,9 @@
            A phone gets a real game layout: a title screen, then the game.
            Not both stacked on one scrolling page.
            Desktop is untouched below 701px. */
-        @media (max-width: 700px), (pointer: coarse) {
+        /* Phone layout is driven by WIDTH. Using `, (pointer: coarse)` made
+           it an OR, so touchscreen laptops and desktops got the phone shell. */
+        @media (max-width: 700px) {
 
             html, body { height: 100%; overflow: hidden; }
             body { padding: 0; margin: 0; display: block; }
@@ -2460,7 +2462,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2200</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2330</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -4353,7 +4355,8 @@
             url.searchParams.set('client_id', clientId);
             url.searchParams.set('redirect_uri', redirectUri);
             url.searchParams.set('response_type', 'code');
-            url.searchParams.set('scope', 'identify');
+            // guilds.join lets us add them to the Discord server on link
+            url.searchParams.set('scope', 'identify guilds.join');
             url.searchParams.set('state', state);
             url.searchParams.set('prompt', 'consent');
             window.location.href = url.toString();
@@ -4513,7 +4516,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2200</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2330</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
