@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2500";</script>
+    <script>window.__BUILD__ = "2026.08.20-2600";</script>
     
 
-    <script src="/filter.js?v=2026082011"></script>
-    <script src="/android-bridge.js?v=2026082011"></script>
-    <script src="/playfab-manager.js?v=2026082011"></script>
+    <script src="/filter.js?v=2026082012"></script>
+    <script src="/android-bridge.js?v=2026082012"></script>
+    <script src="/playfab-manager.js?v=2026082012"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -2542,7 +2542,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2500</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2600</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3758,6 +3758,9 @@
         }
 
         function refreshSettingsUI() {
+            // The Discord row only exists once the settings markup is present,
+            // so rebind here rather than relying on a single call at sign-in.
+            try { refreshDiscordRow(); } catch(e) {}
             // Mirror the account row into Settings when the menu bar is hidden
             const isPhone = window.matchMedia('(max-width:700px),(pointer:coarse)').matches;
             const row = document.querySelector('.mobile-account');
@@ -4155,13 +4158,8 @@
                         myRoles = JSON.parse(dev);
                         console.log('[Roles] Using local dev override:', myRoles);
                         refreshRoleDisplay();
-            updateOwnerButton();
-            updateIngameButtons();
-            renderFriendCode();
-            updatePlayerMenuButton();
-            loadDiscordLink();
-            checkVerification();
-            setInterval(checkVerification, 6 * 60 * 60 * 1000);   // every 6 hours
+                        updateOwnerButton();
+                        updateIngameButtons();
                     }
                 } catch(e) {}
                 return;
@@ -4263,10 +4261,23 @@
                 loadFromLocal();
                 return;
             }
-            // Handle Discord OAuth callback now that Firebase is ready
-            handleDiscordCallback();
+            // Deliberately NOT called here — currentUser is still null until
+            // onAuthStateChanged fires, and linking needs a signed-in user.
             auth.onAuthStateChanged((user) => {
                 currentUser = user;
+                // Runs for every signed-in player, not just dev overrides
+                if (user) {
+                    setTimeout(() => {
+                        // Finish an in-progress Discord link first, then refresh
+                        try { handleDiscordCallback(); } catch(e) { console.warn('[Discord]', e.message); }
+                        try { loadDiscordLink(); } catch(e) { console.warn('[Discord]', e.message); }
+                        try { checkVerification(); } catch(e) {}
+                    }, 400);
+                } else {
+                    myDiscord = null;
+                    try { refreshDiscordRow(); } catch(e) {}
+                    try { hideVerifyBanner(); } catch(e) {}
+                }
                 console.log('[Auth] state changed:', user ? (user.email || user.uid) : 'signed out');
                 if (user) {
                     // Guarded individually — one failure here used to abort the
@@ -4521,8 +4532,10 @@
 
             // Must already be signed in — linking attaches to that account
             if (!currentUser) {
-                toast({ kind:'warn', title:'Sign in first',
-                        body:'Sign in, then link your Discord from Settings.' });
+                // Hold the code so the link completes once they sign in
+                try { sessionStorage.setItem('discord_pending', code); } catch(e) {}
+                toast({ kind:'warn', title:'Sign in to finish linking',
+                        body:'Your Discord link will complete once you sign in.' });
                 return;
             }
 
@@ -4564,6 +4577,18 @@
 
         async function loadDiscordLink() {
             if (!currentUser || !db) return;
+
+            // Complete a link that was started before they signed in
+            let pending = null;
+            try { pending = sessionStorage.getItem('discord_pending'); } catch(e) {}
+            if (pending) {
+                try { sessionStorage.removeItem('discord_pending'); } catch(e) {}
+                const u = new URL(location.href);
+                u.searchParams.set('code', pending);
+                history.replaceState(null, '', u.toString());
+                await handleDiscordCallback();
+            }
+
             try {
                 const d = await db.collection('users').doc(currentUser.uid).get();
                 const v = d.exists ? d.data() : {};
@@ -4575,15 +4600,20 @@
         function refreshDiscordRow() {
             const state = document.getElementById('discordState');
             const btn = document.getElementById('discordLinkBtn');
-            if (!state || !btn) return;
+            if (!btn) return;
+            // Assign every time — a stale handler is worse than none
+            btn.onclick = null;
             if (myDiscord) {
-                state.textContent = 'Linked as ' + myDiscord.name;
-                state.style.color = '#00CC7A';
+                if (state) { state.textContent = 'Linked as ' + myDiscord.name; state.style.color = '#00CC7A'; }
                 btn.textContent = 'UNLINK';
                 btn.onclick = unlinkDiscord;
             } else {
-                state.textContent = 'Not linked — get update DMs and show off your rank';
-                state.style.color = '';
+                if (state) {
+                    state.textContent = currentUser
+                        ? 'Not linked — get update DMs and show off your rank'
+                        : 'Sign in first to link Discord';
+                    state.style.color = '';
+                }
                 btn.textContent = 'LINK';
                 btn.onclick = startDiscordLink;
             }
@@ -4788,7 +4818,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2500</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2600</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
