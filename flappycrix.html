@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-1200";</script>
+    <script>window.__BUILD__ = "2026.08.20-1400";</script>
     
 
-    <script src="/filter.js?v=2026082001"></script>
-    <script src="/android-bridge.js?v=2026082001"></script>
-    <script src="/playfab-manager.js?v=2026082001"></script>
+    <script src="/filter.js?v=2026082002"></script>
+    <script src="/android-bridge.js?v=2026082002"></script>
+    <script src="/playfab-manager.js?v=2026082002"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -318,93 +318,132 @@
             background:#FF4655; font-size:15px; overflow:hidden; }
         .me-mini-av img { width:100%; height:100%; object-fit:cover; }
 
-        /* ================= MOBILE LAYOUT =================
-           A phone gets a game-app layout: no user bar, no page chrome, the
-           canvas fills the screen and the menu sits over it. Desktop keeps
-           the framed look that suits a browser. */
+
+        /* ═══════════════ MOBILE GAME SHELL ═══════════════
+           A phone gets a real game layout: a title screen, then the game.
+           Not both stacked on one scrolling page.
+           Desktop is untouched below 701px. */
         @media (max-width: 700px), (pointer: coarse) {
-            body { padding: 0; align-items: stretch; }
+
+            html, body { height: 100%; overflow: hidden; }
+            body { padding: 0; margin: 0; display: block; }
 
             .game-container {
-                max-width: 100%; width: 100%; min-height: 100dvh;
+                position: fixed; inset: 0;
+                max-width: none; width: 100%; height: 100dvh;
+                margin: 0; padding: 0;
                 border: none; border-radius: 0; box-shadow: none;
-                padding: 0; margin: 0;
-                display: flex; flex-direction: column;
-                background: linear-gradient(180deg, #0d0d16 0%, #07070c 100%);
+                background: radial-gradient(ellipse at 50% 0%, #16161f 0%, #08080d 70%);
+                display: block;
             }
 
-            /* The account row belongs in Settings on a phone, not the menu */
-            .user-section { display: none; }
-
-            .game-header {
-                padding: calc(14px + env(safe-area-inset-top)) 16px 6px;
-                margin: 0;
-            }
-            .game-title { font-size: clamp(30px, 9vw, 44px); }
-
-            /* Canvas fills what's left instead of sitting in a card */
+            /* ---- canvas sits behind everything ---- */
             .canvas-wrapper {
-                flex: 1; width: 100%; max-width: 100%;
+                position: absolute; inset: 0;
+                width: 100%; height: 100%; max-width: none;
                 margin: 0; padding: 0; border: none; border-radius: 0;
-                box-shadow: none; background: transparent;
+                background: transparent; box-shadow: none;
                 display: flex; align-items: center; justify-content: center;
             }
             canvas {
-                width: 100%; max-width: 100%; height: auto;
+                width: 100%; height: auto; max-width: 100%; max-height: 100dvh;
                 border-radius: 0; box-shadow: none;
             }
 
-            /* Stats become a compact bar */
+            /* ---- everything else floats over it ---- */
+            .user-section,
+            .cheat-container { display: none !important; }
+
+            /* ---- TITLE SCREEN (shown when not playing) ---- */
+            .game-header {
+                position: absolute; top: 0; left: 0; right: 0; z-index: 30;
+                margin: 0; padding: calc(26px + env(safe-area-inset-top)) 20px 0;
+                text-align: center; pointer-events: none;
+            }
+            .game-title { font-size: clamp(34px, 11vw, 52px); line-height: 1.05; }
+            .game-sub { font-size: 11px; margin-top: 6px; }
+
+            /* ---- STAT PILLS ---- */
             .stats-grid {
-                position: absolute; top: calc(8px + env(safe-area-inset-top));
-                left: 10px; right: 10px; z-index: 20;
-                gap: 6px; margin: 0; pointer-events: none;
+                position: absolute; z-index: 30;
+                top: calc(118px + env(safe-area-inset-top)); left: 14px; right: 14px;
+                display: flex; gap: 7px; margin: 0;
             }
             .cyber-stat {
-                padding: 5px 8px; border-width: 1px; border-bottom-width: 2px;
-                border-radius: 10px; background: rgba(10,10,15,.85);
-                backdrop-filter: blur(6px); pointer-events: auto;
+                flex: 1; padding: 8px 6px; border-width: 1px; border-bottom-width: 3px;
+                border-radius: 14px; background: rgba(12,12,20,.9);
+                backdrop-filter: blur(8px);
             }
-            .stat-label { font-size: 7px; }
-            .stat-value { font-size: 13px; }
+            .stat-label { font-size: 7px; letter-spacing: .5px; }
+            .stat-value { font-size: 15px; margin-top: 2px; }
 
-            /* Controls dock to the bottom like a real game */
-            .game-controls, .icon-bar, .mp-banner-btn, .menu-footer {
-                width: calc(100% - 20px); margin-left: auto; margin-right: auto;
+            /* ---- BOTTOM CONTROL DECK ---- */
+            .game-controls,
+            .mp-banner-btn,
+            .icon-bar,
+            .menu-footer {
+                position: absolute; z-index: 30; left: 14px; right: 14px;
+                width: auto; margin: 0;
             }
-            .game-controls { margin-bottom: 8px; }
-            .icon-bar { grid-template-columns: repeat(6, 1fr); gap: 5px; }
-            .icon-btn { padding: 8px 2px 6px; border-radius: 12px; }
-            .icon-btn span { font-size: 17px; }
+            .menu-footer  { bottom: calc(10px + env(safe-area-inset-bottom)); }
+            .icon-bar     { bottom: calc(58px + env(safe-area-inset-bottom));
+                            grid-template-columns: repeat(6, 1fr); gap: 5px; }
+            .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
+            .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
+                            display: flex; gap: 10px; }
+
+            .game-btn { flex: 1; min-height: 58px; font-size: 17px; border-radius: 30px; }
+            .mp-banner-btn { min-height: 52px; font-size: 15px; }
+            .icon-btn { padding: 9px 2px 7px; border-radius: 14px; min-height: 54px; }
+            .icon-btn span { font-size: 19px; }
             .icon-btn label { font-size: 7px; }
+            .foot-btn { flex: 1; text-align: center; padding: 10px 4px; font-size: 9px; }
 
-            .menu-footer { gap: 5px; margin: 10px auto 0; }
-            .foot-btn { flex: 1; text-align: center; padding: 11px 6px; font-size: 10px; }
+            /* ---- IN GAME: hide the menu, leave the playfield ---- */
+            body.playing .game-header,
+            body.playing .stats-grid,
+            body.playing .game-controls,
+            body.playing .mp-banner-btn,
+            body.playing .icon-bar,
+            body.playing .menu-footer { display: none !important; }
 
-            /* Full-height sheets rather than floating boxes */
-            .mp-modal-content, .modal-content {
-                max-width: 100%; width: 100%;
-                border-radius: 22px 22px 0 0;
-                max-height: 92dvh;
-                margin: 0; position: fixed; bottom: 0; left: 0; right: 0;
-                animation: sheetUp .22s ease;
-            }
+            body.playing .hud-live { display: flex !important; }
+
+            /* ---- BOTTOM SHEETS ---- */
             .mp-modal, .store-modal, .locker-modal, .achievements-modal {
                 align-items: flex-end; padding: 0;
             }
-            @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
-
-            /* A grab handle, so it reads as a sheet you can dismiss */
-            .mp-modal-content::before, .modal-content::before {
-                content: ''; display: block; width: 38px; height: 4px;
-                border-radius: 2px; background: rgba(255,255,255,.2);
-                margin: 0 auto 12px;
+            .mp-modal-content, .modal-content {
+                width: 100%; max-width: none;
+                border-radius: 24px 24px 0 0;
+                max-height: 90dvh;
+                margin: 0; padding: 16px 18px max(20px, env(safe-area-inset-bottom));
+                animation: sheetUp .24s cubic-bezier(.2,.8,.3,1);
             }
+            .mp-modal-content::before, .modal-content::before {
+                content: ''; display: block; width: 40px; height: 4px;
+                border-radius: 2px; background: rgba(255,255,255,.22);
+                margin: 0 auto 14px;
+            }
+            @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
         }
 
-        /* Desktop keeps the framed card look */
-        @media (min-width: 701px) and (pointer: fine) {
-            .game-container { max-width: 520px; }
+        /* Live score while playing, phone only */
+        .hud-live {
+            display: none;
+            position: absolute; top: calc(14px + env(safe-area-inset-top));
+            left: 0; right: 0; z-index: 35;
+            justify-content: center; align-items: center; gap: 10px;
+            pointer-events: none;
+        }
+        .hud-score {
+            font-size: 40px; font-weight: bold; color: #fff;
+            text-shadow: 0 3px 0 rgba(0,0,0,.6);
+        }
+        .hud-coins {
+            background: rgba(12,12,20,.85); border: 1px solid rgba(255,215,0,.4);
+            color: #FFD700; font-size: 13px; font-weight: bold;
+            padding: 5px 12px; border-radius: 16px; backdrop-filter: blur(6px);
         }
 
         /* ================= MOBILE GAME MENU ================= */
@@ -1442,6 +1481,10 @@
         
         <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="gameCanvas" width="400" height="600"></canvas>
+            <div class="hud-live" id="hudLive">
+                <span class="hud-score" id="hudScore">0</span>
+                <span class="hud-coins" id="hudCoins">🪙 0</span>
+            </div>
             <div class="mp-hud" id="mpHud"></div>
             <div class="mp-chat-godmode-banner" id="mpGodmodeBanner">⚡ TYPING GODMODE</div>
             <button class="mp-chat-toggle-btn" id="mpChatToggleBtn">💬</button>
@@ -2185,7 +2228,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1200</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1400</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2859,7 +2902,16 @@
             if (typeof mpSyncPosition === 'function') mpSyncPosition();
         }
         
-        function drawGame(){ 
+        // Score and coins float over the playfield while a run is going
+        function updateLiveHud() {
+            const s = document.getElementById('hudScore');
+            const co = document.getElementById('hudCoins');
+            if (s) s.textContent = score;
+            if (co) co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
+        }
+
+        function drawGame(){
+            if (gameRunning && !gameOver) updateLiveHud(); 
             ctx.clearRect(0,0,canvas.width,canvas.height); 
             // Draw pipes
             ctx.fillStyle='#00CC7A'; 
@@ -2924,6 +2976,7 @@
                 ctx.textAlign = 'left';
                 ctx.restore();
             }
+            if (document.body.classList.contains('playing')) document.body.classList.remove('playing');
             if(gameOver){ 
                 ctx.textAlign='center';
                 ctx.fillStyle='rgba(0,0,0,0.5)';
@@ -2976,7 +3029,18 @@
             if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
             if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
         }
-        function startGame(){ window.dispatchEvent(new Event('crix:gamestart')); if(animationId) cancelAnimationFrame(animationId); resetGame(); gameRunning=true; gameOver=false; gamesPlayed++; animationId=requestAnimationFrame(gameLoop); if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); } selectSound.play(); checkAchievements(); if (typeof mpOnLocalStart === 'function') mpOnLocalStart(); }
+        function startGame(){
+            window.dispatchEvent(new Event('crix:gamestart'));
+            document.body.classList.add('playing');   // hides the menu on phones
+            if(animationId) cancelAnimationFrame(animationId);
+            resetGame();
+            gameRunning=true; gameOver=false; gamesPlayed++;
+            animationId=requestAnimationFrame(gameLoop);
+            if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); }
+            selectSound.play();
+            checkAchievements();
+            if (typeof mpOnLocalStart === 'function') mpOnLocalStart();
+        }
         function updateHighScore(){
             if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
             // Note: fail sound only plays at end of MP match, not on individual deaths.
@@ -4129,7 +4193,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-1200</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-1400</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4985,6 +5049,7 @@
                     if (gameRunning && !gameOver) {
                         gameOver = true; playSound(deathSound);
                         window.dispatchEvent(new Event('crix:death'));
+            document.body.classList.remove('playing');
                         if (typeof mpReportDeath === 'function') mpReportDeath();
                     }
                     mpLobbyChatAppend(null, '💀 An owner killed everyone', true);
@@ -6912,6 +6977,7 @@
         }
 
         function mpLeaveLobby() {
+            document.body.classList.remove('playing');
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             if (typeof sendHeartbeat === 'function') sendHeartbeat();
