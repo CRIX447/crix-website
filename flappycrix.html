@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-1700";</script>
+    <script>window.__BUILD__ = "2026.08.20-2000";</script>
     
 
-    <script src="/filter.js?v=2026082004"></script>
-    <script src="/android-bridge.js?v=2026082004"></script>
-    <script src="/playfab-manager.js?v=2026082004"></script>
+    <script src="/filter.js?v=2026082006"></script>
+    <script src="/android-bridge.js?v=2026082006"></script>
+    <script src="/playfab-manager.js?v=2026082006"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -515,6 +515,20 @@
             font-size: 40px; font-weight: bold; color: #fff;
             text-shadow: 0 3px 0 rgba(0,0,0,.6);
         }
+        .race-meter {
+            position: absolute; z-index: 34; left: 14px; right: 14px;
+            top: calc(64px + env(safe-area-inset-top));
+        }
+        .rm-track { height: 8px; background: rgba(0,0,0,.6); border-radius: 5px;
+            border: 1px solid rgba(255,255,255,.12); overflow: hidden; }
+        .rm-fill { height: 100%; width: 0%;
+            background: linear-gradient(90deg, #FF6B35, #00CC7A); transition: width .25s; }
+        .rm-marks { position: relative; height: 14px; margin-top: 2px; }
+        .rm-mark { position: absolute; transform: translateX(-50%); font-size: 9px;
+            white-space: nowrap; color: #C9C9C9; transition: left .25s; }
+        .rm-label { text-align: center; font-size: 10px; color: #A0A0A0; margin-top: 1px; }
+        body.playing .race-meter.on { display: block !important; }
+
         .ingame-staff, .ingame-menu {
             position: absolute; z-index: 36;
             top: calc(14px + env(safe-area-inset-top));
@@ -594,6 +608,12 @@
         .social:hover { border-color:var(--orange); background:rgba(255,107,53,.1);
             transform:translateY(-1px); }
         .s-ico { font-size:17px; }
+
+        .cred-inspired { background:rgba(255,215,0,.05); border:1px solid rgba(255,215,0,.2);
+            border-radius:12px; padding:14px 16px; }
+        .cred-inspired p { font-size:12px; color:#EDEDED; line-height:1.7; }
+        .cred-inspired strong { color:#FFD700; }
+        .cred-note { font-size:10px !important; color:#8C8C8C !important; margin-top:8px; }
 
         .cred-list > div { display:flex; justify-content:space-between; gap:10px;
             font-size:11px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.05); }
@@ -1399,6 +1419,42 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        /* ---- MATCHMAKING ---- */
+        .mm-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
+        .mm-big {
+            display:flex; align-items:center; gap:14px; width:100%;
+            border:2px solid rgba(255,255,255,.15); border-bottom-width:5px;
+            border-radius:18px; padding:16px 18px; cursor:pointer;
+            font-family:inherit; color:#fff; text-align:left; transition:transform .1s;
+        }
+        .mm-big:active { transform:translateY(2px); border-bottom-width:3px; }
+        .mm-big.casual { background:linear-gradient(135deg,#FF4655,#FF6B35);
+            border-bottom-color:rgba(150,30,20,.8); }
+        .mm-big.ranked { background:linear-gradient(135deg,#7B2FF7,#F107A3);
+            border-bottom-color:rgba(80,20,120,.8); }
+        .mm-ico { font-size:28px; flex-shrink:0; }
+        .mm-txt { display:flex; flex-direction:column; gap:2px; min-width:0; }
+        .mm-txt b { font-size:16px; letter-spacing:1px; }
+        .mm-txt i { font-style:normal; font-size:10px; opacity:.85; }
+        .mm-row { display:flex; gap:8px; margin-bottom:12px; }
+        .mm-small {
+            flex:1; background:rgba(255,255,255,.05);
+            border:1px solid rgba(255,255,255,.12); border-bottom:3px solid rgba(0,0,0,.4);
+            color:#EDEDED; font-family:inherit; font-size:12px;
+            padding:12px; border-radius:14px; cursor:pointer;
+        }
+        .mm-small:hover { background:rgba(255,255,255,.09); border-color:rgba(255,255,255,.25); }
+        .mm-status {
+            background:rgba(255,107,53,.08); border:1px solid rgba(255,107,53,.3);
+            border-radius:12px; padding:12px 14px; margin-bottom:10px;
+            font-size:12px; color:#EDEDED; display:flex; align-items:center; gap:10px;
+        }
+        .mm-spin { width:16px; height:16px; border:2px solid rgba(255,107,53,.25);
+            border-top-color:var(--orange); border-radius:50%; animation:spin .7s linear infinite;
+            flex-shrink:0; }
+        @keyframes spin { to { transform:rotate(360deg); } }
+        @media (pointer:coarse) { .mm-small { min-height:48px; } }
+
         /* ---- QUEUE TABS / RANK / SPECTATE ---- */
         .queue-tabs { display:flex; gap:6px; margin-bottom:12px; }
         .queue-tab { flex:1; background:rgba(10,10,20,0.8); border:2px solid rgba(255,107,53,0.35);
@@ -1594,6 +1650,14 @@
             <button class="ingame-staff" id="ingameStaffBtn" style="display:none;">🛡️</button>
             <button class="ingame-menu" id="ingameMenuBtn" style="display:none;">☰</button>
 
+            <!-- Race progress. Shows how close everyone is to the target,
+                 which the pipe count alone does not convey. -->
+            <div class="race-meter" id="raceMeter" style="display:none;">
+                <div class="rm-track"><div class="rm-fill" id="rmFill"></div></div>
+                <div class="rm-marks" id="rmMarks"></div>
+                <div class="rm-label"><span id="rmScore">0</span> / <span id="rmTarget">100</span></div>
+            </div>
+
             <div class="hud-live" id="hudLive">
                 <span class="hud-score" id="hudScore">0</span>
                 <span class="hud-coins" id="hudCoins">🪙 0</span>
@@ -1758,6 +1822,24 @@
                     <button class="set-mini-btn" id="onlineListBtn" style="margin-left:auto;">WHO'S ON</button>
                 </div>
                 <div id="onlineList" class="online-list" style="display:none;"></div>
+
+                <!-- Primary actions. Most people want to press one button and
+                     play, not read a lobby list. -->
+                <div class="mm-actions">
+                    <button class="mm-big casual" id="mmQuickBtn">
+                        <span class="mm-ico">⚡</span>
+                        <span class="mm-txt"><b>QUICK PLAY</b><i>Join the best open lobby</i></span>
+                    </button>
+                    <button class="mm-big ranked" id="mmRankedBtn">
+                        <span class="mm-ico">🏆</span>
+                        <span class="mm-txt"><b>RANKED</b><i id="mmRankedSub">Find a competitive match</i></span>
+                    </button>
+                </div>
+                <div class="mm-row">
+                    <button class="mm-small" id="mmCreateBtn">➕ Create</button>
+                    <button class="mm-small" id="mmCodeBtn">🔑 Join code</button>
+                </div>
+                <div id="mmStatus" class="mm-status" style="display:none;"></div>
 
                 <div class="queue-tabs">
                     <button class="queue-tab active" data-queue="casual">🎮 CASUAL</button>
@@ -2094,6 +2176,14 @@
                     <span class="s-ico">🛒</span><span>Merch</span></a>
             </div>
 
+            <div class="mp-section-title">🙏 INSPIRED BY</div>
+            <div class="cred-inspired">
+                <p><strong>Flappy Bird</strong> by <strong>Dong Nguyen</strong> (.Gears, 2013)</p>
+                <p class="cred-note">This game exists because of the original. Flappy Crix is an
+                   independent fan project and is not affiliated with or endorsed by Dong Nguyen
+                   or .Gears.</p>
+            </div>
+
             <div class="mp-section-title">🛠️ BUILT WITH</div>
             <div class="cred-list">
                 <div><span>Multiplayer</span><span>Photon Realtime</span></div>
@@ -2341,7 +2431,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1700</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2000</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2638,16 +2728,16 @@
         birdImage.src = '/img/bird.png';
         
         let powerups = [
-            { id: 'x2coins', name: '2X COINS', price: 5000, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins 30s' },
-            { id: 'shield', name: 'SHIELD', price: 4000, duration: 20, active: false, timeLeft: 0, timer: null, desc: 'Invincible 20s' },
-            { id: 'magnet', name: 'MAGNET', price: 3000, duration: 15, active: false, timeLeft: 0, timer: null, desc: 'Coin magnet 15s' }
+            { id: 'x2coins', name: '2X COINS', price: 1200, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins 30s' },
+            { id: 'shield', name: 'SHIELD', price: 900, duration: 20, active: false, timeLeft: 0, timer: null, desc: 'Invincible 20s' },
+            { id: 'magnet', name: 'MAGNET', price: 750, duration: 15, active: false, timeLeft: 0, timer: null, desc: 'Coin magnet 15s' }
         ];
         
         let cosmetics = [
-            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 2500, image: '/img/bucket-hat.avif', owned: false, equipped: false },
-            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 2000, image: '/img/cap.png', owned: false, equipped: false },
-            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 1800, image: '/img/tank-top.avif', owned: false, equipped: false },
-            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 1500, image: '/img/new-t-shirt.png', owned: false, equipped: false }
+            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, image: '/img/bucket-hat.avif', owned: false, equipped: false },
+            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, image: '/img/cap.png', owned: false, equipped: false },
+            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 450, image: '/img/tank-top.avif', owned: false, equipped: false },
+            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 400, image: '/img/new-t-shirt.png', owned: false, equipped: false }
         ];
         
         let achievements = [
@@ -3031,7 +3121,38 @@
         }
         
         // Score and coins float over the playfield while a run is going
+        // Everyone's position along the track, so you can see the gap rather
+        // than having to infer it from a number.
+        function updateRaceMeter() {
+            const meter = document.getElementById('raceMeter');
+            if (!meter) return;
+            const isRace = mpMatchActive && mpMatchMode === 'race';
+            meter.classList.toggle('on', isRace);
+            if (!isRace) return;
+
+            const target = mpCurrentRoom?.raceTarget || MP_RACE_TARGET || 100;
+            const pct = Math.min(100, (score / target) * 100);
+            const fill = document.getElementById('rmFill');
+            if (fill) fill.style.width = pct + '%';
+            const sc = document.getElementById('rmScore');
+            const tg = document.getElementById('rmTarget');
+            if (sc) sc.textContent = score;
+            if (tg) tg.textContent = target;
+
+            const marks = document.getElementById('rmMarks');
+            if (marks) {
+                marks.innerHTML = Object.entries(mpPlayers).map(([nr, p]) => {
+                    const me = parseInt(nr) === mpLocalActor;
+                    const at = Math.min(100, ((p.score || 0) / target) * 100);
+                    return `<span class="rm-mark" style="left:${at}%;color:${me ? '#fff' : (p.colour || '#C9C9C9')};` +
+                           `font-weight:${me ? 'bold' : 'normal'}">` +
+                           `${me ? '▼' : '•'}${me ? '' : ' ' + mpEsc((p.name || '').slice(0, 6))}</span>`;
+                }).join('');
+            }
+        }
+
         function updateLiveHud() {
+            updateRaceMeter();
             const s = document.getElementById('hudScore');
             const co = document.getElementById('hudCoins');
             const rush = document.getElementById('hudRush');
@@ -3044,8 +3165,19 @@
                 co.style.display = isRush ? 'none' : '';
                 co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
             }
+            // Ranked clock takes priority over the coin rush one
+            const ranked = mpMatchActive && mpCurrentRoom?.queue === 'competitive';
             if (rush) {
-                rush.style.display = isRush ? '' : 'none';
+                rush.style.display = (isRush || ranked) ? '' : 'none';
+                if (ranked && !isRush) {
+                    const t = Math.max(0, mpMatchSecondsLeft);
+                    const el = document.getElementById('hudRushTime');
+                    if (el) {
+                        el.textContent = Math.floor(t/60) + ':' + String(t%60).padStart(2,'0');
+                        rush.style.borderColor = t <= 30 ? '#FF4655' : 'rgba(255,70,85,.45)';
+                    }
+                    return;
+                }
                 if (isRush) {
                     const t = Math.max(0, mpCoinRushSecondsLeft || 0);
                     document.getElementById('hudRushTime').textContent =
@@ -4336,7 +4468,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-1700</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2000</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4471,6 +4603,104 @@
 
 
 
+
+        // ═══════════ MATCHMAKING ═══════════
+        // Picks the fullest lobby that still has room, so players cluster
+        // rather than scattering one-per-lobby.
+        let mmSearching = false, mmTimer = null;
+
+        function mmStatus(text, spinning) {
+            const el = document.getElementById('mmStatus');
+            if (!el) return;
+            if (!text) { el.style.display = 'none'; return; }
+            el.style.display = 'flex';
+            el.innerHTML = (spinning ? '<div class="mm-spin"></div>' : '') +
+                           `<span style="flex:1">${text}</span>` +
+                           (spinning ? '<button class="set-mini-btn" id="mmCancel">CANCEL</button>' : '');
+            const cancel = document.getElementById('mmCancel');
+            if (cancel) cancel.onclick = mmStop;
+        }
+
+        function mmStop() {
+            mmSearching = false;
+            clearTimeout(mmTimer);
+            mmStatus(null);
+        }
+
+        function mmFindLobby(queue) {
+            const rooms = photonClient.availableRooms() || [];
+            const open = rooms.filter(r => {
+                const p = r.getCustomProperties ? r.getCustomProperties() : {};
+                if (p.isPublic === false || r.isOpen === false) return false;
+                if ((p.queue || 'casual') !== queue) return false;
+                if (p.matchInProgress) return false;
+                return (r.playerCount || 0) < (r.maxPlayers || 8);
+            });
+            // Fullest first — a lobby with 5 players is a better game than one with 1
+            open.sort((a, b) => (b.playerCount || 0) - (a.playerCount || 0));
+            return open[0] || null;
+        }
+
+        function mmSearch(queue) {
+            if (!mpConnected) {
+                toast({ kind:'warn', title:'Not connected', body:'Still reaching the servers — try again in a moment.' });
+                return;
+            }
+            mmSearching = true;
+            let waited = 0;
+
+            const tick = () => {
+                if (!mmSearching) return;
+                const found = mmFindLobby(queue);
+                if (found) {
+                    mmStop();
+                    mmStatus(`Joining ${found.name}…`, true);
+                    photonClient.joinRoom(found.name);
+                    return;
+                }
+                waited += 2;
+                if (queue === 'competitive') {
+                    mmStatus(`Looking for a ranked match… ${waited}s<br>` +
+                             `<span style="font-size:10px;color:#8C8C8C">Ranked needs ${RANKED_MIN_PLAYERS} players</span>`, true);
+                } else {
+                    mmStatus(`Looking for a lobby… ${waited}s`, true);
+                }
+                // Nothing out there — make one rather than leaving them waiting
+                if (waited >= 8) {
+                    mmStop();
+                    mmStatus(`No lobbies open — starting your own…`, true);
+                    mpSelectedQueue = queue;
+                    mpSelectedPrivacy = 'public';
+                    setTimeout(() => { mmStatus(null); mpCreateRoom(); }, 700);
+                    return;
+                }
+                mmTimer = setTimeout(tick, 2000);
+            };
+            tick();
+        }
+
+        document.getElementById('mmQuickBtn')?.addEventListener('click', () => {
+            playSfx('pop', .5); mmSearch('casual');
+        });
+        document.getElementById('mmRankedBtn')?.addEventListener('click', () => {
+            playSfx('pop', .5); mmSearch('competitive');
+        });
+        document.getElementById('mmCreateBtn')?.addEventListener('click', () => {
+            mmStop(); mpShowView('mpViewCreate');
+        });
+        document.getElementById('mmCodeBtn')?.addEventListener('click', () => {
+            mmStop(); mpShowView('mpViewJoinCode');
+        });
+
+        // Show the player's rank on the ranked button
+        function refreshRankedButton() {
+            const sub = document.getElementById('mmRankedSub');
+            if (!sub) return;
+            const pr = rankProgress(playerRP);
+            sub.innerHTML = `${pr.cur.name} · ${playerRP} RP` +
+                (pr.next ? ` · ${pr.need} to ${pr.next.name}` : ' · max rank');
+        }
+
         // ═══════════ SCREEN STATE ═══════════
         // Exactly one of these is active at a time, which is what stops the
         // canvas bleeding through the menu.
@@ -4545,8 +4775,21 @@
         // ================= PATCH NOTES (in code) =================
         // Kept here rather than in patchnotes.json so shipping an update means
         // editing one place. Bump GAME_VERSION and add an entry at the top.
-        const GAME_VERSION = '1.5.0';
+        const GAME_VERSION = '1.6.0';
         const CHANGELOG = [
+            {
+                v: '1.6.0', date: '2026-08-20', title: 'Ranked Rework',
+                changes: [
+                    'Quick Play and Ranked buttons — one tap to find a game',
+                    'Ranked now needs 4 players; top 3 gain points, the rest lose',
+                    'Every ranked match has a 5 minute limit',
+                    'Race mode shows how close everyone is to the finish',
+                    'Coin Rush scores by coins collected, as it should have',
+                    'Cheaper cosmetics and power-ups',
+                    'Retry and Main Menu buttons when you die',
+                    'Staff can open the mod menu mid-match'
+                ]
+            },
             {
                 v: '1.5.0', date: '2026-08-19', title: 'Menu Revamp',
                 changes: [
@@ -6573,6 +6816,8 @@
             { name: 'Unreal',    min: 3200, colour: '#FF4655' }
         ];
         const RP_KEY = 'crix_rp_v1';
+        const RANKED_MIN_PLAYERS = 4;      // enough for top-3 to mean something
+        const RANKED_TIME_LIMIT = 300;     // 5 minutes, every ranked mode
         let playerRP = 0;
         function loadRP() {
             // Local value is a cache for offline play only — PlayFab overrides it
@@ -6601,26 +6846,45 @@
         }
         // Placement-style RP: win big, lose less
         function awardRP(place, total) {
-            if (mpMatchMode === undefined) return;
-            const share = total > 1 ? (total - place) / (total - 1) : 1;   // 1st = 1, last = 0
-            const delta = Math.round(-25 + share * 75);                     // -25 .. +50
+            // Top 3 gain, everyone below loses. Scaled by lobby size so a
+            // win in a full lobby is worth more than one in a small lobby.
+            const sizeBonus = Math.min(1.5, 0.75 + total * 0.09);
+            let base;
+            if (place === 1)      base =  50;
+            else if (place === 2) base =  30;
+            else if (place === 3) base =  15;
+            else {
+                // Losses get steeper further down, but never brutal
+                const below = place - 3;
+                base = -Math.min(30, 8 + below * 6);
+            }
+            const delta = Math.round(base * sizeBonus);
             playerRP = Math.max(0, playerRP + delta);
             saveRP();
+
             const rk = rankFor(playerRP).name;
-            if (rk === 'Silver' || RANKS.findIndex(r=>r.name===rk) >= 1) mpCheckAchievement('mp_silver');
-            if (RANKS.findIndex(r=>r.name===rk) >= 2) mpCheckAchievement('mp_gold');
-            showRPChange(delta);
+            if (RANKS.findIndex(r => r.name === rk) >= 1) mpCheckAchievement('mp_silver');
+            if (RANKS.findIndex(r => r.name === rk) >= 2) mpCheckAchievement('mp_gold');
+
+            showRPChange(delta, place);
             refreshSettingsUI();
         }
-        function showRPChange(delta) {
-            playSfx(delta >= 0 ? 'rank' : 'error', .7);
+        function showRPChange(delta, place) {
             const r = rankFor(playerRP);
             const n = document.createElement('div');
-            n.style.cssText = 'position:fixed;bottom:130px;right:16px;background:#0F0F17;border:2px solid '+r.colour+';border-radius:14px;padding:12px 18px;z-index:50000;font-size:13px;color:#fff;';
-            n.innerHTML = `<div style="color:${r.colour};font-weight:bold;">${r.name}</div>` +
-                          `<div style="font-size:11px;color:${delta>=0?'#00CC7A':'#FF4655'};">${delta>=0?'+':''}${delta} RP</div>`;
+            const good = delta >= 0;
+            n.style.cssText = 'position:fixed;bottom:130px;left:50%;transform:translateX(-50%);' +
+                'background:#0F0F17;border:2px solid ' + r.colour + ';border-radius:16px;' +
+                'padding:14px 22px;z-index:50000;text-align:center;animation:popIn .25s ease;';
+            n.innerHTML =
+                (place ? `<div style="font-size:10px;color:#8C8C8C;margin-bottom:4px;">` +
+                         `${place === 1 ? '🥇 1st' : place === 2 ? '🥈 2nd' : place === 3 ? '🥉 3rd' : place + 'th'} place</div>` : '') +
+                `<div style="color:${r.colour};font-weight:bold;font-size:15px;">${r.name}</div>` +
+                `<div style="font-size:18px;font-weight:bold;color:${good ? '#00CC7A' : '#FF4655'};margin-top:3px;">` +
+                `${good ? '+' : ''}${delta} RP</div>` +
+                `<div style="font-size:10px;color:#8C8C8C;margin-top:3px;">${playerRP} total</div>`;
             document.body.appendChild(n);
-            setTimeout(() => n.remove(), 3200);
+            setTimeout(() => n.remove(), 4000);
         }
 
         function mpCreateRoom() {
@@ -7218,7 +7482,38 @@
         }
 
         let _mpMatchStarted = false;
+        let mpMatchTimer = null, mpMatchSecondsLeft = 0;
+
+        // Ranked matches are capped so a lobby cannot stall forever. When it
+        // expires the standings at that moment decide the result.
+        function startMatchTimer() {
+            clearInterval(mpMatchTimer);
+            const ranked = mpCurrentRoom?.queue === 'competitive';
+            if (!ranked) { mpMatchSecondsLeft = 0; return; }
+            mpMatchSecondsLeft = RANKED_TIME_LIMIT;
+            mpMatchTimer = setInterval(() => {
+                mpMatchSecondsLeft--;
+                if (mpMatchSecondsLeft <= 10 && mpMatchSecondsLeft > 0) playSfx('tick', .4);
+                if (mpMatchSecondsLeft <= 0) {
+                    clearInterval(mpMatchTimer); mpMatchTimer = null;
+                    if (mpIsHost) {
+                        mpLobbyChatAppend(null, 'Time is up — standings are final.', true);
+                        mpEndMatchByStandings();
+                    }
+                }
+            }, 1000);
+        }
+
+        function mpEndMatchByStandings() {
+            const results = Object.entries(mpPlayers)
+                .map(([nr, p]) => ({ actor: parseInt(nr), name: p.name, score: p.score || 0 }))
+                .sort((a, b) => b.score - a.score);
+            mpRaiseEvent(MP_EV.MATCH_END, { results, winner: results[0]?.actor ?? null, mode: mpMatchMode },
+                { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+        }
+
         function mpBeginMatchLocally(mode, seed) {
+            startMatchTimer();
             playSfx('start');
             if (mpIsHost) {
                 try { photonClient.myRoom().setCustomProperties({ matchInProgress: true }); } catch(e) {}
@@ -7324,6 +7619,7 @@
 
         function mpShowMatchOver(results, winnerActor, endMode) {
             if (mpMatchOverShown) return; // prevent duplicate calls
+            clearInterval(mpMatchTimer); mpMatchTimer = null;
             mpMatchOverShown = true;
             mpMatchActive = false;
             // The END button is only meaningful mid-match
@@ -7340,9 +7636,9 @@
                 // Ranked points need real opposition — a solo lobby would
                 // otherwise be free RP every round.
                 const realPlayers = Object.keys(mpPlayers || {}).length;
-                if (realPlayers < 2) {
+                if (realPlayers < RANKED_MIN_PLAYERS) {
                     toast({ kind: 'warn', title: 'No rank points',
-                            body: 'Ranked matches need at least 2 players.' });
+                            body: `Ranked needs ${RANKED_MIN_PLAYERS} players — this lobby had ${realPlayers}.` });
                 } else {
                     const _i = results.findIndex(r => r.actor === mpLocalActor);
                     if (_i !== -1) {
@@ -7486,8 +7782,9 @@
             const coinrushTimerStr = mpMatchMode === 'coinrush' ? ` ⏱️ ${Math.floor(mpCoinRushSecondsLeft/60)}:${String(mpCoinRushSecondsLeft%60).padStart(2,'0')}` : '';
             let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}${coinrushTimerStr}</strong></div>`;
             Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
+                // In Coin Rush the score IS coins collected, so label it clearly
                 const isRush = mpMatchMode === 'coinrush';
-                const val = isRush ? `🪙 ${p.score||0}` : (p.score||0);
+                const val = isRush ? `🪙 ${p.coins ?? p.score ?? 0}` : (p.score||0);
                 rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${val}</div>`;
             });
             hud.innerHTML = rows;
