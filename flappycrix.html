@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2000";</script>
+    <script>window.__BUILD__ = "2026.08.20-2200";</script>
     
 
-    <script src="/filter.js?v=2026082006"></script>
-    <script src="/android-bridge.js?v=2026082006"></script>
-    <script src="/playfab-manager.js?v=2026082006"></script>
+    <script src="/filter.js?v=2026082007"></script>
+    <script src="/android-bridge.js?v=2026082007"></script>
+    <script src="/playfab-manager.js?v=2026082007"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -529,18 +529,22 @@
         .rm-label { text-align: center; font-size: 10px; color: #A0A0A0; margin-top: 1px; }
         body.playing .race-meter.on { display: block !important; }
 
-        .ingame-staff, .ingame-menu {
+        .ingame-bar {
+            display: none;
             position: absolute; z-index: 36;
-            top: calc(14px + env(safe-area-inset-top));
-            width: 40px; height: 40px; border-radius: 50%;
+            top: calc(12px + env(safe-area-inset-top)); left: 12px;
+            gap: 7px;
+        }
+        body.playing .ingame-bar { display: flex !important; }
+        .ig-btn {
+            width: 38px; height: 38px; border-radius: 50%;
             border: 1px solid rgba(255,255,255,.15);
             background: rgba(12,12,20,.85); backdrop-filter: blur(6px);
-            color: #EDEDED; font-size: 17px; cursor: pointer;
+            color: #EDEDED; font-size: 16px; cursor: pointer; flex-shrink: 0;
         }
-        .ingame-staff { right: 12px; border-color: rgba(255,0,0,.5); }
-        .ingame-menu  { left: 12px; }
-        body.playing .ingame-menu { display: block !important; }
-        body.playing .ingame-staff.has-role { display: block !important; }
+        .ig-btn:active { transform: scale(.92); }
+        .ig-btn.staff { border-color: rgba(255,0,0,.5); }
+        .ig-btn.sandbox { border-color: rgba(255,215,0,.45); }
 
         .hud-rush {
             background: rgba(12,12,20,.85); border: 1px solid rgba(255,70,85,.45);
@@ -1029,7 +1033,9 @@
         .mp-copy-code-btn { background: rgba(0,204,122,0.1); border: 1px solid var(--green); color: var(--green); font-size: 10px; padding: 4px 12px; border-radius: 20px; cursor: pointer; display: block; margin: 4px auto 0; }
 
         /* ---- IN-GAME MULTIPLAYER HUD ---- */
-        .mp-hud {
+        /* Must sit below the modals or it covers the lobby view */
+        .mp-hud { z-index: 15 !important; }
+        .mp-hud-orig {
             display: none;
             position: absolute;
             top: 8px; left: 8px;
@@ -1420,6 +1426,20 @@
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
         /* ---- MATCHMAKING ---- */
+        .browse-toggle {
+            width:100%; background:rgba(255,255,255,.04);
+            border:1px solid rgba(255,255,255,.1); color:#A0A0A0;
+            font-family:inherit; font-size:12px; padding:11px;
+            border-radius:12px; cursor:pointer; text-align:left;
+            display:flex; align-items:center; gap:8px; margin-bottom:8px;
+        }
+        .browse-toggle:hover { color:#fff; border-color:rgba(255,255,255,.2); }
+        .browse-toggle i { margin-left:auto; font-style:normal; transition:transform .2s; }
+        .browse-toggle.open i { transform:rotate(180deg); }
+        .browse-toggle span { font-size:10px; color:#8C8C8C; }
+        #browseSection { display:none; }
+        #browseSection.open { display:block; }
+
         .mm-actions { display:flex; flex-direction:column; gap:8px; margin-bottom:8px; }
         .mm-big {
             display:flex; align-items:center; gap:14px; width:100%;
@@ -1647,8 +1667,12 @@
 
             <!-- Staff controls while a match is running. Hidden unless you
                  hold a role, and only during play. -->
-            <button class="ingame-staff" id="ingameStaffBtn" style="display:none;">🛡️</button>
-            <button class="ingame-menu" id="ingameMenuBtn" style="display:none;">☰</button>
+            <div class="ingame-bar" id="ingameBar">
+                <button class="ig-btn" id="ingameMenuBtn" title="Menu">☰</button>
+                <button class="ig-btn" id="ingameMusicBtn" title="Music">🔊</button>
+                <button class="ig-btn sandbox" id="ingameSandboxBtn" title="Sandbox" style="display:none;">🎮</button>
+                <button class="ig-btn staff" id="ingameStaffBtn" title="Staff menu" style="display:none;">🛡️</button>
+            </div>
 
             <!-- Race progress. Shows how close everyone is to the target,
                  which the pipe count alone does not convey. -->
@@ -1841,6 +1865,10 @@
                 </div>
                 <div id="mmStatus" class="mm-status" style="display:none;"></div>
 
+                <button class="browse-toggle" id="browseToggle">
+                    🌍 Browse lobbies <i>▾</i>
+                </button>
+                <div id="browseSection">
                 <div class="queue-tabs">
                     <button class="queue-tab active" data-queue="casual">🎮 CASUAL</button>
                     <button class="queue-tab" data-queue="competitive">🏆 COMPETITIVE</button>
@@ -1849,7 +1877,8 @@
                 <div id="rankBanner" style="display:none;"></div>
 
                 <div class="mp-room-list" id="mpRoomList"></div>
-                <button class="mp-btn-secondary" id="mpRefreshBtn" style="width:100%;margin-bottom:10px;">🔄 REFRESH LOBBIES</button>
+                <button class="mp-btn-secondary" id="mpRefreshBtn" style="width:100%;margin-bottom:10px;">🔄 REFRESH</button>
+                </div>
 
                 <!-- FRIENDS PANEL -->
                 <div id="friendsPanel" style="display:none;">
@@ -2431,7 +2460,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2000</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2200</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2704,7 +2733,7 @@
         const previewCtx = previewCanvas.getContext('2d');
         
         // GAME STATE
-        let gameRunning = false, animationId = null, highScore = 0, coinCount = 0, coinMultiplier = 1, musicMuted = true, gamesPlayed = 0, hasTriggered67 = false, hasTriggered1000 = false;
+        let gameRunning = false, animationId = null, highScore = 0, coinCount = 0, coinMultiplier = 1, musicMuted = false, gamesPlayed = 0, hasTriggered67 = false, hasTriggered1000 = false;
         let cheats = { godmode: false, coinlord: false, slowmo: false, bigbird: false };
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5 };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
@@ -3052,7 +3081,8 @@
         
         function updateGame() { 
             if (gameOver || !gameRunning) return;
-            if (window.__crixFrozen) return;   // owner freeze 
+            if (window.__crixFrozen) return;   // owner freeze
+            if (mpRespawning) { /* brief grace period after respawning */ } 
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode; 
             bird.velocity += bird.gravity; 
@@ -3446,7 +3476,24 @@
             const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
             if ((e.key === ' ' || e.key === 'Space') && !isInput) { e.preventDefault(); jump(); }
         });
-        document.getElementById('musicToggleBtn')?.addEventListener('click', () => { musicMuted = !musicMuted; if(!musicMuted) bgMusic.play().catch(()=>{}); else bgMusic.pause(); selectSound.play(); });
+        function setMusic(on) {
+            musicMuted = !on;
+            try { localStorage.setItem('crix_music', on ? '1' : '0'); } catch(e) {}
+            if (on) bgMusic.play().catch(() => {}); else bgMusic.pause();
+            document.querySelectorAll('#musicToggleBtn, #ingameMusicBtn').forEach(b => {
+                if (!b) return;
+                if (b.id === 'ingameMusicBtn') b.textContent = on ? '🔊' : '🔇';
+                else b.innerHTML = on ? '🔊 MUSIC' : '🔇 MUSIC';
+            });
+        }
+        document.getElementById('musicToggleBtn')?.addEventListener('click', () => {
+            setMusic(musicMuted); playSfx('pop', .4);
+        });
+        // Restore the last choice; defaults to on for a first-time player
+        try {
+            const saved = localStorage.getItem('crix_music');
+            musicMuted = saved === '0';
+        } catch(e) {}
         const _b_storeBtn = document.getElementById('storeBtn'); if (_b_storeBtn) _b_storeBtn.onclick = () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); };
         const _b_closeStoreBtn = document.getElementById('closeStoreBtn'); if (_b_closeStoreBtn) _b_closeStoreBtn.onclick = () => document.getElementById('storeModal').classList.remove('active');
         const _b_lockerBtn = document.getElementById('lockerBtn'); if (_b_lockerBtn) _b_lockerBtn.onclick = () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); };
@@ -3952,9 +3999,7 @@
                         console.log('[Roles] Using local dev override:', myRoles);
                         refreshRoleDisplay();
             updateOwnerButton();
-            const isb = document.getElementById('ingameStaffBtn');
-            if (isb) isb.classList.toggle('has-role',
-                myRoles.includes('OWNER') || myRoles.includes('MOD'));
+            updateIngameButtons();
             renderFriendCode();
             updatePlayerMenuButton();
                     }
@@ -4361,7 +4406,7 @@
             LOBBY_CHAT: 11, HOST_MODE_CHANGE: 12,
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
-            OWNER_EFFECT: 21, VOTE_CAST: 22, HOST_CHANGED: 23,
+            OWNER_EFFECT: 21, VOTE_CAST: 22, HOST_CHANGED: 23, RESPAWN: 24,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -4468,7 +4513,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2000</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2200</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4679,6 +4724,14 @@
             tick();
         }
 
+        document.getElementById('browseToggle')?.addEventListener('click', function () {
+            const sec = document.getElementById('browseSection');
+            const open = sec.classList.toggle('open');
+            this.classList.toggle('open', open);
+            if (open) mpRenderRoomList();
+            playSfx('pop', .4);
+        });
+
         document.getElementById('mmQuickBtn')?.addEventListener('click', () => {
             playSfx('pop', .5); mmSearch('casual');
         });
@@ -4719,7 +4772,17 @@
         function handleDeath() {
             // Every death path goes through here, so the overlay is
             // guaranteed rather than only firing on ceiling hits.
-            if (!mpMatchActive) setTimeout(showDeathScreen, 250);
+            if (!mpMatchActive) { setTimeout(showDeathScreen, 250); return; }
+
+            // Race and Coin Rush let you keep going — only Last One Standing
+            // is meant to be final. Without this a single mistake ended your
+            // match with minutes still on the clock.
+            if (mpMatchMode === 'race' || mpMatchMode === 'coinrush') {
+                setTimeout(() => {
+                    if (!mpMatchActive) return;
+                    mpRespawn();
+                }, 1200);
+            }
             if (bgMusic && !musicMuted) bgMusic.pause();
             updateHighScore();
             if (typeof mpReportDeath === 'function') mpReportDeath();
@@ -4753,13 +4816,26 @@
 
         // Staff menu during a match — useful for dealing with someone
         // mid-game rather than having to leave first.
+        document.getElementById('ingameMusicBtn')?.addEventListener('click', () => setMusic(musicMuted));
+        document.getElementById('ingameSandboxBtn')?.addEventListener('click', () => {
+            refreshPlayerMenu();
+            document.getElementById('playerModal')?.classList.add('active');
+        });
         document.getElementById('ingameStaffBtn')?.addEventListener('click', () => {
             if (typeof refreshOwnerTargets === 'function') refreshOwnerTargets();
             document.getElementById('ownerModal')?.classList.add('active');
         });
         document.getElementById('ingameMenuBtn')?.addEventListener('click', () => {
+            // In a match this should show the lobby, not dump you back to the
+            // main menu. The leaderboard was covering it before.
+            if (mpCurrentRoom) {
+                document.getElementById('mpModal')?.classList.add('active');
+                mpShowLobbyView();
+                mpRenderLobby();
+                playSfx('whoosh', .5);
+                return;
+            }
             if (gameRunning && !gameOver) {
-                // Pause rather than losing the run outright
                 gameRunning = false;
                 if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
             }
@@ -5351,6 +5427,16 @@
         // Every privileged action is verified server-side in CloudScript.
         // Hiding the button is convenience, not security — a player who
         // un-hides it still gets rejected by the server.
+        // The sandbox and staff buttons only appear if you actually have them
+        function updateIngameButtons() {
+            const staff = document.getElementById('ingameStaffBtn');
+            if (staff) staff.style.display =
+                (myRoles.includes('OWNER') || myRoles.includes('MOD')) ? '' : 'none';
+            const sandbox = document.getElementById('ingameSandboxBtn');
+            if (sandbox) sandbox.style.display =
+                (typeof ownsPlayerMenu === 'function' && ownsPlayerMenu()) ? '' : 'none';
+        }
+
         function updateOwnerButton() {
             const btn = document.getElementById('ownerBtn');
             if (!btn) return;
@@ -6776,7 +6862,7 @@
                 return (p.queue || 'casual') === mpBrowseQueue;
             });
             if (!pub.length) {
-                listEl.innerHTML = `<div class="mp-empty-state">No ${mpBrowseQueue} lobbies right now. Create one!</div>`;
+                listEl.innerHTML = `<div class="mp-empty-state">No ${mpBrowseQueue} lobbies right now.</div>`;
                 return;
             }
             listEl.innerHTML = '';
@@ -7473,6 +7559,18 @@
         // ----- MATCH FLOW -----
         function mpStartMatch() {
             if (!mpHasPerm(mpLocalActor, 'canSettings')) return;
+            // Ranked was startable with any number of players, which made the
+            // top-3 placement meaningless.
+            if (mpCurrentRoom?.queue === 'competitive') {
+                const n = Object.keys(mpPlayers || {}).length;
+                if (n < RANKED_MIN_PLAYERS) {
+                    toast({ kind:'warn', title:'Not enough players',
+                            body:`Ranked needs ${RANKED_MIN_PLAYERS} — you have ${n}.` });
+                    mpLobbyChatAppend(null,
+                        `Waiting for ${RANKED_MIN_PLAYERS - n} more player(s) before this can start.`, true);
+                    return;
+                }
+            }
             const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
             const mpSeed = Math.floor(Math.random() * 0xFFFFFFFF);
             window.mpSharedSeed = mpSeed;
@@ -7489,7 +7587,9 @@
         function startMatchTimer() {
             clearInterval(mpMatchTimer);
             const ranked = mpCurrentRoom?.queue === 'competitive';
-            if (!ranked) { mpMatchSecondsLeft = 0; return; }
+            // Race ends when someone reaches the target, so a clock would only
+            // cut a close finish short.
+            if (!ranked || mpMatchMode === 'race') { mpMatchSecondsLeft = 0; return; }
             mpMatchSecondsLeft = RANKED_TIME_LIMIT;
             mpMatchTimer = setInterval(() => {
                 mpMatchSecondsLeft--;
@@ -7906,7 +8006,30 @@
         const PIPE_SPACING = 300;
 
         // Where another player should appear on OUR screen.
+        // Puts you back in play without resetting your score
+        function mpRespawn() {
+            gameOver = false;
+            bird.y = canvas.height / 2;
+            bird.velocity = 0;
+            gameRunning = true;
+            mpRespawning = true;
+            setTimeout(() => { mpRespawning = false; }, 1500);   // brief safety
+            if (!animationId) animationId = requestAnimationFrame(gameLoop);
+            if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].dead = false;
+            mpRaiseEvent(MP_EV.RESPAWN, { actor: mpLocalActor });
+            mpLobbyChatAppend(null, 'Respawned — keep going!', true);
+            playSfx('start', .5);
+        }
+        let mpRespawning = false;
+
         function mpVirtualX(p) {
+            // In Coin Rush the score is coins collected, not distance travelled,
+            // so spreading players by it flung everyone off screen — including
+            // the local player. Everyone shares the same track there.
+            if (mpMatchMode === 'coinrush') {
+                const nr = Object.keys(mpPlayers).find(k => mpPlayers[k] === p) || 0;
+                return 100 + ((parseInt(nr) % 5) - 2) * 26;
+            }
             const diff = (p.score || 0) - score;          // + = ahead, - = behind
             let vx = 100 + diff * PIPE_SPACING;
             // Players on the exact same pipe would overlap us perfectly, so
@@ -8004,6 +8127,7 @@
                 const off = px < M || px > W - M || py < M || py > H - M;
                 if (!off) return;   // visible on screen, no arrow needed
 
+                if (mpMatchMode === 'coinrush') return;   // same track, no gaps to show
                 const gap = (p.score || 0) - score;   // pipes ahead (+) or behind (-)
 
                 // Clamp to the edge and work out which way to point
@@ -8177,6 +8301,10 @@
                     if (typeof applyModeSettingVisibility === 'function') applyModeSettingVisibility();
                     break;
                 }
+                case MP_EV.RESPAWN:
+                    if (p) p.dead = false;
+                    mpUpdateHud();
+                    break;
                 case MP_EV.VOTE_CAST:
                     handleVoteCast(content, actorNr);
                     break;
