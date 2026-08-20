@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2359";</script>
+    <script>window.__BUILD__ = "2026.08.20-2400";</script>
     
 
-    <script src="/filter.js?v=2026082009"></script>
-    <script src="/android-bridge.js?v=2026082009"></script>
-    <script src="/playfab-manager.js?v=2026082009"></script>
+    <script src="/filter.js?v=2026082010"></script>
+    <script src="/android-bridge.js?v=2026082010"></script>
+    <script src="/playfab-manager.js?v=2026082010"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1388,6 +1388,14 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        /* ---- CONTROLLER FOCUS ---- */
+        .pad-focus {
+            outline: 3px solid #FFD700 !important;
+            outline-offset: 2px;
+            box-shadow: 0 0 0 5px rgba(255,215,0,.2) !important;
+            position: relative; z-index: 1;
+        }
+
         /* ---- MATCHMAKING ---- */
         .browse-toggle {
             width:100%; background:rgba(255,255,255,.04);
@@ -2538,7 +2546,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2359</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2400</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3487,12 +3495,11 @@
                 const prev = _padPrev[gp.index] || (_padPrev[gp.index] = {});
 
                 // A / Cross / X, or stick up = flap
-                const jumpNow = padPressed(gp, 0) || padPressed(gp, 1) ||
-                                padPressed(gp, 12) || (gp.axes[1] ?? 0) < -0.55;
-                if (jumpNow && !prev.jump) {
-                    if (gameOver && !mpMatchActive) startGame();   // A also restarts
-                    else jump();
-                }
+                // Only flap while actually playing — otherwise A is the
+                // menu confirm button and the two fight each other.
+                const jumpNow = gameRunning && !gameOver &&
+                                (padPressed(gp, 0) || padPressed(gp, 12) || (gp.axes[1] ?? 0) < -0.55);
+                if (jumpNow && !prev.jump) jump();
                 prev.jump = jumpNow;
 
                 // Start / Options → start a run
@@ -3506,6 +3513,17 @@
                 const hideNow = padPressed(gp, 3);
                 if (hideNow && !prev.hide) /* hide UI removed */;
                 prev.hide = hideNow;
+
+                // ---- menu navigation when not actively playing ----
+                if (!gameRunning || gameOver) {
+                    const ax = gp.axes[1] ?? 0;
+                    if (padPressed(gp, 13) || ax > 0.55) padMove(1);    // down
+                    if (padPressed(gp, 12) || ax < -0.55) padMove(-1);  // up
+
+                    const okNow = padPressed(gp, 0);
+                    if (okNow && !prev.ok) padActivate();
+                    prev.ok = okNow;
+                }
 
                 // B / Circle → close the topmost open modal
                 const backNow = padPressed(gp, 1);
@@ -3529,6 +3547,58 @@
 
             if (anyConnected) requestAnimationFrame(pollGamepad);
             else _padLoopRunning = false;   // stop cleanly when the last pad leaves
+        }
+
+        // ---- CONTROLLER MENU NAVIGATION ----
+        // Without this a controller could only flap; menus were unreachable.
+        let padFocus = -1;
+        let padLastNav = 0;
+
+        function focusableItems() {
+            const modal = document.querySelector('.mp-modal.active, .store-modal.active, ' +
+                '.locker-modal.active, .achievements-modal.active, .settings-modal.active');
+            const scope = modal || document.querySelector('.game-container');
+            if (!scope) return [];
+            return [...scope.querySelectorAll(
+                'button:not([disabled]), a[href], select, input[type="text"], ' +
+                '.room-item, .friend-row, .cyber-stat, .icon-btn, [data-pm], [data-act]')]
+                .filter(el => {
+                    if (el.offsetParent === null) return false;          // hidden
+                    const r = el.getBoundingClientRect();
+                    return r.width > 0 && r.height > 0;
+                });
+        }
+
+        function padHighlight() {
+            document.querySelectorAll('.pad-focus').forEach(el => el.classList.remove('pad-focus'));
+            const items = focusableItems();
+            if (!items.length) { padFocus = -1; return; }
+            padFocus = Math.max(0, Math.min(items.length - 1, padFocus));
+            const el = items[padFocus];
+            el.classList.add('pad-focus');
+            el.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+
+        function padMove(dir) {
+            // Throttled so a held stick does not fly through the whole list
+            const now = Date.now();
+            if (now - padLastNav < 160) return;
+            padLastNav = now;
+            const items = focusableItems();
+            if (!items.length) return;
+            padFocus = padFocus < 0 ? 0 : (padFocus + dir + items.length) % items.length;
+            padHighlight();
+            playSfx('tick', .3);
+        }
+
+        function padActivate() {
+            const items = focusableItems();
+            const el = items[padFocus];
+            if (!el) return;
+            playSfx('pop', .5);
+            if (el.tagName === 'SELECT') { el.focus(); return; }
+            if (el.tagName === 'INPUT') { el.focus(); return; }
+            el.click();
         }
 
         function cyclePadTab(dir) {
@@ -4600,7 +4670,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2359</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2400</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -7156,6 +7226,7 @@
                 rushTime: props.rushTime || 300,
                 allowSpectate: props.allowSpectate !== false
             };
+            setTimeout(watchLobbyOverride, 200);
             if (props.blocked && typeof props.blocked === 'object') {
                 mpLobbyBlocklist = {
                     ids: props.blocked.ids || [],
@@ -7389,8 +7460,10 @@
                 }
                 // Anyone with kick permission can remove anyone else, host included
                 // Owners can still kick staff; everyone else can't see the button
+                const isTargetHost = !!p.isHost;
                 if (mpHasPerm(mpLocalActor, 'canKick') && !isMe &&
-                    (!targetProtected || myRoles.includes('OWNER'))) {
+                    (!targetProtected || myRoles.includes('OWNER')) &&
+                    (!isTargetHost || myRoles.includes('OWNER'))) {
                     const kb = document.createElement('button');
                     kb.className = 'mp-player-kick-btn';
                     kb.textContent = 'KICK';
@@ -7593,8 +7666,49 @@
             mpRenderLobby();
         }
 
+        // Console can claim host or force-end a match. Only acted on if the
+        // request came from someone holding OWNER.
+        let _lobbyWatcher = null;
+        function watchLobbyOverride() {
+            if (!mpCurrentRoom || typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
+            if (_lobbyWatcher) _lobbyWatcher();
+            try {
+                _lobbyWatcher = PlayFabManager.fs.watchLobbyOverride(mpCurrentRoom.code, async data => {
+                    if (data.host && mpIsHost && data.host !== (PlayFabManager.playFabId)) {
+                        const target = Object.entries(mpPlayers)
+                            .find(([, p]) => p.pfId === data.host);
+                        if (target) {
+                            mpTransferHostSilent(parseInt(target[0]));
+                            mpLobbyChatAppend(null, 'An owner took over as host.', true);
+                        }
+                    }
+                    if (data.endMatch && mpIsHost && mpMatchActive) {
+                        mpLobbyChatAppend(null, 'An owner ended this match.', true);
+                        mpEndMatchByStandings();
+                    }
+                });
+            } catch (e) {}
+        }
+
+        function mpTransferHostSilent(actorNr) {
+            try { photonClient.myRoom().setMasterClient(actorNr); } catch (e) {}
+            mpRaiseEvent(MP_EV.HOST_CHANGED, { newHost: actorNr, name: mpPlayers[actorNr]?.name || 'An owner' },
+                { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+            mpIsHost = false;
+            mpRenderLobby();
+        }
+
         function mpKickPlayer(actorNr) {
             if (!mpHasPerm(mpLocalActor, 'canKick')) return;
+
+            // The host runs the lobby, so a granted kick permission should not
+            // let someone remove them. Owners are the exception.
+            const target0 = mpPlayers[actorNr];
+            if (target0?.isHost && !myRoles.includes('OWNER')) {
+                toast({ kind:'warn', title:'Cannot kick the host',
+                        body:'Only an owner can remove the lobby host.' });
+                return;
+            }
             if (mpIsProtected(actorNr) && !myRoles.includes('OWNER')) {
                 toast({ kind:'warn', title:'Cannot kick',
                         body:`That player is ${mpProtectedName(actorNr)}.` });
