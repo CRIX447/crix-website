@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-1400";</script>
+    <script>window.__BUILD__ = "2026.08.20-1530";</script>
     
 
-    <script src="/filter.js?v=2026082002"></script>
-    <script src="/android-bridge.js?v=2026082002"></script>
-    <script src="/playfab-manager.js?v=2026082002"></script>
+    <script src="/filter.js?v=2026082003"></script>
+    <script src="/android-bridge.js?v=2026082003"></script>
+    <script src="/playfab-manager.js?v=2026082003"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -318,6 +318,81 @@
             background:#FF4655; font-size:15px; overflow:hidden; }
         .me-mini-av img { width:100%; height:100%; object-fit:cover; }
 
+
+
+        /* ═══════════════ SCREEN STATES ═══════════════
+           Three states, never overlapping: menu, playing, dead.
+           Previously the canvas sat behind the menu, so pipes and the
+           GAME OVER text bled through everything. */
+
+        /* MENU — hide the playfield entirely */
+        body:not(.playing):not(.dead) .canvas-wrapper { display: none; }
+
+        /* PLAYING / DEAD — hide the menu entirely */
+        body.playing .game-header,  body.dead .game-header,
+        body.playing .stats-grid,   body.dead .stats-grid,
+        body.playing .game-controls,body.dead .game-controls,
+        body.playing .mp-banner-btn,body.dead .mp-banner-btn,
+        body.playing .icon-bar,     body.dead .icon-bar,
+        body.playing .menu-footer,  body.dead .menu-footer,
+        body.playing .user-section, body.dead .user-section,
+        body.playing .cheat-container, body.dead .cheat-container { display: none !important; }
+
+        body.playing .hud-live { display: flex !important; }
+        body.dead .death-screen { display: flex !important; }
+
+        /* ---- DEATH SCREEN ---- */
+        .death-screen {
+            display: none;
+            position: absolute; inset: 0; z-index: 40;
+            align-items: center; justify-content: center;
+            background: rgba(5,5,10,.82); backdrop-filter: blur(4px);
+            animation: fadeIn .2s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .death-card {
+            width: min(320px, 86%); text-align: center;
+            background: #12121A; border: 2px solid var(--red);
+            border-bottom: 5px solid rgba(150,20,35,.8);
+            border-radius: 22px; padding: 26px 22px;
+            box-shadow: 5px 5px 0 rgba(0,0,0,.5);
+            animation: popIn .25s cubic-bezier(.2,.9,.3,1.2);
+        }
+        @keyframes popIn { from { transform: scale(.88); opacity: 0; } to { transform: none; opacity: 1; } }
+        .death-title {
+            font-size: 30px; font-weight: bold; letter-spacing: 2px; margin-bottom: 18px;
+            background: linear-gradient(135deg, #FF4655, #FF6B35);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .death-stats { display: flex; gap: 8px; margin-bottom: 16px; }
+        .death-stats > div {
+            flex: 1; background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08);
+            border-radius: 12px; padding: 10px 4px;
+        }
+        .ds-label { display: block; font-size: 8px; color: var(--green);
+            text-transform: uppercase; letter-spacing: 1px; }
+        .ds-value { display: block; font-size: 19px; font-weight: bold; color: #fff; margin-top: 3px; }
+        .ds-newbest {
+            font-size: 12px; color: #FFD700; font-weight: bold; margin-bottom: 14px;
+            animation: pulse 1s ease infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .55; } }
+        .death-btn {
+            display: block; width: 100%; margin-bottom: 9px;
+            border: 2px solid rgba(255,255,255,.15); border-bottom-width: 4px;
+            border-radius: 26px; padding: 14px; cursor: pointer;
+            font-family: inherit; font-size: 15px; font-weight: bold;
+            letter-spacing: 1px; text-transform: uppercase; color: #fff;
+            transition: transform .1s;
+        }
+        .death-btn:active { transform: translateY(2px); border-bottom-width: 2px; }
+        .death-btn.retry { background: linear-gradient(135deg, #FF4655, #FF6B35);
+            border-bottom-color: rgba(150,30,20,.8); }
+        .death-btn.menu { background: rgba(255,255,255,.06);
+            border-color: rgba(255,255,255,.12); border-bottom-color: rgba(0,0,0,.4);
+            color: #C9C9C9; font-size: 13px; }
+        .death-btn.menu:hover { background: rgba(255,255,255,.1); color: #fff; }
+        @media (pointer: coarse) { .death-btn { min-height: 54px; } }
 
         /* ═══════════════ MOBILE GAME SHELL ═══════════════
            A phone gets a real game layout: a title screen, then the game.
@@ -1481,6 +1556,21 @@
         
         <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="gameCanvas" width="400" height="600"></canvas>
+            <!-- DEATH SCREEN -->
+            <div class="death-screen" id="deathScreen">
+                <div class="death-card">
+                    <div class="death-title">GAME OVER</div>
+                    <div class="death-stats">
+                        <div><span class="ds-label">Score</span><span class="ds-value" id="dsScore">0</span></div>
+                        <div><span class="ds-label">Best</span><span class="ds-value" id="dsBest">0</span></div>
+                        <div><span class="ds-label">Coins</span><span class="ds-value" id="dsCoins">0</span></div>
+                    </div>
+                    <div id="dsNewBest" class="ds-newbest" style="display:none;">🏆 NEW BEST!</div>
+                    <button class="death-btn retry" id="dsRetry">▶ RETRY</button>
+                    <button class="death-btn menu" id="dsMenu">☰ MAIN MENU</button>
+                </div>
+            </div>
+
             <div class="hud-live" id="hudLive">
                 <span class="hud-score" id="hudScore">0</span>
                 <span class="hud-coins" id="hudCoins">🪙 0</span>
@@ -2228,7 +2318,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1400</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1530</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2841,7 +2931,8 @@
             bird.velocity += bird.gravity; 
             bird.y += bird.velocity; 
             if (!shieldActive) { 
-                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
+                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound);
+                if (!mpMatchActive) showDeathScreen(); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
             } else { 
                 if (bird.y < 10) { bird.y=10; bird.velocity=Math.abs(bird.velocity)*0.5; } 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
@@ -2976,18 +3067,19 @@
                 ctx.textAlign = 'left';
                 ctx.restore();
             }
-            if (document.body.classList.contains('playing')) document.body.classList.remove('playing');
-            if(gameOver){ 
+            // Game over is now the death overlay, not canvas text. In a
+            // multiplayer match the match-over panel handles it instead.
+            if (gameOver && mpMatchActive) {
                 ctx.textAlign='center';
                 ctx.fillStyle='rgba(0,0,0,0.5)';
-                ctx.fillRect(canvas.width/2-100, canvas.height/2-50, 200, 90);
-                ctx.fillStyle='#FF4655'; 
-                ctx.font='bold 28px "CrixCustom", monospace'; 
-                ctx.fillText('GAME OVER', canvas.width/2, canvas.height/2 - 12); 
+                ctx.fillRect(canvas.width/2-100, canvas.height/2-34, 200, 58);
+                ctx.fillStyle='#FF4655';
+                ctx.font='bold 22px "CrixCustom", monospace';
+                ctx.fillText('OUT', canvas.width/2, canvas.height/2 + 4);
                 ctx.fillStyle='#ccc';
-                ctx.font='14px "CrixCustom", monospace'; 
-                ctx.fillText('Press START', canvas.width/2, canvas.height/2 + 22); 
-                ctx.textAlign='left'; // reset
+                ctx.font='11px "CrixCustom", monospace';
+                ctx.fillText('watching the rest', canvas.width/2, canvas.height/2 + 22);
+                ctx.textAlign='left';
             } 
         }
         
@@ -3031,7 +3123,7 @@
         }
         function startGame(){
             window.dispatchEvent(new Event('crix:gamestart'));
-            document.body.classList.add('playing');   // hides the menu on phones
+            setScreen('playing');
             if(animationId) cancelAnimationFrame(animationId);
             resetGame();
             gameRunning=true; gameOver=false; gamesPlayed++;
@@ -4193,7 +4285,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-1400</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-1530</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4326,6 +4418,45 @@
             });
         }
 
+
+
+        // ═══════════ SCREEN STATE ═══════════
+        // Exactly one of these is active at a time, which is what stops the
+        // canvas bleeding through the menu.
+        function setScreen(state) {
+            document.body.classList.remove('playing', 'dead');
+            if (state === 'playing' || state === 'dead') document.body.classList.add(state);
+            if (state === 'menu') {
+                // Stop the loop so pipes aren't animating behind a hidden canvas
+                if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+                gameRunning = false;
+            }
+        }
+
+        function showDeathScreen() {
+            const best = Math.max(highScore || 0, score);
+            const isNewBest = score > (highScore || 0);
+            document.getElementById('dsScore').textContent = score;
+            document.getElementById('dsBest').textContent = best;
+            document.getElementById('dsCoins').textContent =
+                typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount;
+            const nb = document.getElementById('dsNewBest');
+            if (nb) nb.style.display = isNewBest ? '' : 'none';
+            setScreen('dead');
+            playSfx(isNewBest ? 'rank' : 'error', .6);
+        }
+
+        function backToMenu() {
+            setScreen('menu');
+            if (mpCurrentRoom && typeof mpLeaveLobby === 'function') mpLeaveLobby();
+            playSfx('whoosh', .5);
+        }
+
+        document.getElementById('dsRetry')?.addEventListener('click', () => {
+            setScreen('playing');
+            startGame();
+        });
+        document.getElementById('dsMenu')?.addEventListener('click', backToMenu);
 
         // ================= PATCH NOTES (in code) =================
         // Kept here rather than in patchnotes.json so shipping an update means
@@ -5049,7 +5180,6 @@
                     if (gameRunning && !gameOver) {
                         gameOver = true; playSound(deathSound);
                         window.dispatchEvent(new Event('crix:death'));
-            document.body.classList.remove('playing');
                         if (typeof mpReportDeath === 'function') mpReportDeath();
                     }
                     mpLobbyChatAppend(null, '💀 An owner killed everyone', true);
