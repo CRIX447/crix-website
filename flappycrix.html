@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.19-2100";</script>
+    <script>window.__BUILD__ = "2026.08.20-1200";</script>
     
 
-    <script src="/filter.js?v=2026081902"></script>
-    <script src="/android-bridge.js?v=2026081902"></script>
-    <script src="/playfab-manager.js?v=2026081902"></script>
+    <script src="/filter.js?v=2026082001"></script>
+    <script src="/android-bridge.js?v=2026082001"></script>
+    <script src="/playfab-manager.js?v=2026082001"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -311,6 +311,101 @@
         /* The native shell draws its own status bar, so no extra inset needed */
         html.android-app .game-container { padding-top: 6px; }
 
+
+
+        .me-mini-av { width:34px; height:34px; border-radius:50%; flex-shrink:0;
+            display:flex; align-items:center; justify-content:center;
+            background:#FF4655; font-size:15px; overflow:hidden; }
+        .me-mini-av img { width:100%; height:100%; object-fit:cover; }
+
+        /* ================= MOBILE LAYOUT =================
+           A phone gets a game-app layout: no user bar, no page chrome, the
+           canvas fills the screen and the menu sits over it. Desktop keeps
+           the framed look that suits a browser. */
+        @media (max-width: 700px), (pointer: coarse) {
+            body { padding: 0; align-items: stretch; }
+
+            .game-container {
+                max-width: 100%; width: 100%; min-height: 100dvh;
+                border: none; border-radius: 0; box-shadow: none;
+                padding: 0; margin: 0;
+                display: flex; flex-direction: column;
+                background: linear-gradient(180deg, #0d0d16 0%, #07070c 100%);
+            }
+
+            /* The account row belongs in Settings on a phone, not the menu */
+            .user-section { display: none; }
+
+            .game-header {
+                padding: calc(14px + env(safe-area-inset-top)) 16px 6px;
+                margin: 0;
+            }
+            .game-title { font-size: clamp(30px, 9vw, 44px); }
+
+            /* Canvas fills what's left instead of sitting in a card */
+            .canvas-wrapper {
+                flex: 1; width: 100%; max-width: 100%;
+                margin: 0; padding: 0; border: none; border-radius: 0;
+                box-shadow: none; background: transparent;
+                display: flex; align-items: center; justify-content: center;
+            }
+            canvas {
+                width: 100%; max-width: 100%; height: auto;
+                border-radius: 0; box-shadow: none;
+            }
+
+            /* Stats become a compact bar */
+            .stats-grid {
+                position: absolute; top: calc(8px + env(safe-area-inset-top));
+                left: 10px; right: 10px; z-index: 20;
+                gap: 6px; margin: 0; pointer-events: none;
+            }
+            .cyber-stat {
+                padding: 5px 8px; border-width: 1px; border-bottom-width: 2px;
+                border-radius: 10px; background: rgba(10,10,15,.85);
+                backdrop-filter: blur(6px); pointer-events: auto;
+            }
+            .stat-label { font-size: 7px; }
+            .stat-value { font-size: 13px; }
+
+            /* Controls dock to the bottom like a real game */
+            .game-controls, .icon-bar, .mp-banner-btn, .menu-footer {
+                width: calc(100% - 20px); margin-left: auto; margin-right: auto;
+            }
+            .game-controls { margin-bottom: 8px; }
+            .icon-bar { grid-template-columns: repeat(6, 1fr); gap: 5px; }
+            .icon-btn { padding: 8px 2px 6px; border-radius: 12px; }
+            .icon-btn span { font-size: 17px; }
+            .icon-btn label { font-size: 7px; }
+
+            .menu-footer { gap: 5px; margin: 10px auto 0; }
+            .foot-btn { flex: 1; text-align: center; padding: 11px 6px; font-size: 10px; }
+
+            /* Full-height sheets rather than floating boxes */
+            .mp-modal-content, .modal-content {
+                max-width: 100%; width: 100%;
+                border-radius: 22px 22px 0 0;
+                max-height: 92dvh;
+                margin: 0; position: fixed; bottom: 0; left: 0; right: 0;
+                animation: sheetUp .22s ease;
+            }
+            .mp-modal, .store-modal, .locker-modal, .achievements-modal {
+                align-items: flex-end; padding: 0;
+            }
+            @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+
+            /* A grab handle, so it reads as a sheet you can dismiss */
+            .mp-modal-content::before, .modal-content::before {
+                content: ''; display: block; width: 38px; height: 4px;
+                border-radius: 2px; background: rgba(255,255,255,.2);
+                margin: 0 auto 12px;
+            }
+        }
+
+        /* Desktop keeps the framed card look */
+        @media (min-width: 701px) and (pointer: fine) {
+            .game-container { max-width: 520px; }
+        }
 
         /* ================= MOBILE GAME MENU ================= */
         .game-header { text-align:center; margin:4px 0 10px; }
@@ -2034,6 +2129,18 @@
             <div class="settings-body">
 
             <div class="mp-section-title">👤 ACCOUNT</div>
+            <!-- On a phone the account row is hidden from the menu, so it
+                 needs to be reachable here instead. -->
+            <div class="set-row mobile-account" style="display:none;">
+                <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
+                    <div class="me-mini-av" id="setMiniAv">👤</div>
+                    <div style="min-width:0;">
+                        <div class="set-label" id="setMiniName" style="color:#fff;">Not signed in</div>
+                        <div class="set-sub" id="setMiniSave">Saving locally</div>
+                    </div>
+                </div>
+                <button class="set-mini-btn" id="setMiniAuth">SIGN IN</button>
+            </div>
 
             <!-- Signed OUT -->
             <div id="setSignedOut" style="display:none;text-align:center;padding:18px 12px;background:rgba(255,70,85,0.05);border:1px solid rgba(255,70,85,0.25);border-radius:12px;margin-bottom:12px;">
@@ -2078,7 +2185,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.19-2100</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1200</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3111,6 +3218,32 @@
         }
 
         function refreshSettingsUI() {
+            // Mirror the account row into Settings when the menu bar is hidden
+            const isPhone = window.matchMedia('(max-width:700px),(pointer:coarse)').matches;
+            const row = document.querySelector('.mobile-account');
+            if (row) {
+                row.style.display = isPhone ? 'flex' : 'none';
+                const av = document.getElementById('setMiniAv');
+                const nm = document.getElementById('setMiniName');
+                const sv = document.getElementById('setMiniSave');
+                const bt = document.getElementById('setMiniAuth');
+                if (currentUser) {
+                    if (av) av.innerHTML = currentUser.photoURL
+                        ? `<img src="${mpEsc(currentUser.photoURL)}" alt="">`
+                        : mpEsc((currentUser.displayName || 'P').charAt(0).toUpperCase());
+                    if (nm) nm.textContent = currentUser.displayName || currentUser.email || 'Signed in';
+                    if (sv) sv.textContent = 'Saving to your account';
+                    if (bt) { bt.textContent = 'SIGN OUT'; bt.onclick = () => document.getElementById('logoutBtn')?.click(); }
+                } else {
+                    if (av) av.textContent = '👤';
+                    if (nm) nm.textContent = 'Not signed in';
+                    if (sv) sv.textContent = 'Saving locally — progress stays on this device';
+                    if (bt) { bt.textContent = 'SIGN IN'; bt.onclick = () => {
+                        document.getElementById('settingsModal').classList.remove('active');
+                        document.getElementById('loginBtn')?.click();
+                    }; }
+                }
+            }
             if (!document.getElementById('setPlayFabId')) return;
             // Signed in / out panels
             const signedIn = !!currentUser;
@@ -3996,7 +4129,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.19-2100</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-1200</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
