@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2600";</script>
+    <script>window.__BUILD__ = "2026.08.20-2700";</script>
     
 
-    <script src="/filter.js?v=2026082012"></script>
-    <script src="/android-bridge.js?v=2026082012"></script>
-    <script src="/playfab-manager.js?v=2026082012"></script>
+    <script src="/filter.js?v=2026082013"></script>
+    <script src="/android-bridge.js?v=2026082013"></script>
+    <script src="/playfab-manager.js?v=2026082013"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -2542,7 +2542,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2600</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2700</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2896,8 +2896,8 @@
 
         // note: [frequency, startTime, duration, type, volume]
         const SFX_DEFS = {
-            pop:       [[520, 0,    .05, 'square',   .18]],
-            tick:      [[900, 0,    .03, 'square',   .10]],
+            pop:       [[440, 0,    .04, 'sine',     .12], [660, .04, .05, 'sine', .09]],
+            tick:      [[380, 0,    .022, 'sine',    .045]],
             swoosh:    [[300, 0,    .07, 'sine',     .07]],
             whoosh:    [[220, 0,    .12, 'sine',     .10]],
             join:      [[440, 0,    .07, 'square',   .14], [660, .07, .09, 'square', .14]],
@@ -3591,7 +3591,7 @@
             if (!items.length) return;
             padFocus = padFocus < 0 ? 0 : (padFocus + dir + items.length) % items.length;
             padHighlight();
-            playSfx('tick', .3);
+            playSfx('tick', .5);
         }
 
         function padActivate() {
@@ -4562,10 +4562,32 @@
                         linkedAt: firebase.firestore.FieldValue.serverTimestamp()
                     }, { merge: true });
                 }
+                // Queue the introduction DM. The bot delivers it, so it works
+                // even if the serverless welcome message did not fire.
+                if (db && PlayFabManager?.playFabId) {
+                    db.collection('dmQueue').add({
+                        discordId: p.id,
+                        kind: 'linked',
+                        playFabId: PlayFabManager.playFabId,
+                        sent: false,
+                        at: firebase.firestore.FieldValue.serverTimestamp()
+                    }).catch(() => {});
+                }
+
                 myDiscord = { id: p.id, name: p.displayName || p.username };
                 refreshDiscordRow();
+                // Surface why a DM did not arrive, rather than failing silently
+                let extra = data.joinedGuild ? ' · joined the server' : '';
+                if (data.dm && data.dm !== 'sent') {
+                    console.warn('[Discord] welcome DM:', data.dm);
+                    if (/DMs are closed/i.test(data.dm)) {
+                        extra += ' · enable server DMs to get update messages';
+                    } else if (/BOT_TOKEN/i.test(data.dm)) {
+                        extra += ' · bot not configured yet';
+                    }
+                }
                 toast({ kind:'invite', title:'✅ Discord linked',
-                        body: `${mpEsc(myDiscord.name)}${data.joinedGuild ? ' · joined the server' : ''}` });
+                        body: `${mpEsc(myDiscord.name)}${extra}` });
                 playSfx('unlock');
             } catch (e) {
                 console.error('[Discord] link failed:', e);
@@ -4818,7 +4840,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2600</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2700</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
