@@ -24,6 +24,10 @@
 
 const admin = require('firebase-admin');
 
+const SITE_ORIGIN = process.env.SITE_URL || 'https://crixgamingvr.com';
+const GAME_LINK   = `${SITE_ORIGIN}/flappycrix`;
+const GAME_HOST   = GAME_LINK.replace('https://', '');
+
 const ALLOWED_ORIGINS = [
     'https://crixgamingvr.com',
     'https://www.crixgamingvr.com'
@@ -126,8 +130,8 @@ module.exports = async (req, res) => {
             }
         }
 
-        // 2c. Send a welcome DM. Also quiet on failure — plenty of people
-        // have DMs from servers turned off, which is their choice.
+        // 2c. Welcome DM. Quiet on failure — plenty of people have DMs from
+        // servers switched off, and that is their choice, not an error.
         if (BOT_TOKEN) {
             try {
                 const dm = await fetch('https://discord.com/api/users/@me/channels', {
@@ -142,13 +146,25 @@ module.exports = async (req, res) => {
                         headers: { 'Authorization': `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             embeds: [{
-                                title: '🐦 Discord linked',
-                                description: 'Your Discord is now connected to Flappy Crix.\n\n' +
-                                             'You will get a message here when there is an update, ' +
-                                             'and you can use `/stats` in the server to show off your rank.',
+                                title: '👋 Hey, I am Flappy Crix',
+                                description:
+                                    `Your Discord is now linked to the game.\n\n` +
+                                    `I will message you here about:\n` +
+                                    `🎉  New updates and what changed\n` +
+                                    `🔨  Moderation action on your account\n` +
+                                    `🏆  Rank milestones\n\n` +
+                                    `**Try these in the server**\n` +
+                                    `\`/stats\` — show off your rank\n` +
+                                    `\`/leaderboard\` — see the top players\n` +
+                                    `\`/patchnotes\` — what changed recently`,
                                 color: 0xFF4655,
-                                fields: [{ name: 'Play', value: 'https://crixgamingvr.com/flappycrix' }],
-                                footer: { text: 'Turn these off any time by unlinking in Settings' }
+                                thumbnail: { url: `${SITE_ORIGIN}/img/newfavicon.png` },
+                                fields: [
+                                    { name: '🎮 Play', value: `[${GAME_HOST}](${GAME_LINK})`, inline: true },
+                                    { name: '💬 Chat', value: `[Open CRIX Chat](${SITE_ORIGIN}/crixchat)`, inline: true }
+                                ],
+                                footer: { text: 'Turn these off any time — Settings → Discord → Unlink' },
+                                timestamp: new Date().toISOString()
                             }]
                         })
                     });
