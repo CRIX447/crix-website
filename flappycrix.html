@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2400";</script>
+    <script>window.__BUILD__ = "2026.08.20-2500";</script>
     
 
-    <script src="/filter.js?v=2026082010"></script>
-    <script src="/android-bridge.js?v=2026082010"></script>
-    <script src="/playfab-manager.js?v=2026082010"></script>
+    <script src="/filter.js?v=2026082011"></script>
+    <script src="/android-bridge.js?v=2026082011"></script>
+    <script src="/playfab-manager.js?v=2026082011"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1694,10 +1694,6 @@
         <div class="auth-container">
             <button class="auth-close-btn" id="authCloseBtn">✕</button>
             <div class="auth-title" id="authTitle">SIGN IN</div>
-            <button class="auth-btn" id="discordSignInBtn" style="background:linear-gradient(135deg,#5865F2,#4752C4);display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px;">
-                <svg width="18" height="18" viewBox="0 0 71 55" fill="none" style="flex-shrink:0"><path d="M60.1 4.9A58.5 58.5 0 0 0 45.6.5a40.6 40.6 0 0 0-1.8 3.7 54.2 54.2 0 0 0-16.3 0A41.3 41.3 0 0 0 25.7.5 58.4 58.4 0 0 0 11.1 5C1.6 19 -1 32.6.3 46.1A58.9 58.9 0 0 0 18.1 55a44.6 44.6 0 0 0 3.8-6.2 38.3 38.3 0 0 1-6-2.9l1.4-1.1a42 42 0 0 0 36 0l1.5 1.1a38.5 38.5 0 0 1-6 2.9A44.4 44.4 0 0 0 52.7 55 58.7 58.7 0 0 0 70.6 46C72.2 30.3 68 16.8 60.1 4.9ZM23.7 37.8c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2c3.5 0 6.4 3.2 6.3 7.2 0 4-2.8 7.2-6.3 7.2Zm23.6 0c-3.5 0-6.4-3.2-6.4-7.2s2.8-7.2 6.4-7.2c3.5 0 6.4 3.2 6.3 7.2 0 4-2.8 7.2-6.3 7.2Z" fill="white"/></svg>
-                CONTINUE WITH DISCORD
-            </button>
             <button class="auth-btn auth-google-btn" id="googleSignInBtn">
                 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0ZGQzEwNyIgZD0iTTQzLjYxMSwyMC4wODNINDJWMjBIMjR2OGgxMS4zMDNjLTEuNjQ5LDQuNjU3LTYuMDgsOC0xMS4zMDMsOGMtNi42MjcsMC0xMi01LjM3My0xMi0xMmMwLTYuNjI3LDUuMzczLTEyLDEyLTEyYzMuMDU5LDAsNS44NDIsMS4xNTQsNy45NjEsMy4wMzlsNS42NTctNS42NTdDMzQuMDQ2LDYuMDUzLDI5LjI2OCw0LDI0LDRDMTIuOTU1LDQsNCwxMi45NTUsNCwyNGMwLDExLjA0NSw4Ljk1NSwyMCwyMCwyMGMxMS4wNDUsMCwyMC04Ljk1NSwyMC0yMEM0NCwyMi42NTksNDMuODYyLDIxLjM1LDQzLjYxMSwyMC4wODN6Ii8+PHBhdGggZmlsbD0iI0ZGM0QwMCIgZD0iTTYuMzA2LDE0LjY5MWw2LjU3MSw0LjgxOUMxNC42NTUsMTUuMTA4LDE4Ljk2MSwxMiwyNCwxMmMzLjA1OSwwLDUuODQyLDEuMTU0LDcuOTYxLDMuMDM5bDUuNjU3LTUuNjU3QzMzLjA0Niw1LjA1MywyOC42NjgsMywyNCwzQzE2LjMxOCwzLDkuNjU2LDcuMzM3LDYuMzA2LDEyLjY5MXoiLz48cGF0aCBmaWxsPSIjNENBRjUwIiBkPSJNMjQsNDRjNS4xNjYsMCw5Ljg2LTEuOTc3LDEzLjQwOS01LjE5MmwtNi4xOS01LjIzOEMyOS4yMTEsMzQuOTEsMjYuNzE1LDM2LDI0LDM2Yy01LjIwMiwwLTkuNjE5LTMuMzE3LTExLjI4My03Ljk0NmwtNi41MjIsNS4wMjVDOS41MDUsMzkuNTU2LDE2LjIyNyw0NCwyNCw0NHoiLz48cGF0aCBmaWxsPSIjMTk3NkQyIiBkPSJNNDMuNjExLDIwLjA4M0w0My41OTUsMjBINDJ2MEgyNHY4aDExLjMwM2MtMC43OTIsMi4yMzctMi4yMzEsNC4xNjYtNC4wODcsNS41NzFsMC4wMDMtMC4wMDJsNi4xOSw1LjIzOEMzNi45NzEsMzkuMjA1LDQwLDM0LjMyLDQwLDI0QzQwLDIyLjY1OSw0My44NjIsMjEuMzUsNDMuNjExLDIwLjA4M3oiLz48L3N2Zz4K" class="google-icon" alt="">
                 CONTINUE WITH GOOGLE
@@ -2546,7 +2542,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2400</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2500</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2559,6 +2555,13 @@
             <div class="set-row">
                 <span class="set-label">What's new</span>
                 <button class="set-mini-btn" id="openPatchBtn">VIEW</button>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Discord</span>
+                    <div class="set-sub" id="discordState">Not linked</div>
+                </div>
+                <button class="set-mini-btn" id="discordLinkBtn">LINK</button>
             </div>
             <div class="set-row">
                 <span class="set-label">Status</span>
@@ -4156,6 +4159,9 @@
             updateIngameButtons();
             renderFriendCode();
             updatePlayerMenuButton();
+            loadDiscordLink();
+            checkVerification();
+            setInterval(checkVerification, 6 * 60 * 60 * 1000);   // every 6 hours
                     }
                 } catch(e) {}
                 return;
@@ -4344,122 +4350,144 @@
         };
 
         // Discord OAuth — implicit flow, get token, get user, sign into Firebase anonymously + store profile
-        const discordSignInBtnEl = document.getElementById('discordSignInBtn');
 
-        // Discord OAuth — authorization-code flow.
-        //
-        // The old implicit flow called signInAnonymously(), which minted a NEW
-        // Firebase uid on every login. PlayFab keys off that uid, so players
-        // lost their coins, level, rank and friends each time. The code flow
-        // returns a custom token with a stable uid ("discord:<id>"), so the
-        // same Discord account always maps to the same game account.
-        async function handleDiscordCallback() {
-            const params = new URLSearchParams(window.location.search);
-            const code  = params.get('code');
-            const state = params.get('state');
-            const err   = params.get('error');
+        // ═══════════ EMAIL VERIFICATION ═══════════
+        // Unverified accounts are removed after this long. Deletion is
+        // permanent, so the player gets repeated warnings first and a
+        // one-click resend every time.
+        const VERIFY_DAYS = 7;
+        const VERIFY_MS = VERIFY_DAYS * 24 * 60 * 60 * 1000;
 
-            if (err) {
-                cleanDiscordUrl();
-                if (authErrorSpan) {
-                    authErrorSpan.style.color = '#FF4655';
-                    authErrorSpan.textContent = err === 'access_denied'
-                        ? 'Discord sign-in cancelled.'
-                        : 'Discord error: ' + err;
-                }
-                return;
+        function accountAgeMs() {
+            const t = currentUser?.metadata?.creationTime;
+            return t ? Date.now() - new Date(t).getTime() : 0;
+        }
+        function daysLeftToVerify() {
+            return Math.max(0, Math.ceil((VERIFY_MS - accountAgeMs()) / 86400000));
+        }
+
+        // Google accounts arrive already verified, so this only affects
+        // email/password signups.
+        function needsVerification() {
+            if (!currentUser) return false;
+            if (currentUser.emailVerified) return false;
+            const google = (currentUser.providerData || []).some(p => p.providerId === 'google.com');
+            return !google && !!currentUser.email;
+        }
+
+        async function checkVerification() {
+            if (!currentUser) return;
+            try { await currentUser.reload(); } catch (e) {}
+            if (!needsVerification()) { hideVerifyBanner(); return; }
+
+            const left = daysLeftToVerify();
+            if (left <= 0) { showVerifyBlocked(); return; }
+            showVerifyBanner(left);
+        }
+
+        function showVerifyBanner(daysLeft) {
+            let el = document.getElementById('verifyBanner');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'verifyBanner';
+                document.body.appendChild(el);
             }
-            if (!code) return;
+            const urgent = daysLeft <= 2;
+            el.style.cssText =
+                'position:fixed;top:0;left:0;right:0;z-index:60000;padding:11px 14px;' +
+                'padding-top:calc(11px + env(safe-area-inset-top));font-size:12px;' +
+                'display:flex;align-items:center;gap:10px;font-family:inherit;color:#fff;' +
+                'background:' + (urgent ? '#8B1520' : '#7a5200') + ';';
+            el.innerHTML =
+                `<span style="flex:1;line-height:1.5">` +
+                `<b>Verify your email</b> — ${daysLeft} day${daysLeft === 1 ? '' : 's'} left. ` +
+                `<span style="opacity:.85">Unverified accounts are removed after ${VERIFY_DAYS} days.</span>` +
+                `</span>` +
+                `<button id="vbResend" style="background:#fff;color:#222;border:none;border-radius:14px;` +
+                `padding:6px 12px;font-size:11px;font-weight:bold;cursor:pointer;font-family:inherit;">RESEND</button>` +
+                `<button id="vbClose" style="background:none;border:none;color:#fff;font-size:16px;cursor:pointer;">✕</button>`;
+            document.getElementById('vbResend').onclick = resendVerification;
+            document.getElementById('vbClose').onclick = () => el.remove();
+        }
 
-            // CSRF check
-            let expected = null;
-            try { expected = sessionStorage.getItem('discord_state'); } catch(e) {}
-            cleanDiscordUrl();
-            if (expected && state !== expected) {
-                console.error('[Discord] state mismatch — ignoring callback');
-                if (authErrorSpan) {
-                    authErrorSpan.style.color = '#FF4655';
-                    authErrorSpan.textContent = 'Sign-in expired. Please try again.';
-                }
-                return;
-            }
-            try { sessionStorage.removeItem('discord_state'); } catch(e) {}
+        function hideVerifyBanner() {
+            document.getElementById('verifyBanner')?.remove();
+        }
 
-            if (authErrorSpan) {
-                authErrorSpan.style.color = '#00CC7A';
-                authErrorSpan.textContent = 'Signing in with Discord…';
-            }
-
+        async function resendVerification() {
+            if (!currentUser) return;
+            const btn = document.getElementById('vbResend');
+            if (btn) { btn.disabled = true; btn.textContent = 'SENDING…'; }
             try {
-                if (!auth) throw new Error('Firebase is not ready');
-
-                const res = await fetch('/api/discord-auth', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code })
-                });
-
-                // A 404 means the serverless function isn't deployed at all,
-                // which is the most common reason Discord "does nothing".
-                if (res.status === 404) {
-                    throw new Error('/api/discord-auth is not deployed. Push the api/ folder and ' +
-                                    'package.json so Vercel builds the serverless function.');
-                }
-
-                const ctype = res.headers.get('content-type') || '';
-                if (!ctype.includes('application/json')) {
-                    throw new Error(`/api/discord-auth returned ${res.status} (${ctype || 'no type'}) ` +
-                                    'instead of JSON — the function is probably missing or crashed.');
-                }
-
-                const data = await res.json().catch(() => ({}));
-                console.log('[Discord] token endpoint replied', res.status, data.error || 'ok');
-
-                if (!res.ok || !data.token) {
-                    let hint = data.detail || data.error || `Server returned ${res.status}`;
-                    if (/not configured/i.test(data.error || '')) {
-                        hint = 'Vercel is missing DISCORD_CLIENT_ID / DISCORD_CLIENT_SECRET.';
-                    } else if (/FIREBASE_SERVICE_ACCOUNT/i.test(hint)) {
-                        hint = 'Vercel is missing FIREBASE_SERVICE_ACCOUNT (Firebase → Project Settings → Service Accounts → Generate new private key).';
-                    } else if (/redirect/i.test(hint)) {
-                        hint = 'The redirect URI must match the Discord portal exactly: https://crixgamingvr.com/flappycrix';
-                    }
-                    throw new Error(hint);
-                }
-
-                // Stable account — same uid every time
-                await auth.signInWithCustomToken(data.token);
-
-                const p = data.profile || {};
-                if (auth.currentUser && p.displayName) {
-                    await auth.currentUser.updateProfile({
-                        displayName: p.displayName, photoURL: p.photoURL || null
-                    }).catch(() => {});
-                }
-                if (db && auth.currentUser) {
-                    await db.collection('users').doc(auth.currentUser.uid).set({
-                        discordId: p.id, discordUsername: p.username,
-                        playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
-                        notifyUpdates: true,   // they can turn this off in Settings
-                        displayName: p.displayName, photoURL: p.photoURL || null,
-                        loginMethod: 'discord',
-                        lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-                    }, { merge: true }).catch(() => {});
-                }
-
-                authModalEl.classList.remove('active');
-                playSound(selectSound);
-                if (authErrorSpan) { authErrorSpan.style.color = ''; authErrorSpan.textContent = ''; }
-                console.log('[Discord] signed in as', p.displayName, '| uid: discord:' + p.id);
-
+                await currentUser.sendEmailVerification();
+                toast({ kind:'invite', title:'Email sent',
+                        body:'Check your inbox — and your spam folder, it often lands there.' });
+                if (btn) btn.textContent = 'SENT';
             } catch (e) {
-                console.error('[Discord] sign-in failed:', e);
-                if (authErrorSpan) {
-                    authErrorSpan.style.color = '#FF4655';
-                    authErrorSpan.textContent = 'Discord sign-in failed: ' + e.message;
-                }
+                const msg = /too-many-requests/.test(e.code || '')
+                    ? 'Too many attempts — wait a few minutes.' : e.message;
+                toast({ kind:'warn', title:'Could not send', body: mpEsc(msg) });
+                if (btn) { btn.disabled = false; btn.textContent = 'RESEND'; }
             }
         }
+
+        // Past the deadline the account is locked rather than deleted on the
+        // spot — one more chance to verify before anything is destroyed.
+        function showVerifyBlocked() {
+            if (document.getElementById('verifyBlock')) return;
+            const el = document.createElement('div');
+            el.id = 'verifyBlock';
+            el.style.cssText =
+                'position:fixed;inset:0;z-index:70000;background:rgba(5,5,10,.96);' +
+                'display:flex;align-items:center;justify-content:center;padding:22px;font-family:inherit;';
+            el.innerHTML = `
+                <div style="max-width:360px;text-align:center;background:#12121A;border:2px solid #FF4655;
+                            border-bottom:5px solid rgba(150,20,35,.8);border-radius:20px;padding:28px 24px;">
+                    <div style="font-size:40px;margin-bottom:12px;">📧</div>
+                    <div style="font-size:18px;font-weight:bold;color:#FF4655;margin-bottom:10px;">
+                        Verify your email to continue
+                    </div>
+                    <p style="font-size:12px;color:#C9C9C9;line-height:1.8;margin-bottom:16px;">
+                        This account was created over ${VERIFY_DAYS} days ago and the email
+                        was never confirmed. Verify it now to keep your progress.
+                    </p>
+                    <p style="font-size:11px;color:#8C8C8C;line-height:1.7;margin-bottom:18px;">
+                        ${mpEsc(currentUser?.email || '')}
+                    </p>
+                    <button id="vblResend" class="mp-btn-primary" style="width:100%;margin-bottom:8px;">
+                        SEND VERIFICATION EMAIL
+                    </button>
+                    <button id="vblRecheck" class="mp-btn-secondary" style="width:100%;margin-bottom:8px;">
+                        I'VE VERIFIED — CHECK AGAIN
+                    </button>
+                    <button id="vblOut" class="mp-btn-secondary" style="width:100%;font-size:11px;">
+                        SIGN OUT
+                    </button>
+                    <p style="font-size:10px;color:#8C8C8C;margin-top:14px;line-height:1.6;">
+                        Single player still works signed out. Check your spam folder —
+                        verification emails often land there.
+                    </p>
+                </div>`;
+            document.body.appendChild(el);
+            document.getElementById('vblResend').onclick = resendVerification;
+            document.getElementById('vblRecheck').onclick = async () => {
+                await currentUser.reload();
+                if (currentUser.emailVerified) {
+                    el.remove();
+                    toast({ kind:'invite', title:'✅ Verified', body:'Thanks — you are all set.' });
+                    playSfx('unlock');
+                } else {
+                    toast({ kind:'warn', title:'Still not verified',
+                            body:'Click the link in the email first.' });
+                }
+            };
+            document.getElementById('vblOut').onclick = () => auth.signOut();
+        }
+
+        // ═══════════ DISCORD LINKING ═══════════
+        // Discord is no longer a way to sign in — it attaches to an account you
+        // already have. That keeps one account per person and means unlinking
+        // never locks anyone out.
 
         function cleanDiscordUrl() {
             try {
@@ -4469,39 +4497,115 @@
             } catch(e) {}
         }
 
-        discordSignInBtnEl.onclick = async () => {
-            let clientId = appConfig.discord?.clientId;
-            if (!clientId || clientId.startsWith('PASTE_') || clientId.startsWith('REPLACE_')) {
-                try {
-                    const r = await fetch('/api.json');
-                    const j = await r.json();
-                    if (j.discord) { appConfig.discord = j.discord; clientId = j.discord.clientId; }
-                } catch(e) {}
+        async function handleDiscordCallback() {
+            const params = new URLSearchParams(window.location.search);
+            const code  = params.get('code');
+            const state = params.get('state');
+            const err   = params.get('error');
+
+            if (err) {
+                cleanDiscordUrl();
+                if (err !== 'access_denied') console.warn('[Discord]', err);
+                return;
             }
-            if (!clientId || clientId.startsWith('PASTE_') || clientId.startsWith('REPLACE_')) {
-                authErrorSpan.style.color = '#FF4655';
-                authErrorSpan.textContent = 'Discord not set up — add clientId to api.json.';
+            if (!code) return;
+
+            let expected = null;
+            try { expected = sessionStorage.getItem('discord_state'); } catch(e) {}
+            cleanDiscordUrl();
+            if (expected && state !== expected) {
+                toast({ kind:'warn', title:'Link expired', body:'Please try again.' });
+                return;
+            }
+            try { sessionStorage.removeItem('discord_state'); } catch(e) {}
+
+            // Must already be signed in — linking attaches to that account
+            if (!currentUser) {
+                toast({ kind:'warn', title:'Sign in first',
+                        body:'Sign in, then link your Discord from Settings.' });
                 return;
             }
 
-            // response_type=code (not token): the secret exchange happens
-            // server-side in /api/discord-auth so the account can be persistent.
-            // Redirect URI comes from api.json so it can be changed without
-            // editing code — it must match the Discord portal exactly.
-            let redirectUri = appConfig.discord?.redirectUri;
-            if (!redirectUri) {
-                try {
-                    const r = await fetch('/api.json');
-                    const j = await r.json();
-                    redirectUri = j.discord?.redirectUri;
-                    if (j.discord) appConfig.discord = j.discord;
-                } catch(e) {}
+            toast({ kind:'invite', title:'Linking Discord…', body:'' });
+            try {
+                const res = await fetch('/api/discord-auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code, link: true, uid: currentUser.uid })
+                });
+                if (res.status === 404) throw new Error('/api/discord-auth is not deployed.');
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok) throw new Error(data.detail || data.error || `Server returned ${res.status}`);
+
+                const p = data.profile || {};
+                if (db) {
+                    await db.collection('users').doc(currentUser.uid).set({
+                        discordId: p.id,
+                        discordUsername: p.username,
+                        discordName: p.displayName,
+                        discordAvatar: p.photoURL || null,
+                        playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                        notifyUpdates: true,
+                        linkedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    }, { merge: true });
+                }
+                myDiscord = { id: p.id, name: p.displayName || p.username };
+                refreshDiscordRow();
+                toast({ kind:'invite', title:'✅ Discord linked',
+                        body: `${mpEsc(myDiscord.name)}${data.joinedGuild ? ' · joined the server' : ''}` });
+                playSfx('unlock');
+            } catch (e) {
+                console.error('[Discord] link failed:', e);
+                toast({ kind:'warn', title:'Could not link', body: mpEsc(e.message) });
             }
-            if (!redirectUri) {
-                authErrorSpan.style.color = '#FF4655';
-                authErrorSpan.textContent = 'Discord redirectUri missing from api.json.';
+        }
+
+        let myDiscord = null;
+
+        async function loadDiscordLink() {
+            if (!currentUser || !db) return;
+            try {
+                const d = await db.collection('users').doc(currentUser.uid).get();
+                const v = d.exists ? d.data() : {};
+                myDiscord = v.discordId ? { id: v.discordId, name: v.discordName || v.discordUsername } : null;
+            } catch(e) { myDiscord = null; }
+            refreshDiscordRow();
+        }
+
+        function refreshDiscordRow() {
+            const state = document.getElementById('discordState');
+            const btn = document.getElementById('discordLinkBtn');
+            if (!state || !btn) return;
+            if (myDiscord) {
+                state.textContent = 'Linked as ' + myDiscord.name;
+                state.style.color = '#00CC7A';
+                btn.textContent = 'UNLINK';
+                btn.onclick = unlinkDiscord;
+            } else {
+                state.textContent = 'Not linked — get update DMs and show off your rank';
+                state.style.color = '';
+                btn.textContent = 'LINK';
+                btn.onclick = startDiscordLink;
+            }
+        }
+
+        async function startDiscordLink() {
+            if (!currentUser) {
+                toast({ kind:'warn', title:'Sign in first', body:'You need an account to link Discord.' });
                 return;
             }
+            let clientId = appConfig.discord?.clientId;
+            if (!clientId || clientId.startsWith('PASTE_')) {
+                try {
+                    const j = await (await fetch('/api.json')).json();
+                    if (j.discord) { appConfig.discord = j.discord; clientId = j.discord.clientId; }
+                } catch(e) {}
+            }
+            if (!clientId || clientId.startsWith('PASTE_')) {
+                toast({ kind:'warn', title:'Not set up', body:'Discord clientId is missing from api.json.' });
+                return;
+            }
+            const redirectUri = appConfig.discord?.redirectUri || (location.origin + '/flappycrix');
             const state = Math.random().toString(36).slice(2) + Date.now().toString(36);
             try { sessionStorage.setItem('discord_state', state); } catch(e) {}
 
@@ -4509,12 +4613,26 @@
             url.searchParams.set('client_id', clientId);
             url.searchParams.set('redirect_uri', redirectUri);
             url.searchParams.set('response_type', 'code');
-            // guilds.join lets us add them to the Discord server on link
             url.searchParams.set('scope', 'identify guilds.join');
             url.searchParams.set('state', state);
-            url.searchParams.set('prompt', 'consent');
             window.location.href = url.toString();
-        };
+        }
+
+        async function unlinkDiscord() {
+            if (!confirm('Unlink Discord? You will stop getting update DMs.')) return;
+            try {
+                if (db) await db.collection('users').doc(currentUser.uid).set({
+                    discordId: firebase.firestore.FieldValue.delete(),
+                    discordUsername: firebase.firestore.FieldValue.delete(),
+                    discordName: firebase.firestore.FieldValue.delete()
+                }, { merge: true });
+                myDiscord = null;
+                refreshDiscordRow();
+                toast({ kind:'info', title:'Discord unlinked', body:'' });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not unlink', body: mpEsc(e.message) });
+            }
+        }
 
         googleSignInBtnEl.onclick = async () => {
             if (!auth) { authErrorSpan.textContent = 'Auth unavailable'; return; }
@@ -4670,7 +4788,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2400</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-2500</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
