@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.16-online';
+const PLAYFAB_MANAGER_VERSION = '2026.08.20-lobby';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -991,6 +991,29 @@ if (typeof window !== 'undefined') {
             const now = Date.now();
             return snap.docs.map(d => ({ id: d.id, ...d.data() }))
                             .filter(b => !b.expiresAt || b.expiresAt > now);
+        },
+
+        /* ---- LOBBY OVERRIDES ----
+           Lets an owner claim host or force-end a match from the console.
+           The game watches this and acts on it. */
+        async setLobbyOverride(roomCode, data) {
+            await db().collection('lobbyOverrides').doc(roomCode).set({
+                ...data,
+                by: PFM.playFabId || uid(),
+                at: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+            return { ok: true };
+        },
+
+        watchLobbyOverride(roomCode, onChange) {
+            if (!roomCode) return () => {};
+            return db().collection('lobbyOverrides').doc(roomCode)
+                .onSnapshot(d => { if (d.exists) onChange(d.data()); },
+                            e => console.warn('[Lobby]', e.message));
+        },
+
+        clearLobbyOverride(roomCode) {
+            return db().collection('lobbyOverrides').doc(roomCode).delete().catch(() => {});
         },
 
         /* ---- roles ----
