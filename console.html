@@ -182,19 +182,35 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         <div class="row"><label>Reason</label><input id="modReason" placeholder="Breaking the rules"></div>
         <div class="row">
           <label>Duration</label>
-          <select id="modHours">
-            <option value="1">1 hour</option>
-            <option value="24" selected>24 hours</option>
-            <option value="168">7 days</option>
-            <option value="720">30 days</option>
-            <option value="">Permanent</option>
+          <input id="modAmount" type="number" min="1" value="24" style="flex:0 0 90px">
+          <select id="modUnit" style="flex:0 0 130px">
+            <option value="second">Seconds</option>
+            <option value="minute">Minutes</option>
+            <option value="hour" selected>Hours</option>
+            <option value="day">Days</option>
+            <option value="week">Weeks</option>
+            <option value="month">Months</option>
+            <option value="year">Years</option>
+            <option value="perm">Permanent</option>
           </select>
         </div>
+        <div class="dt" id="modPreview" style="margin-bottom:8px"></div>
         <div class="row">
           <button class="btn sm danger" id="banBtn">Ban</button>
           <button class="btn sm ghost" id="unbanBtn">Unban</button>
         </div>
         <div class="out" id="modOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Lobby control</h2>
+        <div class="row"><label>Room code</label><input id="hostRoom" placeholder="e.g. ABCD" maxlength="6"></div>
+        <div class="row">
+          <button class="btn sm" id="claimHostBtn">Make me host</button>
+          <button class="btn sm ghost" id="endLobbyBtn">Force end match</button>
+        </div>
+        <div class="out" id="hostOut">—</div>
+        <p class="dt" style="margin-top:8px">Takes effect for anyone currently in that lobby.</p>
       </div>
 
       <div class="panel">
@@ -506,16 +522,48 @@ $('lookupBtn').onclick = () => {
       r => JSON.stringify(r, null, 2));
 };
 
+// Everything is stored as hours; this converts whatever unit was picked.
+const UNIT_HOURS = {
+  second: 1/3600, minute: 1/60, hour: 1, day: 24,
+  week: 168, month: 730, year: 8760
+};
+
+function banHours() {
+  const unit = $('modUnit').value;
+  if (unit === 'perm') return null;
+  const amt = parseFloat($('modAmount').value) || 1;
+  return amt * (UNIT_HOURS[unit] || 1);
+}
+
+function updateBanPreview() {
+  const el = $('modPreview');
+  if (!el) return;
+  const h = banHours();
+  if (h === null) { el.textContent = 'Permanent — never expires.'; return; }
+  const until = new Date(Date.now() + h * 3600000);
+  el.textContent = `Expires ${until.toLocaleString()}`;
+}
+$('modUnit').onchange = () => {
+  $('modAmount').disabled = $('modUnit').value === 'perm';
+  updateBanPreview();
+};
+$('modAmount').oninput = updateBanPreview;
+updateBanPreview();
+
 $('banBtn').onclick = () => {
   const id = $('modId').value.trim();
   if (!id) { $('modOut').textContent = 'Enter a PlayFab ID.'; return; }
-  const hours = $('modHours').value;
+  const hours = banHours();
   const reason = $('modReason').value.trim() || 'Breaking the rules';
-  if (!confirm(`Ban ${id}${hours ? ' for ' + hours + 'h' : ' permanently'}?`)) return;
+  const label = hours === null ? 'permanently'
+              : `for ${$('modAmount').value} ${$('modUnit').value}${$('modAmount').value == 1 ? '' : 's'}`;
+  if (!confirm(`Ban ${id} ${label}?`)) return;
   const note = prompt('Moderator note (optional, shown to the player):', '') || null;
   run('modOut',
       () => PlayFabManager.adminAction('ban', {
-        targetPlayFabId: id, hours: hours || undefined, reason, note
+        targetPlayFabId: id,
+        hours: hours === null ? undefined : hours,
+        reason, note
       }),
       r => `Banned${r.expires ? ' until ' + new Date(r.expires).toLocaleString() : ' permanently'}.`);
 };
@@ -886,6 +934,21 @@ function copyRows(rows, btnId, label) {
     b.textContent = 'Copied'; setTimeout(() => b.textContent = label, 1500);
   });
 }
+bind('claimHostBtn', () => {
+  const code = $('hostRoom').value.trim().toUpperCase();
+  if (!code) { $('hostOut').textContent = 'Enter the room code.'; return; }
+  run('hostOut',
+      () => PlayFabManager.fs.setLobbyOverride(code, { host: PlayFabManager.playFabId }),
+      () => `Requested host of ${code}. It applies when you are in the lobby.`);
+});
+bind('endLobbyBtn', () => {
+  const code = $('hostRoom').value.trim().toUpperCase();
+  if (!code) { $('hostOut').textContent = 'Enter the room code.'; return; }
+  if (!confirm(`Force the match in ${code} to end?`)) return;
+  run('hostOut',
+      () => PlayFabManager.fs.setLobbyOverride(code, { endMatch: Date.now() }),
+      () => `Sent an end-match signal to ${code}.`);
+});
 bind('listBansBtn', () => {
   const out = $('bansOut');
   out.textContent = 'Loading…'; out.className = 'out';
