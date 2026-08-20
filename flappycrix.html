@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.19-1900";</script>
+    <script>window.__BUILD__ = "2026.08.19-2100";</script>
     
 
-    <script src="/filter.js?v=2026081901"></script>
-    <script src="/android-bridge.js?v=2026081901"></script>
-    <script src="/playfab-manager.js?v=2026081901"></script>
+    <script src="/filter.js?v=2026081902"></script>
+    <script src="/android-bridge.js?v=2026081902"></script>
+    <script src="/playfab-manager.js?v=2026081902"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -302,12 +302,97 @@
         }
         
         /* ---- ANDROID APP ---- */
+        /* A link back to the website makes no sense inside an app */
+        html.android-app #siteBtn { display: none; }
         :root { --kb-height: 0px; }
         /* Lifts inputs clear of the on-screen keyboard */
         body.keyboard-open .mp-chat-input-row,
         body.keyboard-open .composer { padding-bottom: var(--kb-height); }
         /* The native shell draws its own status bar, so no extra inset needed */
         html.android-app .game-container { padding-top: 6px; }
+
+
+        /* ================= MOBILE GAME MENU ================= */
+        .game-header { text-align:center; margin:4px 0 10px; }
+        .game-title {
+            font-size:clamp(26px,7vw,38px); font-weight:bold; letter-spacing:3px;
+            background:linear-gradient(135deg,#FF4655,#FF6B35,#FFD700);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+            background-clip:text; filter:drop-shadow(0 3px 0 rgba(0,0,0,.5));
+        }
+        .game-sub { font-size:10px; color:var(--green); letter-spacing:2px;
+            text-transform:uppercase; margin-top:3px; opacity:.85; }
+
+        .menu-footer {
+            display:flex; gap:6px; justify-content:center; flex-wrap:wrap;
+            margin-top:14px; padding-bottom:env(safe-area-inset-bottom);
+        }
+        .foot-btn {
+            background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+            color:#A0A0A0; font-family:inherit; font-size:10px; text-decoration:none;
+            padding:9px 13px; border-radius:20px; cursor:pointer; white-space:nowrap;
+            transition:all .12s;
+        }
+        .foot-btn:hover { color:#fff; border-color:rgba(255,255,255,.25);
+            background:rgba(255,255,255,.08); }
+        @media (pointer:coarse) { .foot-btn { min-height:42px; font-size:11px; padding:11px 15px; } }
+
+        /* ---- TUTORIAL ---- */
+        .tut-page { text-align:center; padding:10px 6px 4px; }
+        .tut-art { font-size:56px; margin-bottom:10px; }
+        .tut-page h3 { font-size:17px; color:#fff; margin-bottom:8px; letter-spacing:1px; }
+        .tut-page p { font-size:12px; color:#C9C9C9; line-height:1.9; max-width:330px; margin:0 auto; }
+        .tut-page b { color:var(--orange); }
+        .tut-dots { display:flex; justify-content:center; gap:7px; margin-top:16px; }
+        .tut-dot { width:8px; height:8px; border-radius:50%; background:rgba(255,255,255,.18);
+            cursor:pointer; transition:all .15s; }
+        .tut-dot.on { background:var(--orange); transform:scale(1.35); }
+
+        /* ---- CREDITS ---- */
+        .cred-hero { text-align:center; padding:8px 0 18px; }
+        .cred-logo { font-size:24px; font-weight:bold; letter-spacing:3px;
+            background:linear-gradient(135deg,#FF4655,#FF6B35);
+            -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; }
+        .cred-by { font-size:12px; color:#C9C9C9; margin-top:5px; }
+        .cred-by strong { color:var(--orange); }
+        .cred-ver { font-size:10px; color:#8C8C8C; margin-top:4px; font-family:monospace; }
+
+        .social-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+        .social {
+            display:flex; align-items:center; gap:9px; text-decoration:none;
+            background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
+            border-radius:12px; padding:12px 14px; color:#EDEDED; font-size:12px;
+            transition:all .12s;
+        }
+        .social:hover { border-color:var(--orange); background:rgba(255,107,53,.1);
+            transform:translateY(-1px); }
+        .s-ico { font-size:17px; }
+
+        .cred-list > div { display:flex; justify-content:space-between; gap:10px;
+            font-size:11px; padding:7px 0; border-bottom:1px solid rgba(255,255,255,.05); }
+        .cred-list > div span:first-child { color:#A0A0A0; }
+        .cred-list > div span:last-child { color:#EDEDED; }
+        .cred-thanks { font-size:11px; color:#C9C9C9; line-height:1.9; }
+
+        /* ---- LEGAL ---- */
+        .legal-tabs { display:flex; gap:6px; margin-bottom:12px; }
+        .legal-tab { flex:1; background:rgba(255,255,255,.04);
+            border:1px solid rgba(255,255,255,.1); color:#A0A0A0; font-family:inherit;
+            font-size:11px; padding:10px; border-radius:10px; cursor:pointer;
+            text-transform:uppercase; letter-spacing:1px; }
+        .legal-tab.active { background:rgba(255,107,53,.15); border-color:var(--orange);
+            color:var(--orange); }
+        .legal-body { font-size:11px; color:#C9C9C9; line-height:1.9;
+            max-height:52vh; overflow-y:auto; padding-right:5px; }
+        .legal-body h4 { color:var(--orange); font-size:12px; margin:16px 0 5px;
+            text-transform:uppercase; letter-spacing:1px; }
+        .legal-body h4:first-child { margin-top:0; }
+        .legal-body p { margin-bottom:9px; }
+        .legal-body ul { padding-left:18px; margin-bottom:9px; }
+        .legal-body li { margin-bottom:4px; }
+        .legal-body a { color:var(--green); }
+        .legal-updated { font-size:10px; color:#8C8C8C; font-style:italic;
+            margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08); }
 
         /* ---- SETTINGS PANEL ---- */
         /* 19 rows overflowed the modal on shorter screens; the body scrolls
@@ -1148,21 +1233,6 @@
         .mention-opt:hover, .mention-opt.sel { background:rgba(255,107,53,0.15); }
 
         /* ---- BACK LINK ---- */
-        .back-link { text-align: center; margin-top: 12px; }
-
-        .back-link a { 
-            color: var(--green); 
-            text-decoration: none; 
-            font-size: 11px; 
-            padding: 6px 18px; 
-            border: 2px solid var(--red);
-            border-bottom: 4px solid rgba(150,20,35,0.6);
-            border-radius: 30px; 
-            transition: all 0.1s;
-            display: inline-block;
-            box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
-        }
-        .back-link a:hover { background: rgba(255,70,85,0.1); transform: translateY(-2px); box-shadow: 2px 4px 0 rgba(0,0,0,0.3); }
         .back-link a:active { transform: translateY(1px); }
         
         /* ---- MODALS ---- */
@@ -1270,9 +1340,9 @@
             <button class="logout-btn" id="logoutBtn" style="display:none;">🚪 SIGN OUT</button>
         </div>
         
-        <div class="game-header">
+        <div class="game-header" id="gameHeader">
             <div class="game-title">FLAPPY CRIX</div>
-            <div style="font-size:10px; color:var(--green,#00CC7A); font-weight:600; margin-top:4px;">tap • collect • drip</div>
+            <div class="game-sub">tap · collect · drip</div>
         </div>
         
         <div class="canvas-wrapper" id="canvasWrapper">
@@ -1324,13 +1394,12 @@
             <button class="game-btn" id="startGameBtn">▶ START</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
-        
-        <div class="instructions">
-            <p><span class="highlight">TAP</span> or <span class="highlight">SPACE</span> to fly &nbsp;·&nbsp; <span class="highlight">H</span> hides the UI</p>
-
+        <div class="menu-footer">
+            <button class="foot-btn" id="tutorialBtn">❓ How to play</button>
+            <button class="foot-btn" id="creditsBtn">✨ Credits</button>
+            <button class="foot-btn" id="legalBtn">📄 Legal</button>
+            <a class="foot-btn" id="siteBtn" href="https://crixgamingvr.com" target="_blank">🌐 Website</a>
         </div>
-        
-        <div class="back-link"><a href="https://crixgamingvr.com" target="_blank">← BACK TO MAIN SITE</a></div>
     </div>
     
     <!-- STORE MODAL -->
@@ -1701,6 +1770,116 @@
         </div>
     </div>
 
+
+    <!-- HOW TO PLAY -->
+    <div class="mp-modal" id="tutorialModal" style="z-index:46000;">
+        <div class="mp-modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">❓ HOW TO PLAY</div>
+                <button class="modal-close" id="closeTutorialBtn">✕</button>
+            </div>
+            <div class="tut-page" data-page="0">
+                <div class="tut-art">🐦</div>
+                <h3>Keep flying</h3>
+                <p>Tap the screen, press <b>SPACE</b>, or press <b>A</b> on a controller
+                   to flap. Every tap gives you a little lift — gravity does the rest.</p>
+            </div>
+            <div class="tut-page" data-page="1" style="display:none;">
+                <div class="tut-art">🪙</div>
+                <h3>Collect coins</h3>
+                <p>Coins float between the pipes. Spend them in the <b>Store</b> on hats,
+                   shirts and power-ups. Some cosmetics only unlock at higher levels.</p>
+            </div>
+            <div class="tut-page" data-page="2" style="display:none;">
+                <div class="tut-art">🌐</div>
+                <h3>Play with others</h3>
+                <p>Hit <b>MULTIPLAYER</b> to join a lobby. Everyone flies the same course,
+                   and arrows on the edge of the screen show who is ahead or behind you.</p>
+            </div>
+            <div class="tut-page" data-page="3" style="display:none;">
+                <div class="tut-art">🏆</div>
+                <h3>Climb the ranks</h3>
+                <p>Casual is for fun. <b>Competitive</b> awards rank points based on where
+                   you finish — Bronze up to Unreal. Ranked needs at least two players.</p>
+            </div>
+            <div class="tut-page" data-page="4" style="display:none;">
+                <div class="tut-art">👥</div>
+                <h3>Add friends</h3>
+                <p>Share your <b>friend code</b> from the Friends tab. Once they accept you
+                   can invite each other to lobbies and jump straight into their game.</p>
+            </div>
+
+            <div class="tut-dots" id="tutDots"></div>
+            <div style="display:flex;gap:8px;margin-top:12px;">
+                <button class="mp-btn-secondary" id="tutPrev" style="flex:1;">← BACK</button>
+                <button class="mp-btn-primary" id="tutNext" style="flex:1;">NEXT →</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREDITS -->
+    <div class="mp-modal" id="creditsModal" style="z-index:46000;">
+        <div class="mp-modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">✨ CREDITS</div>
+                <button class="modal-close" id="closeCreditsBtn">✕</button>
+            </div>
+
+            <div class="cred-hero">
+                <div class="cred-logo">FLAPPY CRIX</div>
+                <div class="cred-by">made by <strong>CRIXGAMING VR</strong></div>
+                <div class="cred-ver" id="credVersion">v1.5.0</div>
+            </div>
+
+            <div class="mp-section-title">🔗 FOLLOW</div>
+            <div class="social-grid">
+                <a class="social" href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener">
+                    <span class="s-ico">💬</span><span>Discord</span></a>
+                <a class="social" href="https://www.youtube.com/@CRIXGAMINGVR" target="_blank" rel="noopener">
+                    <span class="s-ico">📺</span><span>YouTube</span></a>
+                <a class="social" href="https://www.tiktok.com/@crixgamingvr" target="_blank" rel="noopener">
+                    <span class="s-ico">🎵</span><span>TikTok</span></a>
+                <a class="social" href="https://shop.crixgamingvr.com" target="_blank" rel="noopener">
+                    <span class="s-ico">🛒</span><span>Merch</span></a>
+            </div>
+
+            <div class="mp-section-title">🛠️ BUILT WITH</div>
+            <div class="cred-list">
+                <div><span>Multiplayer</span><span>Photon Realtime</span></div>
+                <div><span>Accounts &amp; data</span><span>Firebase</span></div>
+                <div><span>Economy &amp; roles</span><span>PlayFab</span></div>
+                <div><span>Hosting</span><span>Vercel</span></div>
+            </div>
+
+            <div class="mp-section-title">💛 THANK YOU</div>
+            <p class="cred-thanks">
+                To everyone who played, reported bugs, and hung around in the lobbies
+                while things were breaking. This got a lot better because of you.
+            </p>
+
+            <button class="mp-btn-secondary" id="credsLegalBtn" style="width:100%;margin-top:14px;">
+                📄 Terms &amp; Privacy
+            </button>
+        </div>
+    </div>
+
+    <!-- LEGAL -->
+    <div class="mp-modal" id="legalModal" style="z-index:46500;">
+        <div class="mp-modal-content" style="max-width:460px;">
+            <div class="modal-header">
+                <div class="modal-title">📄 TERMS &amp; PRIVACY</div>
+                <button class="modal-close" id="closeLegalBtn">✕</button>
+            </div>
+            <div class="legal-tabs">
+                <button class="legal-tab active" data-lt="terms">Terms</button>
+                <button class="legal-tab" data-lt="privacy">Privacy</button>
+            </div>
+            <div class="legal-body" id="legalTerms"></div>
+            <div class="legal-body" id="legalPrivacy" style="display:none;"></div>
+        </div>
+    </div>
+
+    <!-- WHAT'S NEW -->
     <!-- PATCH NOTES -->
     <div class="mp-modal" id="patchModal" style="z-index:48500;">
         <div class="mp-modal-content" style="max-width:480px;">
@@ -1899,7 +2078,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.19-1900</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.19-2100</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2721,7 +2900,7 @@
         let uiHidden = false;
         function toggleUIHide() {
             uiHidden = !uiHidden;
-            const els = ['.stats-grid','.cheat-indicators','.active-powerups','.buttons-row','.game-controls','.instructions','.back-link','.cheat-container','.mp-banner-btn','.mp-diagnostic-banner'];
+            const els = ['.stats-grid','.cheat-indicators','.active-powerups','.icon-bar','.game-controls','.menu-footer','.game-header','.user-section','.cheat-container','.mp-banner-btn','.mp-diagnostic-banner'];
             els.forEach(sel => { document.querySelectorAll(sel).forEach(el => { el.style.opacity = uiHidden ? '0' : ''; el.style.pointerEvents = uiHidden ? 'none' : ''; }); });
             document.getElementById('hideUIBtn').textContent = uiHidden ? '👁 SHOW UI' : '👁 HIDE UI';
         }
@@ -3817,7 +3996,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.19-1900</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.19-2100</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -3950,44 +4129,258 @@
             });
         }
 
+
+        // ================= PATCH NOTES (in code) =================
+        // Kept here rather than in patchnotes.json so shipping an update means
+        // editing one place. Bump GAME_VERSION and add an entry at the top.
+        const GAME_VERSION = '1.5.0';
+        const CHANGELOG = [
+            {
+                v: '1.5.0', date: '2026-08-19', title: 'Menu Revamp',
+                changes: [
+                    'Completely rebuilt menu, designed for touch',
+                    'Added a How to Play guide',
+                    'Credits page with all the links in one spot',
+                    'Terms and Privacy now readable in-game',
+                    'Sound effects no longer need downloaded files',
+                    'Fixed menus being cut off on smaller screens'
+                ]
+            },
+            {
+                v: '1.4.0', date: '2026-08-16', title: 'Friends & Calls',
+                changes: [
+                    'Friend requests now need accepting',
+                    'Block people you would rather not hear from',
+                    'Invite friends straight into your lobby',
+                    'See who is online and jump into their game',
+                    'Voice calls in CRIX Chat'
+                ]
+            },
+            {
+                v: '1.3.0', date: '2026-08-15', title: 'Ranked & Spectating',
+                changes: [
+                    'Casual and Competitive queues with seven rank tiers',
+                    'Watch matches already in progress',
+                    'Arrows show who is ahead or behind you',
+                    'Vote kicks now need a reason and a proper vote'
+                ]
+            }
+        ];
+
+        // ================= LEGAL =================
+        const LEGAL_UPDATED = '19 August 2026';
+
+        const TERMS_HTML = `
+            <h4>1. Playing the game</h4>
+            <p>Flappy Crix is free to play. You may use it for personal enjoyment.
+               By playing you agree to these terms — if you do not, please stop using it.</p>
+
+            <h4>2. Your account</h4>
+            <p>You are responsible for what happens on your account. Do not share your
+               sign-in details. Tell us if you think someone else has access.</p>
+            <p>One person, one account. Making extra accounts to get around a ban,
+               farm rank, or evade a block is not allowed.</p>
+
+            <h4>3. Behaviour</h4>
+            <p>Do not do any of the following:</p>
+            <ul>
+                <li>Harass, threaten, or bully other players</li>
+                <li>Use slurs or hate speech, including in usernames</li>
+                <li>Cheat, exploit bugs for advantage, or modify the game</li>
+                <li>Share anything sexual, violent, or illegal</li>
+                <li>Pretend to be staff or another player</li>
+                <li>Spam, advertise, or share scam links</li>
+            </ul>
+            <p>Breaking these can get you kicked, muted, or banned. Serious cases are
+               permanent and we do not have to warn you first.</p>
+
+            <h4>4. Coins and items</h4>
+            <p>Coins and cosmetics have no real-world value and cannot be exchanged for
+               money. They are not currently sold for real money. If your account is
+               banned you lose access to them.</p>
+
+            <h4>5. Reporting</h4>
+            <p>Use the in-game report button, or email
+               <a href="mailto:cgvr@crixgamingvr.com">cgvr@crixgamingvr.com</a>.
+               Reports are reviewed by hand.</p>
+
+            <h4>6. Appeals</h4>
+            <p>If you think a ban was a mistake, email us with your player ID. We will
+               look at it properly, though the decision after review is final.</p>
+
+            <h4>7. Changes and availability</h4>
+            <p>This is a hobby project run by one person. Features may change, break,
+               or go away. Servers may go down. We do our best but cannot promise the
+               game will always be available or that your progress cannot be lost.</p>
+
+            <h4>8. Age</h4>
+            <p>You must be at least 13 to make an account. If you are under 16, please
+               check with a parent or guardian before signing up.</p>
+
+            <div class="legal-updated">Last updated ${LEGAL_UPDATED}</div>
+        `;
+
+        const PRIVACY_HTML = `
+            <h4>The short version</h4>
+            <p>We collect what is needed to run the game and nothing else. We do not
+               sell your data, and there are no ads or trackers.</p>
+
+            <h4>What we collect</h4>
+            <ul>
+                <li><b>Email address</b> — so you can sign in and recover your account</li>
+                <li><b>Display name and avatar</b> — shown to other players</li>
+                <li><b>Game progress</b> — coins, level, rank, cosmetics, achievements</li>
+                <li><b>Friends and blocks</b> — who you have added or blocked</li>
+                <li><b>Chat messages</b> — deleted automatically after 24 hours</li>
+                <li><b>Reports</b> — kept while we review them</li>
+            </ul>
+
+            <h4>What we do not collect</h4>
+            <ul>
+                <li>Your real name, address, or phone number</li>
+                <li>Payment details — nothing is sold in-game</li>
+                <li>Location beyond the rough region used to pick a game server</li>
+                <li>Anything from your device outside the game</li>
+            </ul>
+
+            <h4>Who can see it</h4>
+            <p>Other players see your display name, avatar, level, rank and any tags.
+               They cannot see your email address.</p>
+            <p>Your data is stored with <b>Google Firebase</b> and <b>Microsoft PlayFab</b>,
+               and multiplayer runs through <b>Photon</b>. Each has its own privacy policy.
+               We do not share your data with anyone else.</p>
+
+            <h4>Voice calls</h4>
+            <p>Calls in CRIX Chat go directly between the two devices. Audio is never sent
+               to or stored on our servers, and calls are not recorded.</p>
+
+            <h4>Your choices</h4>
+            <ul>
+                <li>Change your display name or avatar at any time</li>
+                <li>Set yourself invisible so others cannot see you online</li>
+                <li>Turn off friend requests entirely</li>
+                <li>Ask us to delete your account and everything attached to it</li>
+            </ul>
+            <p>To delete your account, email
+               <a href="mailto:cgvr@crixgamingvr.com">cgvr@crixgamingvr.com</a>
+               from the address you signed up with. We will remove it within 30 days.</p>
+
+            <h4>Children</h4>
+            <p>The game is not aimed at under-13s and we do not knowingly collect their
+               data. If you believe a child under 13 has an account, email us and we will
+               remove it.</p>
+
+            <h4>Security</h4>
+            <p>Sign-in is handled by Google Firebase — we never see or store your password.
+               No system is perfectly secure, so please use a strong password you do not
+               reuse elsewhere.</p>
+
+            <div class="legal-updated">Last updated ${LEGAL_UPDATED}</div>
+        `;
+
+        // ================= MENU BUTTONS =================
+        function openModal(id) { document.getElementById(id)?.classList.add('active'); playSfx('whoosh', .5); }
+        function closeModal(id) { document.getElementById(id)?.classList.remove('active'); }
+
+        // ---- tutorial ----
+        let tutPage = 0;
+        const TUT_PAGES = 5;
+        function showTut(n) {
+            tutPage = Math.max(0, Math.min(TUT_PAGES - 1, n));
+            document.querySelectorAll('.tut-page').forEach(p =>
+                p.style.display = (+p.dataset.page === tutPage) ? '' : 'none');
+            document.getElementById('tutDots').innerHTML =
+                Array.from({ length: TUT_PAGES }, (_, i) =>
+                    `<div class="tut-dot${i === tutPage ? ' on' : ''}" data-d="${i}"></div>`).join('');
+            document.querySelectorAll('.tut-dot').forEach(d =>
+                d.onclick = () => showTut(+d.dataset.d));
+            document.getElementById('tutPrev').style.visibility = tutPage === 0 ? 'hidden' : '';
+            document.getElementById('tutNext').textContent = tutPage === TUT_PAGES - 1 ? 'GOT IT' : 'NEXT →';
+        }
+        document.getElementById('tutorialBtn')?.addEventListener('click', () => { showTut(0); openModal('tutorialModal'); });
+        document.getElementById('closeTutorialBtn')?.addEventListener('click', () => closeModal('tutorialModal'));
+        document.getElementById('tutPrev')?.addEventListener('click', () => { showTut(tutPage - 1); playSfx('pop', .4); });
+        document.getElementById('tutNext')?.addEventListener('click', () => {
+            if (tutPage === TUT_PAGES - 1) { closeModal('tutorialModal'); markTutorialSeen(); }
+            else { showTut(tutPage + 1); playSfx('pop', .4); }
+        });
+
+        // Show it once, automatically, to anyone who has not played before
+        function markTutorialSeen() { try { localStorage.setItem('crix_tut_seen', '1'); } catch (e) {} }
+        setTimeout(() => {
+            let seen = true;
+            try { seen = localStorage.getItem('crix_tut_seen') === '1'; } catch (e) {}
+            if (!seen && (highScore || 0) === 0) { showTut(0); openModal('tutorialModal'); }
+        }, 1400);
+
+        // ---- credits ----
+        document.getElementById('creditsBtn')?.addEventListener('click', () => {
+            const v = document.getElementById('credVersion');
+            if (v) v.textContent = 'v' + GAME_VERSION;
+            openModal('creditsModal');
+        });
+        document.getElementById('closeCreditsBtn')?.addEventListener('click', () => closeModal('creditsModal'));
+        document.getElementById('credsLegalBtn')?.addEventListener('click', () => {
+            closeModal('creditsModal'); openLegal('terms');
+        });
+
+        // ---- legal ----
+        function openLegal(tab) {
+            document.getElementById('legalTerms').innerHTML = TERMS_HTML;
+            document.getElementById('legalPrivacy').innerHTML = PRIVACY_HTML;
+            switchLegal(tab || 'terms');
+            openModal('legalModal');
+        }
+        function switchLegal(which) {
+            document.querySelectorAll('.legal-tab').forEach(t =>
+                t.classList.toggle('active', t.dataset.lt === which));
+            document.getElementById('legalTerms').style.display = which === 'terms' ? '' : 'none';
+            document.getElementById('legalPrivacy').style.display = which === 'privacy' ? '' : 'none';
+        }
+        document.getElementById('legalBtn')?.addEventListener('click', () => openLegal('terms'));
+        document.getElementById('closeLegalBtn')?.addEventListener('click', () => closeModal('legalModal'));
+        document.querySelectorAll('.legal-tab').forEach(t =>
+            t.addEventListener('click', () => { switchLegal(t.dataset.lt); playSfx('pop', .4); }));
+
+        // tap the backdrop to close any of them
+        ['tutorialModal','creditsModal','legalModal'].forEach(id =>
+            document.getElementById(id)?.addEventListener('click', e => {
+                if (e.target.id === id) closeModal(id);
+            }));
+
         // ================= PATCH NOTES =================
         const SEEN_VERSION_KEY = 'crix_seen_version';
         let patchData = null;
 
-        async function loadPatchNotes(announce = true) {
-            try {
-                const r = await fetch('/patchnotes.json', { cache: 'no-store' });
-                patchData = await r.json();
-            } catch (e) { return; }
-            if (!patchData?.releases?.length) return;
+        function loadPatchNotes(announce = true) {
+            patchData = { latest: GAME_VERSION, releases: CHANGELOG.map(r => ({
+                version: r.v, date: r.date, title: r.title, changes: r.changes
+            })) };
+            if (!patchData.releases.length) return;
 
-            const latest = patchData.latest || patchData.releases[0].version;
             let seen = null;
             try { seen = localStorage.getItem(SEEN_VERSION_KEY); } catch (e) {}
 
-            if (announce && seen !== latest) {
-                // Don't fire twice for the same version within one session
-                if (window.__announcedVersion === latest) return;
-                window.__announcedVersion = latest;
-
+            if (announce && seen !== GAME_VERSION) {
+                if (window.__announcedVersion === GAME_VERSION) return;
+                window.__announcedVersion = GAME_VERSION;
                 const rel = patchData.releases[0];
                 notify({
                     type: 'success',
-                    title: `🎉 Update ${rel.version} — ${rel.title}`,
-                    body: `${rel.title}. ${rel.changes.length} changes — tap to read.`,
+                    title: `🎉 Updated to ${rel.version}`,
+                    body: `${rel.title} — ${rel.changes.length} changes. Tap to read.`,
                     actions: {
                         yesLabel: 'Read',  onYes: () => showPatchNotes(),
                         noLabel:  'Later', onNo:  () => markVersionSeen()
                     },
-                    store: true,        // stays in the notification centre
-                    timeout: 0          // doesn't auto-dismiss
+                    store: true, timeout: 0
                 });
-                console.log(`[Patch] new release ${latest} announced (last seen: ${seen || 'none'})`);
+                console.log(`[Patch] now on ${GAME_VERSION} (last seen: ${seen || 'none'})`);
             }
         }
 
         function markVersionSeen() {
-            try { localStorage.setItem(SEEN_VERSION_KEY, patchData?.latest || ''); } catch (e) {}
+            try { localStorage.setItem(SEEN_VERSION_KEY, GAME_VERSION); } catch (e) {}
         }
 
         function showPatchNotes() {
@@ -7599,10 +7992,9 @@
         document.getElementById('patchModal')?.addEventListener('click', e => {
             if (e.target.id === 'patchModal') e.target.classList.remove('active');
         });
+        // The changelog ships with the code, so there is nothing to poll —
+        // a new build is a new version by definition.
         loadPatchNotes(true);
-        // Re-check every 10 minutes so someone who leaves the tab open still
-        // sees a release published after they loaded the page.
-        setInterval(() => loadPatchNotes(true), 10 * 60 * 1000);
 
         // ---- NOTIFICATIONS ----
         document.getElementById('notifBtn')?.addEventListener('click', () => {
