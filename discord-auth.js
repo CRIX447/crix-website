@@ -69,7 +69,10 @@ module.exports = async (req, res) => {
     }
 
     const code = req.body?.code;
+    const linkMode = req.body?.link === true;      // attaching to an existing account
+    const linkUid  = req.body?.uid || null;
     if (!code) return res.status(400).json({ error: 'Missing code' });
+    if (linkMode && !linkUid) return res.status(400).json({ error: 'Missing uid for linking' });
 
     try {
         // 1. Exchange the one-time code for an access token
@@ -153,6 +156,22 @@ module.exports = async (req, res) => {
             } catch (e) {
                 console.warn('[discord-auth] welcome DM failed:', e.message);
             }
+        }
+
+        // Linking attaches Discord to an account that already exists, so there
+        // is no token to mint — the caller is already signed in.
+        if (linkMode) {
+            return res.status(200).json({
+                linked: true,
+                joinedGuild,
+                profile: {
+                    id: u.id,
+                    username: u.username,
+                    displayName: u.global_name || u.username,
+                    photoURL: u.avatar
+                        ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` : null
+                }
+            });
         }
 
         // 3. Mint a Firebase token with a STABLE uid derived from the Discord id
