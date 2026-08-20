@@ -157,6 +157,13 @@ service cloud.firestore {
       allow write: if signedIn() && myUid() == uid;
     }
 
+    // ---- LOBBY OVERRIDES ----
+    // Only an owner can write these; everyone reads so the game can act on them.
+    match /lobbyOverrides/{roomCode} {
+      allow read:  if signedIn();
+      allow write: if isOwner();
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();
