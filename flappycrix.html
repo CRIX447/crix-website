@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-1530";</script>
+    <script>window.__BUILD__ = "2026.08.20-1700";</script>
     
 
-    <script src="/filter.js?v=2026082003"></script>
-    <script src="/android-bridge.js?v=2026082003"></script>
-    <script src="/playfab-manager.js?v=2026082003"></script>
+    <script src="/filter.js?v=2026082004"></script>
+    <script src="/android-bridge.js?v=2026082004"></script>
+    <script src="/playfab-manager.js?v=2026082004"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -514,6 +514,24 @@
         .hud-score {
             font-size: 40px; font-weight: bold; color: #fff;
             text-shadow: 0 3px 0 rgba(0,0,0,.6);
+        }
+        .ingame-staff, .ingame-menu {
+            position: absolute; z-index: 36;
+            top: calc(14px + env(safe-area-inset-top));
+            width: 40px; height: 40px; border-radius: 50%;
+            border: 1px solid rgba(255,255,255,.15);
+            background: rgba(12,12,20,.85); backdrop-filter: blur(6px);
+            color: #EDEDED; font-size: 17px; cursor: pointer;
+        }
+        .ingame-staff { right: 12px; border-color: rgba(255,0,0,.5); }
+        .ingame-menu  { left: 12px; }
+        body.playing .ingame-menu { display: block !important; }
+        body.playing .ingame-staff.has-role { display: block !important; }
+
+        .hud-rush {
+            background: rgba(12,12,20,.85); border: 1px solid rgba(255,70,85,.45);
+            color: #FF8A94; font-size: 13px; font-weight: bold;
+            padding: 5px 12px; border-radius: 16px; backdrop-filter: blur(6px);
         }
         .hud-coins {
             background: rgba(12,12,20,.85); border: 1px solid rgba(255,215,0,.4);
@@ -1571,9 +1589,15 @@
                 </div>
             </div>
 
+            <!-- Staff controls while a match is running. Hidden unless you
+                 hold a role, and only during play. -->
+            <button class="ingame-staff" id="ingameStaffBtn" style="display:none;">🛡️</button>
+            <button class="ingame-menu" id="ingameMenuBtn" style="display:none;">☰</button>
+
             <div class="hud-live" id="hudLive">
                 <span class="hud-score" id="hudScore">0</span>
                 <span class="hud-coins" id="hudCoins">🪙 0</span>
+                <span class="hud-rush" id="hudRush" style="display:none;">⏱ <b id="hudRushTime">5:00</b></span>
             </div>
             <div class="mp-hud" id="mpHud"></div>
             <div class="mp-chat-godmode-banner" id="mpGodmodeBanner">⚡ TYPING GODMODE</div>
@@ -1588,7 +1612,6 @@
         </div>
         
         <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-            <button id="hideUIBtn" style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,107,53,0.4);border-radius:20px;padding:3px 12px;color:#ABABAB;font-size:10px;cursor:pointer;font-family:inherit;" title="Hide UI (H key)">👁 HIDE UI</button>
         </div>
         <div class="stats-grid">
             <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
@@ -2318,7 +2341,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1530</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-1700</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2688,14 +2711,25 @@
             countdown: [[600, 0,    .10, 'square',   .16]]
         };
 
-        // A real file wins if you drop one in /img with a matching name
+        // Real files take priority over the generated tones. Rather than
+        // waiting on canplaythrough — which fires unreliably and left files
+        // that WERE present sitting unused — each name is probed once and
+        // remembered.
         const sfxFiles = {};
-        Object.keys(SFX_DEFS).forEach(name => {
+        const sfxChecked = {};
+
+        function tryLoadSfx(name) {
+            if (sfxChecked[name]) return;
+            sfxChecked[name] = true;
             const a = new Audio('/img/' + name + '.mp3');
-            a.preload = 'none';
+            a.preload = 'auto';
             a.addEventListener('canplaythrough', () => { sfxFiles[name] = a; }, { once: true });
-            a.addEventListener('error', () => {}, { once: true });
-        });
+            a.addEventListener('loadeddata',     () => { sfxFiles[name] = a; }, { once: true });
+            a.addEventListener('error', () => { sfxFiles[name] = null; }, { once: true });
+            a.load();
+        }
+        Object.keys(SFX_DEFS).forEach(tryLoadSfx);
+
 
         function playSfx(name, volume) {
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
@@ -2703,25 +2737,28 @@
                         ? settings.sfxVolume : 1);
             if (vol <= 0) return;
 
-            // Prefer a real file when one has loaded
             const file = sfxFiles[name];
             if (file) {
-                try { const c2 = file.cloneNode(); c2.volume = Math.min(1, vol); c2.play().catch(() => {}); }
-                catch (e) {}
-                return;
+                try {
+                    const clone = file.cloneNode();
+                    clone.volume = Math.min(1, vol);
+                    clone.play().catch(() => playTone(name, vol));
+                    return;
+                } catch (e) { /* fall through to the generated tone */ }
             }
+            playTone(name, vol);
+        }
 
+        function playTone(name, vol) {
             const def = SFX_DEFS[name];
             const ctx = audioCtx();
             if (!def || !ctx) return;
-
             def.forEach(([freq, at, dur, type, amp]) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
                 osc.type = type || 'square';
                 osc.frequency.setValueAtTime(freq, ctx.currentTime + at);
                 const peak = amp * vol;
-                // Short attack and exponential release keeps it from clicking
                 gain.gain.setValueAtTime(0.0001, ctx.currentTime + at);
                 gain.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), ctx.currentTime + at + .008);
                 gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
@@ -2931,8 +2968,8 @@
             bird.velocity += bird.gravity; 
             bird.y += bird.velocity; 
             if (!shieldActive) { 
-                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound);
-                if (!mpMatchActive) showDeathScreen(); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
+                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); handleDeath();
+                if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
             } else { 
                 if (bird.y < 10) { bird.y=10; bird.velocity=Math.abs(bird.velocity)*0.5; } 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
@@ -2960,7 +2997,7 @@
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
                 if(!shieldActive && bird.x+15>pipes[i].x && bird.x-15<pipes[i].x+pipeWidth && (bird.y-15<pipes[i].top || bird.y+15>pipes[i].bottom)){ 
-                    gameOver=true; playSound(deathSound); if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; 
+                    gameOver=true; playSound(deathSound); handleDeath(); return; 
                 } 
                 if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){ 
                     score++; pipes[i].scored=true; 
@@ -2997,8 +3034,24 @@
         function updateLiveHud() {
             const s = document.getElementById('hudScore');
             const co = document.getElementById('hudCoins');
-            if (s) s.textContent = score;
-            if (co) co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
+            const rush = document.getElementById('hudRush');
+            const isRush = mpMatchActive && mpMatchMode === 'coinrush';
+
+            // In Coin Rush the coins collected ARE the score, so show that
+            // prominently instead of the pipe count.
+            if (s) s.textContent = isRush ? (mpCoinsThisMatch || 0) : score;
+            if (co) {
+                co.style.display = isRush ? 'none' : '';
+                co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
+            }
+            if (rush) {
+                rush.style.display = isRush ? '' : 'none';
+                if (isRush) {
+                    const t = Math.max(0, mpCoinRushSecondsLeft || 0);
+                    document.getElementById('hudRushTime').textContent =
+                        Math.floor(t/60) + ':' + String(Math.floor(t%60)).padStart(2,'0');
+                }
+            }
         }
 
         function drawGame(){
@@ -3051,12 +3104,14 @@
                 ctx.restore();
             }
             // BUG FIX: always set textAlign before drawing score text
-            if(!gameOver && gameRunning){ 
+            // The floating HUD already shows the score. Drawing it on the
+            // canvas too put a second number behind the coin pill.
+            if(!gameOver && gameRunning && !document.body.classList.contains('playing')){ 
                 ctx.textAlign='center';
                 ctx.fillStyle='#FF6B35'; 
                 ctx.font='bold 16px "CrixCustom", monospace'; 
                 ctx.fillText('SCORE: ' + score, canvas.width/2, 40); 
-                ctx.textAlign='left'; // reset
+                ctx.textAlign='left';
             } 
             if (typeof settings !== 'undefined' && settings.showFps) {
                 ctx.save();
@@ -3161,14 +3216,7 @@
         
         // Event listeners
         let uiHidden = false;
-        function toggleUIHide() {
-            uiHidden = !uiHidden;
-            const els = ['.stats-grid','.cheat-indicators','.active-powerups','.icon-bar','.game-controls','.menu-footer','.game-header','.user-section','.cheat-container','.mp-banner-btn','.mp-diagnostic-banner'];
-            els.forEach(sel => { document.querySelectorAll(sel).forEach(el => { el.style.opacity = uiHidden ? '0' : ''; el.style.pointerEvents = uiHidden ? 'none' : ''; }); });
-            document.getElementById('hideUIBtn').textContent = uiHidden ? '👁 SHOW UI' : '👁 HIDE UI';
-        }
-        document.getElementById('hideUIBtn')?.addEventListener('click', toggleUIHide);
-        document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') toggleUIHide(); } });
+        document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') /* hide UI removed */; } });
 
         document.getElementById('startGameBtn')?.addEventListener('click', startGame);
         document.getElementById('canvasWrapper')?.addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
@@ -3210,7 +3258,7 @@
 
                 // Y / Triangle → hide UI
                 const hideNow = padPressed(gp, 3);
-                if (hideNow && !prev.hide) toggleUIHide();
+                if (hideNow && !prev.hide) /* hide UI removed */;
                 prev.hide = hideNow;
 
                 // B / Circle → close the topmost open modal
@@ -3772,6 +3820,9 @@
                         console.log('[Roles] Using local dev override:', myRoles);
                         refreshRoleDisplay();
             updateOwnerButton();
+            const isb = document.getElementById('ingameStaffBtn');
+            if (isb) isb.classList.toggle('has-role',
+                myRoles.includes('OWNER') || myRoles.includes('MOD'));
             renderFriendCode();
             updatePlayerMenuButton();
                     }
@@ -4285,7 +4336,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-1530</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.20-1700</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -4433,6 +4484,18 @@
             }
         }
 
+        // Every death route funnels through here — there are three (ceiling,
+        // floor and pipes) and previously only one showed the overlay.
+        function handleDeath() {
+            // Every death path goes through here, so the overlay is
+            // guaranteed rather than only firing on ceiling hits.
+            if (!mpMatchActive) setTimeout(showDeathScreen, 250);
+            if (bgMusic && !musicMuted) bgMusic.pause();
+            updateHighScore();
+            if (typeof mpReportDeath === 'function') mpReportDeath();
+            if (!mpMatchActive) showDeathScreen();
+        }
+
         function showDeathScreen() {
             const best = Math.max(highScore || 0, score);
             const isNewBest = score > (highScore || 0);
@@ -4447,10 +4510,31 @@
         }
 
         function backToMenu() {
-            setScreen('menu');
+            // Order matters: leaving the lobby can reset game state, so do that
+            // first and set the screen last, or the menu flips straight back
+            // into a running game.
             if (mpCurrentRoom && typeof mpLeaveLobby === 'function') mpLeaveLobby();
+            gameRunning = false;
+            gameOver = false;
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+            setScreen('menu');
             playSfx('whoosh', .5);
         }
+
+        // Staff menu during a match — useful for dealing with someone
+        // mid-game rather than having to leave first.
+        document.getElementById('ingameStaffBtn')?.addEventListener('click', () => {
+            if (typeof refreshOwnerTargets === 'function') refreshOwnerTargets();
+            document.getElementById('ownerModal')?.classList.add('active');
+        });
+        document.getElementById('ingameMenuBtn')?.addEventListener('click', () => {
+            if (gameRunning && !gameOver) {
+                // Pause rather than losing the run outright
+                gameRunning = false;
+                if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+            }
+            backToMenu();
+        });
 
         document.getElementById('dsRetry')?.addEventListener('click', () => {
             setScreen('playing');
@@ -5972,7 +6056,7 @@
         }
 
         // ---- LEVELS ----
-        const MAX_LEVEL = 50;
+        const MAX_LEVEL = 1000000;
         const LEVEL_KEY = 'crix_level_v1';
         let playerXp = 0, playerLevel = 1;
         // Rising curve: level N needs 50*N xp to advance
