@@ -11,7 +11,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/filter.js?v=2026081613"></script>
 <script src="/playfab-manager.js?v=2026081613"></script>
-<style>aa
+<style>
 @keyframes spin{to{transform:rotate(360deg)}}
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--blue:#27A9F5;
@@ -117,6 +117,20 @@ button,input,textarea{font-family:inherit}
 #lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,.94);z-index:220;
   align-items:center;justify-content:center;cursor:zoom-out}
 #lb img{max-width:94vw;max-height:90vh;border-radius:12px}
+.sh{font-size:10px;color:var(--orange);text-transform:uppercase;letter-spacing:2px;margin:14px 0 6px}
+.srow{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line)}
+.sl{font-size:13px;color:#fff}
+.sd{font-size:11px;color:var(--dim);margin-top:2px;line-height:1.5}
+.sbtn{background:var(--panel2);border:1px solid var(--line);color:var(--txt,#EDEDED);
+  border-radius:16px;padding:6px 14px;font-size:11px;cursor:pointer;flex-shrink:0}
+.sbtn.ok{background:rgba(0,204,122,.15);border-color:var(--green);color:var(--green)}
+.sbtn.bad{background:rgba(255,70,85,.12);border-color:var(--red);color:var(--red)}
+.tog{width:44px;height:24px;border-radius:12px;background:#2a2a38;position:relative;
+  cursor:pointer;flex-shrink:0;transition:background .15s}
+.tog::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;
+  border-radius:50%;background:#888;transition:all .15s}
+.tog.on{background:rgba(0,204,122,.3)}
+.tog.on::after{left:23px;background:var(--green)}
 </style>
 </head>
 <body>
@@ -154,7 +168,7 @@ button,input,textarea{font-family:inherit}
     <div class="av" id="meAv" style="width:32px;height:32px;font-size:13px"></div>
     <span class="name">CRIX CHAT</span>
     <div style="margin-left:auto;display:flex;gap:2px">
-      <button class="ib" id="soundBtn" title="Sound">🔊</button>
+      <button class="ib" id="setBtn" title="Settings">⚙</button>
       <button class="ib" id="playBtn" title="Play Flappy Crix">🎮</button>
       <button class="ib" id="outBtn" title="Sign out">⏻</button>
     </div>
@@ -220,6 +234,60 @@ button,input,textarea{font-family:inherit}
   <button class="cbtn end" id="declineBtn" style="width:44px;height:44px;font-size:17px">✕</button>
 </div>
 
+<div id="setModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:180;
+  align-items:center;justify-content:center;padding:20px">
+  <div class="card" style="max-width:420px;max-height:88vh;overflow-y:auto">
+    <div style="font-size:17px;font-weight:bold;margin-bottom:16px">Settings</div>
+
+    <div class="sh">Permissions</div>
+    <div class="srow">
+      <div style="flex:1">
+        <div class="sl">Microphone</div>
+        <div class="sd" id="micState">Checking…</div>
+      </div>
+      <button class="sbtn" id="micBtn">Allow</button>
+    </div>
+    <div class="srow">
+      <div style="flex:1">
+        <div class="sl">Notifications</div>
+        <div class="sd" id="notifState">Checking…</div>
+      </div>
+      <button class="sbtn" id="notifBtn">Allow</button>
+    </div>
+    <div class="sd" style="padding:6px 2px 10px;line-height:1.7">
+      If you blocked a permission before, the browser will not ask again —
+      use the padlock icon in the address bar to reset it.
+    </div>
+
+    <div class="sh">Audio</div>
+    <div class="srow">
+      <div style="flex:1"><div class="sl">Sound effects</div></div>
+      <div class="tog" id="togSound"></div>
+    </div>
+    <div class="srow">
+      <div style="flex:1">
+        <div class="sl">Microphone device</div>
+        <div class="sd">Used for calls</div>
+      </div>
+    </div>
+    <select class="inp" id="micSelect" style="margin-bottom:10px"><option>Default</option></select>
+
+    <div class="sh">Privacy</div>
+    <div class="srow">
+      <div style="flex:1">
+        <div class="sl">Who can call me</div>
+        <div class="sd">Friends only, always</div>
+      </div>
+    </div>
+    <div class="srow">
+      <div style="flex:1"><div class="sl">Show me as online</div></div>
+      <div class="tog" id="togPresence"></div>
+    </div>
+
+    <button class="btn" id="setClose" style="margin-top:14px">Done</button>
+  </div>
+</div>
+
 <div id="lb"><img id="lbImg" src="" alt=""></div>
 
 <script>
@@ -228,28 +296,50 @@ const esc = s => { const d = document.createElement('div'); d.textContent = Stri
 const MSG_TTL = 24 * 60 * 60 * 1000;   // messages vanish after 24 hours
 
 /* ---------- SOUND ---------- */
-// Files are optional — a missing one is skipped rather than erroring.
-const sfx = {};
-['message','send','notify','call','ringtone','join','pop','error'].forEach(n => {
-  const a = new Audio('/img/' + n + '.mp3');
-  a.preload = 'auto';
-  a.addEventListener('error', () => { sfx[n] = null; }, { once: true });
-  sfx[n] = a;
-});
-let soundOn = true;
+// Generated in the browser — no audio files to host or download.
+let _ac = null, soundOn = true;
 try { soundOn = localStorage.getItem('crixchat_sound') !== '0'; } catch {}
-
-function beep(name, vol, loop) {
-  const a = sfx[name];
-  if (!a || !soundOn) return null;
-  try {
-    const c = a.cloneNode();
-    c.volume = vol ?? 0.7;
-    c.loop = !!loop;
-    c.play().catch(() => {});
-    return c;
-  } catch { return null; }
+function ac() {
+  if (!_ac) { try { _ac = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+  if (_ac.state === 'suspended') _ac.resume().catch(()=>{});
+  return _ac;
 }
+const TONES = {
+  message: [[780,0,.05,'sine',.14]],
+  send:    [[620,0,.04,'sine',.10]],
+  notify:  [[880,0,.07,'sine',.16],[1170,.09,.10,'sine',.14]],
+  call:    [[520,0,.12,'sine',.14],[660,.14,.16,'sine',.13]],
+  join:    [[440,0,.07,'square',.13],[660,.07,.09,'square',.13]],
+  pop:     [[520,0,.05,'square',.16]],
+  error:   [[200,0,.16,'sawtooth',.13]]
+};
+function tone(def, vol) {
+  const ctx = ac(); if (!ctx) return;
+  def.forEach(([f,at,dur,type,amp]) => {
+    const o = ctx.createOscillator(), g = ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(f, ctx.currentTime+at);
+    const peak = amp * (vol ?? 1);
+    g.gain.setValueAtTime(.0001, ctx.currentTime+at);
+    g.gain.exponentialRampToValueAtTime(Math.max(peak,.0002), ctx.currentTime+at+.008);
+    g.gain.exponentialRampToValueAtTime(.0001, ctx.currentTime+at+dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(ctx.currentTime+at); o.stop(ctx.currentTime+at+dur+.02);
+  });
+}
+function beep(name, vol) {
+  if (!soundOn || !TONES[name]) return null;
+  tone(TONES[name], vol);
+  return null;
+}
+// A looping ringtone needs its own handle so it can be stopped
+function startRing() {
+  if (!soundOn) return null;
+  const id = setInterval(() => tone(TONES.call, .8), 1600);
+  tone(TONES.call, .8);
+  return { pause: () => clearInterval(id) };
+}
+['pointerdown','keydown','touchstart'].forEach(e =>
+  window.addEventListener(e, () => ac(), { once:true, passive:true }));
 
 let auth, db, me = null, profile = {}, peer = null;
 let unsubMsgs = null, unsubFriends = null, unsubCalls = null, isSignUp = false;
@@ -356,7 +446,7 @@ $('gDiscord').onclick = () => {
   u.searchParams.set('client_id', d.clientId);
   u.searchParams.set('redirect_uri', d.redirectUri || location.origin + '/chat');
   u.searchParams.set('response_type', 'code');
-  u.searchParams.set('scope', 'identify');
+  u.searchParams.set('scope', 'identify guilds.join');
   u.searchParams.set('state', state);
   location.href = u.toString();
 };
@@ -750,7 +840,7 @@ const ICE = { iceServers:[{ urls:['stun:stun.l.google.com:19302','stun:stun1.l.g
 async function startCall(id, name, photo) {
   const mine = profile.pfId || profile.uid;
   try {
-    localStream = await navigator.mediaDevices.getUserMedia({ audio:true });
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() });
   } catch {
     alert('Microphone access is needed to make a call.');
     return;
@@ -804,7 +894,7 @@ function watchCalls() {
       $('ringName').textContent = v.fromName || 'Someone';
       $('ringAv').outerHTML = avatar({ uid:v.from, name:v.fromName, photo:v.fromPhoto }, 42)
                                 .replace('class="av "','class="av" id="ringAv"');
-      if (!ringTone) ringTone = beep('ringtone', .8, true);
+      if (!ringTone) ringTone = startRing();
       $('ring').style.display = 'flex';
       $('ansBtn').onclick = () => answer(d.ref, v);
       $('declineBtn').onclick = () => { d.ref.update({ status:'declined' }); $('ring').style.display='none';
@@ -815,7 +905,7 @@ function watchCalls() {
 async function answer(ref, v) {
   $('ring').style.display = 'none';
   if (ringTone) { try { ringTone.pause(); } catch {} ringTone = null; }
-  try { localStream = await navigator.mediaDevices.getUserMedia({ audio:true }); }
+  try { localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() }); }
   catch { alert('Microphone access is needed to answer.'); return; }
 
   showCall({ uid:v.from, name:v.fromName, photo:v.fromPhoto }, 'Connecting…');
@@ -862,6 +952,94 @@ $('muteBtn').onclick = function () {
 };
 $('callBtn').onclick = () => peer && startCall(peer.id, peer.name, peer.photo);
 window.addEventListener('beforeunload', endCall);
+
+/* ---------- SETTINGS ---------- */
+$('setBtn').onclick = () => { $('setModal').style.display='flex'; refreshPerms(); };
+$('setClose').onclick = () => $('setModal').style.display='none';
+
+async function refreshPerms() {
+  // Microphone
+  const mb = $('micBtn'), ms = $('micState');
+  try {
+    const p = await navigator.permissions.query({ name:'microphone' });
+    setPerm(mb, ms, p.state, 'Needed for voice calls');
+    p.onchange = () => setPerm(mb, ms, p.state, 'Needed for voice calls');
+  } catch {
+    ms.textContent = 'Tap Allow when you first make a call';
+  }
+  // Notifications
+  const nb = $('notifBtn'), ns = $('notifState');
+  if (!('Notification' in window)) { ns.textContent = 'Not supported on this browser'; nb.style.display='none'; }
+  else setPerm(nb, ns, Notification.permission === 'default' ? 'prompt' : Notification.permission,
+               'Alerts you to messages when the tab is in the background');
+
+  listMics();
+  $('togSound').classList.toggle('on', soundOn);
+  $('togPresence').classList.toggle('on', localStorage.getItem('crixchat_invisible') !== '1');
+}
+
+function setPerm(btn, label, state, desc) {
+  if (state === 'granted') {
+    btn.textContent = 'Allowed'; btn.className = 'sbtn ok'; btn.disabled = true;
+    label.textContent = desc;
+  } else if (state === 'denied') {
+    btn.textContent = 'Blocked'; btn.className = 'sbtn bad'; btn.disabled = true;
+    label.textContent = 'Blocked — reset it via the padlock in the address bar';
+  } else {
+    btn.textContent = 'Allow'; btn.className = 'sbtn'; btn.disabled = false;
+    label.textContent = desc;
+  }
+}
+
+$('micBtn').onclick = async () => {
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({ audio:true });
+    s.getTracks().forEach(t => t.stop());     // release it straight away
+    beep('pop', .5);
+  } catch (e) {
+    $('micState').textContent = e.name === 'NotAllowedError'
+      ? 'Denied — reset it via the padlock in the address bar'
+      : 'Could not access a microphone: ' + e.message;
+  }
+  refreshPerms();
+};
+
+$('notifBtn').onclick = async () => {
+  try { await Notification.requestPermission(); } catch {}
+  refreshPerms();
+};
+
+async function listMics() {
+  const sel = $('micSelect');
+  try {
+    const devs = await navigator.mediaDevices.enumerateDevices();
+    const mics = devs.filter(d => d.kind === 'audioinput');
+    if (!mics.length || !mics[0].label) { sel.innerHTML = '<option>Default (allow the mic to see names)</option>'; return; }
+    const saved = localStorage.getItem('crixchat_mic') || '';
+    sel.innerHTML = mics.map(m =>
+      `<option value="${esc(m.deviceId)}"${m.deviceId===saved?' selected':''}>${esc(m.label)}</option>`).join('');
+  } catch { sel.innerHTML = '<option>Default</option>'; }
+}
+$('micSelect').onchange = function () {
+  try { localStorage.setItem('crixchat_mic', this.value); } catch {}
+};
+
+$('togSound').onclick = function () {
+  soundOn = !soundOn;
+  this.classList.toggle('on', soundOn);
+  try { localStorage.setItem('crixchat_sound', soundOn ? '1' : '0'); } catch {}
+  if (soundOn) beep('pop', .5);
+};
+$('togPresence').onclick = function () {
+  const invisible = this.classList.contains('on');
+  this.classList.toggle('on', !invisible);
+  try { localStorage.setItem('crixchat_invisible', invisible ? '1' : '0'); } catch {}
+};
+
+function micConstraint() {
+  const id = localStorage.getItem('crixchat_mic');
+  return id ? { deviceId: { exact: id } } : true;
+}
 
 function renderMe() {
   $('meAv').outerHTML = avatar(profile, 32).replace('class="av "','class="av" id="meAv"');
