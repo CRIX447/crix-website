@@ -100,6 +100,61 @@ module.exports = async (req, res) => {
         const u = await userRes.json();
         if (!u.id) return res.status(502).json({ error: 'Could not read Discord profile' });
 
+        // 2b. Add them to the Discord server, if configured.
+        // Done quietly — a failure here should never block sign-in.
+        let joinedGuild = false;
+        const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+        const GUILD_ID  = process.env.DISCORD_GUILD_ID;
+        if (BOT_TOKEN && GUILD_ID && tokenData.scope && tokenData.scope.includes('guilds.join')) {
+            try {
+                const join = await fetch(
+                    `https://discord.com/api/guilds/${GUILD_ID}/members/${u.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Authorization': `Bot ${BOT_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ access_token: tokenData.access_token })
+                    });
+                // 201 = added, 204 = already a member
+                joinedGuild = join.status === 201 || join.status === 204;
+            } catch (e) {
+                console.warn('[discord-auth] guild join failed:', e.message);
+            }
+        }
+
+        // 2c. Send a welcome DM. Also quiet on failure — plenty of people
+        // have DMs from servers turned off, which is their choice.
+        if (BOT_TOKEN) {
+            try {
+                const dm = await fetch('https://discord.com/api/users/@me/channels', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ recipient_id: u.id })
+                });
+                const channel = await dm.json();
+                if (channel.id) {
+                    await fetch(`https://discord.com/api/channels/${channel.id}/messages`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            embeds: [{
+                                title: '🐦 Discord linked',
+                                description: 'Your Discord is now connected to Flappy Crix.\n\n' +
+                                             'You will get a message here when there is an update, ' +
+                                             'and you can use `/stats` in the server to show off your rank.',
+                                color: 0xFF4655,
+                                fields: [{ name: 'Play', value: 'https://crixgamingvr.com/flappycrix' }],
+                                footer: { text: 'Turn these off any time by unlinking in Settings' }
+                            }]
+                        })
+                    });
+                }
+            } catch (e) {
+                console.warn('[discord-auth] welcome DM failed:', e.message);
+            }
+        }
+
         // 3. Mint a Firebase token with a STABLE uid derived from the Discord id
         const uid = `discord:${u.id}`;
         const displayName = u.global_name || u.username || `User_${u.id}`;
@@ -125,7 +180,8 @@ module.exports = async (req, res) => {
 
         return res.status(200).json({
             token: customToken,
-            profile: { id: u.id, username: u.username, displayName, photoURL }
+            profile: { id: u.id, username: u.username, displayName, photoURL },
+            joinedGuild
         });
 
     } catch (e) {
