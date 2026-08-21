@@ -29,6 +29,8 @@ const ALLOWED_ORIGINS = [
 // Ambiguous characters left out so codes are easy to read off a TV
 const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const CODE_TTL = 10 * 60 * 1000;
+const PAIR_TTL = 24 * 60 * 60 * 1000;      // a pairing code lasts a day
+const PAIR_REQUEST_TTL = 3 * 60 * 1000;    // an unanswered request lapses
 
 function getAdmin() {
     if (admin.apps.length) return admin;
@@ -137,6 +139,164 @@ module.exports = async function handler(req, res) {
             const customToken = await fb.auth().createCustomToken(d.uid);
             await ref.delete().catch(() => {});
             return res.status(200).json({ customToken });
+        }
+
+
+        // ═══════════ PAIRING CODES ═══════════
+        // The reverse of the flow above: the account owner has a code in
+        // Settings, someone enters it on the sign-in page, and the owner
+        // approves or denies with the requester's location shown.
+        //
+        // The approval step is what makes this safe — a leaked code alone
+        // grants nothing.
+
+        // Owner generates or rotates their code
+        if (action === 'pair-create') {
+            const { idToken } = req.body;
+            if (!idToken) return res.status(400).json({ error: 'Not signed in' });
+            let decoded;
+            try { decoded = await fb.auth().verifyIdToken(idToken); }
+            catch (e) { return res.status(401).json({ error: 'Not signed in' }); }
+
+            // Retire any previous code for this account
+            const old = await db.collection('pairCodes')
+                .where('uid', '==', decoded.uid).get();
+            await Promise.all(old.docs.map(d => d.ref.delete().catch(() => {})));
+
+            const code = makeCode();
+            await db.collection('pairCodes').doc(code).set({
+                uid: decoded.uid,
+                createdAt: Date.now(),
+                expiresAt: Date.now() + PAIR_TTL,
+                used: false
+            });
+            return res.status(200).json({ code, expiresIn: PAIR_TTL / 1000 });
+        }
+
+        // Someone enters the code — creates a request the owner must approve
+        if (action === 'pair-request') {
+            const code = String(req.body?.code || '').toUpperCase().trim();
+            if (!code) return res.status(400).json({ error: 'Enter a code' });
+
+            const ref = db.collection('pairCodes').doc(code);
+            const doc = await ref.get();
+            if (!doc.exists) return res.status(404).json({ error: 'That code is not valid' });
+
+            const d = doc.data();
+            if (d.used) return res.status(409).json({ error: 'That code has already been used' });
+            if (Date.now() > d.expiresAt) {
+                await ref.delete().catch(() => {});
+                return res.status(410).json({ error: 'That code has expired' });
+            }
+
+            // Rough location from the request IP, purely so the owner can tell
+            // whether the request is theirs. Never stored beyond the request.
+            const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+                       || req.socket?.remoteAddress || '';
+            let where = 'Unknown location';
+            try {
+                const g = await fetch(`https://ipapi.co/${ip}/json/`);
+                const j = await g.json();
+                if (j && !j.error) {
+                    where = [j.city, j.region, j.country_name].filter(Boolean).join(', ')
+                            || 'Unknown location';
+                }
+            } catch (e) { /* location is a nicety, not a requirement */ }
+
+            const ua = req.headers['user-agent'] || '';
+            const device = /Xbox/i.test(ua) ? 'Xbox'
+                         : /PlayStation/i.test(ua) ? 'PlayStation'
+                         : /Android/i.test(ua) ? 'Android phone'
+                         : /iPhone|iPad/i.test(ua) ? 'iPhone or iPad'
+                         : /Windows/i.test(ua) ? 'Windows PC'
+                         : /Mac/i.test(ua) ? 'Mac'
+                         : 'Unknown device';
+
+            const requestToken = crypto.randomBytes(24).toString('hex');
+            await ref.update({
+                pending: {
+                    at: Date.now(),
+                    location: where,
+                    device,
+                    requestToken
+                }
+            });
+
+            return res.status(200).json({ ok: true, requestToken, device, location: where });
+        }
+
+        // Owner checks whether anyone is asking
+        if (action === 'pair-pending') {
+            const { idToken } = req.body;
+            if (!idToken) return res.status(400).json({ error: 'Not signed in' });
+            let decoded;
+            try { decoded = await fb.auth().verifyIdToken(idToken); }
+            catch (e) { return res.status(401).json({ error: 'Not signed in' }); }
+
+            const q = await db.collection('pairCodes').where('uid', '==', decoded.uid).get();
+            for (const doc of q.docs) {
+                const d = doc.data();
+                if (d.pending && Date.now() - d.pending.at < PAIR_REQUEST_TTL) {
+                    return res.status(200).json({
+                        request: {
+                            code: doc.id,
+                            device: d.pending.device,
+                            location: d.pending.location,
+                            at: d.pending.at
+                        }
+                    });
+                }
+            }
+            return res.status(200).json({ request: null });
+        }
+
+        // Owner approves or denies
+        if (action === 'pair-respond') {
+            const { idToken, code, approve } = req.body;
+            if (!idToken || !code) return res.status(400).json({ error: 'Missing details' });
+            let decoded;
+            try { decoded = await fb.auth().verifyIdToken(idToken); }
+            catch (e) { return res.status(401).json({ error: 'Not signed in' }); }
+
+            const ref = db.collection('pairCodes').doc(String(code).toUpperCase().trim());
+            const doc = await ref.get();
+            if (!doc.exists) return res.status(404).json({ error: 'No such request' });
+            const d = doc.data();
+            if (d.uid !== decoded.uid) return res.status(403).json({ error: 'Not your code' });
+
+            if (approve) {
+                await ref.update({ approved: true, used: true, approvedAt: Date.now() });
+            } else {
+                await ref.update({ denied: true, pending: null });
+            }
+            return res.status(200).json({ ok: true });
+        }
+
+        // Requester polls for the answer
+        if (action === 'pair-poll') {
+            const code = String(req.body?.code || '').toUpperCase().trim();
+            const { requestToken } = req.body;
+            if (!code || !requestToken) return res.status(400).json({ error: 'Missing details' });
+
+            const ref = db.collection('pairCodes').doc(code);
+            const doc = await ref.get();
+            if (!doc.exists) return res.status(404).json({ error: 'expired' });
+            const d = doc.data();
+
+            if (d.pending?.requestToken !== requestToken && !d.approved) {
+                return res.status(403).json({ error: 'Not your request' });
+            }
+            if (d.denied) {
+                await ref.update({ denied: false, pending: null });
+                return res.status(200).json({ denied: true });
+            }
+            if (d.approved) {
+                const customToken = await fb.auth().createCustomToken(d.uid);
+                // Single use — burn it
+                await ref.delete().catch(() => {});
+                return res.status(200).json({ customToken });
+            }
+            return res.status(200).json({ pending: true });
         }
 
         return res.status(400).json({ error: 'Unknown action' });
