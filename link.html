@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Link a device — Flappy Crix</title>
+<link rel="icon" href="/img/newfavicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<style>
+@font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A0A0F;color:#EDEDED;font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
+  min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px;
+  background-image:linear-gradient(rgba(255,70,85,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,70,85,.04) 1px,transparent 1px);
+  background-size:48px 48px}
+.card{background:#101018;border:2px solid #FF4655;border-bottom:5px solid rgba(150,20,35,.7);
+  border-radius:22px;padding:32px 26px;max-width:390px;width:100%;box-shadow:5px 5px 0 rgba(0,0,0,.6)}
+.logo{font-size:24px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;text-align:center;
+  background:linear-gradient(135deg,#FF4655,#FF6B35);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.sub{text-align:center;font-size:11px;color:#9A9A9A;margin:5px 0 22px}
+.step{font-size:12px;color:#C9C9C9;line-height:1.8;margin-bottom:16px}
+.inp{width:100%;background:#0b0b12;border:2px solid rgba(255,255,255,.12);color:#fff;
+  border-radius:14px;padding:16px;font-size:26px;text-align:center;letter-spacing:6px;
+  font-family:monospace;text-transform:uppercase;margin-bottom:12px}
+.inp:focus{outline:none;border-color:#FF6B35}
+.inp.small{font-size:13px;letter-spacing:0;padding:11px 14px;text-align:left;text-transform:none}
+.btn{width:100%;background:linear-gradient(135deg,#FF4655,#FF6B35);color:#fff;
+  border:2px solid rgba(255,255,255,.15);border-bottom:4px solid rgba(0,0,0,.4);
+  border-radius:30px;padding:13px;font-size:14px;font-weight:bold;cursor:pointer;
+  text-transform:uppercase;letter-spacing:1px;font-family:inherit}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.g{background:#fff;color:#222;border-color:#ccc;margin-bottom:9px}
+.btn.ghost{background:#1a1a24;border-color:rgba(255,255,255,.12);margin-top:8px}
+.msg{text-align:center;font-size:12px;min-height:18px;margin-top:12px;line-height:1.6}
+.msg.ok{color:#00CC7A}.msg.bad{color:#FF4655}
+.who{display:flex;align-items:center;gap:10px;background:rgba(0,204,122,.07);
+  border:1px solid rgba(0,204,122,.3);border-radius:12px;padding:11px 14px;margin-bottom:16px}
+.av{width:34px;height:34px;border-radius:50%;object-fit:cover;background:#FF4655;
+  display:flex;align-items:center;justify-content:center;font-weight:bold}
+.sep{display:flex;align-items:center;gap:10px;color:#8C8C8C;font-size:10px;margin:14px 0}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
+.done{text-align:center;padding:14px 0}
+.done .tick{font-size:52px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">Flappy Crix</div>
+  <div class="sub">Link a console or TV</div>
+
+  <!-- signed out -->
+  <div id="signIn">
+    <p class="step">Sign in here first, then enter the code shown on your console.</p>
+    <button class="btn g" id="googleBtn">Continue with Google</button>
+    <div class="sep">or</div>
+    <input class="inp small" type="email" id="email" placeholder="Email" autocomplete="email">
+    <input class="inp small" type="password" id="pass" placeholder="Password" autocomplete="current-password">
+    <button class="btn" id="emailBtn">Sign in</button>
+    <div class="msg" id="signInMsg"></div>
+  </div>
+
+  <!-- signed in -->
+  <div id="enterCode" style="display:none">
+    <div class="who">
+      <div class="av" id="meAv"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;color:#fff" id="meName">—</div>
+        <div style="font-size:10px;color:#8C8C8C">Signed in</div>
+      </div>
+    </div>
+    <p class="step">Enter the code shown on your console:</p>
+    <input class="inp" id="code" placeholder="ABC-123" maxlength="7" autocomplete="off"
+           autocapitalize="characters" spellcheck="false">
+    <button class="btn" id="linkBtn">Link device</button>
+    <button class="btn ghost" id="outBtn" style="font-size:11px">Sign out</button>
+    <div class="msg" id="linkMsg"></div>
+  </div>
+
+  <!-- done -->
+  <div id="done" style="display:none">
+    <div class="done">
+      <div class="tick">✅</div>
+      <div style="font-size:17px;font-weight:bold;color:#00CC7A;margin-bottom:8px">Device linked</div>
+      <p style="font-size:12px;color:#C9C9C9;line-height:1.8">
+        Your console should be signing in now. You can close this page.
+      </p>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = i => document.getElementById(i);
+let auth = null;
+
+(async function () {
+  let cfg;
+  try { cfg = await (await fetch('/api.json?cb=' + Date.now())).json(); }
+  catch { $('signInMsg').textContent = 'Could not load configuration.'; return; }
+
+  try {
+    firebase.initializeApp(cfg.firebase);
+    auth = firebase.auth();
+  } catch (e) {
+    $('signInMsg').textContent = 'Firebase failed to start: ' + e.message;
+    return;
+  }
+
+  auth.onAuthStateChanged(u => {
+    if (!u) {
+      $('signIn').style.display = '';
+      $('enterCode').style.display = 'none';
+      return;
+    }
+    $('signIn').style.display = 'none';
+    $('enterCode').style.display = '';
+    const name = u.displayName || (u.email || '').split('@')[0] || 'Player';
+    $('meName').textContent = name;
+    $('meAv').textContent = name.charAt(0).toUpperCase();
+    if (u.photoURL) $('meAv').outerHTML = `<img class="av" id="meAv" src="${u.photoURL}" alt="">`;
+    $('code').focus();
+  });
+})();
+
+$('googleBtn').onclick = async () => {
+  const p = new firebase.auth.GoogleAuthProvider();
+  p.setCustomParameters({ prompt: 'select_account' });
+  try { await auth.signInWithPopup(p); }
+  catch (e) {
+    if (e.code === 'auth/popup-blocked') return auth.signInWithRedirect(p);
+    if (e.code !== 'auth/popup-closed-by-user') {
+      $('signInMsg').className = 'msg bad';
+      $('signInMsg').textContent = e.message;
+    }
+  }
+};
+
+$('emailBtn').onclick = async () => {
+  const em = $('email').value.trim(), pw = $('pass').value;
+  if (!em || !pw) { $('signInMsg').className='msg bad'; $('signInMsg').textContent='Enter your email and password.'; return; }
+  $('emailBtn').disabled = true;
+  try { await auth.signInWithEmailAndPassword(em, pw); }
+  catch (e) {
+    const m = {
+      'auth/wrong-password':'Incorrect password.',
+      'auth/user-not-found':'No account with that email.',
+      'auth/invalid-credential':'Incorrect email or password.'
+    };
+    $('signInMsg').className = 'msg bad';
+    $('signInMsg').textContent = m[e.code] || e.message;
+  } finally { $('emailBtn').disabled = false; }
+};
+
+$('outBtn').onclick = () => auth.signOut();
+
+// Format as they type, so ABC123 becomes ABC-123
+$('code').oninput = function () {
+  let v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (v.length > 3) v = v.slice(0, 3) + '-' + v.slice(3, 6);
+  this.value = v;
+};
+$('code').onkeydown = e => { if (e.key === 'Enter') $('linkBtn').click(); };
+
+$('linkBtn').onclick = async () => {
+  const code = $('code').value.trim().toUpperCase();
+  const msg = $('linkMsg');
+  if (code.replace('-', '').length < 6) {
+    msg.className = 'msg bad'; msg.textContent = 'Enter the full code.'; return;
+  }
+  $('linkBtn').disabled = true;
+  msg.className = 'msg'; msg.textContent = 'Linking…';
+
+  try {
+    const idToken = await auth.currentUser.getIdToken();
+    const r = await fetch('/api/device-link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'claim', code, idToken })
+    });
+    if (r.status === 404) throw new Error('/api/device-link is not deployed yet.');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Could not link');
+
+    $('enterCode').style.display = 'none';
+    $('done').style.display = '';
+  } catch (e) {
+    msg.className = 'msg bad';
+    msg.textContent = e.message;
+    $('linkBtn').disabled = false;
+  }
+};
+</script>
+</body>
+</html>
