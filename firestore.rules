@@ -181,6 +181,13 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ---- PAIRING CODES ----
+    // Server-only. A browser must never be able to read these — the whole
+    // point is that a code alone grants nothing without approval.
+    match /pairCodes/{code} {
+      allow read, write: if false;
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();
