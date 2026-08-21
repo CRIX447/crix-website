@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.21-0100";</script>
+    <script>window.__BUILD__ = "2026.08.21-0300";</script>
     
 
-    <script src="/filter.js?v=2026082101"></script>
-    <script src="/android-bridge.js?v=2026082101"></script>
-    <script src="/playfab-manager.js?v=2026082101"></script>
+    <script src="/filter.js?v=2026082103"></script>
+    <script src="/android-bridge.js?v=2026082103"></script>
+    <script src="/playfab-manager.js?v=2026082103"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1388,6 +1388,26 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        /* ---- PAIRING ---- */
+        .pair-warn {
+            background: rgba(255,165,0,.07); border: 1px solid rgba(255,165,0,.3);
+            border-radius: 12px; padding: 12px 14px; margin-top: 12px;
+            font-size: 11px; color: #C9C9C9; line-height: 1.8; text-align: left;
+        }
+        .pair-warn b { color: #FFB347; }
+        .approve-detail {
+            background: rgba(0,0,0,.35); border: 1px solid rgba(255,255,255,.08);
+            border-radius: 12px; padding: 4px 14px;
+        }
+        .approve-detail > div {
+            display: flex; justify-content: space-between; gap: 12px;
+            padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.06);
+            font-size: 12px;
+        }
+        .approve-detail > div:last-child { border-bottom: none; }
+        .approve-detail span:first-child { color: #8C8C8C; }
+        .approve-detail span:last-child { color: #fff; text-align: right; }
+
         /* ---- DEVICE LINK ---- */
         .dl-code {
             font-family: monospace; font-size: clamp(30px, 9vw, 44px);
@@ -1711,6 +1731,9 @@
                 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0ZGQzEwNyIgZD0iTTQzLjYxMSwyMC4wODNINDJWMjBIMjR2OGgxMS4zMDNjLTEuNjQ5LDQuNjU3LTYuMDgsOC0xMS4zMDMsOGMtNi42MjcsMC0xMi01LjM3My0xMi0xMmMwLTYuNjI3LDUuMzczLTEyLDEyLTEyYzMuMDU5LDAsNS44NDIsMS4xNTQsNy45NjEsMy4wMzlsNS42NTctNS42NTdDMzQuMDQ2LDYuMDUzLDI5LjI2OCw0LDI0LDRDMTIuOTU1LDQsNCwxMi45NTUsNCwyNGMwLDExLjA0NSw4Ljk1NSwyMCwyMCwyMGMxMS4wNDUsMCwyMC04Ljk1NSwyMC0yMEM0NCwyMi42NTksNDMuODYyLDIxLjM1LDQzLjYxMSwyMC4wODN6Ii8+PHBhdGggZmlsbD0iI0ZGM0QwMCIgZD0iTTYuMzA2LDE0LjY5MWw2LjU3MSw0LjgxOUMxNC42NTUsMTUuMTA4LDE4Ljk2MSwxMiwyNCwxMmMzLjA1OSwwLDUuODQyLDEuMTU0LDcuOTYxLDMuMDM5bDUuNjU3LTUuNjU3QzMzLjA0Niw1LjA1MywyOC42NjgsMywyNCwzQzE2LjMxOCwzLDkuNjU2LDcuMzM3LDYuMzA2LDEyLjY5MXoiLz48cGF0aCBmaWxsPSIjNENBRjUwIiBkPSJNMjQsNDRjNS4xNjYsMCw5Ljg2LTEuOTc3LDEzLjQwOS01LjE5MmwtNi4xOS01LjIzOEMyOS4yMTEsMzQuOTEsMjYuNzE1LDM2LDI0LDM2Yy01LjIwMiwwLTkuNjE5LTMuMzE3LTExLjI4My03Ljk0NmwtNi41MjIsNS4wMjVDOS41MDUsMzkuNTU2LDE2LjIyNyw0NCwyNCw0NHoiLz48cGF0aCBmaWxsPSIjMTk3NkQyIiBkPSJNNDMuNjExLDIwLjA4M0w0My41OTUsMjBINDJ2MEgyNHY4aDExLjMwM2MtMC43OTIsMi4yMzctMi4yMzEsNC4xNjYtNC4wODcsNS41NzFsMC4wMDMtMC4wMDJsNi4xOSw1LjIzOEMzNi45NzEsMzkuMjA1LDQwLDM0LjMyLDQwLDI0QzQwLDIyLjY1OSw0My44NjIsMjEuMzUsNDMuNjExLDIwLjA4M3oiLz48L3N2Zz4K" class="google-icon" alt="">
                 CONTINUE WITH GOOGLE
             </button>
+                <button class="auth-btn" id="pairSignInBtn" style="background:rgba(39,169,245,.12);border-color:rgba(39,169,245,.5);color:#27A9F5;">
+                    🔑 SIGN IN WITH A PAIRING CODE
+                </button>
             <div class="auth-divider"><span>OR</span></div>
             <div id="authForm">
                 <input type="email" id="authEmail" class="auth-input" placeholder="Email">
@@ -2228,6 +2251,91 @@
     </div>
 
 
+    <!-- ENTER A PAIRING CODE -->
+    <div class="mp-modal" id="enterPairModal" style="z-index:47400;">
+        <div class="mp-modal-content" style="max-width:390px;">
+            <div class="modal-header">
+                <div class="modal-title">🔑 SIGN IN WITH A CODE</div>
+                <button class="modal-close" id="closeEnterPairBtn">✕</button>
+            </div>
+            <div style="text-align:center;">
+                <p style="font-size:12px;color:#C9C9C9;line-height:1.8;margin-bottom:14px;">
+                    Open <b>Settings → Pairing code</b> on a device where you are
+                    already signed in, then type that code here.
+                </p>
+                <input type="text" class="mp-input" id="pairInput" placeholder="ABC-123"
+                       maxlength="7" autocomplete="off" spellcheck="false"
+                       style="font-family:monospace;font-size:24px;letter-spacing:5px;text-align:center;padding:14px;">
+                <div class="pair-warn" style="margin-bottom:12px;">
+                    <b>⚠️ Only use a code from your own account.</b>
+                    If someone gave you this code to enter, stop — they are trying
+                    to get into your account, not help you into theirs.
+                </div>
+                <button class="mp-btn-primary" id="pairSubmit" style="width:100%;">REQUEST ACCESS</button>
+                <div id="pairWait" style="display:none;margin-top:14px;">
+                    <div class="mm-spin" style="margin:0 auto 10px;"></div>
+                    <div style="font-size:12px;color:#C9C9C9;line-height:1.7;">
+                        Waiting for approval…<br>
+                        <span style="font-size:10px;color:#8C8C8C;">
+                            Check the other device — you need to confirm it is you.
+                        </span>
+                    </div>
+                </div>
+                <div class="auth-error" id="pairError" style="font-size:11px;margin-top:10px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAIRING CODE (owner side) -->
+    <div class="mp-modal" id="pairModal" style="z-index:47200;">
+        <div class="mp-modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <div class="modal-title">🔑 PAIRING CODE</div>
+                <button class="modal-close" id="closePairBtn">✕</button>
+            </div>
+            <div style="text-align:center;">
+                <div class="dl-code" id="pairCode">— — —</div>
+                <div class="dl-timer" id="pairTimer"></div>
+                <div class="pair-warn">
+                    <b>⚠️ Only share this with yourself.</b>
+                    Anyone who enters this code can request access to your account.
+                    You will be asked to approve first, so never approve a request
+                    you did not make — even if someone tells you to.
+                    Staff will never ask for this code.
+                </div>
+                <button class="mp-btn-secondary" id="pairNew" style="width:100%;margin-top:10px;">
+                    NEW CODE
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- APPROVAL PROMPT -->
+    <div class="mp-modal" id="approveModal" style="z-index:47800;">
+        <div class="mp-modal-content" style="max-width:390px;">
+            <div class="modal-header"><div class="modal-title">🔐 SIGN-IN REQUEST</div></div>
+            <div style="text-align:center;padding:4px 0;">
+                <div style="font-size:44px;margin-bottom:10px;">📲</div>
+                <p style="font-size:13px;color:#fff;line-height:1.7;margin-bottom:14px;">
+                    Someone is trying to sign in to your account
+                </p>
+                <div class="approve-detail">
+                    <div><span>Device</span><span id="apDevice">—</span></div>
+                    <div><span>Location</span><span id="apLocation">—</span></div>
+                    <div><span>Time</span><span id="apTime">—</span></div>
+                </div>
+                <p class="pair-warn" style="margin-top:12px;">
+                    <b>Is this you?</b> If you did not just enter your pairing code
+                    somewhere, press <b>No</b>. Approving gives full access to your account.
+                </p>
+                <div style="display:flex;gap:8px;margin-top:14px;">
+                    <button class="mp-btn-danger" id="apDeny" style="flex:1;">NO, DENY</button>
+                    <button class="mp-btn-primary" id="apApprove" style="flex:1;">YES, IT'S ME</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- SIGN IN FROM ANOTHER DEVICE -->
     <div class="mp-modal" id="deviceLinkModal" style="z-index:47000;">
         <div class="mp-modal-content" style="max-width:400px;">
@@ -2578,7 +2686,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0100</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0300</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -2592,6 +2700,14 @@
                 <span class="set-label">What's new</span>
                 <button class="set-mini-btn" id="openPatchBtn">VIEW</button>
             </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Pairing code</span>
+                    <div class="set-sub" id="pairSub">Sign in on a console or TV</div>
+                </div>
+                <button class="set-mini-btn" id="pairBtn">SHOW</button>
+            </div>
+
             <div class="set-row">
                 <div style="flex:1;min-width:0;">
                     <span class="set-label">Discord</span>
@@ -4308,9 +4424,11 @@
                         try { handleDiscordCallback(); } catch(e) { console.warn('[Discord]', e.message); }
                         try { loadDiscordLink(); } catch(e) { console.warn('[Discord]', e.message); }
                         try { checkVerification(); } catch(e) {}
+                        try { startPairWatch(); } catch(e) {}
                     }, 400);
                 } else {
                     myDiscord = null;
+                    clearInterval(pairPoll);
                     try { refreshDiscordRow(); } catch(e) {}
                     try { hideVerifyBanner(); } catch(e) {}
                 }
@@ -4398,6 +4516,211 @@
 
         // Discord OAuth — implicit flow, get token, get user, sign into Firebase anonymously + store profile
 
+
+
+
+        // ═══════════ SIGN IN WITH A PAIRING CODE ═══════════
+        // Requester side. The account owner must approve before anything
+        // happens, so entering a code on its own grants nothing.
+        let pairReqToken = null, pairReqPoll = null;
+
+        function openPairEntry() {
+            document.getElementById('pairInput').value = '';
+            document.getElementById('pairError').textContent = '';
+            document.getElementById('pairWait').style.display = 'none';
+            document.getElementById('pairSubmit').style.display = '';
+            document.getElementById('enterPairModal').classList.add('active');
+            setTimeout(() => document.getElementById('pairInput')?.focus(), 200);
+        }
+
+        document.getElementById('pairInput')?.addEventListener('input', function () {
+            let v = this.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            if (v.length > 3) v = v.slice(0, 3) + '-' + v.slice(3, 6);
+            this.value = v;
+        });
+        document.getElementById('pairInput')?.addEventListener('keypress', e => {
+            if (e.key === 'Enter') document.getElementById('pairSubmit').click();
+        });
+
+        document.getElementById('pairSubmit')?.addEventListener('click', async () => {
+            const code = document.getElementById('pairInput').value.trim().toUpperCase();
+            const err = document.getElementById('pairError');
+            err.style.color = '#FF4655';
+            if (code.replace('-', '').length < 6) { err.textContent = 'Enter the full code.'; return; }
+
+            const btn = document.getElementById('pairSubmit');
+            btn.disabled = true; btn.textContent = 'REQUESTING…';
+            try {
+                const r = await fetch('/api/device-link', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'pair-request', code })
+                });
+                if (r.status === 404) throw new Error('/api/device-link is not deployed yet.');
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error || 'Could not send the request');
+
+                pairReqToken = d.requestToken;
+                btn.style.display = 'none';
+                document.getElementById('pairWait').style.display = '';
+                err.textContent = '';
+                startPairRequestPoll(code);
+            } catch (e) {
+                err.textContent = e.message;
+            } finally {
+                btn.disabled = false; btn.textContent = 'REQUEST ACCESS';
+            }
+        });
+
+        function startPairRequestPoll(code) {
+            clearInterval(pairReqPoll);
+            let waited = 0;
+            pairReqPoll = setInterval(async () => {
+                waited += 3;
+                // The request lapses server-side after 3 minutes
+                if (waited > 180) {
+                    clearInterval(pairReqPoll);
+                    document.getElementById('pairWait').style.display = 'none';
+                    document.getElementById('pairSubmit').style.display = '';
+                    const err = document.getElementById('pairError');
+                    err.style.color = '#FFB347';
+                    err.textContent = 'No response — try again.';
+                    return;
+                }
+                try {
+                    const r = await fetch('/api/device-link', {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ action:'pair-poll', code, requestToken: pairReqToken })
+                    });
+                    const d = await r.json();
+
+                    if (d.denied) {
+                        clearInterval(pairReqPoll);
+                        document.getElementById('pairWait').style.display = 'none';
+                        document.getElementById('pairSubmit').style.display = '';
+                        const err = document.getElementById('pairError');
+                        err.style.color = '#FF4655';
+                        err.textContent = 'Request denied on the other device.';
+                        playSfx('error');
+                        return;
+                    }
+                    if (d.customToken) {
+                        clearInterval(pairReqPoll);
+                        await auth.signInWithCustomToken(d.customToken);
+                        document.getElementById('enterPairModal').classList.remove('active');
+                        document.getElementById('authModal')?.classList.remove('active');
+                        playSfx('unlock');
+                        toast({ kind:'invite', title:'✅ Signed in', body:'Your progress is loading.' });
+                    }
+                } catch (e) { /* keep waiting */ }
+            }, 3000);
+        }
+
+        document.getElementById('closeEnterPairBtn')?.addEventListener('click', () => {
+            clearInterval(pairReqPoll);
+            document.getElementById('enterPairModal').classList.remove('active');
+        });
+
+        // ═══════════ PAIRING CODES ═══════════
+        // Owner side: show a code, then approve or deny whoever enters it.
+        let pairPoll = null, pairExpiry = 0, currentPairCode = null;
+
+        async function showPairCode(regenerate) {
+            const codeEl = document.getElementById('pairCode');
+            if (!currentUser) {
+                toast({ kind:'warn', title:'Sign in first', body:'You need an account to pair a device.' });
+                return;
+            }
+            document.getElementById('pairModal').classList.add('active');
+            codeEl.textContent = '· · ·';
+
+            try {
+                const idToken = await currentUser.getIdToken();
+                const r = await fetch('/api/device-link', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'pair-create', idToken })
+                });
+                if (r.status === 404) throw new Error('/api/device-link is not deployed yet.');
+                const d = await r.json();
+                if (!r.ok || !d.code) throw new Error(d.detail || d.error || 'Could not create a code');
+
+                currentPairCode = d.code;
+                pairExpiry = Date.now() + d.expiresIn * 1000;
+                codeEl.textContent = d.code;
+                updatePairTimer();
+                playSfx('pop', .5);
+            } catch (e) {
+                codeEl.textContent = '— — —';
+                toast({ kind:'warn', title:'Could not get a code', body: mpEsc(e.message) });
+            }
+        }
+
+        function updatePairTimer() {
+            const t = document.getElementById('pairTimer');
+            if (!t) return;
+            const left = Math.max(0, pairExpiry - Date.now());
+            const hrs = Math.floor(left / 3600000);
+            const mins = Math.floor((left % 3600000) / 60000);
+            t.textContent = left ? `Valid for ${hrs}h ${mins}m · single use` : 'Expired';
+        }
+
+        // Watch for someone entering the code. Runs whenever signed in, so the
+        // prompt appears even if Settings is closed.
+        function startPairWatch() {
+            clearInterval(pairPoll);
+            if (!currentUser) return;
+            pairPoll = setInterval(async () => {
+                if (!currentUser) return;
+                if (document.getElementById('approveModal')?.classList.contains('active')) return;
+                try {
+                    const idToken = await currentUser.getIdToken();
+                    const r = await fetch('/api/device-link', {
+                        method:'POST', headers:{'Content-Type':'application/json'},
+                        body: JSON.stringify({ action:'pair-pending', idToken })
+                    });
+                    const d = await r.json();
+                    if (d.request) showApprovalPrompt(d.request);
+                } catch (e) { /* keep polling quietly */ }
+            }, 5000);
+        }
+
+        function showApprovalPrompt(req) {
+            document.getElementById('apDevice').textContent = req.device || 'Unknown device';
+            document.getElementById('apLocation').textContent = req.location || 'Unknown location';
+            document.getElementById('apTime').textContent =
+                new Date(req.at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' });
+            document.getElementById('approveModal').classList.add('active');
+            playSfx('notify');
+            // Deliberately no backdrop-close — this needs a deliberate answer
+            document.getElementById('apApprove').onclick = () => respondToPair(req.code, true);
+            document.getElementById('apDeny').onclick = () => respondToPair(req.code, false);
+        }
+
+        async function respondToPair(code, approve) {
+            try {
+                const idToken = await currentUser.getIdToken();
+                await fetch('/api/device-link', {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body: JSON.stringify({ action:'pair-respond', idToken, code, approve })
+                });
+                document.getElementById('approveModal').classList.remove('active');
+                toast({
+                    kind: approve ? 'invite' : 'warn',
+                    title: approve ? '✅ Device approved' : '🚫 Request denied',
+                    body: approve ? 'They are being signed in now.'
+                                  : 'If that was not you, change your password.'
+                });
+                playSfx(approve ? 'unlock' : 'error');
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not respond', body: mpEsc(e.message) });
+            }
+        }
+
+        document.getElementById('pairSignInBtn')?.addEventListener('click', openPairEntry);
+        document.getElementById('pairBtn')?.addEventListener('click', () => showPairCode(false));
+        document.getElementById('pairNew')?.addEventListener('click', () => showPairCode(true));
+        document.getElementById('closePairBtn')?.addEventListener('click', () =>
+            document.getElementById('pairModal').classList.remove('active'));
+        setInterval(updatePairTimer, 30000);
 
         // ═══════════ CONSOLE SIGN-IN ═══════════
         // Google blocks OAuth from console browsers outright, so on those
@@ -4974,7 +5297,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.21-0100</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.21-0300</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
