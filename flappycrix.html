@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.20-2700";</script>
+    <script>window.__BUILD__ = "2026.08.21-0100";</script>
     
 
-    <script src="/filter.js?v=2026082013"></script>
-    <script src="/android-bridge.js?v=2026082013"></script>
-    <script src="/playfab-manager.js?v=2026082013"></script>
+    <script src="/filter.js?v=2026082101"></script>
+    <script src="/android-bridge.js?v=2026082101"></script>
+    <script src="/playfab-manager.js?v=2026082101"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1388,6 +1388,19 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        /* ---- DEVICE LINK ---- */
+        .dl-code {
+            font-family: monospace; font-size: clamp(30px, 9vw, 44px);
+            font-weight: bold; letter-spacing: 6px; color: #fff;
+            background: rgba(0,0,0,.4); border: 2px dashed rgba(255,107,53,.5);
+            border-radius: 16px; padding: 18px 10px; margin-bottom: 12px;
+        }
+        .dl-status { font-size: 12px; color: #A0A0A0; display: flex;
+            align-items: center; justify-content: center; gap: 8px; }
+        .dl-status.ok { color: #00CC7A; }
+        .dl-status.bad { color: #FF4655; }
+        .dl-timer { font-size: 10px; color: #8C8C8C; margin-top: 6px; }
+
         /* ---- CONTROLLER FOCUS ---- */
         .pad-focus {
             outline: 3px solid #FFD700 !important;
@@ -2215,6 +2228,29 @@
     </div>
 
 
+    <!-- SIGN IN FROM ANOTHER DEVICE -->
+    <div class="mp-modal" id="deviceLinkModal" style="z-index:47000;">
+        <div class="mp-modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <div class="modal-title">📱 SIGN IN FROM YOUR PHONE</div>
+                <button class="modal-close" id="closeDeviceBtn">✕</button>
+            </div>
+            <div style="text-align:center;padding:6px 0 4px;">
+                <p style="font-size:12px;color:#C9C9C9;line-height:1.8;margin-bottom:16px;">
+                    On your phone or computer, open<br>
+                    <b style="color:#00CC7A;font-size:14px;">crixgamingvr.com/link</b><br>
+                    sign in, then enter this code:
+                </p>
+                <div class="dl-code" id="dlCode">— — —</div>
+                <div class="dl-status" id="dlStatus">Waiting for you to enter it…</div>
+                <div class="dl-timer" id="dlTimer"></div>
+                <button class="mp-btn-secondary" id="dlNewCode" style="width:100%;margin-top:14px;">
+                    GET A NEW CODE
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- HOW TO PLAY -->
     <div class="mp-modal" id="tutorialModal" style="z-index:46000;">
         <div class="mp-modal-content" style="max-width:420px;">
@@ -2542,7 +2578,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.20-2700</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0100</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -4362,6 +4398,90 @@
 
         // Discord OAuth — implicit flow, get token, get user, sign into Firebase anonymously + store profile
 
+
+        // ═══════════ CONSOLE SIGN-IN ═══════════
+        // Google blocks OAuth from console browsers outright, so on those
+        // devices we offer a code the player redeems on their phone instead.
+        function isConsoleBrowser() {
+            const ua = navigator.userAgent;
+            return /Xbox|PlayStation|Nintendo|SmartTV|SMART-TV|Tizen|Web0S|WebOS|VIERA|BRAVIA/i.test(ua);
+        }
+
+        let dlCode = null, dlToken = null, dlPoll = null, dlExpiry = 0;
+
+        async function startDeviceLink() {
+            const codeEl = document.getElementById('dlCode');
+            const statusEl = document.getElementById('dlStatus');
+            codeEl.textContent = '· · ·';
+            statusEl.className = 'dl-status';
+            statusEl.textContent = 'Getting a code…';
+            document.getElementById('deviceLinkModal').classList.add('active');
+
+            try {
+                const r = await fetch('/api/device-link', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'create' })
+                });
+                if (r.status === 404) throw new Error('/api/device-link is not deployed yet.');
+                const d = await r.json();
+                if (!r.ok || !d.code) throw new Error(d.detail || d.error || 'Could not get a code');
+
+                dlCode = d.code; dlToken = d.token;
+                dlExpiry = Date.now() + (d.expiresIn * 1000);
+                codeEl.textContent = d.code;
+                statusEl.textContent = 'Waiting for you to enter it…';
+                startDevicePoll();
+            } catch (e) {
+                statusEl.className = 'dl-status bad';
+                statusEl.textContent = e.message;
+                codeEl.textContent = '— — —';
+            }
+        }
+
+        function startDevicePoll() {
+            clearInterval(dlPoll);
+            dlPoll = setInterval(async () => {
+                // Countdown
+                const left = Math.max(0, Math.ceil((dlExpiry - Date.now()) / 1000));
+                const t = document.getElementById('dlTimer');
+                if (t) t.textContent = left
+                    ? `Expires in ${Math.floor(left/60)}:${String(left%60).padStart(2,'0')}`
+                    : '';
+                if (left <= 0) {
+                    clearInterval(dlPoll);
+                    const s = document.getElementById('dlStatus');
+                    s.className = 'dl-status bad';
+                    s.textContent = 'Code expired — get a new one';
+                    return;
+                }
+
+                try {
+                    const r = await fetch('/api/device-link', {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ action: 'poll', code: dlCode, token: dlToken })
+                    });
+                    const d = await r.json();
+                    if (d.pending) return;
+                    if (d.customToken) {
+                        clearInterval(dlPoll);
+                        const s = document.getElementById('dlStatus');
+                        s.className = 'dl-status ok';
+                        s.textContent = 'Signing you in…';
+                        await auth.signInWithCustomToken(d.customToken);
+                        document.getElementById('deviceLinkModal').classList.remove('active');
+                        playSfx('unlock');
+                        toast({ kind:'invite', title:'✅ Signed in', body:'Your progress is loading.' });
+                    }
+                } catch (e) { /* keep polling */ }
+            }, 2500);
+        }
+
+        document.getElementById('closeDeviceBtn')?.addEventListener('click', () => {
+            clearInterval(dlPoll);
+            document.getElementById('deviceLinkModal').classList.remove('active');
+        });
+        document.getElementById('dlNewCode')?.addEventListener('click', startDeviceLink);
+
         // ═══════════ EMAIL VERIFICATION ═══════════
         // Unverified accounts are removed after this long. Deletion is
         // permanent, so the player gets repeated warnings first and a
@@ -4718,6 +4838,20 @@
             }
         };
 
+        // On a console Google sign-in cannot work — Google rejects the request
+        // before it reaches us. Replace the button with the phone code flow
+        // rather than letting people hit a wall they cannot get past.
+        if (isConsoleBrowser() && googleSignInBtnEl) {
+            googleSignInBtnEl.innerHTML = '📱 SIGN IN FROM YOUR PHONE';
+            googleSignInBtnEl.onclick = startDeviceLink;
+            const note = document.createElement('div');
+            note.style.cssText = 'font-size:10px;color:#8C8C8C;text-align:center;' +
+                                 'margin:6px 0 2px;line-height:1.6;';
+            note.textContent = 'Google blocks sign-in on consoles. Use your phone, ' +
+                               'or an email and password below.';
+            googleSignInBtnEl.parentNode.insertBefore(note, googleSignInBtnEl.nextSibling);
+        }
+
         // Close auth modal on backdrop click
         window.addEventListener('click', (e) => { if (e.target === authModalEl) authModalEl.classList.remove('active'); });
 
@@ -4840,7 +4974,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.20-2700</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.21-0100</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
