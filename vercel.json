@@ -78,6 +78,15 @@
           "value": "no-store"
         }
       ]
+    },
+    {
+      "source": "/link",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
