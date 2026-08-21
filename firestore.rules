@@ -164,6 +164,23 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // ---- DM OUTBOX ----
+    // Anyone signed in can queue their own welcome message; only owners can
+    // queue moderation notices. The bot reads and marks them sent.
+    match /dmQueue/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if isOwner();
+    }
+
+    // ---- DEVICE LINKS ----
+    // Written only by the server (via the Admin SDK, which bypasses rules).
+    // Nothing here should be reachable from a browser.
+    match /deviceLinks/{code} {
+      allow read, write: if false;
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();
