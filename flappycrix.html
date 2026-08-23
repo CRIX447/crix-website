@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.21-0500";</script>
+    <script>window.__BUILD__ = "2026.08.21-0700";</script>
     
 
-    <script src="/filter.js?v=2026082105"></script>
-    <script src="/android-bridge.js?v=2026082105"></script>
-    <script src="/playfab-manager.js?v=2026082105"></script>
+    <script src="/filter.js?v=2026082107"></script>
+    <script src="/android-bridge.js?v=2026082107"></script>
+    <script src="/playfab-manager.js?v=2026082107"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -2701,11 +2701,18 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0500</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0700</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
                 <div class="mp-toggle-switch active" id="sfxToggle"></div>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Menu click sounds</span>
+                    <div class="set-sub">Off by default</div>
+                </div>
+                <div class="mp-toggle-switch" id="uiSoundToggle"></div>
             </div>
             <div class="set-row">
                 <span class="set-label">Connection test</span>
@@ -3148,6 +3155,13 @@
         [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
         function playSound(snd) {
             if (!snd) return;
+            // Controller navigation clicks buttons programmatically, and each
+            // one fired the select blip — that was the beeping. Menu blips are
+            // also off by default now.
+            if (typeof selectSound !== 'undefined' && snd === selectSound) {
+                if (window.__padNavigating) return;
+                if (typeof settings !== 'undefined' && settings.uiSounds === false) return;
+            }
             snd.currentTime = 0;
             snd.playbackRate = 1.0;
             snd.play().catch(() => {});
@@ -3309,11 +3323,11 @@
         };
         
         window.buyCosmetic = function(id) { 
-            let c = cosmetics.find(c=>c.id===id); if(!c||c.owned||coinCount<c.price) return; coinCount -= c.price; c.owned = true; updateCoinDisplay(); selectSound.play(); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
+            let c = cosmetics.find(c=>c.id===id); if(!c||c.owned||coinCount<c.price) return; coinCount -= c.price; c.owned = true; updateCoinDisplay(); playSound(selectSound); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
         };
         
         window.equipItem = function(id) { 
-            let item = cosmetics.find(c=>c.id===id); if(!item||!item.owned) return; cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); item.equipped=true; updateLockerDisplay(); updatePreview(); selectSound.play(); autoSave(); 
+            let item = cosmetics.find(c=>c.id===id); if(!item||!item.owned) return; cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); item.equipped=true; updateLockerDisplay(); updatePreview(); playSound(selectSound); autoSave(); 
         };
         
         // Game functions
@@ -3626,7 +3640,7 @@
             gameRunning=true; gameOver=false; gamesPlayed++;
             animationId=requestAnimationFrame(gameLoop);
             if(!musicMuted && bgMusic){ bgMusic.currentTime=0; bgMusic.play().catch(()=>{}); }
-            selectSound.play();
+            playSound(selectSound);
             checkAchievements();
             if (typeof mpOnLocalStart === 'function') mpOnLocalStart();
         }
@@ -3749,7 +3763,7 @@
             if (!scope) return [];
             return [...scope.querySelectorAll(
                 'button:not([disabled]), a[href], select, input[type="text"], ' +
-                '.room-item, .friend-row, .cyber-stat, .icon-btn, [data-pm], [data-act]')]
+                '.room-item, .friend-row, .icon-btn, [data-pm], [data-act]')]
                 .filter(el => {
                     if (el.offsetParent === null) return false;          // hidden
                     const r = el.getBoundingClientRect();
@@ -3782,6 +3796,9 @@
             const items = focusableItems();
             const el = items[padFocus];
             if (!el) return;
+            // Suppress the button's own blip for this click only
+            window.__padNavigating = true;
+            setTimeout(() => { window.__padNavigating = false; }, 120);
             if (el.tagName === 'SELECT') { el.focus(); return; }
             if (el.tagName === 'INPUT') { el.focus(); return; }
             el.click();
@@ -3916,6 +3933,7 @@
         const DEFAULT_SETTINGS = {
             sfxEnabled: true,
             sfxVolume: 1,
+            uiSounds: false,   // menu blips off by default — they got annoying
             showFps: false, showNames: true, reducedMotion: false,
             musicVol: 30, sfxVol: 100, mentionNotify: true, pfIdVisible: false
         };
@@ -4162,6 +4180,11 @@
             });
             document.getElementById('sendCodeBtn')?.addEventListener('click', sendPhoneCode);
             document.getElementById('confirmCodeBtn')?.addEventListener('click', confirmPhoneCode);
+            document.getElementById('uiSoundToggle')?.addEventListener('click', function () {
+                this.classList.toggle('active');
+                settings.uiSounds = this.classList.contains('active');
+                saveSettings();
+            });
             document.getElementById('sfxToggle')?.addEventListener('click', function () {
                 this.classList.toggle('active');
                 settings.sfxEnabled = this.classList.contains('active');
@@ -4491,7 +4514,7 @@
         }
 
         const _b_loginBtn = document.getElementById('loginBtn'); if (_b_loginBtn) _b_loginBtn.onclick = () => authModalEl.classList.add('active');
-        const _b_logoutBtn = document.getElementById('logoutBtn'); if (_b_logoutBtn) _b_logoutBtn.onclick = async () => { if (auth) await auth.signOut(); selectSound.play(); };
+        const _b_logoutBtn = document.getElementById('logoutBtn'); if (_b_logoutBtn) _b_logoutBtn.onclick = async () => { if (auth) await auth.signOut(); playSound(selectSound); };
         authCloseBtnEl.onclick = () => authModalEl.classList.remove('active');
 
         authSwitchBtn.onclick = () => {
@@ -5216,7 +5239,7 @@
                 }
                 await auth.signInWithPopup(provider);
                 authModalEl.classList.remove('active');
-                selectSound.play();
+                playSound(selectSound);
             } catch (e) {
                 console.error('[Auth] Google sign-in failed:', e.code, e.message);
                 const msgs = {
@@ -5373,7 +5396,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.21-0500</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.21-0700</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -9626,7 +9649,7 @@
 
         // ----- DOM EVENT WIRING -----
         document.getElementById('multiplayerBtn')?.addEventListener('click', async () => {
-            selectSound.play();
+            playSound(selectSound);
             // Banned players keep single player, but must not reach multiplayer.
             // This used to start the check and carry straight on, so the modal
             // opened underneath the ban screen and they were already in.
@@ -9659,9 +9682,9 @@
         });
 
         // Home buttons
-        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreate'); selectSound.play(); });
-        document.getElementById('mpJoinByCodeBtn')?.addEventListener('click', () => { mpShowView('mpViewJoinCode'); selectSound.play(); });
-        document.getElementById('mpRefreshBtn')?.addEventListener('click', () => { mpRenderRoomList(); selectSound.play(); });
+        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreate'); playSound(selectSound); });
+        document.getElementById('mpJoinByCodeBtn')?.addEventListener('click', () => { mpShowView('mpViewJoinCode'); playSound(selectSound); });
+        document.getElementById('mpRefreshBtn')?.addEventListener('click', () => { mpRenderRoomList(); playSound(selectSound); });
         document.getElementById('mpEditProfileBtn')?.addEventListener('click', () => {
             document.getElementById('mpDisplayNameInput').value = mpGetDisplayName().replace(/#.*$/, '');
             renderAvatarGrid();
@@ -9700,7 +9723,7 @@
         document.getElementById('mpCreateBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
         document.getElementById('mpJoinCodeConfirmBtn')?.addEventListener('click', mpJoinByCode);
         document.getElementById('mpJoinCodeInput')?.addEventListener('keypress', e => { if (e.key === 'Enter') mpJoinByCode(); });
-        document.getElementById('mpCreateConfirmBtn')?.addEventListener('click', () => { mpCreateRoom(); selectSound.play(); });
+        document.getElementById('mpCreateConfirmBtn')?.addEventListener('click', () => { mpCreateRoom(); playSound(selectSound); });
 
         document.querySelectorAll('.mp-mode-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -10022,7 +10045,7 @@
             });
         });
         document.getElementById('mpVisibilityToggle')?.addEventListener('click', mpToggleVisibility);
-        document.getElementById('mpStartMatchBtn')?.addEventListener('click', () => { mpStartMatch(); selectSound.play(); });
+        document.getElementById('mpStartMatchBtn')?.addEventListener('click', () => { mpStartMatch(); playSound(selectSound); });
         document.getElementById('mpEndGameBtn')?.addEventListener('click', () => {
             if (!mpIsHost && !mpHasPerm(mpLocalActor,'canSettings')) return;
             const results = Object.entries(mpPlayers).map(([a,p]) => ({actor:parseInt(a),name:p.name,score:p.score})).sort((a,b)=>b.score-a.score);
@@ -10030,7 +10053,7 @@
             photonClient.raiseEvent(MP_EV.HOST_END_GAME, { results }, { receivers: RC.Others });
             mpShowMatchOver(results, null);
         });
-        document.getElementById('mpLeaveLobbyBtn')?.addEventListener('click', () => { mpLeaveLobby(); selectSound.play(); });
+        document.getElementById('mpLeaveLobbyBtn')?.addEventListener('click', () => { mpLeaveLobby(); playSound(selectSound); });
 
         // Host mode change
         const hostModeSelect = document.getElementById('mpHostModeSelect');
