@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.21-0300";</script>
+    <script>window.__BUILD__ = "2026.08.21-0500";</script>
     
 
-    <script src="/filter.js?v=2026082103"></script>
-    <script src="/android-bridge.js?v=2026082103"></script>
-    <script src="/playfab-manager.js?v=2026082103"></script>
+    <script src="/filter.js?v=2026082105"></script>
+    <script src="/android-bridge.js?v=2026082105"></script>
+    <script src="/playfab-manager.js?v=2026082105"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1388,6 +1388,21 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        /* ---- PLATFORM BADGE ---- */
+        .plat-badge {
+            display: inline-block; font-size: 11px; margin-right: 4px;
+            opacity: .85; vertical-align: middle; line-height: 1;
+        }
+        .mp-player-row .plat-badge { font-size: 12px; }
+
+        /* ---- PLATFORM BADGE ---- */
+        .plat-badge {
+            font-size: 11px; opacity: .8; margin-right: 3px;
+            vertical-align: middle; display: inline-block;
+        }
+        .plat-badge.ps { color: #2E6DB4; font-weight: bold; }
+        .plat-badge.xb { color: #107C10; font-weight: bold; }
+
         /* ---- PAIRING ---- */
         .pair-warn {
             background: rgba(255,165,0,.07); border: 1px solid rgba(255,165,0,.3);
@@ -2686,7 +2701,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0300</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0500</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3048,8 +3063,6 @@
 
         // note: [frequency, startTime, duration, type, volume]
         const SFX_DEFS = {
-            pop:       [[440, 0,    .04, 'sine',     .12], [660, .04, .05, 'sine', .09]],
-            tick:      [[380, 0,    .022, 'sine',    .045]],
             swoosh:    [[300, 0,    .07, 'sine',     .07]],
             whoosh:    [[220, 0,    .12, 'sine',     .10]],
             join:      [[440, 0,    .07, 'square',   .14], [660, .07, .09, 'square', .14]],
@@ -3400,6 +3413,8 @@
         // Score and coins float over the playfield while a run is going
         // Everyone's position along the track, so you can see the gap rather
         // than having to infer it from a number.
+        let _rmCache = { score: -1, marks: '' };
+        let _lastRaceSig = '';
         function updateRaceMeter() {
             const meter = document.getElementById('raceMeter');
             if (!meter) return;
@@ -3418,29 +3433,44 @@
 
             const marks = document.getElementById('rmMarks');
             if (marks) {
-                marks.innerHTML = Object.entries(mpPlayers).map(([nr, p]) => {
+                const built = Object.entries(mpPlayers).map(([nr, p]) => {
                     const me = parseInt(nr) === mpLocalActor;
                     const at = Math.min(100, ((p.score || 0) / target) * 100);
                     return `<span class="rm-mark" style="left:${at}%;color:${me ? '#fff' : (p.colour || '#C9C9C9')};` +
                            `font-weight:${me ? 'bold' : 'normal'}">` +
                            `${me ? '▼' : '•'}${me ? '' : ' ' + mpEsc((p.name || '').slice(0, 6))}</span>`;
                 }).join('');
+                // Only write to the DOM when it actually changed
+                if (built !== _rmCache.marks) { marks.innerHTML = built; _rmCache.marks = built; }
             }
         }
 
+        const _hud = {};
+        function hudEl(id) {
+            if (!(id in _hud)) _hud[id] = document.getElementById(id);
+            return _hud[id];
+        }
+
+        let _lastHud = { score: -1, coins: -1, rush: -1, rank: -1 };
+
         function updateLiveHud() {
             updateRaceMeter();
-            const s = document.getElementById('hudScore');
-            const co = document.getElementById('hudCoins');
-            const rush = document.getElementById('hudRush');
+            // getElementById on every call adds up at this frequency
+            const s = _hud.s || (_hud.s = document.getElementById('hudScore'));
+            const co = _hud.co || (_hud.co = document.getElementById('hudCoins'));
+            const rush = _hud.rush || (_hud.rush = document.getElementById('hudRush'));
             const isRush = mpMatchActive && mpMatchMode === 'coinrush';
 
             // In Coin Rush the coins collected ARE the score, so show that
             // prominently instead of the pipe count.
-            if (s) s.textContent = isRush ? (mpCoinsThisMatch || 0) : score;
+            const shown = isRush ? (mpCoinsThisMatch || 0) : score;
+            if (s && shown !== _lastHud.score) { s.textContent = shown; _lastHud.score = shown; }
             if (co) {
                 co.style.display = isRush ? 'none' : '';
-                co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
+                if (coinCount !== _lastHud.coins) {
+                    co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
+                    _lastHud.coins = coinCount;
+                }
             }
             // Ranked clock takes priority over the coin rush one
             const ranked = mpMatchActive && mpCurrentRoom?.queue === 'competitive';
@@ -3464,7 +3494,10 @@
         }
 
         function drawGame(){
-            if (gameRunning && !gameOver) updateLiveHud(); 
+            // The HUD rebuilt its DOM every frame, which was the main cause
+            // of the lag. Text changes 10x a second is plenty and the
+            // difference is invisible.
+            if (gameRunning && !gameOver && (frameCount % 6) === 0) updateLiveHud(); 
             ctx.clearRect(0,0,canvas.width,canvas.height); 
             // Draw pipes
             ctx.fillStyle='#00CC7A'; 
@@ -3743,14 +3776,12 @@
             if (!items.length) return;
             padFocus = padFocus < 0 ? 0 : (padFocus + dir + items.length) % items.length;
             padHighlight();
-            playSfx('tick', .5);
         }
 
         function padActivate() {
             const items = focusableItems();
             const el = items[padFocus];
             if (!el) return;
-            playSfx('pop', .5);
             if (el.tagName === 'SELECT') { el.focus(); return; }
             if (el.tagName === 'INPUT') { el.focus(); return; }
             el.click();
@@ -3796,7 +3827,7 @@
             });
         }
         document.getElementById('musicToggleBtn')?.addEventListener('click', () => {
-            setMusic(musicMuted); playSfx('pop', .4);
+            setMusic(musicMuted);
         });
         // Restore the last choice; defaults to on for a first-time player
         try {
@@ -4135,7 +4166,6 @@
                 this.classList.toggle('active');
                 settings.sfxEnabled = this.classList.contains('active');
                 saveSettings();
-                if (settings.sfxEnabled) playSfx('pop', .6);
             });
             document.getElementById('openDiagBtn')?.addEventListener('click', () => {
                 document.getElementById('settingsModal').classList.remove('active');
@@ -4369,7 +4399,8 @@
                 mpPlayers[mpLocalActor].roles = myRoles;
             }
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
                 if (typeof mpRenderLobby === 'function') mpRenderLobby();
                 if (typeof mpUpdateHud === 'function') mpUpdateHud();
             }
@@ -4647,7 +4678,6 @@
                 pairExpiry = Date.now() + d.expiresIn * 1000;
                 codeEl.textContent = d.code;
                 updatePairTimer();
-                playSfx('pop', .5);
             } catch (e) {
                 codeEl.textContent = '— — —';
                 toast({ kind:'warn', title:'Could not get a code', body: mpEsc(e.message) });
@@ -4721,6 +4751,51 @@
         document.getElementById('closePairBtn')?.addEventListener('click', () =>
             document.getElementById('pairModal').classList.remove('active'));
         setInterval(updatePairTimer, 30000);
+
+        // ═══════════ PLATFORM DETECTION ═══════════
+        // Shown next to names so people know what someone is playing on —
+        // a phone player on a small screen is at a real disadvantage.
+        // Short text form for the canvas, where emoji render inconsistently
+        const PLAT_SHORT = { windows:'PC', android:'AND', ios:'iOS', mac:'MAC',
+                             linux:'LNX', xbox:'XBX', playstation:'PS', nintendo:'NSW',
+                             chromeos:'CB', unknown:'' };
+
+        function detectPlatform() {
+            const ua = navigator.userAgent;
+            const p = navigator.platform || '';
+
+            if (/Xbox/i.test(ua)) return 'xbox';
+            if (/PlayStation/i.test(ua)) return 'playstation';
+            if (/Nintendo/i.test(ua)) return 'nintendo';
+            // Check iOS before Mac — iPads report as Mac in recent Safari
+            if (/iPhone|iPad|iPod/i.test(ua) ||
+                (/Mac/i.test(p) && navigator.maxTouchPoints > 1)) return 'ios';
+            if (/Android/i.test(ua)) return 'android';
+            if (/Win/i.test(p) || /Windows/i.test(ua)) return 'windows';
+            if (/Mac/i.test(p) || /Macintosh/i.test(ua)) return 'mac';
+            if (/Linux|X11/i.test(p) || /Linux/i.test(ua)) return 'linux';
+            return 'unknown';
+        }
+
+        const PLATFORM_ICONS = {
+            windows:     { icon: '🪟', label: 'Windows' },
+            android:     { icon: '🤖', label: 'Android' },
+            ios:         { icon: '', label: 'iPhone or iPad' },
+            mac:         { icon: '', label: 'Mac' },
+            linux:       { icon: '🐧', label: 'Linux' },
+            xbox:        { icon: '🎮', label: 'Xbox' },
+            playstation: { icon: '🎯', label: 'PlayStation' },
+            nintendo:    { icon: '🕹️', label: 'Nintendo' },
+            unknown:     { icon: '', label: '' }
+        };
+
+        const myPlatform = detectPlatform();
+
+        function platformBadge(plat) {
+            const p = PLATFORM_ICONS[plat];
+            if (!p || !p.icon) return '';
+            return `<span class="plat-badge" title="${p.label}">${p.icon}</span>`;
+        }
 
         // ═══════════ CONSOLE SIGN-IN ═══════════
         // Google blocks OAuth from console browsers outright, so on those
@@ -5258,7 +5333,8 @@
             // Tell anyone in the current room straight away
             if (mpCurrentRoom) {
                 mpRaiseEvent(MP_EV.NAME_UPDATE, {
-                    name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles,
+                    name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(), roles: myRoles,
                     level: playerLevel, presence: status,
                     pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
                     photo: currentAvatar()
@@ -5297,7 +5373,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.21-0300</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.21-0500</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -5513,14 +5589,11 @@
             const open = sec.classList.toggle('open');
             this.classList.toggle('open', open);
             if (open) mpRenderRoomList();
-            playSfx('pop', .4);
         });
 
-        document.getElementById('mmQuickBtn')?.addEventListener('click', () => {
-            playSfx('pop', .5); mmSearch('casual');
+        document.getElementById('mmQuickBtn')?.addEventListener('click', () => { mmSearch('casual');
         });
-        document.getElementById('mmRankedBtn')?.addEventListener('click', () => {
-            playSfx('pop', .5); mmSearch('competitive');
+        document.getElementById('mmRankedBtn')?.addEventListener('click', () => { mmSearch('competitive');
         });
         document.getElementById('mmCreateBtn')?.addEventListener('click', () => {
             mmStop(); mpShowView('mpViewCreate');
@@ -5602,7 +5675,6 @@
         // mid-game rather than having to leave first.
         document.getElementById('mpHudBtn')?.addEventListener('click', () => {
             document.getElementById('mpHud')?.classList.toggle('open');
-            playSfx('pop', .4);
         });
         document.getElementById('ingameMusicBtn')?.addEventListener('click', () => setMusic(musicMuted));
         document.getElementById('ingameSandboxBtn')?.addEventListener('click', () => {
@@ -5818,10 +5890,10 @@
         }
         document.getElementById('tutorialBtn')?.addEventListener('click', () => { showTut(0); openModal('tutorialModal'); });
         document.getElementById('closeTutorialBtn')?.addEventListener('click', () => closeModal('tutorialModal'));
-        document.getElementById('tutPrev')?.addEventListener('click', () => { showTut(tutPage - 1); playSfx('pop', .4); });
+        document.getElementById('tutPrev')?.addEventListener('click', () => { showTut(tutPage - 1); });
         document.getElementById('tutNext')?.addEventListener('click', () => {
             if (tutPage === TUT_PAGES - 1) { closeModal('tutorialModal'); markTutorialSeen(); }
-            else { showTut(tutPage + 1); playSfx('pop', .4); }
+            else { showTut(tutPage + 1); }
         });
 
         // Show it once, automatically, to anyone who has not played before
@@ -5859,7 +5931,7 @@
         document.getElementById('legalBtn')?.addEventListener('click', () => openLegal('terms'));
         document.getElementById('closeLegalBtn')?.addEventListener('click', () => closeModal('legalModal'));
         document.querySelectorAll('.legal-tab').forEach(t =>
-            t.addEventListener('click', () => { switchLegal(t.dataset.lt); playSfx('pop', .4); }));
+            t.addEventListener('click', () => { switchLegal(t.dataset.lt); }));
 
         // tap the backdrop to close any of them
         ['tutorialModal','creditsModal','legalModal'].forEach(id =>
@@ -6654,7 +6726,8 @@
             // Tell the current lobby straight away
             if (mpCurrentRoom) {
                 mpRaiseEvent(MP_EV.NAME_UPDATE, {
-                    name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles,
+                    name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(), roles: myRoles,
                     level: playerLevel, presence: myPresence,
                     pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
                     photo: url
@@ -6799,7 +6872,7 @@
                     ${av}
                     <div style="flex:1;min-width:0;">
                         <div style="color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            <span class="mp-level-chip">${p.level}</span>${mpEsc(p.name)}
+                            ${platformBadge(p.plat)}<span class="mp-level-chip">${p.level}</span>${mpEsc(p.name)}
                         </div>
                         <div style="font-size:9px;color:#8C8C8C;">${where}</div>
                     </div>
@@ -6848,7 +6921,9 @@
                                 !mpMatchActive);
             return {
                 name: mpGetDisplayName(),
+                    platform: myPlatform,
                 photo: currentAvatar(),
+                plat: myPlatform,
                 status: myPresence,
                 roomCode: mpCurrentRoom ? mpCurrentRoom.code : null,
                 roomMode: mpCurrentRoom ? mpCurrentRoom.mode : null,
@@ -6866,7 +6941,9 @@
             if (_hbTimer) clearInterval(_hbTimer);
             sendHeartbeat();
             _hbTimer = setInterval(() => {
-                sendHeartbeat();
+                // Skip the write mid-match — it is a network round trip that
+                // can stutter the frame, and presence is not urgent then.
+                if (!gameRunning || gameOver) sendHeartbeat();
                 // Ban issued mid-session should take effect without a reload
                 if (mpCurrentRoom) {
                     checkMyBan().then(banned => {
@@ -7881,6 +7958,7 @@
             if (!mpPlayers[mpLocalActor]) {
                 mpPlayers[mpLocalActor] = {
                     name: mpGetDisplayName(),
+                    platform: myPlatform,
                     colour: mpGetColour(),
                     roles: myRoles,
                     score: 0, dead: false,
@@ -7897,7 +7975,8 @@
             
 
             // Broadcast our own name/colour to others
-            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
+            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
 
             document.getElementById('mpModal').classList.add('active');
             mpShowLobbyView();
@@ -7943,6 +8022,7 @@
             // why tags were invisible to late joiners.
             mpRaiseEvent(MP_EV.NAME_UPDATE, {
                 name: mpGetDisplayName(),
+                    platform: myPlatform,
                 colour: mpGetColour(),
                 roles: myRoles,
                 level: playerLevel,
@@ -8023,7 +8103,8 @@
             // join — rebuild it rather than rendering a lobby without ourselves.
             if (mpLocalActor && !mpPlayers[mpLocalActor]) {
                 mpPlayers[mpLocalActor] = {
-                    name: mpGetDisplayName(), colour: mpGetColour(),
+                    name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(),
                     roles: myRoles, level: playerLevel,
                     photo: currentAvatar(),
                     pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
@@ -8053,12 +8134,12 @@
                 const avatar = p.photo
                     ? `<img class="mp-player-avatar" src="${mpEsc(p.photo)}" alt="" data-fallback="${initial}" data-colour="${mpEsc(p.colour||'#FF4655')}">`
                     : `<div class="mp-player-avatar" style="background:${mpEsc(p.colour||'#FF4655')}">${initial}</div>`;
-                const lvl = `<span class="mp-level-chip">${p.level || 1}</span>`;
+                const lvl = `${platformBadge(p.plat)}<span class="mp-level-chip">${p.level || 1}</span>`;
                 // Owners can see PlayFab IDs so they can ban without guesswork
                 const idLine = (myRoles.includes('OWNER') && p.pfId)
                     ? `<div style="font-size:8px;color:#969696;font-family:monospace;">${mpEsc(p.pfId)}</div>` : '';
                 row.innerHTML = avatar +
-                    `<div class="mp-player-name">${lvl}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
+                    `<div class="mp-player-name">${lvl}${platformBadge(p.platform)}${roleTagHtml(p)}${mpEsc(p.name)}${isMe?' <span style="color:#ABABAB;font-size:9px;">(you)</span>':''}${idLine}</div>` +
                     (p.isHost ? '<div class="mp-player-host-tag">HOST</div>' : '');
                 // Declared before first use — reading a const early throws and
                 // aborted the entire player loop, leaving the lobby empty.
@@ -8428,7 +8509,7 @@
             mpMatchSecondsLeft = RANKED_TIME_LIMIT;
             mpMatchTimer = setInterval(() => {
                 mpMatchSecondsLeft--;
-                if (mpMatchSecondsLeft <= 10 && mpMatchSecondsLeft > 0) playSfx('tick', .4);
+                if (mpMatchSecondsLeft <= 10 && mpMatchSecondsLeft > 0)
                 if (mpMatchSecondsLeft <= 0) {
                     clearInterval(mpMatchTimer); mpMatchTimer = null;
                     if (mpIsHost) {
@@ -8448,6 +8529,11 @@
         }
 
         function mpBeginMatchLocally(mode, seed) {
+            // The results overlay uses display, not a class — it stayed on
+            // screen when the next round began.
+            mpMatchOverShown = false;
+            const over = document.getElementById('mpMatchOverOverlay');
+            if (over) over.style.display = 'none';
             mpCoinsThisMatch = 0;
             startMatchTimer();
             playSfx('start');
@@ -8555,6 +8641,7 @@
 
         function mpShowMatchOver(results, winnerActor, endMode) {
             if (mpMatchOverShown) return; // prevent duplicate calls
+            mpMatchOverShown = true;
             clearInterval(mpMatchTimer); mpMatchTimer = null;
             mpMatchOverShown = true;
             mpMatchActive = false;
@@ -8729,7 +8816,7 @@
                 // In Coin Rush the score IS coins collected, so label it clearly
                 const isRush = mpMatchMode === 'coinrush';
                 const val = isRush ? `🪙 ${p.coins ?? p.score ?? 0}` : (p.score||0);
-                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${val}</div>`;
+                rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${platformBadge(p.platform)}${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${val}</div>`;
             });
             hud.innerHTML = rows;
         }
@@ -8748,7 +8835,8 @@
                 mpPlayers[mpLocalActor].vel = bird.velocity;
             } else {
                 // Create entry if missing
-                mpPlayers[mpLocalActor] = { x: bird.x, y: bird.y, rx: bird.x, ry: bird.y, vel: bird.velocity, name: mpGetDisplayName(), colour: mpGetColour(), score: 0, dead: false };
+                mpPlayers[mpLocalActor] = { x: bird.x, y: bird.y, rx: bird.x, ry: bird.y, vel: bird.velocity, name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(), score: 0, dead: false };
             }
             // Log first 3 sends to verify sync is running
             
@@ -9116,6 +9204,7 @@
                         p.pfId  = content.pfId || null;
                         p.photo = content.photo || null;
                         p.presence = content.presence || 'online';
+                        p.platform = content.platform || p.platform;
                         rememberPlayer(p);
                     }
                     mpRenderLobby();
@@ -9594,7 +9683,8 @@
                 PlayFabManager.setNameWithCode(mpGetDisplayName()).catch(() => {});
             }
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(), colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
+                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
                 if (mpPlayers[mpLocalActor]) {
                     mpPlayers[mpLocalActor].name = mpGetDisplayName();
                     mpPlayers[mpLocalActor].colour = mpGetColour();
