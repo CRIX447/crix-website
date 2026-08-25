@@ -87,6 +87,15 @@
           "value": "no-store"
         }
       ]
+    },
+    {
+      "source": "/bio",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -114,6 +123,11 @@
     {
       "source": "/chat",
       "destination": "/crixchat",
+      "permanent": false
+    },
+    {
+      "source": "/links",
+      "destination": "/bio",
       "permanent": false
     }
   ]
