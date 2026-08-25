@@ -305,14 +305,21 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
 
       <div class="panel">
         <h2>Links</h2>
-        <p class="dt" style="margin-bottom:10px">One per line: <code>icon | title | subtitle | url</code></p>
+        <p class="dt" style="margin-bottom:10px">
+          One per line: <code>logo | image | title | subtitle | url</code><br>
+          <b>logo</b> — youtube, discord, tiktok, instagram, shop, game, chat, globe (or an emoji)<br>
+          <b>image</b> — a file in /img such as <code>fp.png</code>, or <code>-</code> for none
+        </p>
         <textarea id="bioLinks" rows="8" style="width:100%;background:#0b0b12;border:1px solid var(--line);
           color:#EDEDED;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;line-height:1.7;"></textarea>
       </div>
 
       <div class="panel">
         <h2>Social icons</h2>
-        <p class="dt" style="margin-bottom:10px">One per line: <code>icon | label | url</code></p>
+        <p class="dt" style="margin-bottom:10px">
+          One per line: <code>logo | label | url | colour</code><br>
+          Colour is the hover tint, e.g. <code>#FF0000</code>
+        </p>
         <textarea id="bioSocials" rows="5" style="width:100%;background:#0b0b12;border:1px solid var(--line);
           color:#EDEDED;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;line-height:1.7;"></textarea>
         <div class="row" style="margin-top:12px">
@@ -1036,23 +1043,30 @@ bind('listBansBtn', () => {
 /* ---- BIO PAGE EDITOR ---- */
 const BIO_DEFAULTS = {
   name: 'CRIXGAMING VR', verified: true,
-  bio: 'VR content, Flappy Crix, and whatever else I feel like making.',
+  bio: 'VR content, gaming, and whatever else I feel like making.',
   avatar: '/img/newfavicon.png', background: '', backgroundOpacity: 0.45,
   music: '/img/music.mp3', musicTitle: 'CRIXGAMING VR',
   accent: '#FF4655', showViews: true,
   socials: [
-    { icon:'📺', label:'YouTube', url:'https://www.youtube.com/@CRIXGAMINGVR' },
-    { icon:'💬', label:'Discord', url:'https://discord.com/invite/MbQvJGDAst' },
-    { icon:'🎵', label:'TikTok',  url:'https://www.tiktok.com/@crixgamingvr' },
-    { icon:'🛒', label:'Merch',   url:'https://shop.crixgamingvr.com' }
+    { logo:'youtube',   label:'YouTube',   url:'https://www.youtube.com/@CRIXGAMINGVR', colour:'#FF0000' },
+    { logo:'discord',   label:'Discord',   url:'https://discord.com/invite/MbQvJGDAst', colour:'#5865F2' },
+    { logo:'tiktok',    label:'TikTok',    url:'https://www.tiktok.com/@crixgamingvr',  colour:'#00F2EA' },
+    { logo:'instagram', label:'Instagram', url:'https://instagram.com/crixgaming_vr',   colour:'#E1306C' },
+    { logo:'shop',      label:'Merch',     url:'https://shop.crixgamingvr.com',         colour:'#FF6B35' }
   ],
   links: [
-    { icon:'🐦', title:'Play Flappy Crix', sub:'Free multiplayer game', url:'/flappycrix' },
-    { icon:'💬', title:'CRIX Chat', sub:'Chat and calls with friends', url:'/crixchat' },
-    { icon:'📺', title:'YouTube', sub:'New videos weekly', url:'https://www.youtube.com/@CRIXGAMINGVR' },
-    { icon:'👥', title:'Join the Discord', sub:'Come hang out', url:'https://discord.com/invite/MbQvJGDAst' },
-    { icon:'🛒', title:'Merch', sub:'Shirts and more', url:'https://shop.crixgamingvr.com' },
-    { icon:'🌐', title:'Main site', sub:'crixgamingvr.com', url:'/' }
+    { logo:'game',  img:'/img/fp.png',  title:'Play Flappy Crix', sub:'Free multiplayer game', url:'/flappycrix' },
+    { logo:'chat',  img:'/img/aac.png', title:'CRIX Chat', sub:'Chat and calls with friends', url:'/crixchat' },
+    { logo:'youtube', img:'', title:'CRIXGAMING VR',   sub:'Main channel', url:'https://www.youtube.com/@CRIXGAMINGVR' },
+    { logo:'youtube', img:'', title:'CRIX PLAYZ MC',   sub:'Minecraft',    url:'https://www.youtube.com/@CRIXPLAYZMC' },
+    { logo:'youtube', img:'', title:'CRIX REACTS',     sub:'Reactions',    url:'https://www.youtube.com/@CRIXREACTS123' },
+    { logo:'youtube', img:'', title:'CRIX YAPS',       sub:'Yapping',      url:'https://www.youtube.com/@CRIXYAPS' },
+    { logo:'youtube', img:'', title:'CRIXGAMING VR 2', sub:'Second channel', url:'https://www.youtube.com/@CRIXGAMINGVR2' },
+    { logo:'discord', img:'', title:'Join the Discord', sub:'Come hang out', url:'https://discord.com/invite/MbQvJGDAst' },
+    { logo:'tiktok',  img:'', title:'TikTok',    sub:'@crixgamingvr',  url:'https://www.tiktok.com/@crixgamingvr' },
+    { logo:'instagram', img:'', title:'Instagram', sub:'@crixgaming_vr', url:'https://instagram.com/crixgaming_vr' },
+    { logo:'shop',  img:'/img/is.png', title:'Merch store', sub:'Shirts, hats and more', url:'https://shop.crixgamingvr.com' },
+    { logo:'globe', img:'', title:'Main site', sub:'crixgamingvr.com', url:'/' }
   ],
   footer: '© CRIXGAMING VR'
 };
@@ -1069,9 +1083,11 @@ function bioFill(c) {
   $('bioVerified').value = c.verified ? 'yes' : 'no';
   $('bioViews').value = c.showViews ? 'yes' : 'no';
   $('bioLinks').value = (c.links || []).map(l =>
-    [l.icon || '🔗', l.title || '', l.sub || '', l.url || ''].join(' | ')).join('\n');
+    [l.logo || l.icon || 'globe',
+     l.img ? l.img.replace('/img/', '') : '-',
+     l.title || '', l.sub || '', l.url || ''].join(' | ')).join('\n');
   $('bioSocials').value = (c.socials || []).map(s =>
-    [s.icon || '🔗', s.label || '', s.url || ''].join(' | ')).join('\n');
+    [s.logo || s.icon || 'globe', s.label || '', s.url || '', s.colour || ''].join(' | ')).join('\n');
 }
 
 function bioCollect() {
@@ -1096,8 +1112,13 @@ function bioCollect() {
     musicTitle: $('bioMusicTitle').value.trim(),
     verified: $('bioVerified').value === 'yes',
     showViews: $('bioViews').value === 'yes',
-    links: parse($('bioLinks').value, ['icon','title','sub','url']),
-    socials: parse($('bioSocials').value, ['icon','label','url']),
+    links: parse($('bioLinks').value, ['logo','img','title','sub','url']).map(l => ({
+      // A bare filename is assumed to live in /img
+      logo: l.logo,
+      img: (!l.img || l.img === '-') ? '' : (l.img.startsWith('/') ? l.img : '/img/' + l.img),
+      title: l.title, sub: l.sub, url: l.url
+    })),
+    socials: parse($('bioSocials').value, ['logo','label','url','colour']),
     footer: '© CRIXGAMING VR'
   };
 }
