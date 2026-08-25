@@ -285,7 +285,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
 
         <div class="row"><label>Display name</label><input id="bioName" placeholder="CRIXGAMING VR"></div>
         <div class="row"><label>Bio text</label><input id="bioText" placeholder="Short description"></div>
-        <div class="row"><label>Avatar URL</label><input id="bioAvatar" placeholder="/img/newfavicon.png"></div>
+        <div class="row"><label>Avatar URL</label><input id="bioAvatar" placeholder="/img/imcrix123.png"></div>
         <div class="row"><label>Background</label><input id="bioBg" placeholder="image or .mp4 URL — leave blank for plain black"></div>
         <div class="row">
           <label>BG opacity</label>
@@ -307,7 +307,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         <h2>Links</h2>
         <p class="dt" style="margin-bottom:10px">
           One per line: <code>logo | image | title | subtitle | url</code><br>
-          <b>logo</b> — youtube, discord, tiktok, instagram, shop, game, chat, globe (or an emoji)<br>
+          <b>logo</b> — youtube, discord, tiktok, instagram, twitch, x, xbox, globe (leave blank if using an image)<br>
           <b>image</b> — a file in /img such as <code>fp.png</code>, or <code>-</code> for none
         </p>
         <textarea id="bioLinks" rows="8" style="width:100%;background:#0b0b12;border:1px solid var(--line);
@@ -1045,29 +1045,34 @@ bind('listBansBtn', () => {
 const BIO_DEFAULTS = {
   name: 'CRIXGAMING VR', verified: true,
   bio: 'VR content, gaming, and whatever else I feel like making.',
-  avatar: '/img/newfavicon.png', background: '', backgroundOpacity: 0.45,
+  avatar: '/img/imcrix123.png', background: '', backgroundOpacity: 0.45,
   music: '/img/music.mp3', musicTitle: 'CRIXGAMING VR',
   accent: '#FF4655', showViews: true,
   socials: [
     { logo:'youtube',   label:'YouTube',   url:'https://www.youtube.com/@CRIXGAMINGVR', colour:'#FF0000' },
-    { logo:'discord',   label:'Discord',   url:'https://discord.com/invite/MbQvJGDAst', colour:'#5865F2' },
     { logo:'tiktok',    label:'TikTok',    url:'https://www.tiktok.com/@crixgamingvr',  colour:'#00F2EA' },
+    { logo:'x',         label:'X',         url:'https://x.com/CRIXGAMINGVR',            colour:'#FFFFFF' },
     { logo:'instagram', label:'Instagram', url:'https://instagram.com/crixgaming_vr',   colour:'#E1306C' },
-    { logo:'shop',      label:'Merch',     url:'https://shop.crixgamingvr.com',         colour:'#FF6B35' }
+    { logo:'twitch',    label:'Twitch',    url:'https://twitch.tv/crix_gaming_vr',      colour:'#9146FF' },
+    { logo:'discord',   label:'Discord',   url:'https://discord.com/invite/MbQvJGDAst', colour:'#5865F2' },
+    { logo:'xbox',      label:'Xbox',      url:'https://xbox.com/en-AU/play/user/NVR',  colour:'#107C10' }
   ],
   links: [
-    { logo:'game',  img:'/img/fp.png',  title:'Play Flappy Crix', sub:'Free multiplayer game', url:'/flappycrix' },
-    { logo:'chat',  img:'/img/aac.png', title:'CRIX Chat', sub:'Chat and calls with friends', url:'/crixchat' },
-    { logo:'youtube', img:'', title:'CRIXGAMING VR',   sub:'Main channel', url:'https://www.youtube.com/@CRIXGAMINGVR' },
-    { logo:'youtube', img:'', title:'CRIX PLAYZ MC',   sub:'Minecraft',    url:'https://www.youtube.com/@CRIXPLAYZMC' },
-    { logo:'youtube', img:'', title:'CRIX REACTS',     sub:'Reactions',    url:'https://www.youtube.com/@CRIXREACTS123' },
-    { logo:'youtube', img:'', title:'CRIX YAPS',       sub:'Yapping',      url:'https://www.youtube.com/@CRIXYAPS' },
-    { logo:'youtube', img:'', title:'CRIXGAMING VR 2', sub:'Second channel', url:'https://www.youtube.com/@CRIXGAMINGVR2' },
-    { logo:'discord', img:'', title:'Join the Discord', sub:'Come hang out', url:'https://discord.com/invite/MbQvJGDAst' },
-    { logo:'tiktok',  img:'', title:'TikTok',    sub:'@crixgamingvr',  url:'https://www.tiktok.com/@crixgamingvr' },
-    { logo:'instagram', img:'', title:'Instagram', sub:'@crixgaming_vr', url:'https://instagram.com/crixgaming_vr' },
-    { logo:'shop',  img:'/img/is.png', title:'Merch store', sub:'Shirts, hats and more', url:'https://shop.crixgamingvr.com' },
-    { logo:'globe', img:'', title:'Main site', sub:'crixgamingvr.com', url:'/' }
+    { logo:'', img:'/img/fp.png',  title:'Flappy Crix', url:'/flappycrix' },
+    { logo:'', img:'/img/aac.png', title:'CRIX Chat',   url:'/crixchat' },
+    { logo:'', img:'/img/is.png',  title:'Merch Store', url:'https://shop.crixgamingvr.com' },
+    { logo:'youtube',   img:'', title:'CRIXGAMING VR',   url:'https://www.youtube.com/@CRIXGAMINGVR' },
+    { logo:'youtube',   img:'', title:'CRIX PLAYZ MC',   url:'https://www.youtube.com/@CRIXPLAYZMC' },
+    { logo:'youtube',   img:'', title:'CRIX REACTS',     url:'https://www.youtube.com/@CRIXREACTS123' },
+    { logo:'youtube',   img:'', title:'CRIX YAPS',       url:'https://www.youtube.com/@CRIXYAPS' },
+    { logo:'youtube',   img:'', title:'CRIXGAMING VR 2', url:'https://www.youtube.com/@CRIXGAMINGVR2' },
+    { logo:'tiktok',    img:'', title:'TikTok',    url:'https://www.tiktok.com/@crixgamingvr' },
+    { logo:'x',         img:'', title:'X',         url:'https://x.com/CRIXGAMINGVR' },
+    { logo:'instagram', img:'', title:'Instagram', url:'https://instagram.com/crixgaming_vr' },
+    { logo:'twitch',    img:'', title:'Twitch',    url:'https://twitch.tv/crix_gaming_vr' },
+    { logo:'discord',   img:'', title:'Discord',   url:'https://discord.com/invite/MbQvJGDAst' },
+    { logo:'xbox',      img:'', title:'Xbox',      url:'https://xbox.com/en-AU/play/user/NVR' },
+    { logo:'globe',     img:'', title:'Main Site', url:'/' }
   ],
   footer: '© CRIXGAMING VR'
 };
