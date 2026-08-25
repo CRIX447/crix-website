@@ -106,6 +106,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     <button class="tab" data-t="logs">Logs</button>
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
+    <button class="tab" data-t="bio">Bio Page</button>
     <button class="tab" data-t="health">PlayFab</button>
     <button class="tab" data-t="deploy">Deploy</button>
     <button class="tab" data-t="system">System</button>
@@ -203,6 +204,15 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
       </div>
 
       <div class="panel">
+        <h2>Warn a player</h2>
+        <div class="row"><label>Player ID</label><input id="warnId" placeholder="PlayFab ID"></div>
+        <div class="row"><label>Message</label><input id="warnMsg" placeholder="Why are you warning them?"></div>
+        <div class="row"><button class="btn sm" id="warnBtn">Send warning</button></div>
+        <div class="out" id="warnOut">—</div>
+        <p class="dt" style="margin-top:6px">Sent as a Discord DM if they have linked their account.</p>
+      </div>
+
+      <div class="panel">
         <h2>Lobby control</h2>
         <div class="row"><label>Room code</label><input id="hostRoom" placeholder="e.g. ABCD" maxlength="6"></div>
         <div class="row">
@@ -265,6 +275,55 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     </div>
 
     <!-- PLAYFAB HEALTH -->
+    <div class="view" id="v-bio" style="display:none;">
+      <div class="panel">
+        <h2>Bio page</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Live at <a href="/bio" target="_blank" style="color:#00CC7A">crixgamingvr.com/bio</a>.
+          Changes appear as soon as you save.
+        </p>
+
+        <div class="row"><label>Display name</label><input id="bioName" placeholder="CRIXGAMING VR"></div>
+        <div class="row"><label>Bio text</label><input id="bioText" placeholder="Short description"></div>
+        <div class="row"><label>Avatar URL</label><input id="bioAvatar" placeholder="/img/newfavicon.png"></div>
+        <div class="row"><label>Background</label><input id="bioBg" placeholder="image or .mp4 URL — leave blank for plain black"></div>
+        <div class="row">
+          <label>BG opacity</label>
+          <input id="bioBgOp" type="number" min="0" max="1" step="0.05" value="0.45" style="flex:0 0 90px">
+          <label style="flex:0 0 auto">Accent</label>
+          <input id="bioAccent" type="color" value="#FF4655" style="flex:0 0 60px;padding:2px">
+        </div>
+        <div class="row"><label>Music URL</label><input id="bioMusic" placeholder="/img/music.mp3"></div>
+        <div class="row"><label>Track name</label><input id="bioMusicTitle" placeholder="Shown while playing"></div>
+        <div class="row">
+          <label>Verified tick</label>
+          <select id="bioVerified" style="flex:0 0 110px"><option value="yes">Show</option><option value="no">Hide</option></select>
+          <label style="flex:0 0 auto">View count</label>
+          <select id="bioViews" style="flex:0 0 110px"><option value="yes">Show</option><option value="no">Hide</option></select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Links</h2>
+        <p class="dt" style="margin-bottom:10px">One per line: <code>icon | title | subtitle | url</code></p>
+        <textarea id="bioLinks" rows="8" style="width:100%;background:#0b0b12;border:1px solid var(--line);
+          color:#EDEDED;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;line-height:1.7;"></textarea>
+      </div>
+
+      <div class="panel">
+        <h2>Social icons</h2>
+        <p class="dt" style="margin-bottom:10px">One per line: <code>icon | label | url</code></p>
+        <textarea id="bioSocials" rows="5" style="width:100%;background:#0b0b12;border:1px solid var(--line);
+          color:#EDEDED;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;line-height:1.7;"></textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="bioSave">Save changes</button>
+          <button class="btn sm ghost" id="bioLoad">Reload</button>
+          <button class="btn sm ghost" id="bioReset">Reset to defaults</button>
+        </div>
+        <div class="out" id="bioOut">—</div>
+      </div>
+    </div>
+
     <div class="view" id="v-health" style="display:none;">
       <div class="panel">
         <h2>PlayFab health</h2>
@@ -934,6 +993,16 @@ function copyRows(rows, btnId, label) {
     b.textContent = 'Copied'; setTimeout(() => b.textContent = label, 1500);
   });
 }
+bind('warnBtn', () => {
+  const id = $('warnId').value.trim();
+  const msg = $('warnMsg').value.trim();
+  if (!id) { $('warnOut').textContent = 'Enter a PlayFab ID.'; return; }
+  if (!msg) { $('warnOut').textContent = 'Write a message.'; return; }
+  run('warnOut',
+      () => PlayFabManager.fs.queueDM(id, 'warned', { reason: msg }),
+      r => r.queued ? 'Warning sent.' : 'They have not linked Discord, so nothing was sent.');
+});
+
 bind('claimHostBtn', () => {
   const code = $('hostRoom').value.trim().toUpperCase();
   if (!code) { $('hostOut').textContent = 'Enter the room code.'; return; }
@@ -963,6 +1032,118 @@ bind('listBansBtn', () => {
       : 'Nobody is currently banned.';
   }).catch(e => { out.className = 'out bad'; out.textContent = e.message; });
 });
+
+/* ---- BIO PAGE EDITOR ---- */
+const BIO_DEFAULTS = {
+  name: 'CRIXGAMING VR', verified: true,
+  bio: 'VR content, Flappy Crix, and whatever else I feel like making.',
+  avatar: '/img/newfavicon.png', background: '', backgroundOpacity: 0.45,
+  music: '/img/music.mp3', musicTitle: 'CRIXGAMING VR',
+  accent: '#FF4655', showViews: true,
+  socials: [
+    { icon:'📺', label:'YouTube', url:'https://www.youtube.com/@CRIXGAMINGVR' },
+    { icon:'💬', label:'Discord', url:'https://discord.com/invite/MbQvJGDAst' },
+    { icon:'🎵', label:'TikTok',  url:'https://www.tiktok.com/@crixgamingvr' },
+    { icon:'🛒', label:'Merch',   url:'https://shop.crixgamingvr.com' }
+  ],
+  links: [
+    { icon:'🐦', title:'Play Flappy Crix', sub:'Free multiplayer game', url:'/flappycrix' },
+    { icon:'💬', title:'CRIX Chat', sub:'Chat and calls with friends', url:'/crixchat' },
+    { icon:'📺', title:'YouTube', sub:'New videos weekly', url:'https://www.youtube.com/@CRIXGAMINGVR' },
+    { icon:'👥', title:'Join the Discord', sub:'Come hang out', url:'https://discord.com/invite/MbQvJGDAst' },
+    { icon:'🛒', title:'Merch', sub:'Shirts and more', url:'https://shop.crixgamingvr.com' },
+    { icon:'🌐', title:'Main site', sub:'crixgamingvr.com', url:'/' }
+  ],
+  footer: '© CRIXGAMING VR'
+};
+
+function bioFill(c) {
+  $('bioName').value = c.name || '';
+  $('bioText').value = c.bio || '';
+  $('bioAvatar').value = c.avatar || '';
+  $('bioBg').value = c.background || '';
+  $('bioBgOp').value = c.backgroundOpacity ?? 0.45;
+  $('bioAccent').value = c.accent || '#FF4655';
+  $('bioMusic').value = c.music || '';
+  $('bioMusicTitle').value = c.musicTitle || '';
+  $('bioVerified').value = c.verified ? 'yes' : 'no';
+  $('bioViews').value = c.showViews ? 'yes' : 'no';
+  $('bioLinks').value = (c.links || []).map(l =>
+    [l.icon || '🔗', l.title || '', l.sub || '', l.url || ''].join(' | ')).join('\n');
+  $('bioSocials').value = (c.socials || []).map(s =>
+    [s.icon || '🔗', s.label || '', s.url || ''].join(' | ')).join('\n');
+}
+
+function bioCollect() {
+  const parse = (text, keys) => text.split('\n')
+    .map(l => l.trim()).filter(Boolean)
+    .map(l => {
+      const parts = l.split('|').map(p => p.trim());
+      const o = {};
+      keys.forEach((k, i) => o[k] = parts[i] || '');
+      return o;
+    })
+    .filter(o => o.url);   // a link without a URL is not a link
+
+  return {
+    name: $('bioName').value.trim() || 'CRIXGAMING VR',
+    bio: $('bioText').value.trim(),
+    avatar: $('bioAvatar').value.trim(),
+    background: $('bioBg').value.trim(),
+    backgroundOpacity: parseFloat($('bioBgOp').value) || 0.45,
+    accent: $('bioAccent').value,
+    music: $('bioMusic').value.trim(),
+    musicTitle: $('bioMusicTitle').value.trim(),
+    verified: $('bioVerified').value === 'yes',
+    showViews: $('bioViews').value === 'yes',
+    links: parse($('bioLinks').value, ['icon','title','sub','url']),
+    socials: parse($('bioSocials').value, ['icon','label','url']),
+    footer: '© CRIXGAMING VR'
+  };
+}
+
+async function bioLoad() {
+  const out = $('bioOut');
+  out.className = 'out'; out.textContent = 'Loading…';
+  try {
+    const d = await firebase.firestore().collection('config').doc('bio').get();
+    bioFill(d.exists ? { ...BIO_DEFAULTS, ...d.data() } : BIO_DEFAULTS);
+    out.textContent = d.exists ? 'Loaded saved settings.' : 'No saved settings — showing defaults.';
+  } catch (e) {
+    bioFill(BIO_DEFAULTS);
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Cannot read — publish firestore.rules.' : e.message;
+  }
+}
+
+bind('bioSave', async () => {
+  const out = $('bioOut');
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    const data = bioCollect();
+    if (!data.links.length) {
+      out.className = 'out bad';
+      out.textContent = 'Add at least one link before saving.';
+      return;
+    }
+    await firebase.firestore().collection('config').doc('bio').set(data);
+    out.className = 'out ok';
+    out.textContent = `Saved — ${data.links.length} links, ${data.socials.length} socials. Live now.`;
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked — only owners can edit this. Check your owners record.' : e.message;
+  }
+});
+
+bind('bioLoad', bioLoad);
+bind('bioReset', () => {
+  if (!confirm('Reset every field back to the defaults?')) return;
+  bioFill(BIO_DEFAULTS);
+  $('bioOut').textContent = 'Defaults restored — press Save to apply them.';
+});
+
 bind('recheckBtn', runSetupChecks);
 bind('hRun', runHealth);
 bind('hCopy', () => copyRows(hOut, 'hCopy', 'Copy results'));
