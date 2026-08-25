@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CRIXGAMING VR</title>
+<meta name="description" content="All my links in one place.">
+<meta property="og:title" content="CRIXGAMING VR">
+<meta property="og:description" content="All my links in one place.">
+<meta property="og:image" content="/img/newfavicon.png">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="/img/newfavicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+@font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{
+  background:#000; color:#EDEDED;
+  font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── BACKGROUND ── */
+#bgWrap{position:fixed;inset:0;z-index:0;overflow:hidden;background:#000}
+#bgMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity 1.2s ease}
+#bgMedia.on{opacity:var(--bg-op,.45)}
+#bgTint{position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 40%,transparent 0%,rgba(0,0,0,.75) 100%)}
+#grain{position:absolute;inset:0;opacity:.05;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ── ENTER GATE ── */
+#gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;background:rgba(0,0,0,.55);backdrop-filter:blur(14px);
+  transition:opacity .7s ease,backdrop-filter .7s ease}
+#gate.gone{opacity:0;pointer-events:none;backdrop-filter:blur(0)}
+.gate-inner{text-align:center;animation:breathe 2.8s ease-in-out infinite}
+.gate-text{font-size:clamp(15px,4vw,20px);letter-spacing:7px;text-transform:uppercase;
+  color:rgba(255,255,255,.92)}
+.gate-sub{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.4);margin-top:10px}
+@keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
+
+/* ── CARD ── */
+#page{position:relative;z-index:10;height:100%;overflow-y:auto;
+  display:flex;align-items:center;justify-content:center;padding:34px 20px;
+  opacity:0;transform:translateY(14px);transition:opacity .8s ease .15s,transform .8s ease .15s}
+#page.in{opacity:1;transform:none}
+.card{width:100%;max-width:420px;text-align:center}
+
+.pfp{width:104px;height:104px;border-radius:50%;object-fit:cover;margin:0 auto 14px;
+  border:3px solid rgba(255,255,255,.14);box-shadow:0 8px 34px rgba(0,0,0,.65);display:block}
+.name{font-size:clamp(23px,6vw,30px);font-weight:bold;letter-spacing:2px;
+  display:flex;align-items:center;justify-content:center;gap:8px}
+.badge{font-size:15px;color:#27A9F5}
+.bio{font-size:12px;color:rgba(255,255,255,.62);line-height:1.85;margin:9px auto 20px;max-width:330px}
+
+/* ── SOCIAL ROW ── */
+.socials{display:flex;justify-content:center;gap:13px;flex-wrap:wrap;margin-bottom:22px}
+.social{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;text-decoration:none;color:#fff;
+  background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+  transition:transform .16s,background .16s,border-color .16s}
+.social:hover{transform:translateY(-4px);background:rgba(255,255,255,.13);
+  border-color:rgba(255,255,255,.3)}
+
+/* ── LINKS ── */
+.link{display:flex;align-items:center;gap:13px;text-decoration:none;color:#fff;
+  background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.11);
+  border-radius:15px;padding:14px 17px;margin-bottom:9px;
+  transition:transform .16s,background .16s,border-color .16s;position:relative;overflow:hidden}
+.link::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .16s;
+  background:linear-gradient(90deg,var(--accent,#FF4655)22,transparent)}
+.link:hover{transform:translateX(4px);border-color:var(--accent,#FF4655)}
+.link:hover::before{opacity:1}
+.link-ico{font-size:20px;flex-shrink:0;position:relative}
+.link-txt{flex:1;min-width:0;text-align:left;position:relative}
+.link-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
+.link-arrow{font-size:14px;color:rgba(255,255,255,.3);position:relative}
+
+.foot{margin-top:26px;font-size:10px;color:rgba(255,255,255,.28);line-height:2}
+.foot a{color:rgba(255,255,255,.45);text-decoration:none}
+
+/* ── AUDIO CONTROL ── */
+#audioBtn{position:fixed;bottom:18px;right:18px;z-index:40;
+  width:46px;height:46px;border-radius:50%;cursor:pointer;
+  background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.16);
+  color:#fff;font-size:17px;backdrop-filter:blur(8px);display:none;
+  align-items:center;justify-content:center}
+#audioBtn.show{display:flex}
+#nowPlaying{position:fixed;bottom:20px;left:18px;z-index:40;display:none;
+  align-items:center;gap:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);
+  border-radius:22px;padding:8px 15px 8px 11px;backdrop-filter:blur(8px);max-width:62vw}
+#nowPlaying.show{display:flex}
+.bars{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0}
+.bars i{width:2px;background:#FF4655;animation:eq .9s ease-in-out infinite}
+.bars i:nth-child(2){animation-delay:.2s}
+.bars i:nth-child(3){animation-delay:.4s}
+.bars i:nth-child(4){animation-delay:.15s}
+@keyframes eq{0%,100%{height:3px}50%{height:14px}}
+#npText{font-size:11px;color:rgba(255,255,255,.75);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+
+#views{position:fixed;top:16px;right:18px;z-index:40;font-size:10px;
+  color:rgba(255,255,255,.35);background:rgba(0,0,0,.45);
+  border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:5px 11px;
+  backdrop-filter:blur(8px)}
+</style>
+</head>
+<body>
+
+<div id="bgWrap">
+  <video id="bgMedia" autoplay muted loop playsinline></video>
+  <div id="bgTint"></div>
+  <div id="grain"></div>
+</div>
+
+<div id="gate">
+  <div class="gate-inner">
+    <div class="gate-text">click to enter</div>
+    <div class="gate-sub">sound on</div>
+  </div>
+</div>
+
+<div id="page">
+  <div class="card">
+    <img class="pfp" id="pfp" src="/img/newfavicon.png" alt="">
+    <div class="name" id="name">CRIXGAMING VR <span class="badge" id="badge">✓</span></div>
+    <div class="bio" id="bio"></div>
+    <div class="socials" id="socials"></div>
+    <div id="links"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<audio id="music" loop></audio>
+<button id="audioBtn" title="Sound">🔊</button>
+<div id="nowPlaying"><div class="bars"><i></i><i></i><i></i><i></i></div><span id="npText"></span></div>
+<div id="views" style="display:none"></div>
+
+<script>
+const $ = i => document.getElementById(i);
+const esc = s => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
+
+// Defaults. Anything set in the console overrides these, so the page still
+// works perfectly if Firestore is unreachable.
+const DEFAULTS = {
+  name: 'CRIXGAMING VR',
+  verified: true,
+  bio: 'VR content, Flappy Crix, and whatever else I feel like making.',
+  avatar: '/img/newfavicon.png',
+  background: '',
+  backgroundOpacity: 0.45,
+  music: '/img/music.mp3',
+  musicTitle: 'CRIXGAMING VR',
+  accent: '#FF4655',
+  showViews: true,
+  socials: [
+    { icon: '📺', url: 'https://www.youtube.com/@CRIXGAMINGVR',   label: 'YouTube' },
+    { icon: '💬', url: 'https://discord.com/invite/MbQvJGDAst',   label: 'Discord' },
+    { icon: '🎵', url: 'https://www.tiktok.com/@crixgamingvr',    label: 'TikTok' },
+    { icon: '🛒', url: 'https://shop.crixgamingvr.com',           label: 'Merch' }
+  ],
+  links: [
+    { icon: '🐦', title: 'Play Flappy Crix',  sub: 'Free multiplayer game', url: '/flappycrix' },
+    { icon: '💬', title: 'CRIX Chat',         sub: 'Chat and calls with friends', url: '/crixchat' },
+    { icon: '📺', title: 'YouTube',           sub: 'New videos weekly', url: 'https://www.youtube.com/@CRIXGAMINGVR' },
+    { icon: '👥', title: 'Join the Discord',  sub: 'Come hang out', url: 'https://discord.com/invite/MbQvJGDAst' },
+    { icon: '🛒', title: 'Merch',             sub: 'Shirts and more', url: 'https://shop.crixgamingvr.com' },
+    { icon: '🌐', title: 'Main site',         sub: 'crixgamingvr.com', url: '/' }
+  ],
+  footer: '© CRIXGAMING VR'
+};
+
+let cfg = DEFAULTS;
+
+(async function boot() {
+  // Render defaults straight away so the page never sits blank waiting on
+  // the network, then swap in the saved config if there is one.
+  render(cfg);
+
+  try {
+    const api = await (await fetch('/api.json?cb=' + Date.now())).json();
+    firebase.initializeApp(api.firebase);
+    const db = firebase.firestore();
+    const doc = await db.collection('config').doc('bio').get();
+    if (doc.exists) {
+      cfg = { ...DEFAULTS, ...doc.data() };
+      render(cfg);
+    }
+    if (cfg.showViews) countView(db);
+  } catch (e) {
+    console.warn('[bio] using defaults:', e.message);
+  }
+})();
+
+function render(c) {
+  document.documentElement.style.setProperty('--accent', c.accent || '#FF4655');
+  document.documentElement.style.setProperty('--bg-op', c.backgroundOpacity ?? 0.45);
+
+  document.title = c.name || 'CRIXGAMING VR';
+  $('name').innerHTML = esc(c.name) + (c.verified ? ' <span class="badge">✓</span>' : '');
+  $('bio').textContent = c.bio || '';
+  if (c.avatar) $('pfp').src = c.avatar;
+  $('foot').innerHTML = esc(c.footer || '');
+
+  // background — video or image
+  const bg = $('bgMedia');
+  if (c.background) {
+    const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(c.background);
+    if (isVideo) {
+      bg.outerHTML = `<video id="bgMedia" autoplay muted loop playsinline src="${esc(c.background)}"></video>`;
+    } else {
+      bg.outerHTML = `<img id="bgMedia" src="${esc(c.background)}" alt="">`;
+    }
+    setTimeout(() => $('bgMedia')?.classList.add('on'), 60);
+  }
+
+  $('socials').innerHTML = (c.socials || []).map(s =>
+    `<a class="social" href="${esc(s.url)}" target="_blank" rel="noopener"
+        title="${esc(s.label || '')}">${esc(s.icon)}</a>`).join('');
+
+  $('links').innerHTML = (c.links || []).map(l =>
+    `<a class="link" href="${esc(l.url)}"${/^https?:/i.test(l.url) ? ' target="_blank" rel="noopener"' : ''}>
+       <span class="link-ico">${esc(l.icon || '🔗')}</span>
+       <span class="link-txt">
+         <span class="link-title">${esc(l.title)}</span>
+         ${l.sub ? `<span class="link-sub">${esc(l.sub)}</span>` : ''}
+       </span>
+       <span class="link-arrow">→</span>
+     </a>`).join('');
+
+  if (c.music) {
+    $('music').src = c.music;
+    $('npText').textContent = c.musicTitle || 'Now playing';
+  }
+}
+
+// ── ENTER ──
+// Browsers block autoplay until a real interaction, which is exactly what
+// the click-to-enter screen provides.
+let entered = false;
+function enter() {
+  if (entered) return;
+  entered = true;
+  $('gate').classList.add('gone');
+  setTimeout(() => { $('gate').style.display = 'none'; }, 750);
+  $('page').classList.add('in');
+
+  const m = $('music');
+  if (cfg.music) {
+    m.volume = 0;
+    m.play().then(() => {
+      $('audioBtn').classList.add('show');
+      $('nowPlaying').classList.add('show');
+      // Fade in rather than starting at full volume
+      let v = 0;
+      const fade = setInterval(() => {
+        v = Math.min(0.35, v + 0.02);
+        m.volume = v;
+        if (v >= 0.35) clearInterval(fade);
+      }, 60);
+    }).catch(() => {
+      $('audioBtn').classList.add('show');
+      $('audioBtn').textContent = '🔇';
+    });
+  }
+}
+$('gate').addEventListener('click', enter);
+document.addEventListener('keydown', e => { if (!entered && (e.key === 'Enter' || e.key === ' ')) enter(); });
+
+$('audioBtn').onclick = () => {
+  const m = $('music');
+  if (m.paused) { m.play().catch(()=>{}); $('audioBtn').textContent = '🔊'; $('nowPlaying').classList.add('show'); }
+  else { m.pause(); $('audioBtn').textContent = '🔇'; $('nowPlaying').classList.remove('show'); }
+};
+
+// ── VIEW COUNT ──
+async function countView(db) {
+  try {
+    const ref = db.collection('config').doc('bioStats');
+    await ref.set({ views: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+    const d = await ref.get();
+    const n = d.data()?.views || 0;
+    $('views').textContent = `${n.toLocaleString()} views`;
+    $('views').style.display = '';
+  } catch (e) { /* not important enough to surface */ }
+}
+</script>
+</body>
+</html>
