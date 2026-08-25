@@ -17,6 +17,7 @@
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%;overflow:hidden}
+html{overscroll-behavior:none}
 body{
   background:#000; color:#EDEDED;
   font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
@@ -46,8 +47,15 @@ body{
 
 /* ── CARD ── */
 #page{position:relative;z-index:10;height:100%;overflow-y:auto;
-  display:flex;align-items:center;justify-content:center;padding:34px 20px;
-  opacity:0;transform:translateY(14px);transition:opacity .8s ease .15s,transform .8s ease .15s}
+  display:flex;justify-content:center;
+  /* safe-area padding so the notch and gesture bar do not clip anything */
+  padding:34px 20px calc(90px + env(safe-area-inset-bottom));
+  padding-top:calc(34px + env(safe-area-inset-top));
+  opacity:0;transform:translateY(14px);transition:opacity .8s ease .15s,transform .8s ease .15s;
+  -webkit-overflow-scrolling:touch;}
+/* Centre vertically ONLY when the content fits. auto margins do this without
+   the overflow clipping that align-items:center causes. */
+#page > .card{margin-block:auto}
 #page.in{opacity:1;transform:none}
 .card{width:100%;max-width:420px;text-align:center}
 
@@ -94,7 +102,7 @@ body{
 .link-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
 .link-arrow{font-size:14px;color:rgba(255,255,255,.3);position:relative}
 
-.foot{margin-top:26px;font-size:10px;color:rgba(255,255,255,.28);line-height:2}
+.foot{margin-top:26px;margin-bottom:10px;font-size:10px;color:rgba(255,255,255,.28);line-height:2}
 .foot a{color:rgba(255,255,255,.45);text-decoration:none}
 
 /* ── AUDIO CONTROL ── */
