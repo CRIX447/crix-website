@@ -326,6 +326,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
           <button class="btn" id="bioSave">Save changes</button>
           <button class="btn sm ghost" id="bioLoad">Reload</button>
           <button class="btn sm ghost" id="bioReset">Reset to defaults</button>
+          <button class="btn sm ghost" id="bioClearLinks">Clear all links</button>
         </div>
         <div class="out" id="bioOut">—</div>
       </div>
@@ -1143,18 +1144,42 @@ bind('bioSave', async () => {
   out.className = 'out'; out.textContent = 'Saving…';
   try {
     const data = bioCollect();
-    if (!data.links.length) {
-      out.className = 'out bad';
-      out.textContent = 'Add at least one link before saving.';
-      return;
-    }
-    await firebase.firestore().collection('config').doc('bio').set(data);
+
+    // Leaving a box empty means "no change", not "delete everything". Only
+    // the fields you actually filled in get written.
+    const clean = {};
+    Object.entries(data).forEach(([k, v]) => {
+      if (v === '' || v === null || v === undefined) return;
+      if (Array.isArray(v) && v.length === 0) return;
+      clean[k] = v;
+    });
+
+    await firebase.firestore().collection('config').doc('bio').set(clean, { merge: true });
     out.className = 'out ok';
-    out.textContent = `Saved — ${data.links.length} links, ${data.socials.length} socials. Live now.`;
+    const bits = [];
+    if (clean.links)   bits.push(`${clean.links.length} links`);
+    if (clean.socials) bits.push(`${clean.socials.length} socials`);
+    out.textContent = 'Saved' + (bits.length ? ' — ' + bits.join(', ') : '') + '. Live now.';
   } catch (e) {
     out.className = 'out bad';
     out.textContent = /permission/i.test(e.message)
       ? 'Blocked — only owners can edit this. Check your owners record.' : e.message;
+  }
+});
+
+bind('bioClearLinks', async () => {
+  // Emptying the box no longer deletes, so this is how you actually clear it
+  if (!confirm('Remove every link from the bio page?')) return;
+  const out = $('bioOut');
+  try {
+    await firebase.firestore().collection('config').doc('bio')
+      .set({ links: [] }, { merge: true });
+    $('bioLinks').value = '';
+    out.className = 'out ok';
+    out.textContent = 'All links removed.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = e.message;
   }
 });
 
