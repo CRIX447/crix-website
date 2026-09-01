@@ -197,6 +197,12 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // Events — public read so the game can apply multipliers, owner write.
+    match /config/event {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     match /config/bio {
       allow read: if true;
       allow write: if isOwner();
