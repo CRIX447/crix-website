@@ -310,11 +310,19 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         </p>
         <div class="row">
           <label>Status</label>
-          <select id="evtActive">
+          <select id="evtActive" style="flex:0 0 130px">
             <option value="off">Off</option>
             <option value="on">Running</option>
           </select>
+          <label style="flex:0 0 auto">Type</label>
+          <select id="evtType">
+            <option value="multiplier">Multiplier — no prize</option>
+            <option value="challenge">Challenge — winner gets the crown</option>
+          </select>
         </div>
+        <p class="dt" id="evtTypeNote" style="margin:-4px 0 10px">
+          Multiplier events do not mention a prize, since there is no winner.
+        </p>
         <div class="row"><label>Title</label><input id="evtTitle" placeholder="Double Coin Weekend"></div>
         <div class="row"><label>Subtitle</label><input id="evtDesc" placeholder="Optional line under the title"></div>
         <div class="row">
@@ -334,7 +342,8 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         </div>
         <div class="row">
           <button class="btn sm" id="evtSave">Save event</button>
-          <button class="btn sm ghost" id="evtWeekend">Preset: double coin weekend</button>
+          <button class="btn sm ghost" id="evtWeekend">Preset: coin weekend</button>
+          <button class="btn sm ghost" id="evtChallenge">Preset: crown challenge</button>
         </div>
         <div class="out" id="evtOut">—</div>
       </div>
@@ -1129,6 +1138,7 @@ async function evtLoad() {
     const d = await firebase.firestore().collection('config').doc('event').get();
     const v = d.exists ? d.data() : {};
     $('evtActive').value = v.active ? 'on' : 'off';
+    $('evtType').value = v.type || 'multiplier';
     $('evtTitle').value = v.title || '';
     $('evtDesc').value = v.description || '';
     $('evtIcon').value = v.icon || '';
@@ -1154,6 +1164,7 @@ bind('evtWeekend', () => {
   end.setDate(end.getDate() + ((8 - end.getDay()) % 7 || 7));
   end.setHours(9, 0, 0, 0);
   $('evtActive').value = 'on';
+  $('evtType').value = 'multiplier';
   $('evtTitle').value = 'Double Coin Weekend';
   $('evtDesc').value = 'Every coin counts twice';
   $('evtIcon').value = '🪙';
@@ -1161,6 +1172,21 @@ bind('evtWeekend', () => {
   $('evtXp').value = '1';
   $('evtEnds').value = new Date(end - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
   $('evtOut').textContent = 'Preset filled in — press Save to start it.';
+});
+
+bind('evtChallenge', () => {
+  const end = new Date();
+  end.setDate(end.getDate() + 7);
+  end.setHours(20, 0, 0, 0);
+  $('evtActive').value = 'on';
+  $('evtType').value = 'challenge';
+  $('evtTitle').value = 'Weekly Challenge';
+  $('evtDesc').value = 'Highest score this week wins';
+  $('evtIcon').value = '🏆';
+  $('evtCoins').value = '1';
+  $('evtXp').value = '1';
+  $('evtEnds').value = new Date(end - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('evtOut').textContent = 'Challenge filled in — press Save to start it.';
 });
 
 bind('evtSave', async () => {
@@ -1174,6 +1200,7 @@ bind('evtSave', async () => {
   try {
     await firebase.firestore().collection('config').doc('event').set({
       active: on,
+      type: $('evtType').value,
       title: $('evtTitle').value.trim() || 'Event',
       description: $('evtDesc').value.trim() || null,
       icon: $('evtIcon').value.trim() || '🎉',
