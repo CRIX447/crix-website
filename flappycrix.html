@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.25-1200";</script>
+    <script>window.__BUILD__ = "2026.08.25-1800";</script>
     
 
-    <script src="/filter.js?v=2026082512"></script>
-    <script src="/android-bridge.js?v=2026082512"></script>
-    <script src="/playfab-manager.js?v=2026082512"></script>
+    <script src="/filter.js?v=2026082518"></script>
+    <script src="/android-bridge.js?v=2026082518"></script>
+    <script src="/playfab-manager.js?v=2026082518"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1388,6 +1388,39 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        .event-banner {
+            display:flex; align-items:center; gap:11px;
+            background:linear-gradient(135deg, rgba(255,70,85,.15), rgba(255,107,53,.12));
+            border:1px solid rgba(255,107,53,.4); border-radius:14px;
+            padding:11px 14px; margin-bottom:10px;
+        }
+        .ev-ico { font-size:22px; flex-shrink:0; }
+        .ev-txt { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+        .ev-txt b { font-size:13px; color:#fff; }
+        .ev-txt i { font-style:normal; font-size:10px; color:#FFB347; }
+        .ev-time { font-size:10px; color:#8C8C8C; flex-shrink:0; white-space:nowrap; }
+
+        .streak-line { font-size:15px; color:#fff; margin-bottom:4px; }
+        .streak-line #streakNum { color:#FFD700; font-weight:bold; font-size:20px; }
+        .streak-sub { display:block; font-size:10px; color:#8C8C8C; margin-top:3px; }
+        .reward-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; margin-top:14px; }
+        .rw {
+            background:rgba(0,0,0,.35); border:1px solid rgba(255,255,255,.08);
+            border-radius:12px; padding:10px 4px; position:relative;
+        }
+        .rw-day { font-size:8px; color:#8C8C8C; text-transform:uppercase; letter-spacing:1px; }
+        .rw-amt { font-size:14px; font-weight:bold; color:#FFD700; margin-top:3px; }
+        .rw-ico { font-size:15px; margin-top:2px; }
+        .rw.claimed { border-color:rgba(0,204,122,.4); background:rgba(0,204,122,.08); }
+        .rw.claimed::after { content:'✓'; position:absolute; top:4px; right:6px;
+            font-size:10px; color:#00CC7A; }
+        .rw.today { border-color:#FFD700; box-shadow:0 0 0 2px rgba(255,215,0,.2); }
+        .rw.locked { opacity:.45; }
+        .reward-note { font-size:10px; color:#8C8C8C; line-height:1.8; margin-top:12px; }
+        .icon-dot { position:absolute; top:5px; right:7px; width:8px; height:8px;
+            border-radius:50%; background:#FF4655; box-shadow:0 0 6px rgba(255,70,85,.7); }
+        .icon-btn { position:relative; }
+
         .daily-dots { display:flex; justify-content:center; gap:6px; }
         .dd { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.15); }
         .dd.on { background:#FFD700; box-shadow:0 0 6px rgba(255,215,0,.5); }
@@ -1855,6 +1888,7 @@
 
         <!-- Everything else collapses into one icon row -->
         <div class="icon-bar">
+            <button class="icon-btn" id="dailyBtn"       title="Daily rewards"><span>🎁</span><label>Daily</label><span class="icon-dot" id="dailyDot" style="display:none;"></span></button>
             <button class="icon-btn" id="storeBtn"       title="Store"><span>🛒</span><label>Store</label></button>
             <button class="icon-btn" id="lockerBtn"      title="Locker"><span>👕</span><label>Locker</label></button>
             <button class="icon-btn" id="notifBtn"       title="Notifications"><span>🔔</span><label>Alerts</label><i id="notifBadge" class="notif-badge" style="display:none;">0</i></button>
@@ -2378,6 +2412,30 @@
         </div>
     </div>
 
+    <!-- DAILY REWARDS -->
+    <div class="mp-modal" id="dailyModal" style="z-index:46200;">
+        <div class="mp-modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <div class="modal-title">🎁 DAILY REWARDS</div>
+                <button class="modal-close" id="closeDailyBtn">✕</button>
+            </div>
+            <div style="text-align:center;">
+                <div class="streak-line">
+                    <span id="streakNum">0</span> day streak
+                    <span class="streak-sub" id="streakSub"></span>
+                </div>
+                <div class="reward-grid" id="rewardGrid"></div>
+                <button class="mp-btn-primary" id="claimDaily" style="width:100%;margin-top:14px;">
+                    CLAIM TODAY
+                </button>
+                <p class="reward-note">
+                    Come back each day for a bigger reward. Miss a day and the
+                    streak restarts — nothing else is lost.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <!-- HOW TO PLAY -->
     <div class="mp-modal" id="tutorialModal" style="z-index:46000;">
         <div class="mp-modal-content" style="max-width:420px;">
@@ -2710,7 +2768,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.25-1200</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.25-1800</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3035,6 +3093,8 @@
         ];
         
         let cosmetics = [
+            { id: 'crown', name: "CHAMPION'S CROWN", type: 'hat', price: null, exclusive: true,
+              desc: 'Won in an event. Cannot be bought.', img: '/img/crown.png' },
             { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, image: '/img/bucket-hat.avif', owned: false, equipped: false },
             { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, image: '/img/cap.png', owned: false, equipped: false },
             { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 450, image: '/img/tank-top.avif', owned: false, equipped: false },
@@ -4684,16 +4744,177 @@
         });
 
 
-        // ═══════════ DAILY REWARD ═══════════
-        // A small reason to come back tomorrow. Streak resets if a day is
-        // missed, but never punishes beyond that.
+
+        // ═══════════ EVENTS ═══════════
+        // Console-controlled. Double coins or XP weekends, plus challenges
+        // where the winner gets a cosmetic nobody can buy.
+        let activeEvent = null;
+
+        async function loadEvent() {
+            if (!db) return;
+            try {
+                const d = await db.collection('config').doc('event').get();
+                const e = d.exists ? d.data() : null;
+
+                // An event with an end time in the past is simply over
+                if (!e || !e.active || (e.endsAt && Date.now() > e.endsAt)) {
+                    activeEvent = null;
+                    renderEventBanner();
+                    return;
+                }
+                activeEvent = e;
+                renderEventBanner();
+            } catch (err) { /* events are optional */ }
+        }
+
+        function renderEventBanner() {
+            let el = document.getElementById('eventBanner');
+            if (!activeEvent) { el?.remove(); return; }
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'eventBanner';
+                el.className = 'event-banner';
+                const anchor = document.querySelector('.stats-grid');
+                anchor?.parentNode.insertBefore(el, anchor);
+            }
+            const mult = [];
+            if (activeEvent.coinMultiplier > 1) mult.push(`${activeEvent.coinMultiplier}× coins`);
+            if (activeEvent.xpMultiplier > 1)   mult.push(`${activeEvent.xpMultiplier}× XP`);
+
+            el.innerHTML = `
+                <span class="ev-ico">${activeEvent.icon || '🎉'}</span>
+                <span class="ev-txt">
+                    <b>${mpEsc(activeEvent.title || 'Event')}</b>
+                    ${mult.length ? `<i>${mult.join(' · ')}</i>` : ''}
+                    ${activeEvent.description ? `<i>${mpEsc(activeEvent.description)}</i>` : ''}
+                </span>
+                ${activeEvent.endsAt ? `<span class="ev-time" id="evTime"></span>` : ''}`;
+            updateEventTimer();
+        }
+
+        function updateEventTimer() {
+            const t = document.getElementById('evTime');
+            if (!t || !activeEvent?.endsAt) return;
+            const left = activeEvent.endsAt - Date.now();
+            if (left <= 0) { activeEvent = null; renderEventBanner(); return; }
+            const d = Math.floor(left / 86400000);
+            const h = Math.floor(left % 86400000 / 3600000);
+            const m = Math.floor(left % 3600000 / 60000);
+            t.textContent = d ? `${d}d ${h}h left` : h ? `${h}h ${m}m left` : `${m}m left`;
+        }
+        setInterval(updateEventTimer, 60000);
+
+        // Applied wherever coins or XP are granted
+        function eventCoinMult() { return activeEvent?.coinMultiplier || 1; }
+        function eventXpMult()   { return activeEvent?.xpMultiplier   || 1; }
+
+        // ═══════════ DAILY REWARDS ═══════════
+        // Deliberately NOT a wheel, crate or any other randomised reward.
+        // You can see exactly what each day gives before you claim it.
         const DAILY_KEY = 'crix_daily_v1';
+        const DAILY_SCHEDULE = [
+            { day: 1, coins: 100,  icon: '🪙' },
+            { day: 2, coins: 160,  icon: '🪙' },
+            { day: 3, coins: 220,  icon: '🪙' },
+            { day: 4, coins: 280,  icon: '🪙' },
+            { day: 5, coins: 340,  icon: '💰' },
+            { day: 6, coins: 400,  icon: '💰' },
+            { day: 7, coins: 600,  icon: '💎', bonus: 'Week complete' }
+        ];
 
         function dayNumber() {
-            // Local midnight, so the reset lines up with the player's day
             const d = new Date();
             return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
         }
+
+        function dailyState() {
+            let s = { last: 0, streak: 0 };
+            try { s = JSON.parse(localStorage.getItem(DAILY_KEY)) || s; } catch (e) {}
+            const today = dayNumber();
+            return {
+                ...s,
+                claimedToday: s.last === today,
+                // A streak only continues if yesterday was claimed
+                nextStreak: (s.last === today - 1) ? (s.streak || 0) + 1 : 1
+            };
+        }
+
+        function rewardFor(streak) {
+            // Day 8 onwards repeats the week rather than growing forever
+            const idx = ((streak - 1) % 7);
+            return DAILY_SCHEDULE[idx];
+        }
+
+        function renderDailyPanel() {
+            const st = dailyState();
+            const streak = st.claimedToday ? st.streak : st.nextStreak;
+            const pos = ((streak - 1) % 7) + 1;
+
+            document.getElementById('streakNum').textContent = st.claimedToday ? st.streak : Math.max(0, st.streak);
+            document.getElementById('streakSub').textContent = st.claimedToday
+                ? 'Come back tomorrow for day ' + (((st.streak) % 7) + 1)
+                : 'Claim day ' + pos + ' now';
+
+            document.getElementById('rewardGrid').innerHTML = DAILY_SCHEDULE.map(r => {
+                const done = r.day < pos || (st.claimedToday && r.day <= pos);
+                const now = r.day === pos && !st.claimedToday;
+                return `<div class="rw ${done ? 'claimed' : now ? 'today' : 'locked'}">
+                    <div class="rw-day">Day ${r.day}</div>
+                    <div class="rw-ico">${r.icon}</div>
+                    <div class="rw-amt">${r.coins}</div>
+                </div>`;
+            }).join('');
+
+            const btn = document.getElementById('claimDaily');
+            btn.disabled = st.claimedToday;
+            btn.textContent = st.claimedToday
+                ? 'ALREADY CLAIMED TODAY'
+                : `CLAIM ${rewardFor(st.nextStreak).coins} COINS`;
+            btn.style.opacity = st.claimedToday ? '.45' : '1';
+        }
+
+        function claimDaily() {
+            const st = dailyState();
+            if (st.claimedToday) return;
+
+            const streak = st.nextStreak;
+            let reward = rewardFor(streak).coins;
+
+            // Weekend and event multipliers apply here too
+            if (typeof activeEvent === 'object' && activeEvent?.coinMultiplier) {
+                reward = Math.round(reward * activeEvent.coinMultiplier);
+            }
+
+            coinCount += reward;
+            updateStats();
+            saveGame();
+            try {
+                localStorage.setItem(DAILY_KEY, JSON.stringify({ last: dayNumber(), streak }));
+            } catch (e) {}
+
+            playSfx('purchase');
+            toast({ kind: 'success', title: `🎁 +${reward} coins`,
+                    body: `Day ${((streak - 1) % 7) + 1} claimed. Streak: ${streak}` });
+            renderDailyPanel();
+            updateDailyDot();
+        }
+
+        function updateDailyDot() {
+            const dot = document.getElementById('dailyDot');
+            if (dot) dot.style.display = dailyState().claimedToday ? 'none' : '';
+        }
+
+        document.getElementById('dailyBtn')?.addEventListener('click', () => {
+            renderDailyPanel();
+            document.getElementById('dailyModal').classList.add('active');
+            playSfx('whoosh', .5);
+        });
+        document.getElementById('closeDailyBtn')?.addEventListener('click', () =>
+            document.getElementById('dailyModal').classList.remove('active'));
+        document.getElementById('claimDaily')?.addEventListener('click', claimDaily);
+
+        // A red dot on the button is enough of a nudge — no forced popup
+        setTimeout(updateDailyDot, 1200);
 
         function checkDailyReward() {
             let data = { last: 0, streak: 0 };
@@ -5464,7 +5685,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.25-1200</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.25-1800</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -7394,7 +7615,7 @@
         }
         function grantXp(amount, reason) {
             if (playerLevel >= MAX_LEVEL) return;
-            playerXp += amount;
+            playerXp += Math.round(amount * eventXpMult());
             let levelled = false;
             while (playerLevel < MAX_LEVEL && playerXp >= xpForLevel(playerLevel)) {
                 playerXp -= xpForLevel(playerLevel);
