@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.25-1800";</script>
+    <script>window.__BUILD__ = "2026.08.25-1900";</script>
     
 
-    <script src="/filter.js?v=2026082518"></script>
-    <script src="/android-bridge.js?v=2026082518"></script>
-    <script src="/playfab-manager.js?v=2026082518"></script>
+    <script src="/filter.js?v=2026082519"></script>
+    <script src="/android-bridge.js?v=2026082519"></script>
+    <script src="/playfab-manager.js?v=2026082519"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -2768,7 +2768,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.25-1800</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.25-1900</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -3392,7 +3392,17 @@
         };
         
         window.buyCosmetic = function(id) { 
-            let c = cosmetics.find(c=>c.id===id); if(!c||c.owned||coinCount<c.price) return; coinCount -= c.price; c.owned = true; updateCoinDisplay(); playSound(selectSound); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
+            let c = cosmetics.find(c=>c.id===id);
+            if (!c || c.owned) return;
+            // Exclusive items are awarded, never sold. Without this the null
+            // price passed the coin check and it could be taken for free.
+            if (c.exclusive || c.price === null || c.price === undefined) {
+                toast({ kind:'warn', title:'Cannot be bought',
+                        body:'The crown is only awarded to event winners.' });
+                return;
+            }
+            if (coinCount < c.price) return;
+            coinCount -= c.price; c.owned = true; updateCoinDisplay(); playSound(selectSound); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
         };
         
         window.equipItem = function(id) { 
@@ -4866,37 +4876,55 @@
             }).join('');
 
             const btn = document.getElementById('claimDaily');
-            btn.disabled = st.claimedToday;
-            btn.textContent = st.claimedToday
-                ? 'ALREADY CLAIMED TODAY'
-                : `CLAIM ${rewardFor(st.nextStreak).coins} COINS`;
-            btn.style.opacity = st.claimedToday ? '.45' : '1';
+            if (btn) {
+                // Not `disabled` — a disabled button swallows the click and
+                // gives no feedback about why nothing happened.
+                btn.classList.toggle('is-claimed', st.claimedToday);
+                btn.textContent = st.claimedToday
+                    ? 'ALREADY CLAIMED TODAY'
+                    : `CLAIM ${rewardFor(st.nextStreak).coins} COINS`;
+                btn.style.opacity = st.claimedToday ? '.45' : '1';
+            }
         }
 
         function claimDaily() {
             const st = dailyState();
-            if (st.claimedToday) return;
+            if (st.claimedToday) {
+                const next = new Date();
+                next.setDate(next.getDate() + 1);
+                next.setHours(0, 0, 0, 0);
+                const hrs = Math.ceil((next - Date.now()) / 3600000);
+                toast({ kind: 'info', title: 'Already claimed today',
+                        body: `Next reward in about ${hrs} hour${hrs === 1 ? '' : 's'}.` });
+                return;
+            }
 
             const streak = st.nextStreak;
             let reward = rewardFor(streak).coins;
 
             // Weekend and event multipliers apply here too
-            if (typeof activeEvent === 'object' && activeEvent?.coinMultiplier) {
-                reward = Math.round(reward * activeEvent.coinMultiplier);
-            }
+            if (typeof eventCoinMult === 'function') reward = Math.round(reward * eventCoinMult());
 
-            coinCount += reward;
-            updateStats();
-            saveGame();
+            // updateStats/saveGame do not exist — those were the wrong names
+            // and the function threw before anything was saved.
             try {
-                localStorage.setItem(DAILY_KEY, JSON.stringify({ last: dayNumber(), streak }));
-            } catch (e) {}
+                coinCount += reward;
+                if (typeof updateCoinDisplay === 'function') updateCoinDisplay();
+                if (typeof autoSave === 'function') autoSave();
 
-            playSfx('purchase');
-            toast({ kind: 'success', title: `🎁 +${reward} coins`,
-                    body: `Day ${((streak - 1) % 7) + 1} claimed. Streak: ${streak}` });
-            renderDailyPanel();
-            updateDailyDot();
+                localStorage.setItem(DAILY_KEY, JSON.stringify({ last: dayNumber(), streak }));
+
+                playSfx('purchase');
+                toast({ kind: 'success', title: `🎁 +${reward} coins`,
+                        body: `Day ${((streak - 1) % 7) + 1} claimed. Streak: ${streak}` });
+                renderDailyPanel();
+                updateDailyDot();
+            } catch (e) {
+                // Surface the failure rather than silently doing nothing
+                console.error('[Daily] claim failed:', e);
+                toast({ kind: 'warn', title: 'Could not claim',
+                        body: mpEsc(e.message || 'Something went wrong') });
+            }
         }
 
         function updateDailyDot() {
@@ -4904,14 +4932,28 @@
             if (dot) dot.style.display = dailyState().claimedToday ? 'none' : '';
         }
 
-        document.getElementById('dailyBtn')?.addEventListener('click', () => {
-            renderDailyPanel();
-            document.getElementById('dailyModal').classList.add('active');
-            playSfx('whoosh', .5);
+        // Delegated so it works regardless of when the markup is parsed.
+        // The previous `?.addEventListener` silently did nothing when the
+        // element was not ready, which is why the button looked dead.
+        document.addEventListener('click', e => {
+            if (e.target.closest('#dailyBtn')) {
+                renderDailyPanel();
+                document.getElementById('dailyModal')?.classList.add('active');
+                playSfx('whoosh', .5);
+                return;
+            }
+            if (e.target.closest('#closeDailyBtn')) {
+                document.getElementById('dailyModal')?.classList.remove('active');
+                return;
+            }
+            if (e.target.closest('#claimDaily')) {
+                claimDaily();
+                return;
+            }
+            if (e.target.id === 'dailyModal') {
+                document.getElementById('dailyModal')?.classList.remove('active');
+            }
         });
-        document.getElementById('closeDailyBtn')?.addEventListener('click', () =>
-            document.getElementById('dailyModal').classList.remove('active'));
-        document.getElementById('claimDaily')?.addEventListener('click', claimDaily);
 
         // A red dot on the button is enough of a nudge — no forced popup
         setTimeout(updateDailyDot, 1200);
@@ -5685,7 +5727,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.25-1800</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.25-1900</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
