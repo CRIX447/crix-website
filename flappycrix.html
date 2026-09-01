@@ -38,12 +38,12 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.08.21-0700";</script>
+    <script>window.__BUILD__ = "2026.08.25-1200";</script>
     
 
-    <script src="/filter.js?v=2026082107"></script>
-    <script src="/android-bridge.js?v=2026082107"></script>
-    <script src="/playfab-manager.js?v=2026082107"></script>
+    <script src="/filter.js?v=2026082512"></script>
+    <script src="/android-bridge.js?v=2026082512"></script>
+    <script src="/playfab-manager.js?v=2026082512"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -1388,6 +1388,10 @@
         .friend-btn.join { color:#00CC7A; }
         .friend-btn.rm { color:#FF4655; font-size:12px; }
 
+        .daily-dots { display:flex; justify-content:center; gap:6px; }
+        .dd { width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.15); }
+        .dd.on { background:#FFD700; box-shadow:0 0 6px rgba(255,215,0,.5); }
+
         /* ---- PLATFORM BADGE ---- */
         .plat-badge {
             display: inline-block; font-size: 11px; margin-right: 4px;
@@ -2487,6 +2491,11 @@
             </div>
             <div class="legal-body" id="legalTerms"></div>
             <div class="legal-body" id="legalPrivacy" style="display:none;"></div>
+            <div style="font-size:10px;color:#8C8C8C;text-align:center;margin-top:12px;line-height:1.8;">
+                Also readable at
+                <a href="/terms" target="_blank" style="color:#00CC7A">crixgamingvr.com/terms</a> and
+                <a href="/privacy" target="_blank" style="color:#00CC7A">/privacy</a>
+            </div>
         </div>
     </div>
 
@@ -2701,7 +2710,7 @@
             </div>
             <div class="set-row">
                 <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.21-0700</span>
+                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.25-1200</span>
             </div>
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
@@ -4674,6 +4683,65 @@
             document.getElementById('enterPairModal').classList.remove('active');
         });
 
+
+        // ═══════════ DAILY REWARD ═══════════
+        // A small reason to come back tomorrow. Streak resets if a day is
+        // missed, but never punishes beyond that.
+        const DAILY_KEY = 'crix_daily_v1';
+
+        function dayNumber() {
+            // Local midnight, so the reset lines up with the player's day
+            const d = new Date();
+            return Math.floor(new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime() / 86400000);
+        }
+
+        function checkDailyReward() {
+            let data = { last: 0, streak: 0 };
+            try { data = JSON.parse(localStorage.getItem(DAILY_KEY)) || data; } catch (e) {}
+
+            const today = dayNumber();
+            if (data.last === today) return;        // already claimed
+
+            const streak = (data.last === today - 1) ? (data.streak || 0) + 1 : 1;
+            // Grows for a week, then plateaus — no runaway rewards
+            const reward = Math.min(500, 100 + (streak - 1) * 60);
+
+            showDailyReward(streak, reward, () => {
+                coinCount += reward;
+                updateStats();
+                saveGame();
+                try { localStorage.setItem(DAILY_KEY, JSON.stringify({ last: today, streak })); } catch (e) {}
+                playSfx('purchase');
+            });
+        }
+
+        function showDailyReward(streak, reward, onClaim) {
+            const el = document.createElement('div');
+            el.className = 'mp-modal active';
+            el.style.zIndex = 48000;
+            el.innerHTML = `
+                <div class="mp-modal-content" style="max-width:340px;text-align:center;">
+                    <div style="font-size:46px;margin-bottom:8px;">🎁</div>
+                    <div style="font-size:19px;font-weight:bold;color:#fff;margin-bottom:4px;">
+                        Daily reward
+                    </div>
+                    <div style="font-size:11px;color:#8C8C8C;margin-bottom:16px;">
+                        ${streak} day streak${streak >= 7 ? ' · maxed out' : ''}
+                    </div>
+                    <div style="font-size:30px;font-weight:bold;color:#FFD700;margin-bottom:6px;">
+                        +${reward}
+                    </div>
+                    <div style="font-size:11px;color:#8C8C8C;margin-bottom:18px;">coins</div>
+                    <div class="daily-dots">
+                        ${Array.from({length:7},(_,i)=>
+                            `<span class="dd${i < streak % 7 || (streak >= 7 && streak % 7 === 0) ? ' on' : ''}"></span>`).join('')}
+                    </div>
+                    <button class="mp-btn-primary" id="dailyClaim" style="width:100%;margin-top:16px;">CLAIM</button>
+                </div>`;
+            document.body.appendChild(el);
+            el.querySelector('#dailyClaim').onclick = () => { onClaim(); el.remove(); };
+        }
+
         // ═══════════ PAIRING CODES ═══════════
         // Owner side: show a code, then approve or deny whoever enters it.
         let pairPoll = null, pairExpiry = 0, currentPairCode = null;
@@ -5396,7 +5464,7 @@
             btn.disabled = true; btn.textContent = 'TESTING…';
 
             // 0. Which build is actually live?
-            diagAdd('Build', 'info', 'Running <code>2026.08.21-0700</code>',
+            diagAdd('Build', 'info', 'Running <code>2026.08.25-1200</code>',
                     'If this is older than the build you just pushed, Vercel is not deploying. ' +
                     'Check Vercel → Settings → Git that it still has access to the repo.');
 
@@ -10129,5 +10197,7 @@
         loadAppConfig();
         drawGame();
     </script>
+    <!-- Vercel Analytics: no cookies, no personal data, matches the privacy policy -->
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
