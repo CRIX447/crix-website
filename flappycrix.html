@@ -1399,6 +1399,7 @@
         .ev-txt b { font-size:13px; color:#fff; }
         .ev-txt i { font-style:normal; font-size:10px; color:#FFB347; }
         .ev-time { font-size:10px; color:#8C8C8C; flex-shrink:0; white-space:nowrap; }
+        .ev-prize { color:#FFD700 !important; font-weight:bold; }
 
         .streak-line { font-size:15px; color:#fff; margin-bottom:4px; }
         .streak-line #streakNum { color:#FFD700; font-weight:bold; font-size:20px; }
@@ -3338,7 +3339,11 @@
         
         function updateStoreDisplay() { 
             let phtml = ''; powerups.forEach(p => { phtml += `<div style="background:#1a1a2a;border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.7);border-radius:14px;padding:10px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"><div style="font-weight:bold;margin-bottom:4px;">⚡ ${p.name}</div><div style="font-size:10px;color:#ccc;margin-bottom:4px;">${p.desc}</div><div style="color:gold;margin-bottom:6px;">🪙 ${p.price}</div><button onclick="buyPowerup('${p.id}')" style="background:${p.active?'#555':'linear-gradient(135deg,#FF4655,#FF6B35)'};border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);padding:4px 12px;border-radius:30px;margin-top:2px;cursor:pointer;color:white;font-weight:bold;font-size:11px;box-shadow:1px 1px 0 rgba(0,0,0,0.3);" ${p.active?'disabled':''}>${p.active?'ACTIVE':'BUY'}</button></div>`; }); document.getElementById('powerupsStoreGrid').innerHTML = phtml; 
-            let chtml = ''; cosmetics.forEach(c => { chtml += `<div style="background:#1a1a2a;border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.7);border-radius:14px;padding:10px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"><img src="${c.image}" style="width:44px;height:44px;object-fit:contain;margin-bottom:4px;" onerror="this.style.display='none'"><div style="font-size:11px;margin-bottom:3px;">${c.name}</div><div style="color:gold;margin-bottom:5px;">🪙 ${c.price}</div><button onclick="buyCosmetic('${c.id}')" style="background:${c.owned?'#333':'linear-gradient(135deg,#FF4655,#FF6B35)'};border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);padding:4px 12px;border-radius:30px;cursor:pointer;color:white;font-weight:bold;font-size:11px;box-shadow:1px 1px 0 rgba(0,0,0,0.3);" ${c.owned?'disabled':''}>${c.owned?'OWNED':'BUY'}</button></div>`; }); document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
+            let chtml = ''; cosmetics.forEach(c => {
+                // Exclusive items never appear in the shop unless owned —
+                // showing something permanently unbuyable is just a tease.
+                if ((c.exclusive || c.price == null) && !c.owned) return;
+                chtml += `<div style="background:#1a1a2a;border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.7);border-radius:14px;padding:10px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"><img src="${c.image}" style="width:44px;height:44px;object-fit:contain;margin-bottom:4px;" onerror="this.style.display='none'"><div style="font-size:11px;margin-bottom:3px;">${c.name}</div><div style="color:gold;margin-bottom:5px;">🪙 ${c.price}</div><button onclick="buyCosmetic('${c.id}')" style="background:${c.owned?'#333':'linear-gradient(135deg,#FF4655,#FF6B35)'};border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);padding:4px 12px;border-radius:30px;cursor:pointer;color:white;font-weight:bold;font-size:11px;box-shadow:1px 1px 0 rgba(0,0,0,0.3);" ${c.owned?'disabled':''}>${c.owned?'OWNED':'BUY'}</button></div>`; }); document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
         }
         
         function updateUnlocksStore() {
@@ -4790,6 +4795,9 @@
             const mult = [];
             if (activeEvent.coinMultiplier > 1) mult.push(`${activeEvent.coinMultiplier}× coins`);
             if (activeEvent.xpMultiplier > 1)   mult.push(`${activeEvent.xpMultiplier}× XP`);
+            // The crown is only mentioned on challenge events. A double coin
+            // weekend has no winner, so promising a prize there would mislead.
+            const hasPrize = activeEvent.type === 'challenge' && activeEvent.prize !== false;
 
             el.innerHTML = `
                 <span class="ev-ico">${activeEvent.icon || '🎉'}</span>
@@ -4797,6 +4805,7 @@
                     <b>${mpEsc(activeEvent.title || 'Event')}</b>
                     ${mult.length ? `<i>${mult.join(' · ')}</i>` : ''}
                     ${activeEvent.description ? `<i>${mpEsc(activeEvent.description)}</i>` : ''}
+                    ${hasPrize ? `<i class="ev-prize">👑 Winner gets the Champion's Crown</i>` : ''}
                 </span>
                 ${activeEvent.endsAt ? `<span class="ev-time" id="evTime"></span>` : ''}`;
             updateEventTimer();
@@ -4887,7 +4896,12 @@
             }
         }
 
+        let _claiming = false;
         function claimDaily() {
+            // In-memory lock so a double tap cannot slip through before the
+            // first claim has been written.
+            if (_claiming) return;
+
             const st = dailyState();
             if (st.claimedToday) {
                 const next = new Date();
@@ -4899,32 +4913,38 @@
                 return;
             }
 
+            _claiming = true;
             const streak = st.nextStreak;
             let reward = rewardFor(streak).coins;
-
-            // Weekend and event multipliers apply here too
             if (typeof eventCoinMult === 'function') reward = Math.round(reward * eventCoinMult());
 
-            // updateStats/saveGame do not exist — those were the wrong names
-            // and the function threw before anything was saved.
+            // RECORD THE CLAIM FIRST. Previously autoSave() ran before this,
+            // and if it threw, the coins were already added but the claim was
+            // never written — so it could be claimed over and over.
             try {
-                coinCount += reward;
-                if (typeof updateCoinDisplay === 'function') updateCoinDisplay();
-                if (typeof autoSave === 'function') autoSave();
-
                 localStorage.setItem(DAILY_KEY, JSON.stringify({ last: dayNumber(), streak }));
-
-                playSfx('purchase');
-                toast({ kind: 'success', title: `🎁 +${reward} coins`,
-                        body: `Day ${((streak - 1) % 7) + 1} claimed. Streak: ${streak}` });
-                renderDailyPanel();
-                updateDailyDot();
             } catch (e) {
-                // Surface the failure rather than silently doing nothing
-                console.error('[Daily] claim failed:', e);
+                _claiming = false;
+                console.error('[Daily] could not record the claim:', e);
                 toast({ kind: 'warn', title: 'Could not claim',
-                        body: mpEsc(e.message || 'Something went wrong') });
+                        body: 'Your browser is blocking storage, so the reward cannot be tracked.' });
+                return;
             }
+
+            // Only now award it. Anything failing past this point costs the
+            // player a reward, which is far better than granting infinite ones.
+            coinCount += reward;
+            try { if (typeof updateCoinDisplay === 'function') updateCoinDisplay(); } catch (e) {}
+            try { if (typeof autoSave === 'function') autoSave(); } catch (e) {
+                console.warn('[Daily] autoSave failed, coins are still local:', e);
+            }
+
+            playSfx('purchase');
+            toast({ kind: 'success', title: `🎁 +${reward} coins`,
+                    body: `Day ${((streak - 1) % 7) + 1} claimed. Streak: ${streak}` });
+            renderDailyPanel();
+            updateDailyDot();
+            _claiming = false;
         }
 
         function updateDailyDot() {
