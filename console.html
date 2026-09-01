@@ -304,6 +304,35 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
       </div>
 
       <div class="panel">
+        <h2>Evidence page</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Off by default. While off, <a href="/evidence" target="_blank" style="color:#00CC7A">/evidence</a>
+          shows a locked screen to everyone.
+        </p>
+        <div class="row">
+          <label>Visibility</label>
+          <select id="evMode">
+            <option value="off">Off — nobody can see it</option>
+            <option value="key">Link only — needs a passcode</option>
+            <option value="on">Public — anyone with the URL</option>
+          </select>
+        </div>
+        <div class="row" id="evKeyRow" style="display:none">
+          <label>Passcode</label>
+          <input id="evKey" placeholder="e.g. crix2026">
+        </div>
+        <div class="row">
+          <label>Locked message</label>
+          <input id="evMsg" placeholder="This page is currently switched off.">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="evSave">Save</button>
+          <button class="btn sm ghost" id="evCopy">Copy share link</button>
+        </div>
+        <div class="out" id="evOut">—</div>
+      </div>
+
+      <div class="panel">
         <h2>Links</h2>
         <p class="dt" style="margin-bottom:10px">
           One per line: <code>logo | image | title | subtitle | url</code><br>
@@ -1039,6 +1068,64 @@ bind('listBansBtn', () => {
         ).join('\n')
       : 'Nobody is currently banned.';
   }).catch(e => { out.className = 'out bad'; out.textContent = e.message; });
+});
+
+
+/* ---- EVIDENCE PAGE VISIBILITY ---- */
+async function evLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('evidence').get();
+    const v = d.exists ? d.data() : {};
+    $('evMode').value = v.enabled ? 'on' : (v.passcode ? 'key' : 'off');
+    $('evKey').value = v.passcode || '';
+    $('evMsg').value = v.message || '';
+    evToggleKeyRow();
+    $('evOut').textContent = v.enabled ? 'Currently PUBLIC.'
+      : v.passcode ? 'Currently link-only.' : 'Currently off.';
+  } catch (e) {
+    $('evOut').className = 'out bad';
+    $('evOut').textContent = e.message;
+  }
+}
+function evToggleKeyRow() {
+  $('evKeyRow').style.display = $('evMode').value === 'key' ? 'flex' : 'none';
+}
+$('evMode').onchange = evToggleKeyRow;
+
+bind('evSave', async () => {
+  const out = $('evOut');
+  const mode = $('evMode').value;
+  const data = {
+    enabled: mode === 'on',
+    passcode: mode === 'key' ? ($('evKey').value.trim() || null) : null,
+    message: $('evMsg').value.trim() || null
+  };
+  if (mode === 'key' && !data.passcode) {
+    out.className = 'out bad'; out.textContent = 'Set a passcode first.'; return;
+  }
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    await firebase.firestore().collection('config').doc('evidence').set(data);
+    out.className = 'out ok';
+    out.textContent = mode === 'on' ? 'Now PUBLIC — anyone with the URL can view it.'
+      : mode === 'key' ? 'Link-only. Use Copy share link to get the URL.'
+      : 'Switched off. Nobody can view it.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked — owners only.' : e.message;
+  }
+});
+
+bind('evCopy', () => {
+  const mode = $('evMode').value;
+  const key = $('evKey').value.trim();
+  const url = 'https://crixgamingvr.com/evidence' +
+              (mode === 'key' && key ? '?key=' + encodeURIComponent(key) : '');
+  navigator.clipboard.writeText(url).then(() => {
+    $('evOut').className = 'out ok';
+    $('evOut').textContent = 'Copied: ' + url;
+  });
 });
 
 /* ---- BIO PAGE EDITOR ---- */
