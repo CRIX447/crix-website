@@ -5,11 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>CRIXGAMING VR</title>
 <meta name="description" content="All my links in one place.">
-<meta property="og:title" content="CRIXGAMING VR">
-<meta property="og:description" content="All my links in one place.">
-<meta property="og:image" content="/img/newfavicon.png">
 <meta name="theme-color" content="#000000">
 <link rel="icon" href="/img/newfavicon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CRIXGAMING VR">
+    <meta property="og:title" content="CRIXGAMING VR">
+    <meta property="og:description" content="All my links in one place.">
+    <meta property="og:url" content="https://crixgamingvr.com/bio">
+    <meta property="og:image" content="https://crixgamingvr.com/img/newfavicon.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CRIXGAMING VR">
+    <meta name="twitter:description" content="All my links in one place.">
+    <meta name="twitter:image" content="https://crixgamingvr.com/img/newfavicon.png">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
@@ -104,6 +113,7 @@ body{
 
 .foot{margin-top:26px;margin-bottom:10px;font-size:10px;color:rgba(255,255,255,.28);line-height:2}
 .foot a{color:rgba(255,255,255,.45);text-decoration:none}
+.foot a:hover{color:#fff}
 
 /* ── AUDIO CONTROL ── */
 #audioBtn{position:fixed;bottom:18px;right:18px;z-index:40;
@@ -229,7 +239,7 @@ const DEFAULTS = {
     { logo:'xbox',      title:'Xbox',      url:'https://xbox.com/en-AU/play/user/NVR' },
     { logo:'globe',     title:'Main Site', url:'/' }
   ],
-    footer: '© CRIXGAMING VR'
+    footer: '<a href="/terms">Terms</a> · <a href="/privacy">Privacy</a><br>© CRIXGAMING VR'
 };
 
 let cfg = DEFAULTS;
@@ -362,5 +372,7 @@ async function countView(db) {
   } catch (e) { /* not important enough to surface */ }
 }
 </script>
+    <!-- Vercel Analytics: no cookies, no personal data, matches the privacy policy -->
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>
