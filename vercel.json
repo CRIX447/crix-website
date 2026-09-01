@@ -96,6 +96,24 @@
           "value": "no-store"
         }
       ]
+    },
+    {
+      "source": "/terms",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/privacy",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
     }
   ],
   "rewrites": [
