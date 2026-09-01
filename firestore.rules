@@ -190,6 +190,13 @@ service cloud.firestore {
 
     // ---- BIO PAGE ----
     // Public read so the page works for everyone; only an owner can edit.
+    // Evidence page visibility — public read so the page can check it,
+    // owner-only write.
+    match /config/evidence {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     match /config/bio {
       allow read: if true;
       allow write: if isOwner();
