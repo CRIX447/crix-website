@@ -304,6 +304,57 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
       </div>
 
       <div class="panel">
+        <h2>Events</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Double coin or XP weekends and challenges. Live the moment you save.
+        </p>
+        <div class="row">
+          <label>Status</label>
+          <select id="evtActive">
+            <option value="off">Off</option>
+            <option value="on">Running</option>
+          </select>
+        </div>
+        <div class="row"><label>Title</label><input id="evtTitle" placeholder="Double Coin Weekend"></div>
+        <div class="row"><label>Subtitle</label><input id="evtDesc" placeholder="Optional line under the title"></div>
+        <div class="row">
+          <label>Icon</label><input id="evtIcon" placeholder="🎉" style="flex:0 0 80px">
+          <label style="flex:0 0 auto">Coins</label>
+          <select id="evtCoins" style="flex:0 0 90px">
+            <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option>
+          </select>
+          <label style="flex:0 0 auto">XP</label>
+          <select id="evtXp" style="flex:0 0 90px">
+            <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Ends</label>
+          <input id="evtEnds" type="datetime-local">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="evtSave">Save event</button>
+          <button class="btn sm ghost" id="evtWeekend">Preset: double coin weekend</button>
+        </div>
+        <div class="out" id="evtOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Award event crown</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Gives the Champion's Crown. It cannot be bought, so this is the only
+          way anyone gets one.
+        </p>
+        <div class="row">
+          <label>PlayFab ID</label><input id="crownId" placeholder="Winner's PlayFab ID">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="crownGive">Award crown</button>
+        </div>
+        <div class="out" id="crownOut">—</div>
+      </div>
+
+      <div class="panel">
         <h2>Evidence page</h2>
         <p class="dt" style="margin-bottom:12px">
           Off by default. While off, <a href="/evidence" target="_blank" style="color:#00CC7A">/evidence</a>
@@ -1070,6 +1121,82 @@ bind('listBansBtn', () => {
   }).catch(e => { out.className = 'out bad'; out.textContent = e.message; });
 });
 
+
+
+/* ---- EVENTS ---- */
+async function evtLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('event').get();
+    const v = d.exists ? d.data() : {};
+    $('evtActive').value = v.active ? 'on' : 'off';
+    $('evtTitle').value = v.title || '';
+    $('evtDesc').value = v.description || '';
+    $('evtIcon').value = v.icon || '';
+    $('evtCoins').value = String(v.coinMultiplier || 1);
+    $('evtXp').value = String(v.xpMultiplier || 1);
+    if (v.endsAt) {
+      const dt = new Date(v.endsAt - new Date().getTimezoneOffset() * 60000);
+      $('evtEnds').value = dt.toISOString().slice(0, 16);
+    }
+    $('evtOut').textContent = v.active
+      ? `Running: ${v.title || 'Untitled'}` + (v.endsAt ? ` until ${new Date(v.endsAt).toLocaleString()}` : '')
+      : 'No event running.';
+  } catch (e) {
+    $('evtOut').className = 'out bad';
+    $('evtOut').textContent = e.message;
+  }
+}
+
+bind('evtWeekend', () => {
+  // Next Friday 6pm to Monday 9am
+  const now = new Date();
+  const end = new Date(now);
+  end.setDate(end.getDate() + ((8 - end.getDay()) % 7 || 7));
+  end.setHours(9, 0, 0, 0);
+  $('evtActive').value = 'on';
+  $('evtTitle').value = 'Double Coin Weekend';
+  $('evtDesc').value = 'Every coin counts twice';
+  $('evtIcon').value = '🪙';
+  $('evtCoins').value = '2';
+  $('evtXp').value = '1';
+  $('evtEnds').value = new Date(end - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('evtOut').textContent = 'Preset filled in — press Save to start it.';
+});
+
+bind('evtSave', async () => {
+  const out = $('evtOut');
+  const on = $('evtActive').value === 'on';
+  const ends = $('evtEnds').value ? new Date($('evtEnds').value).getTime() : null;
+  if (on && ends && ends < Date.now()) {
+    out.className = 'out bad'; out.textContent = 'That end time is in the past.'; return;
+  }
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    await firebase.firestore().collection('config').doc('event').set({
+      active: on,
+      title: $('evtTitle').value.trim() || 'Event',
+      description: $('evtDesc').value.trim() || null,
+      icon: $('evtIcon').value.trim() || '🎉',
+      coinMultiplier: parseInt($('evtCoins').value) || 1,
+      xpMultiplier: parseInt($('evtXp').value) || 1,
+      endsAt: ends
+    });
+    out.className = 'out ok';
+    out.textContent = on ? 'Event is live. Players see it on their next load.' : 'Event switched off.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+
+bind('crownGive', () => {
+  const id = $('crownId').value.trim();
+  if (!id) { $('crownOut').textContent = 'Enter a PlayFab ID.'; return; }
+  if (!confirm(`Award the Champion's Crown to ${id}?`)) return;
+  run('crownOut',
+      () => PlayFabManager.adminAction('grantItem', { targetPlayFabId: id, itemId: 'hat_crown' }),
+      () => `Crown awarded to ${id}.`);
+});
 
 /* ---- EVIDENCE PAGE VISIBILITY ---- */
 async function evLoad() {
