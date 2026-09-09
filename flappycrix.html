@@ -2809,8 +2809,18 @@
             </div>
             <div class="set-row">
                 <div style="flex:1;min-width:0;">
-                    <span class="set-label">Record gameplay</span>
-                    <div class="set-sub" id="recSub">Saves a .webm you can edit</div>
+                    <span class="set-label">What to capture</span>
+                    <div class="set-sub">Screen mode records menus, shop and locker</div>
+                </div>
+                <select class="set-mini-btn" id="recMode" style="padding:6px 10px;">
+                    <option value="canvas">Gameplay only</option>
+                    <option value="screen">Whole window</option>
+                </select>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Record</span>
+                    <div class="set-sub" id="recSub">Saves a .webm — imports into any editor</div>
                 </div>
                 <button class="set-mini-btn" id="recBtn">RECORD</button>
             </div>
@@ -4973,6 +4983,11 @@
         // ---- recording ----
         let mediaRecorder = null, recChunks = [], recStart = 0, recTimer = null;
 
+        // Two capture modes:
+        //   canvas — just the playfield, transparent-free, perfect gameplay
+        //   screen — the whole window, so menus, shop and locker are included
+        let recMode = 'canvas';
+
         async function toggleRecording() {
             const btn = document.getElementById('recBtn');
             const sub = document.getElementById('recSub');
@@ -4983,57 +4998,112 @@
             }
 
             try {
-                // Captures the canvas directly — no screen-share prompt, and
-                // no other windows caught by accident.
-                const stream = canvas.captureStream(60);
+                let stream;
 
-                // Include game audio if the browser allows it
-                try {
-                    const actx = audioCtx();
-                    if (actx && bgMusic) {
-                        const dest = actx.createMediaStreamDestination();
-                        const src = actx.createMediaElementSource(bgMusic);
-                        src.connect(dest); src.connect(actx.destination);
-                        dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
-                    }
-                } catch (e) { /* video only is fine */ }
+                if (recMode === 'screen') {
+                    // Lets you record the shop, locker and menus. The browser
+                    // asks which window to share — pick this tab.
+                    stream = await navigator.mediaDevices.getDisplayMedia({
+                        video: { frameRate: 60, displaySurface: 'browser' },
+                        audio: true
+                    });
+                    // Stop cleanly if they end sharing from the browser's own bar
+                    stream.getVideoTracks()[0].onended = () => {
+                        if (mediaRecorder?.state === 'recording') mediaRecorder.stop();
+                    };
+                } else {
+                    // The canvas has a transparent background, which records as
+                    // black or garbage depending on the browser. Compositing
+                    // onto an opaque canvas first fixes it.
+                    stream = buildCleanCanvasStream();
+                }
 
-                const types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+                const types = [
+                    'video/webm;codecs=vp9,opus',
+                    'video/webm;codecs=vp8,opus',
+                    'video/webm'
+                ];
                 const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
                 mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: mime, videoBitsPerSecond: 8000000   // high, it is a trailer
+                    mimeType: mime,
+                    videoBitsPerSecond: 12000000
                 });
 
                 recChunks = [];
                 mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
                 mediaRecorder.onstop = () => {
                     clearInterval(recTimer);
+                    stopCleanCanvas();
+                    stream.getTracks().forEach(t => t.stop());
+
                     const blob = new Blob(recChunks, { type: 'video/webm' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `flappycrix-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.webm`;
+                    a.download = `flappycrix-${recMode}-${Date.now()}.webm`;
                     a.click();
-                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    setTimeout(() => URL.revokeObjectURL(url), 15000);
 
                     btn.textContent = 'RECORD';
                     btn.style.background = '';
-                    sub.textContent = `Saved — ${(blob.size / 1048576).toFixed(1)} MB`;
+                    sub.textContent = `Saved ${(blob.size / 1048576).toFixed(1)} MB · WebM imports into any editor`;
                     mediaRecorder = null;
                 };
 
                 mediaRecorder.start(1000);
                 recStart = Date.now();
                 btn.textContent = 'STOP';
-                btn.style.background = 'rgba(255,70,85,.3)';
+                btn.style.background = 'rgba(255,70,85,.35)';
                 recTimer = setInterval(() => {
                     const s = Math.floor((Date.now() - recStart) / 1000);
-                    sub.textContent = `Recording — ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+                    sub.textContent = `● Recording ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
                 }, 500);
 
             } catch (e) {
-                sub.textContent = 'Could not record: ' + e.message;
+                sub.textContent = e.name === 'NotAllowedError'
+                    ? 'Screen share was declined.'
+                    : 'Could not record: ' + e.message;
             }
+        }
+
+        // Draws the game onto an opaque canvas each frame. Without this the
+        // transparent background records as black or flickers.
+        let _cleanCv = null, _cleanRaf = null;
+
+        function buildCleanCanvasStream() {
+            _cleanCv = document.createElement('canvas');
+            _cleanCv.width = canvas.width;
+            _cleanCv.height = canvas.height;
+            const cx = _cleanCv.getContext('2d', { alpha: false });
+
+            const paint = () => {
+                // Solid backdrop first, matching the game's own colour
+                cx.fillStyle = '#0d0d16';
+                cx.fillRect(0, 0, _cleanCv.width, _cleanCv.height);
+                cx.drawImage(canvas, 0, 0);
+                _cleanRaf = requestAnimationFrame(paint);
+            };
+            paint();
+
+            const stream = _cleanCv.captureStream(60);
+            try {
+                const actx = audioCtx();
+                if (actx && bgMusic) {
+                    const dest = actx.createMediaStreamDestination();
+                    if (!bgMusic._recSrc) {
+                        bgMusic._recSrc = actx.createMediaElementSource(bgMusic);
+                        bgMusic._recSrc.connect(actx.destination);
+                    }
+                    bgMusic._recSrc.connect(dest);
+                    dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+                }
+            } catch (e) { /* silent video is fine */ }
+            return stream;
+        }
+
+        function stopCleanCanvas() {
+            if (_cleanRaf) { cancelAnimationFrame(_cleanRaf); _cleanRaf = null; }
+            _cleanCv = null;
         }
 
         document.getElementById('autopilotToggle')?.addEventListener('click', function () {
@@ -5043,6 +5113,9 @@
         document.getElementById('cleanToggle')?.addEventListener('click', function () {
             this.classList.toggle('active');
             toggleCleanMode(this.classList.contains('active'));
+        });
+        document.getElementById('recMode')?.addEventListener('change', function () {
+            recMode = this.value;
         });
         document.getElementById('recBtn')?.addEventListener('click', toggleRecording);
 
