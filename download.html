@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Download Flappy Crix — CRIX STUDIOS</title>
+<meta name="description" content="Download the CRIX Launcher and play Flappy Crix on Windows. Free, no ads.">
+<link rel="icon" href="/img/newfavicon.png">
+<meta property="og:title" content="Download Flappy Crix">
+<meta property="og:description" content="Free multiplayer Flappy Bird for Windows. Official download.">
+<meta property="og:image" content="https://crixgamingvr.com/img/newfavicon.png">
+<meta property="og:url" content="https://crixgamingvr.com/download">
+<meta name="twitter:card" content="summary_large_image">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+body{background:#0A0A0F;color:#C9C9C9;font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
+  line-height:1.8;padding:0 20px 70px;
+  background-image:linear-gradient(rgba(255,70,85,.03) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,70,85,.03) 1px,transparent 1px);
+  background-size:48px 48px}
+.wrap{max-width:760px;margin:0 auto}
+header{padding:34px 0 8px;text-align:center}
+.back{color:#8C8C8C;text-decoration:none;font-size:12px;display:inline-block;margin-bottom:20px}
+.back:hover{color:#fff}
+h1{font-size:clamp(30px,8vw,46px);letter-spacing:2px;
+  background:linear-gradient(135deg,#FF4655,#FF6B35,#FFD700);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.5))}
+.studio{font-size:11px;color:#8C8C8C;letter-spacing:3px;text-transform:uppercase;margin-top:6px}
+.tag{font-size:14px;color:#C9C9C9;margin:14px auto 0;max-width:440px}
+
+/* main download */
+.dl-card{background:#101018;border:2px solid #FF4655;border-bottom:5px solid rgba(150,20,35,.7);
+  border-radius:22px;padding:30px 26px;margin:30px 0 16px;text-align:center;
+  box-shadow:5px 5px 0 rgba(0,0,0,.6)}
+.dl-btn{display:inline-flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,#FF4655,#FF6B35);color:#fff;text-decoration:none;
+  border:2px solid rgba(255,255,255,.15);border-bottom:5px solid rgba(0,0,0,.4);
+  border-radius:34px;padding:16px 38px;font-size:17px;font-weight:bold;
+  text-transform:uppercase;letter-spacing:1px}
+.dl-btn:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.dl-btn:active{transform:translateY(2px);border-bottom-width:3px}
+.dl-meta{font-size:11px;color:#8C8C8C;margin-top:14px;line-height:2}
+.dl-meta b{color:#EDEDED}
+
+/* safety notice */
+.safety{background:rgba(255,165,0,.07);border:2px solid rgba(255,165,0,.35);
+  border-radius:16px;padding:18px 20px;margin-bottom:26px}
+.safety h3{font-size:13px;color:#FFB347;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.safety p{font-size:12px;line-height:1.9}
+.safety code{background:rgba(0,0,0,.4);padding:2px 7px;border-radius:5px;color:#00CC7A;font-size:11px}
+
+.platforms{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin:18px 0 12px}
+@media(max-width:520px){.platforms{grid-template-columns:repeat(2,1fr)}}
+.plat{background:#12121A;border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:15px 8px;text-align:center}
+.plat.ready{border-color:rgba(0,204,122,.45);background:rgba(0,204,122,.06)}
+.plat.soon{opacity:.55}
+.plat-ico{font-size:24px}
+.plat-name{font-size:12px;color:#EDEDED;margin-top:5px}
+.plat-state{font-size:9px;margin-top:3px;color:#8C8C8C;text-transform:uppercase;letter-spacing:.5px}
+.plat.ready .plat-state{color:#00CC7A}
+
+h2{font-size:17px;color:#FF6B35;margin:32px 0 12px;text-transform:uppercase;letter-spacing:1px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:11px}
+.box{background:#12121A;border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px 18px}
+.box h4{font-size:13px;color:#fff;margin-bottom:5px}
+.box p{font-size:11px;color:#A0A0A0;line-height:1.9}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
+td{padding:9px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+td:first-child{color:#8C8C8C;width:45%}
+td:last-child{color:#EDEDED}
+.steps{counter-reset:s;list-style:none}
+.steps li{counter-increment:s;position:relative;padding-left:36px;margin-bottom:14px;font-size:12px;line-height:1.9}
+.steps li::before{content:counter(s);position:absolute;left:0;top:0;
+  width:24px;height:24px;border-radius:50%;background:rgba(255,70,85,.15);
+  border:1px solid rgba(255,70,85,.45);color:#FF4655;font-size:11px;
+  display:flex;align-items:center;justify-content:center}
+.alt{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.alt a{flex:1;min-width:180px;text-align:center;text-decoration:none;
+  background:#15151F;border:1px solid rgba(255,255,255,.1);
+  border-bottom:3px solid rgba(0,0,0,.4);border-radius:14px;padding:14px;color:#EDEDED;font-size:13px}
+.alt a:hover{border-color:#FF6B35;color:#fff}
+.alt a span{display:block;font-size:10px;color:#8C8C8C;margin-top:3px}
+footer{margin-top:44px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);
+  font-size:11px;color:#6C6C6C;text-align:center;line-height:2.2}
+footer a{color:#8C8C8C;text-decoration:none;margin:0 7px}
+footer a:hover{color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <a class="back" href="/">← crixgamingvr.com</a>
+    <h1>FLAPPY CRIX</h1>
+    <div class="studio">CRIX STUDIOS</div>
+    <p class="tag">Multiplayer Flappy Bird. Race friends, climb the ranks, collect drip. Free, no ads, nothing to buy.</p>
+  </header>
+
+  <div class="dl-card">
+    <a class="dl-btn" id="dlBtn" href="#">⬇ Download for Windows</a>
+    <div class="dl-meta">
+      <b id="dlName">CRIX Launcher Setup</b> · <b id="dlSize">~85 MB</b> · <span id="dlVer">v1.0.0</span><br>
+      Windows 10 or 11, 64-bit · Installs the launcher, then the game
+    </div>
+  </div>
+
+  <div class="platforms">
+    <div class="plat ready">
+      <div class="plat-ico">🪟</div>
+      <div class="plat-name">Windows</div>
+      <div class="plat-state">Available now</div>
+    </div>
+    <div class="plat soon">
+      <div class="plat-ico">🍎</div>
+      <div class="plat-name">macOS</div>
+      <div class="plat-state">Coming later</div>
+    </div>
+    <div class="plat soon">
+      <div class="plat-ico">🐧</div>
+      <div class="plat-name">Linux</div>
+      <div class="plat-state">Coming later</div>
+    </div>
+    <div class="plat soon">
+      <div class="plat-ico">🤖</div>
+      <div class="plat-name">Android</div>
+      <div class="plat-state">In progress</div>
+    </div>
+  </div>
+  <p style="font-size:11px;color:#8C8C8C;text-align:center;margin-bottom:26px;line-height:1.9">
+    Every platform can play right now in a browser at
+    <a href="/flappycrix" style="color:#00CC7A">crixgamingvr.com/flappycrix</a> —
+    same game, same accounts, same servers.
+  </p>
+
+  <div class="safety">
+    <h3>⚠️ Only download from here</h3>
+    <p>
+      <b>This page is the only official place to download Flappy Crix.</b>
+      Files from anywhere else — other sites, Discord servers, YouTube
+      descriptions, download portals — are not ours and may contain malware.
+    </p>
+    <p style="margin-top:10px">
+      Check the address bar says <code>crixgamingvr.com</code> before downloading.
+      We will never ask you to disable your antivirus, and we do not distribute
+      through third-party download sites.
+    </p>
+  </div>
+
+  <h2>What you get</h2>
+  <div class="grid">
+    <div class="box"><h4>🎮 The game</h4><p>Full multiplayer, ranked, cosmetics, achievements — everything the web version has.</p></div>
+    <div class="box"><h4>💬 CRIX Chat</h4><p>Message and call friends without opening a browser.</p></div>
+    <div class="box"><h4>🔄 Updates itself</h4><p>New versions arrive automatically. You install once and never again.</p></div>
+    <div class="box"><h4>📊 Your stats</h4><p>Level, coins, rank and notifications in one place.</p></div>
+  </div>
+
+  <h2>How to install</h2>
+  <ol class="steps">
+    <li>Press the download button above.</li>
+    <li>Windows may say <b>"Windows protected your PC"</b>. This appears for any app without a paid signing certificate. Click <b>More info</b>, then <b>Run anyway</b>.</li>
+    <li>Follow the installer, then open <b>CRIX Launcher</b>.</li>
+    <li>Sign in, or create an account. Press <b>Play</b> — the game downloads once, then opens.</li>
+  </ol>
+
+  <h2>System requirements</h2>
+  <table>
+    <tr><td>Operating system</td><td>Windows 10 or 11, 64-bit</td></tr>
+    <tr><td>Memory</td><td>4 GB</td></tr>
+    <tr><td>Disk space</td><td id="reqDisk">~400 MB</td></tr>
+    <tr><td>Internet</td><td>Required — the game is online</td></tr>
+    <tr><td>Graphics</td><td>Anything from the last decade</td></tr>
+  </table>
+
+  <h2>Other ways to play</h2>
+  <div class="alt">
+    <a href="/flappycrix">🌐 Play in your browser<span>No download, works anywhere</span></a>
+    <a href="/crixchat">💬 CRIX Chat<span>In your browser</span></a>
+  </div>
+
+  <h2>Common questions</h2>
+  <div class="box" style="margin-bottom:9px">
+    <h4>Is it free?</h4>
+    <p>Yes. No ads, no purchases, nothing to unlock with money.</p>
+  </div>
+  <div class="box" style="margin-bottom:9px">
+    <h4>Why does Windows warn me?</h4>
+    <p>Code signing certificates cost a few hundred pounds a year. Until the game is
+       big enough to justify that, Windows will warn about the installer. It is the same
+       warning shown for most independent software.</p>
+  </div>
+  <div class="box" style="margin-bottom:9px">
+    <h4>Do I need to reinstall for updates?</h4>
+    <p>No. The launcher updates itself and the game updates from the server. Install once.</p>
+  </div>
+  <div class="box">
+    <h4>When are Mac and Linux coming?</h4>
+    <p>No date yet. Windows came first because that is where most players are.
+       Both run perfectly in a browser in the meantime, with the same account
+       and the same servers — you are not missing any features, just the
+       desktop wrapper.</p>
+  </div>
+
+  <footer>
+    <div>
+      <a href="/">Home</a> · <a href="/flappycrix">Play</a> ·
+      <a href="/bio">Links</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a>
+    </div>
+    <div style="margin-top:8px">© CRIX STUDIOS · Inspired by Flappy Bird by Dong Nguyen</div>
+  </footer>
+</div>
+
+<script>
+// Release details live in one place so updating them means editing this block
+// or, better, letting the GitHub API fill them in automatically below.
+const RELEASE = {
+  repo: 'CRIX447/crix-launcher',
+  fallbackUrl: 'https://github.com/CRIX447/crix-launcher/releases/latest',
+  version: '1.0.0',
+  sizeMB: 85
+};
+
+const $ = i => document.getElementById(i);
+
+(async function () {
+  $('dlBtn').href = RELEASE.fallbackUrl;
+
+  // Pull the real file name, size and version from the latest GitHub release,
+  // so this page never shows stale numbers.
+  try {
+    const r = await fetch(`https://api.github.com/repos/${RELEASE.repo}/releases/latest`);
+    if (!r.ok) return;
+    const rel = await r.json();
+    const exe = (rel.assets || []).find(a => a.name.endsWith('.exe'));
+    if (!exe) return;
+
+    $('dlBtn').href = exe.browser_download_url;
+    $('dlName').textContent = exe.name.replace(/\.exe$/, '');
+    $('dlSize').textContent = (exe.size / 1048576).toFixed(0) + ' MB';
+    $('dlVer').textContent = rel.tag_name || 'v' + RELEASE.version;
+    $('reqDisk').textContent = '~' + Math.round((exe.size / 1048576) * 3.5) + ' MB';
+  } catch (e) {
+    // Falls back to the release page, which always works
+  }
+})();
+</script>
+<script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>
