@@ -409,18 +409,53 @@ $('gGoogle').onclick = async () => {
   }
 };
 
-// Completes a redirect sign-in when the window comes back
-if (auth) auth.getRedirectResult().catch(() => {});
+let isSignUp = false;
+
+$('gSwap').onclick = () => {
+  isSignUp = !isSignUp;
+  $('dname').style.display = isSignUp ? '' : 'none';
+  $('tosRow').style.display = isSignUp ? 'flex' : 'none';
+  $('gAuth').textContent = isSignUp ? 'Create account' : 'Sign in';
+  $('gSwap').textContent = isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up';
+  $('gErr').textContent = '';
+};
+$('tosLink').onclick = e => { e.preventDefault(); crix.openExternal(SITE + '/terms'); };
+$('privLink2').onclick = e => { e.preventDefault(); crix.openExternal(SITE + '/privacy'); };
+
 $('gAuth').onclick = async () => {
   const em = $('email').value.trim(), pw = $('pass').value;
-  if (!em || !pw) { $('gErr').textContent = 'Enter your email and password.'; return; }
+  const err = $('gErr');
+  err.style.color = '#FF4655';
+
+  if (!em || !pw) { err.textContent = 'Enter your email and password.'; return; }
+
+  if (isSignUp) {
+    if (!$('dname').value.trim()) { err.textContent = 'Choose a display name.'; return; }
+    if (pw.length < 6) { err.textContent = 'Password must be at least 6 characters.'; return; }
+    if (!$('tosAgree').checked) { err.textContent = 'Please agree to the Terms and Privacy Policy.'; return; }
+  }
+
   $('gAuth').disabled = true;
-  try { await auth.signInWithEmailAndPassword(em, pw); }
-  catch (e) {
-    const m = { 'auth/wrong-password':'Incorrect password.',
-                'auth/user-not-found':'No account with that email.',
-                'auth/invalid-credential':'Incorrect email or password.' };
-    $('gErr').textContent = m[e.code] || e.message;
+  try {
+    if (isSignUp) {
+      const cred = await auth.createUserWithEmailAndPassword(em, pw);
+      await cred.user.updateProfile({ displayName: $('dname').value.trim() });
+      await cred.user.sendEmailVerification().catch(() => {});
+      err.style.color = '#00CC7A';
+      err.textContent = 'Account created — check your email to verify it.';
+    } else {
+      await auth.signInWithEmailAndPassword(em, pw);
+    }
+  } catch (e) {
+    const m = {
+      'auth/wrong-password':'Incorrect password.',
+      'auth/user-not-found':'No account with that email.',
+      'auth/invalid-credential':'Incorrect email or password.',
+      'auth/email-already-in-use':'That email already has an account — sign in instead.',
+      'auth/weak-password':'Password must be at least 6 characters.',
+      'auth/invalid-email':'That email address is not valid.'
+    };
+    err.textContent = m[e.code] || e.message;
   } finally { $('gAuth').disabled = false; }
 };
 $('signOut').onclick = e => { e.preventDefault(); auth.signOut(); };
