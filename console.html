@@ -107,6 +107,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
     <button class="tab" data-t="bio">Bio Page</button>
+    <button class="tab" data-t="trailer">Trailer</button>
     <button class="tab" data-t="health">PlayFab</button>
     <button class="tab" data-t="deploy">Deploy</button>
     <button class="tab" data-t="system">System</button>
@@ -418,6 +419,82 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
           <button class="btn sm ghost" id="bioClearLinks">Clear all links</button>
         </div>
         <div class="out" id="bioOut">—</div>
+      </div>
+    </div>
+
+    <div class="view" id="v-trailer" style="display:none;">
+      <div class="panel">
+        <h2>Trailer assets</h2>
+        <p class="dt" style="margin-bottom:14px">
+          Makes transparent PNGs in the game's font and colours, ready to drop
+          straight into your editor.
+        </p>
+
+        <div class="row"><label>Text</label><input id="trText" placeholder="FLAPPY CRIX" value="FLAPPY CRIX"></div>
+        <div class="row"><label>Subtitle</label><input id="trSub" placeholder="Optional second line"></div>
+        <div class="row">
+          <label>Style</label>
+          <select id="trStyle">
+            <option value="gradient">Gradient — red to gold</option>
+            <option value="white">White</option>
+            <option value="outline">Outline only</option>
+            <option value="red">Solid red</option>
+            <option value="green">Solid green</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Backdrop</label>
+          <select id="trBack">
+            <option value="none">None — transparent</option>
+            <option value="bar">Bar behind the text</option>
+            <option value="panel">Rounded panel</option>
+            <option value="lower">Lower third</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Size</label>
+          <select id="trSize" style="flex:0 0 150px">
+            <option value="1920x1080">1920 × 1080</option>
+            <option value="1080x1920">1080 × 1920 — vertical</option>
+            <option value="1080x1080">1080 × 1080 — square</option>
+            <option value="3840x2160">3840 × 2160 — 4K</option>
+          </select>
+          <label style="flex:0 0 auto">Position</label>
+          <select id="trPos">
+            <option value="center">Centre</option>
+            <option value="lower">Lower third</option>
+            <option value="upper">Upper third</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="trMake">Generate</button>
+          <button class="btn sm ghost" id="trDownload" disabled>Download PNG</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Preview</h2>
+        <p class="dt" style="margin-bottom:10px">Checkerboard means transparent.</p>
+        <div id="trPreviewWrap" style="background-image:
+             linear-gradient(45deg,#1a1a24 25%,transparent 25%),
+             linear-gradient(-45deg,#1a1a24 25%,transparent 25%),
+             linear-gradient(45deg,transparent 75%,#1a1a24 75%),
+             linear-gradient(-45deg,transparent 75%,#1a1a24 75%);
+             background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;
+             border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;">
+          <canvas id="trCanvas" style="max-width:100%;display:block;margin:0 auto;"></canvas>
+        </div>
+        <div class="out" id="trOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Quick presets</h2>
+        <div class="row" style="flex-wrap:wrap;gap:6px">
+          <button class="btn sm ghost" data-preset="title">Title card</button>
+          <button class="btn sm ghost" data-preset="feature">Feature callout</button>
+          <button class="btn sm ghost" data-preset="outnow">Out now</button>
+          <button class="btn sm ghost" data-preset="download">Download bar</button>
+        </div>
       </div>
     </div>
 
@@ -1131,6 +1208,139 @@ bind('listBansBtn', () => {
 });
 
 
+
+
+/* ---- TRAILER ASSET GENERATOR ---- */
+let trFontReady = false;
+
+// The game font has to be loaded before drawing, or the canvas silently
+// falls back to a system font.
+(function loadGameFont() {
+  try {
+    const f = new FontFace('CRIX Pixel', "url('/img/font.otf')");
+    f.load().then(loaded => { document.fonts.add(loaded); trFontReady = true; })
+            .catch(() => { trFontReady = false; });
+  } catch (e) {}
+})();
+
+function trFont(size) {
+  return `bold ${size}px "CRIX Pixel", "Fredoka One", system-ui, sans-serif`;
+}
+
+function drawTrailerAsset() {
+  const cv = $('trCanvas');
+  const [w, h] = $('trSize').value.split('x').map(Number);
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  const text = $('trText').value || 'FLAPPY CRIX';
+  const sub = $('trSub').value.trim();
+  const style = $('trStyle').value;
+  const back = $('trBack').value;
+  const pos = $('trPos').value;
+
+  const size = Math.round(w * 0.075);
+  const subSize = Math.round(size * 0.34);
+  let cy = pos === 'center' ? h / 2 : pos === 'lower' ? h * 0.78 : h * 0.22;
+
+  ctx.font = trFont(size);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(text).width;
+
+  // ---- backdrop ----
+  const padX = size * 0.7, padY = size * 0.45;
+  const boxW = tw + padX * 2;
+  const boxH = size + padY * 2 + (sub ? subSize * 1.8 : 0);
+
+  if (back === 'bar') {
+    ctx.fillStyle = 'rgba(10,10,15,.86)';
+    ctx.fillRect(0, cy - boxH / 2, w, boxH);
+    ctx.fillStyle = '#FF4655';
+    ctx.fillRect(0, cy - boxH / 2, w, 5);
+    ctx.fillRect(0, cy + boxH / 2 - 5, w, 5);
+  } else if (back === 'panel') {
+    const x = (w - boxW) / 2, y = cy - boxH / 2, r = size * 0.35;
+    ctx.fillStyle = 'rgba(16,16,24,.92)';
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + boxW, y, x + boxW, y + boxH, r);
+    ctx.arcTo(x + boxW, y + boxH, x, y + boxH, r);
+    ctx.arcTo(x, y + boxH, x, y, r);
+    ctx.arcTo(x, y, x + boxW, y, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#FF4655';
+    ctx.lineWidth = Math.max(3, size * 0.05);
+    ctx.stroke();
+  } else if (back === 'lower') {
+    const g = ctx.createLinearGradient(0, cy - boxH, 0, cy + boxH);
+    g.addColorStop(0, 'rgba(10,10,15,0)');
+    g.addColorStop(.35, 'rgba(10,10,15,.88)');
+    g.addColorStop(1, 'rgba(10,10,15,.88)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, cy - boxH, w, h - (cy - boxH));
+  }
+
+  // ---- text ----
+  const textY = sub ? cy - subSize * 0.7 : cy;
+
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowOffsetY = Math.round(size * 0.06);
+  ctx.shadowBlur = 0;
+
+  if (style === 'gradient') {
+    const g = ctx.createLinearGradient(w/2 - tw/2, 0, w/2 + tw/2, 0);
+    g.addColorStop(0, '#FF4655'); g.addColorStop(.5, '#FF6B35'); g.addColorStop(1, '#FFD700');
+    ctx.fillStyle = g;
+    ctx.fillText(text, w/2, textY);
+  } else if (style === 'outline') {
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#FF4655';
+    ctx.lineWidth = Math.max(3, size * 0.045);
+    ctx.strokeText(text, w/2, textY);
+  } else {
+    ctx.fillStyle = style === 'white' ? '#FFFFFF' : style === 'green' ? '#00CC7A' : '#FF4655';
+    ctx.fillText(text, w/2, textY);
+  }
+
+  if (sub) {
+    ctx.shadowOffsetY = Math.round(subSize * 0.08);
+    ctx.font = trFont(subSize);
+    ctx.fillStyle = '#C9C9C9';
+    ctx.fillText(sub, w/2, cy + size * 0.62);
+  }
+  ctx.shadowColor = 'transparent';
+
+  $('trDownload').disabled = false;
+  $('trOut').className = 'out ok';
+  $('trOut').textContent = `${w} × ${h} ready` +
+    (trFontReady ? '' : ' — game font did not load, using a fallback');
+}
+
+bind('trMake', drawTrailerAsset);
+bind('trDownload', () => {
+  const a = document.createElement('a');
+  const name = ($('trText').value || 'asset').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  a.download = `crix-${name || 'asset'}-${$('trSize').value}.png`;
+  a.href = $('trCanvas').toDataURL('image/png');
+  a.click();
+});
+
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
+  const p = b.dataset.preset;
+  if (p === 'title')    { $('trText').value='FLAPPY CRIX'; $('trSub').value='CRIX STUDIOS';
+                          $('trStyle').value='gradient'; $('trBack').value='none'; $('trPos').value='center'; }
+  if (p === 'feature')  { $('trText').value='MULTIPLAYER'; $('trSub').value='Race your friends';
+                          $('trStyle').value='white'; $('trBack').value='panel'; $('trPos').value='lower'; }
+  if (p === 'outnow')   { $('trText').value='OUT NOW'; $('trSub').value='crixgamingvr.com';
+                          $('trStyle').value='gradient'; $('trBack').value='lower'; $('trPos').value='lower'; }
+  if (p === 'download') { $('trText').value='FREE ON WINDOWS'; $('trSub').value='crixgamingvr.com/download';
+                          $('trStyle').value='white'; $('trBack').value='bar'; $('trPos').value='lower'; }
+  drawTrailerAsset();
+});
 
 /* ---- EVENTS ---- */
 async function evtLoad() {
