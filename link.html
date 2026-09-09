@@ -121,7 +121,15 @@ let auth = null;
     $('meName').textContent = name;
     $('meAv').textContent = name.charAt(0).toUpperCase();
     if (u.photoURL) $('meAv').outerHTML = `<img class="av" id="meAv" src="${u.photoURL}" alt="">`;
-    $('code').focus();
+    // The launcher opens this with the code already in the URL, so there is
+  // nothing to type — just sign in and confirm.
+  const preset = new URLSearchParams(location.search).get('code');
+  if (preset) {
+    $('code').value = preset.toUpperCase();
+    $('linkMsg').className = 'msg';
+    $('linkMsg').textContent = 'Code filled in from the launcher — press Link device.';
+  }
+  $('code').focus();
   });
 })();
 
