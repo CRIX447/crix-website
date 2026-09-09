@@ -4619,6 +4619,14 @@
                         // Finish an in-progress Discord link first, then refresh
                         try { handleDiscordCallback(); } catch(e) { console.warn('[Discord]', e.message); }
                         try { loadDiscordLink(); } catch(e) { console.warn('[Discord]', e.message); }
+                        // Restore a saved picture — it lives in Firestore, not
+                        // in the Auth profile, so it has to be fetched.
+                        try {
+                            if (db) db.collection('users').doc(user.uid).get().then(d => {
+                                const a = d.exists && d.data().avatar;
+                                if (a) { mpProfile.avatar = a; mpSaveProfile(); updateAvatarEverywhere(a); }
+                            }).catch(() => {});
+                        } catch(e) {}
                         try { checkVerification(); } catch(e) {}
                         try { startPairWatch(); } catch(e) {}
                     }, 400);
@@ -7181,7 +7189,8 @@
                 // Stored inline as a data URL rather than in Cloud Storage.
                 // A 256px avatar is only a few KB, well within Firestore's
                 // 1MB document limit, so no extra Firebase product is needed.
-                const dataUrl = await resizeToDataUrl(file, 256, 0.85);
+                // 160px keeps a data URL around 4KB, well inside document limits
+                const dataUrl = await resizeToDataUrl(file, 160, 0.82);
                 await setAvatar(dataUrl);
                 show('Saved ✓', '#00CC7A');
                 setTimeout(() => show(''), 2500);
@@ -7205,7 +7214,7 @@
                     cv.width = cv.height = size;
                     cv.getContext('2d').drawImage(img, sx, sy, side, side, 0, 0, size, size);
                     let q = quality, url = cv.toDataURL('image/jpeg', q);
-                    while (url.length > 120000 && q > 0.4) { q -= 0.12; url = cv.toDataURL('image/jpeg', q); }
+                    while (url.length > 60000 && q > 0.4) { q -= 0.12; url = cv.toDataURL('image/jpeg', q); }
                     URL.revokeObjectURL(img.src);
                     resolve(url);
                 };
@@ -7215,32 +7224,70 @@
         }
 
         async function setAvatar(url) {
+            const isDataUrl = typeof url === 'string' && url.startsWith('data:');
+
             mpProfile.avatar = url;
             mpSaveProfile();
-            // Persist on the Firebase account too, so it survives a new device
+
             if (currentUser) {
-                currentUser.updateProfile({ photoURL: url }).catch(() => {});
-                if (db) db.collection('users').doc(currentUser.uid)
-                          .set({ photoURL: url }, { merge: true }).catch(() => {});
+                // Firebase Auth's photoURL has a length limit and a data URL
+                // blows past it, which threw and was silently swallowed. Only
+                // real URLs go there; the image itself lives in Firestore.
+                if (!isDataUrl) {
+                    currentUser.updateProfile({ photoURL: url }).catch(e =>
+                        console.warn('[Avatar] updateProfile failed:', e.message));
+                }
+                if (db) {
+                    try {
+                        await db.collection('users').doc(currentUser.uid).set({
+                            avatar: url,
+                            avatarIsData: isDataUrl,
+                            playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                        }, { merge: true });
+                    } catch (e) {
+                        console.error('[Avatar] could not save:', e);
+                        toast({ kind:'warn', title:'Could not save picture',
+                                body: /permission/i.test(e.message)
+                                      ? 'Publish firestore.rules to enable this.'
+                                      : mpEsc(e.message) });
+                        return;
+                    }
+                }
             }
+
             renderAvatarGrid();
-            // Persist to PlayFab so friends see it too
-            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady &&
-                typeof PlayFabManager.setAvatar === 'function') {
-                PlayFabManager.setAvatar(url).catch(() => {});
+            updateAvatarEverywhere(url);
+
+            // Tell anyone in the lobby, so it updates without a rejoin
+            if (mpCurrentRoom && typeof mpRaiseEvent === 'function') {
+                try {
+                    mpRaiseEvent(MP_EV.NAME_UPDATE, {
+                        name: mpGetDisplayName(), platform: myPlatform,
+                        colour: mpGetColour(), roles: myRoles, level: playerLevel,
+                        pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                        photo: url,
+                        hat: cosmetics.find(x=>x.type==='hat'&&x.equipped)?.id || null,
+                        shirt: cosmetics.find(x=>x.type==='shirt'&&x.equipped)?.id || null
+                    }, { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+                } catch (e) {}
             }
-            // Tell the current lobby straight away
-            if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, {
-                    name: mpGetDisplayName(),
-                    platform: myPlatform, colour: mpGetColour(), roles: myRoles,
-                    level: playerLevel, presence: myPresence,
-                    pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
-                    photo: url
-                });
-                if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].photo = url;
-                mpRenderLobby();
-            }
+        }
+
+        // One place that refreshes every visible copy of your own avatar.
+        // Previously some of these were only updated on a full reload, which
+        // is why the picture looked like it had not changed.
+        function updateAvatarEverywhere(url) {
+            const initial = (mpGetDisplayName() || 'P').charAt(0).toUpperCase();
+            document.querySelectorAll('#meAv, #setMiniAv, .my-avatar').forEach(el => {
+                if (!el) return;
+                if (url) {
+                    el.innerHTML = `<img src="${mpEsc(url)}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+                } else {
+                    el.textContent = initial;
+                }
+            });
+            if (mpCurrentRoom) mpRenderLobby();
         }
 
         // ---- PLAYERS YOU'VE MET (local roster) ----
@@ -7421,6 +7468,24 @@
         // can join. Stops cleanly on sign-out and page close.
         let _hbTimer = null, _presenceWatcher = null, _friendPresence = {};
 
+        // "3 minutes ago", "2 hours ago", "yesterday" — friendlier than a
+        // timestamp and enough detail to be useful.
+        function timeAgo(ms) {
+            if (!ms) return 'a while ago';
+            const s = Math.floor((Date.now() - ms) / 1000);
+            if (s < 60) return 'just now';
+            const m = Math.floor(s / 60);
+            if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`;
+            const h = Math.floor(m / 60);
+            if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+            const d = Math.floor(h / 24);
+            if (d === 1) return 'yesterday';
+            if (d < 7) return `${d} days ago`;
+            const w = Math.floor(d / 7);
+            if (w < 5) return `${w} week${w === 1 ? '' : 's'} ago`;
+            return 'a long time ago';
+        }
+
         function presenceState() {
             const joinable = !!(mpCurrentRoom &&
                                 mpCurrentRoom.privacy !== 'invite' &&
@@ -7431,9 +7496,13 @@
                 photo: currentAvatar(),
                 plat: myPlatform,
                 status: myPresence,
-                roomCode: mpCurrentRoom ? mpCurrentRoom.code : null,
+                // Appearing offline hides the room code too — otherwise
+                // friends could still see and join your lobby.
+                invisible: myPresence === 'invisible' || myPresence === 'offline',
+                roomCode: (myPresence === 'invisible' || myPresence === 'offline')
+                          ? null : (mpCurrentRoom ? mpCurrentRoom.code : null),
                 roomMode: mpCurrentRoom ? mpCurrentRoom.mode : null,
-                joinable,
+                joinable: joinable && myPresence !== 'invisible' && myPresence !== 'offline',
                 level: playerLevel
             };
         }
@@ -7605,9 +7674,13 @@
                     actions = `<button class="fr-accept" data-act="unblock">UNBLOCK</button>`;
                 }
 
+                const offline = !pres.status || pres.status === 'offline';
                 const sub = friendTab === 'friends'
-                    ? `<span class="dot" style="background:${meta.colour}"></span>${meta.label}` +
-                      (pres.roomCode ? ` · ${joinable ? 'in a joinable lobby' : 'in a match'}` : '') +
+                    ? `<span class="dot" style="background:${meta.colour}"></span>` +
+                      (offline
+                        ? (pres.lastOnline ? 'Last seen ' + timeAgo(pres.lastOnline) : 'Offline')
+                        : meta.label +
+                          (pres.roomCode ? ` · ${joinable ? 'in a joinable lobby' : 'in a match'}` : '')) +
                       (pres.level ? ` · lvl ${pres.level}` : '')
                     : friendTab === 'incoming' ? 'wants to be friends'
                     : friendTab === 'outgoing' ? 'request pending'
