@@ -1401,6 +1401,33 @@
         .ev-time { font-size:10px; color:#8C8C8C; flex-shrink:0; white-space:nowrap; }
         .ev-prize { color:#FFD700 !important; font-weight:bold; }
 
+        .tos-check { display:flex; align-items:flex-start; gap:9px;
+            font-size:11px; color:#A0A0A0; line-height:1.6;
+            margin:10px 0 4px; cursor:pointer; text-align:left; }
+        .tos-check input { width:17px; height:17px; accent-color:#FF4655;
+            flex-shrink:0; margin-top:1px; cursor:pointer; }
+        .tos-check a { color:#00CC7A; }
+
+        .pause-warn { background:rgba(255,70,85,.1); border:1px solid rgba(255,70,85,.35);
+            border-radius:11px; padding:11px 13px; font-size:11px; color:#FF8A94;
+            line-height:1.7; margin-bottom:12px; }
+        .pause-stats { display:flex; gap:8px; margin-bottom:6px; }
+        .pause-stats > div { flex:1; background:rgba(0,0,0,.3);
+            border:1px solid rgba(255,255,255,.07); border-radius:12px;
+            padding:10px; text-align:center; }
+        .pause-stats span { display:block; font-size:8px; color:var(--green);
+            text-transform:uppercase; letter-spacing:1px; }
+        .pause-stats b { display:block; font-size:18px; color:#fff; margin-top:3px; }
+        .pause-shop { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+        .ps-item { background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+            border-radius:12px; padding:10px 4px; text-align:center; cursor:pointer;
+            transition:border-color .12s; }
+        .ps-item:hover:not(.ps-off) { border-color:var(--orange); }
+        .ps-item.ps-off { opacity:.4; cursor:default; }
+        .ps-ico { font-size:19px; }
+        .ps-name { font-size:9px; color:#C9C9C9; margin-top:3px; }
+        .ps-cost { font-size:11px; color:#FFD700; font-weight:bold; margin-top:2px; }
+
         .streak-line { font-size:15px; color:#fff; margin-bottom:4px; }
         .streak-line #streakNum { color:#FFD700; font-weight:bold; font-size:20px; }
         .streak-sub { display:block; font-size:10px; color:#8C8C8C; margin-top:3px; }
@@ -1791,6 +1818,11 @@
             <div id="authForm">
                 <input type="email" id="authEmail" class="auth-input" placeholder="Email">
                 <input type="password" id="authPassword" class="auth-input" placeholder="Password">
+                <label class="tos-check" id="tosRow" style="display:none;">
+                    <input type="checkbox" id="tosAgree">
+                    <span>I agree to the <a href="/terms" target="_blank">Terms</a>
+                          and <a href="/privacy" target="_blank">Privacy Policy</a></span>
+                </label>
                 <input type="text" id="authUsername" class="auth-input" placeholder="Display Name (new accounts)" style="display:none;">
                 <button class="auth-btn" id="authSubmitBtn">SIGN IN</button>
             </div>
@@ -1836,6 +1868,7 @@
             <!-- Staff controls while a match is running. Hidden unless you
                  hold a role, and only during play. -->
             <div class="ingame-bar" id="ingameBar">
+                <button class="ig-btn" id="ingamePauseBtn" title="Pause">⏸</button>
                 <button class="ig-btn" id="ingameMenuBtn" title="Menu">☰</button>
                 <button class="ig-btn" id="ingameMusicBtn" title="Music">🔊</button>
                 <button class="ig-btn sandbox" id="ingameSandboxBtn" title="Sandbox" style="display:none;">🎮</button>
@@ -2410,6 +2443,28 @@
                     GET A NEW CODE
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- PAUSE -->
+    <div class="mp-modal" id="pauseModal" style="z-index:46600;">
+        <div class="mp-modal-content" style="max-width:380px;">
+            <div class="modal-header">
+                <div class="modal-title">⏸ PAUSED</div>
+            </div>
+            <div id="pauseWarn" class="pause-warn" style="display:none;">
+                ⚠️ You cannot pause a multiplayer match. Leaving now counts as a death.
+            </div>
+            <div class="pause-stats">
+                <div><span>Score</span><b id="pauseScore">0</b></div>
+                <div><span>Coins</span><b id="pauseCoins">0</b></div>
+            </div>
+
+            <div class="mp-section-title">⚡ QUICK BUY</div>
+            <div class="pause-shop" id="pauseShop"></div>
+
+            <button class="mp-btn-primary" id="pauseResume" style="width:100%;margin-top:12px;">RESUME</button>
+            <button class="mp-btn-secondary" id="pauseQuit" style="width:100%;margin-top:8px;">QUIT TO MENU</button>
         </div>
     </div>
 
@@ -4017,6 +4072,7 @@
         const DEFAULT_SETTINGS = {
             sfxEnabled: true,
             sfxVolume: 1,
+            showLeaderboard: false,   // off by default — it covers the playfield
             uiSounds: false,   // menu blips off by default — they got annoying
             showFps: false, showNames: true, reducedMotion: false,
             musicVol: 30, sfxVol: 100, mentionNotify: true, pfIdVisible: false
@@ -4507,7 +4563,9 @@
             }
             if (mpCurrentRoom) {
                 mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
-                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
+                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null,
+                    hat: cosmetics.find(x=>x.type==='hat'&&x.equipped)?.id || null,
+                    shirt: cosmetics.find(x=>x.type==='shirt'&&x.equipped)?.id || null });
                 if (typeof mpRenderLobby === 'function') mpRenderLobby();
                 if (typeof mpUpdateHud === 'function') mpUpdateHud();
             }
@@ -4759,6 +4817,79 @@
         });
 
 
+
+
+        // ═══════════ PAUSE ═══════════
+        // Single player pauses properly. Multiplayer cannot — the match keeps
+        // running for everyone else, so opening this counts as a death.
+        let isPaused = false;
+
+        function togglePause() {
+            if (!gameRunning || gameOver) return;
+            if (isPaused) { resumeGame(); return; }
+
+            isPaused = true;
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+
+            const inMatch = mpMatchActive;
+            document.getElementById('pauseWarn').style.display = inMatch ? '' : 'none';
+            document.getElementById('pauseScore').textContent = score;
+            document.getElementById('pauseCoins').textContent =
+                typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount;
+            renderPauseShop();
+            document.getElementById('pauseModal').classList.add('active');
+            if (bgMusic && !musicMuted) bgMusic.pause();
+
+            // In multiplayer the world does not stop, so pausing kills you
+            if (inMatch) {
+                gameOver = true;
+                if (typeof handleDeath === 'function') handleDeath();
+                mpLobbyChatAppend(null, 'You paused, so you are out of this round.', true);
+            }
+        }
+
+        function resumeGame() {
+            isPaused = false;
+            document.getElementById('pauseModal').classList.remove('active');
+            if (bgMusic && !musicMuted) bgMusic.play().catch(() => {});
+            if (!gameOver && gameRunning) {
+                _lastTime = 0;   // avoids a huge delta jump on resume
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        function renderPauseShop() {
+            const el = document.getElementById('pauseShop');
+            if (!el) return;
+            el.innerHTML = powerups.map(p => {
+                const cannot = p.active || coinCount < p.price;
+                return `<div class="ps-item ${cannot ? 'ps-off' : ''}" data-pu="${p.id}">
+                    <div class="ps-ico">${p.active ? '✓' : '⚡'}</div>
+                    <div class="ps-name">${mpEsc(p.name)}</div>
+                    <div class="ps-cost">${p.active ? 'Active' : formatCoins(p.price)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        document.addEventListener('click', e => {
+            if (e.target.closest('#pauseResume')) { resumeGame(); return; }
+            if (e.target.closest('#pauseQuit')) {
+                isPaused = false;
+                document.getElementById('pauseModal').classList.remove('active');
+                backToMenu();
+                return;
+            }
+            const pu = e.target.closest('[data-pu]');
+            if (pu && document.getElementById('pauseModal')?.classList.contains('active')) {
+                buyPowerup(pu.dataset.pu);
+                renderPauseShop();
+                document.getElementById('pauseCoins').textContent = formatCoins(coinCount);
+            }
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && gameRunning && !gameOver) { e.preventDefault(); togglePause(); }
+        });
 
         // ═══════════ EVENTS ═══════════
         // Console-controlled. Double coins or XP weekends, plus challenges
@@ -6050,6 +6181,7 @@
         document.getElementById('mpHudBtn')?.addEventListener('click', () => {
             document.getElementById('mpHud')?.classList.toggle('open');
         });
+        document.getElementById('ingamePauseBtn')?.addEventListener('click', togglePause);
         document.getElementById('ingameMusicBtn')?.addEventListener('click', () => setMusic(musicMuted));
         document.getElementById('ingameSandboxBtn')?.addEventListener('click', () => {
             refreshPlayerMenu();
@@ -7775,6 +7907,41 @@
         let _regionTimer = null;
 
         let _regionBusy = false;
+        // Reconnects with backoff after an unexpected drop. Gives up after a
+        // handful of tries so it does not hammer the servers forever.
+        let _reconnectAttempts = 0, _reconnectTimer = null;
+        let mpIntentionalDisconnect = false;
+
+        function scheduleReconnect() {
+            if (_reconnectTimer) return;
+            if (_reconnectAttempts >= 5) {
+                mpSetStatusDot('offline');
+                toast({ kind:'warn', title:'Lost connection',
+                        body:'Could not reconnect. Check your internet and try again.' });
+                return;
+            }
+            const delay = Math.min(15000, 1500 * Math.pow(2, _reconnectAttempts));
+            _reconnectAttempts++;
+            mpSetStatusDot('connecting');
+            console.log(`[Photon] reconnecting in ${delay}ms (attempt ${_reconnectAttempts})`);
+            if (_reconnectAttempts === 1) {
+                toast({ kind:'warn', title:'Connection lost', body:'Reconnecting…' });
+            }
+            _reconnectTimer = setTimeout(() => {
+                _reconnectTimer = null;
+                try {
+                    mpRegionSettled = false;
+                    mpRegionIndex = 0;
+                    tryNextRegion();
+                } catch (e) { scheduleReconnect(); }
+            }, delay);
+        }
+
+        function cancelReconnect() {
+            _reconnectAttempts = 0;
+            if (_reconnectTimer) { clearTimeout(_reconnectTimer); _reconnectTimer = null; }
+        }
+
         function tryNextRegion() {
             if (mpRegionSettled) return;
             if (_regionBusy) { console.log('[Photon] already connecting — ignoring duplicate attempt'); return; }
@@ -7947,6 +8114,13 @@
                     const name = Photon.LoadBalancing.LoadBalancingClient.StateToName(state) || state;
                     console.log(`[Photon] state: ${name}` +
                                 (mpActiveRegion ? ` (region ${mpActiveRegion})` : ''));
+
+                    // An unexpected drop reconnects itself with backoff, so
+                    // players are not stranded on a dead connection.
+                    if (state === S.Disconnected && mpRegionSettled && !mpIntentionalDisconnect) {
+                        mpConnected = false;
+                        scheduleReconnect();
+                    }
                     // ConnectedToNameServer is where a bad App ID or an
                     // unavailable region silently stalls.
                     if (state === S.ConnectedToNameServer) {
@@ -7962,6 +8136,10 @@
                         console.log(`[Photon] region "${mpActiveRegion}" accepted us`);
                     }
                     if (state === S.JoinedLobby) {
+                        if (_reconnectAttempts) {
+                            toast({ kind:'success', title:'Reconnected', body:'You are back online.' });
+                        }
+                        cancelReconnect();
                         mpConnected = true;
                         mpRegionSettled = true;
                         if (_regionTimer) { clearTimeout(_regionTimer); _regionTimer = null; }
@@ -8828,6 +9006,8 @@
         }
 
         function mpLeaveLobby() {
+            mpIntentionalDisconnect = true;
+            setTimeout(() => { mpIntentionalDisconnect = false; }, 3000);
             document.body.classList.remove('playing');
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
@@ -9228,6 +9408,27 @@
         }
 
         // ----- DRAW OTHER PLAYERS with interpolation -----
+        // Uses the shared image cache, so this costs nothing extra per frame.
+        function mpDrawWornCosmetics(context, p, size) {
+            const draw = (id, yOffset, scale) => {
+                if (!id) return;
+                const item = cosmetics.find(c => c.id === id);
+                if (!item || !item.image) return;
+                let img = _imgCache[item.image];
+                if (!img) {
+                    img = new Image();
+                    img.src = item.image;
+                    _imgCache[item.image] = img;
+                }
+                if (img.complete && img.naturalWidth > 0) {
+                    const s = size * scale;
+                    context.drawImage(img, -s/2, -s/2 + yOffset, s, s);
+                }
+            };
+            draw(p.shirt, size * 0.10, 1.0);
+            draw(p.hat,  -size * 0.42, 0.85);
+        }
+
         function mpDrawOtherPlayers(context) {
             if (!mpCurrentRoom) return;
             // Draw other players whether match is active or not (lobby preview)
@@ -9266,6 +9467,9 @@
                 context.globalAlpha = alpha;
                 if (birdImage.naturalWidth > 0) {
                     context.drawImage(birdImage, -birdSize/2, -birdSize/2, birdSize, birdSize);
+                    // Their equipped cosmetics. Previously these were only ever
+                    // drawn on your own bird, so nobody could see anyone's drip.
+                    mpDrawWornCosmetics(context, p, birdSize);
                 } else {
                     // Fallback circle if image not loaded
                     context.beginPath();
@@ -9577,6 +9781,8 @@
                         p.level = content.level || 1;
                         p.pfId  = content.pfId || null;
                         p.photo = content.photo || null;
+                        p.hat   = content.hat ?? null;
+                        p.shirt = content.shirt ?? null;
                         p.presence = content.presence || 'online';
                         p.platform = content.platform || p.platform;
                         rememberPlayer(p);
