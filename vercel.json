@@ -114,6 +114,24 @@
           "value": "public, max-age=3600"
         }
       ]
+    },
+    {
+      "source": "/download",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300"
+        }
+      ]
+    },
+    {
+      "source": "/game-release.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -146,6 +164,11 @@
     {
       "source": "/links",
       "destination": "/bio",
+      "permanent": false
+    },
+    {
+      "source": "/dl",
+      "destination": "/download",
       "permanent": false
     }
   ]
