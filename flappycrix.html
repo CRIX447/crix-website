@@ -7,7 +7,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0A0A0F">
     <link rel="manifest" href="/manifest.json">
-    <title>Flappy Crix</title>
+    <title>FLAPPY CRIX</title>
     
     <!-- Open Graph / Link Preview -->
     <meta property="og:type" content="website">
@@ -482,6 +482,9 @@
             color: #EDEDED; font-size: 16px; cursor: pointer; flex-shrink: 0;
         }
         .ig-btn:active { transform: scale(.92); }
+        .ig-more { display: none; gap: 7px; }
+        .ig-more.open { display: flex; animation: igIn .15s ease; }
+        @keyframes igIn { from { opacity:0; transform:translateX(-8px); } to { opacity:1; } }
         .ig-btn.staff { border-color: rgba(255,0,0,.5); }
         .ig-btn.sandbox { border-color: rgba(255,215,0,.45); }
 
@@ -506,6 +509,18 @@
         }
         .game-sub { font-size:10px; color:var(--green); letter-spacing:2px;
             text-transform:uppercase; margin-top:3px; opacity:.85; }
+
+        /* ---- CLEAN MODE (trailer capture) ---- */
+        body.clean-mode .ingame-bar,
+        body.clean-mode .hud-live,
+        body.clean-mode .mp-hud,
+        body.clean-mode .race-meter,
+        body.clean-mode .stats-grid,
+        body.clean-mode .mp-chat-panel,
+        body.clean-mode .notif-bell,
+        body.clean-mode .mp-diagnostic-banner,
+        body.clean-mode .event-banner { display: none !important; }
+        body.clean-mode canvas { box-shadow: none !important; border-radius: 0 !important; }
 
         /* ---- DOWNLOAD BANNER ---- */
         .dl-banner {
@@ -566,6 +581,19 @@
         .cred-by { font-size:12px; color:#C9C9C9; margin-top:5px; }
         .cred-by strong { color:var(--orange); }
         .cred-ver { font-size:10px; color:#8C8C8C; margin-top:4px; font-family:monospace; }
+
+        .play-on { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+        .po { background:rgba(0,0,0,.3); border:1px solid rgba(255,255,255,.08);
+            border-radius:12px; padding:11px 4px; text-align:center;
+            text-decoration:none; color:#EDEDED; display:block; }
+        .po.ready { border-color:rgba(0,204,122,.4); }
+        .po.soon { opacity:.45; }
+        a.po.ready:hover { border-color:#27A9F5; background:rgba(39,169,245,.1); }
+        .po-ico { display:block; font-size:19px; }
+        .po-name { display:block; font-size:10px; margin-top:4px; }
+        .po-state { display:block; font-size:8px; color:#8C8C8C; margin-top:2px;
+            text-transform:uppercase; letter-spacing:.5px; }
+        a.po .po-state { color:#27A9F5; }
 
         .social-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
         .social {
@@ -1893,12 +1921,16 @@
 
             <!-- Staff controls while a match is running. Hidden unless you
                  hold a role, and only during play. -->
+            <!-- One button that expands. Five icons over the playfield was
+                 too much, especially on a phone. -->
             <div class="ingame-bar" id="ingameBar">
-                <button class="ig-btn" id="ingamePauseBtn" title="Pause">⏸</button>
-                <button class="ig-btn" id="ingameMenuBtn" title="Menu">☰</button>
-                <button class="ig-btn" id="ingameMusicBtn" title="Music">🔊</button>
-                <button class="ig-btn sandbox" id="ingameSandboxBtn" title="Sandbox" style="display:none;">🎮</button>
-                <button class="ig-btn staff" id="ingameStaffBtn" title="Staff menu" style="display:none;">🛡️</button>
+                <button class="ig-btn" id="igToggle" title="Menu">⏸</button>
+                <div class="ig-more" id="igMore">
+                    <button class="ig-btn" id="ingameMenuBtn" title="Lobby">☰</button>
+                    <button class="ig-btn" id="ingameMusicBtn" title="Music">🔊</button>
+                    <button class="ig-btn sandbox" id="ingameSandboxBtn" title="Sandbox" style="display:none;">🎮</button>
+                    <button class="ig-btn staff" id="ingameStaffBtn" title="Staff" style="display:none;">🛡️</button>
+                </div>
             </div>
 
             <!-- Race progress. Shows how close everyone is to the target,
@@ -1964,14 +1996,6 @@
             <button class="game-btn" id="startGameBtn">▶ START</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
-        <a class="dl-banner" id="dlBanner" href="/download">
-            <span class="dlb-ico">⬇</span>
-            <span class="dlb-txt">
-                <b>Download Flappy Crix for Windows</b>
-                <i>Faster, updates itself, and CRIX Chat built in</i>
-            </span>
-            <span class="dlb-arrow">→</span>
-        </a>
 
         <div class="menu-footer">
             <button class="foot-btn" id="tutorialBtn">❓ How to play</button>
@@ -2587,6 +2611,30 @@
                 <div class="cred-ver" id="credVersion">v1.5.0</div>
             </div>
 
+            <div class="mp-section-title">🎮 PLAY IT ON</div>
+            <div class="play-on">
+                <a class="po ready" href="/download">
+                    <span class="po-ico">🖥️</span>
+                    <span class="po-name">Windows</span>
+                    <span class="po-state">Download</span>
+                </a>
+                <div class="po ready">
+                    <span class="po-ico">🌐</span>
+                    <span class="po-name">Browser</span>
+                    <span class="po-state">You are here</span>
+                </div>
+                <div class="po soon">
+                    <span class="po-ico">📱</span>
+                    <span class="po-name">Android</span>
+                    <span class="po-state">Soon</span>
+                </div>
+                <div class="po soon">
+                    <span class="po-ico">🍎</span>
+                    <span class="po-name">Mac</span>
+                    <span class="po-state">Planned</span>
+                </div>
+            </div>
+
             <div class="mp-section-title">🔗 FOLLOW</div>
             <div class="social-grid">
                 <a class="social" href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener">
@@ -2742,6 +2790,30 @@
             </div>
 
             <div id="ownerRoleNote" style="font-size:10px;color:#ABABAB;margin-bottom:12px;"></div>
+
+            <!-- CAPTURE -->
+            <div class="mp-section-title">🎥 CAPTURE</div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Autopilot</span>
+                    <div class="set-sub">Plays for you — for recording footage</div>
+                </div>
+                <div class="mp-toggle-switch" id="autopilotToggle"></div>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Clean mode</span>
+                    <div class="set-sub">Hides every overlay · press C</div>
+                </div>
+                <div class="mp-toggle-switch" id="cleanToggle"></div>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Record gameplay</span>
+                    <div class="set-sub" id="recSub">Saves a .webm you can edit</div>
+                </div>
+                <button class="set-mini-btn" id="recBtn">RECORD</button>
+            </div>
 
             <!-- PLAYER ACTIONS -->
             <div class="mp-section-title">👤 PLAYER ACTIONS</div>
@@ -3685,7 +3757,8 @@
             // The HUD rebuilt its DOM every frame, which was the main cause
             // of the lag. Text changes 10x a second is plenty and the
             // difference is invisible.
-            if (gameRunning && !gameOver && (frameCount % 6) === 0) updateLiveHud(); 
+            if (gameRunning && !gameOver && (frameCount % 6) === 0) updateLiveHud();
+            if (autopilotOn) autopilotStep(); 
             ctx.clearRect(0,0,canvas.width,canvas.height); 
             // Draw pipes
             ctx.fillStyle='#00CC7A'; 
@@ -4861,6 +4934,126 @@
 
 
 
+
+
+        // ═══════════ CAPTURE TOOLS ═══════════
+        // Owner-only, for recording trailers.
+
+        let autopilotOn = false;
+        function toggleAutopilot(on) {
+            autopilotOn = on;
+            if (on) toast({ kind:'info', title:'Autopilot on',
+                            body:'The bird flies itself. Turn it off in the owner menu.' });
+        }
+
+        // Aims for the middle of the next gap and flaps when it drops below.
+        // Deliberately imperfect, so footage still looks human.
+        function autopilotStep() {
+            if (!autopilotOn || !gameRunning || gameOver) return;
+            let next = null;
+            for (const p of pipes) {
+                if (p.x + pipeWidth > bird.x - 10) { next = p; break; }
+            }
+            const targetY = next
+                ? (next.top + next.bottom) / 2
+                : canvas.height / 2;
+            // A little slack keeps it from looking robotic
+            const slack = 12;
+            if (bird.y > targetY + slack && bird.velocity > -2) jump();
+        }
+
+        let cleanMode = false;
+        function toggleCleanMode(on) {
+            cleanMode = on;
+            document.body.classList.toggle('clean-mode', on);
+            if (on) toast({ kind:'info', title:'Clean mode',
+                            body:'Overlays hidden. Press C to toggle.' });
+        }
+
+        // ---- recording ----
+        let mediaRecorder = null, recChunks = [], recStart = 0, recTimer = null;
+
+        async function toggleRecording() {
+            const btn = document.getElementById('recBtn');
+            const sub = document.getElementById('recSub');
+
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                return;
+            }
+
+            try {
+                // Captures the canvas directly — no screen-share prompt, and
+                // no other windows caught by accident.
+                const stream = canvas.captureStream(60);
+
+                // Include game audio if the browser allows it
+                try {
+                    const actx = audioCtx();
+                    if (actx && bgMusic) {
+                        const dest = actx.createMediaStreamDestination();
+                        const src = actx.createMediaElementSource(bgMusic);
+                        src.connect(dest); src.connect(actx.destination);
+                        dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
+                    }
+                } catch (e) { /* video only is fine */ }
+
+                const types = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+                const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+                mediaRecorder = new MediaRecorder(stream, {
+                    mimeType: mime, videoBitsPerSecond: 8000000   // high, it is a trailer
+                });
+
+                recChunks = [];
+                mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    clearInterval(recTimer);
+                    const blob = new Blob(recChunks, { type: 'video/webm' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `flappycrix-${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.webm`;
+                    a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 10000);
+
+                    btn.textContent = 'RECORD';
+                    btn.style.background = '';
+                    sub.textContent = `Saved — ${(blob.size / 1048576).toFixed(1)} MB`;
+                    mediaRecorder = null;
+                };
+
+                mediaRecorder.start(1000);
+                recStart = Date.now();
+                btn.textContent = 'STOP';
+                btn.style.background = 'rgba(255,70,85,.3)';
+                recTimer = setInterval(() => {
+                    const s = Math.floor((Date.now() - recStart) / 1000);
+                    sub.textContent = `Recording — ${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+                }, 500);
+
+            } catch (e) {
+                sub.textContent = 'Could not record: ' + e.message;
+            }
+        }
+
+        document.getElementById('autopilotToggle')?.addEventListener('click', function () {
+            this.classList.toggle('active');
+            toggleAutopilot(this.classList.contains('active'));
+        });
+        document.getElementById('cleanToggle')?.addEventListener('click', function () {
+            this.classList.toggle('active');
+            toggleCleanMode(this.classList.contains('active'));
+        });
+        document.getElementById('recBtn')?.addEventListener('click', toggleRecording);
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'c' && (myRoles.includes('OWNER')) && !e.ctrlKey && !e.metaKey) {
+                const t = document.activeElement?.tagName;
+                if (t === 'INPUT' || t === 'TEXTAREA') return;
+                toggleCleanMode(!cleanMode);
+                document.getElementById('cleanToggle')?.classList.toggle('active', cleanMode);
+            }
+        });
 
         // ═══════════ PAUSE ═══════════
         // Single player pauses properly. Multiplayer cannot — the match keeps
@@ -6257,7 +6450,20 @@
         document.getElementById('mpHudBtn')?.addEventListener('click', () => {
             document.getElementById('mpHud')?.classList.toggle('open');
         });
-        document.getElementById('ingamePauseBtn')?.addEventListener('click', togglePause);
+        // First tap expands the row, second pauses. Keeps one icon on screen
+        // instead of five.
+        document.getElementById('igToggle')?.addEventListener('click', () => {
+            const more = document.getElementById('igMore');
+            if (!more.classList.contains('open')) {
+                more.classList.add('open');
+                updateIngameButtons();
+                clearTimeout(window._igTimer);
+                window._igTimer = setTimeout(() => more.classList.remove('open'), 4000);
+            } else {
+                more.classList.remove('open');
+                togglePause();
+            }
+        });
         document.getElementById('ingameMusicBtn')?.addEventListener('click', () => setMusic(musicMuted));
         document.getElementById('ingameSandboxBtn')?.addEventListener('click', () => {
             refreshPlayerMenu();
@@ -6871,12 +7077,19 @@
         // un-hides it still gets rejected by the server.
         // The sandbox and staff buttons only appear if you actually have them
         function updateIngameButtons() {
+            // Staff tools work anywhere — that is the point of them.
             const staff = document.getElementById('ingameStaffBtn');
             if (staff) staff.style.display =
                 (myRoles.includes('OWNER') || myRoles.includes('MOD')) ? '' : 'none';
+
+            // Sandbox is single player only. Spawning coins or flying mid-match
+            // would just be cheating in front of other people.
             const sandbox = document.getElementById('ingameSandboxBtn');
-            if (sandbox) sandbox.style.display =
-                (typeof ownsPlayerMenu === 'function' && ownsPlayerMenu()) ? '' : 'none';
+            if (sandbox) {
+                const allowed = !mpMatchActive &&
+                    typeof ownsPlayerMenu === 'function' && ownsPlayerMenu();
+                sandbox.style.display = allowed ? '' : 'none';
+            }
         }
 
         function updateOwnerButton() {
