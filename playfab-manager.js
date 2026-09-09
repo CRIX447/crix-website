@@ -15,7 +15,7 @@
                             in CloudScript (see cloudscript.js).
    ============================================================ */
 
-const PLAYFAB_MANAGER_VERSION = '2026.08.20-lobby';
+const PLAYFAB_MANAGER_VERSION = '2026.08.20-dm';
 const PlayFabManager = (() => {
     let titleId = null;
     let sessionTicket = null;
@@ -711,7 +711,12 @@ if (typeof window !== 'undefined') {
         async heartbeat(state) {
             const u = firebase.auth().currentUser;
             if (!u || !PFM.playFabId) return;
+            const invisible = state.status === 'invisible' || state.status === 'offline';
             await db().collection('presence').doc(PFM.playFabId).set({
+                // Kept even while invisible so friends see "last seen 2h ago"
+                // rather than nothing at all.
+                lastOnline: firebase.firestore.FieldValue.serverTimestamp(),
+                invisible,
                 uid: u.uid,
                 playFabId: PFM.playFabId,
                 name: state.name || u.displayName || 'Player',
@@ -751,11 +756,17 @@ if (typeof window !== 'undefined') {
                                 const v = d.data();
                                 const age = v.at?.toMillis ? Date.now() - v.at.toMillis() : 1e9;
                                 const stale = age > 90000;
+                                const hidden = v.invisible || v.status === 'invisible';
                                 out[v.playFabId] = {
-                                    status: (stale || v.status === 'offline') ? 'offline' : v.status,
-                                    roomCode: stale ? null : v.roomCode,
-                                    roomMode: v.roomMode,
-                                    joinable: !stale && !!v.joinable && v.status !== 'offline',
+                                    // Someone appearing offline looks offline, and
+                                    // their lobby is not exposed either — otherwise
+                                    // the setting would be pointless.
+                                    status: (stale || hidden || v.status === 'offline') ? 'offline' : v.status,
+                                    lastOnline: v.lastOnline?.toMillis ? v.lastOnline.toMillis()
+                                              : (v.at?.toMillis ? v.at.toMillis() : null),
+                                    roomCode: (stale || hidden) ? null : v.roomCode,
+                                    roomMode: hidden ? null : v.roomMode,
+                                    joinable: !stale && !hidden && !!v.joinable && v.status !== 'offline',
                                     name: v.name, photo: v.photo, level: v.level
                                 };
                             });
@@ -843,8 +854,8 @@ if (typeof window !== 'undefined') {
                     snap.forEach(d => {
                         const v = d.data();
                         const age = v.at?.toMillis ? now - v.at.toMillis() : 1e9;
-                        if (age > 90000) return;              // stale heartbeat
-                        if (v.status === 'offline') return;    // invisible / signed out
+                        if (age > 90000) return;                              // stale heartbeat
+                        if (v.status === 'offline' || v.invisible) return;    // hidden by choice
                         live.push({
                             playFabId: v.playFabId,
                             name: v.name || 'Player',
@@ -948,6 +959,13 @@ if (typeof window !== 'undefined') {
             opts = opts || {};
             const hours = opts.hours ? parseInt(opts.hours, 10) : null;
             const expires = hours ? Date.now() + hours * 3600000 : null;
+            // Let them know, if they linked Discord
+            PFM.fs.queueDM(targetPlayFabId, 'banned', {
+                reason: opts.reason || 'Breaking the rules',
+                note: opts.note || null,
+                expires: expires
+            }).catch(() => {});
+
             await db().collection('bans').doc(targetPlayFabId).set({
                 playFabId: targetPlayFabId,
                 name: opts.name || null,
@@ -964,6 +982,7 @@ if (typeof window !== 'undefined') {
 
         async unbanPlayer(targetPlayFabId) {
             await db().collection('bans').doc(targetPlayFabId).delete();
+            PFM.fs.queueDM(targetPlayFabId, 'unbanned', {}).catch(() => {});
             return { ok: true };
         },
 
@@ -993,6 +1012,30 @@ if (typeof window !== 'undefined') {
                             .filter(b => !b.expiresAt || b.expiresAt > now);
         },
 
+        /* ---- DM OUTBOX ----
+           The bot is the only thing holding a Discord token, so notifications
+           are queued here and delivered by it. That also means a DM still
+           lands if the bot happened to be offline at the time. */
+        async queueDM(targetPlayFabId, kind, data) {
+            // Find their Discord id — no link, no notification
+            let discordId = null;
+            try {
+                const snap = await db().collection('users')
+                    .where('playFabId', '==', targetPlayFabId).limit(1).get();
+                if (!snap.empty) discordId = snap.docs[0].data().discordId || null;
+            } catch (e) {}
+            if (!discordId) return { queued: false, reason: 'not linked' };
+
+            await db().collection('dmQueue').add({
+                discordId, kind,
+                playFabId: targetPlayFabId,
+                ...data,
+                sent: false,
+                at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            return { queued: true };
+        },
+
         /* ---- LOBBY OVERRIDES ----
            Lets an owner claim host or force-end a match from the console.
            The game watches this and acts on it. */
@@ -1020,6 +1063,7 @@ if (typeof window !== 'undefined') {
            Firestore rules restrict writes here to existing owners, so this is
            as safe as the CloudScript route. */
         async setRole(targetPlayFabId, roles) {
+            PFM.fs.queueDM(targetPlayFabId, 'role', { roles }).catch(() => {});
             await db().collection('roles').doc(targetPlayFabId).set({
                 roles,
                 grantedBy: PFM.playFabId || uid(),
