@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flappy Crix Launcher</title>
+<style>
+@font-face{font-family:'CRIX Pixel';src:url('https://crixgamingvr.com/img/font.otf') format('opentype');font-display:swap}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:'CRIX Pixel';
+  src:url('https://crixgamingvr.com/img/font.otf') format('opentype');font-display:swap}
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+:root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--blue:#27A9F5;
+  --bg:#07070c;--panel:#101018;--panel2:#15151F;--line:rgba(255,255,255,.07);--dim:#8C8C8C}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+body{background:var(--bg);color:#EDEDED;font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
+  font-size:14px;display:flex;flex-direction:column;user-select:none}
+button{font-family:inherit;cursor:pointer}
+
+/* title bar */
+.titlebar{height:34px;display:flex;align-items:center;padding:0 0 0 14px;
+  background:var(--panel);border-bottom:1px solid var(--line);-webkit-app-region:drag;flex-shrink:0}
+.tb-name{font-size:11px;letter-spacing:2px;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--red),var(--orange));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.tb-studio{font-size:9px;color:var(--dim);margin-left:8px;letter-spacing:1px}
+.tb-btns{margin-left:auto;display:flex;-webkit-app-region:no-drag}
+.tb-btns button{width:44px;height:34px;background:none;border:none;color:var(--dim);font-size:13px}
+.tb-btns button:hover{background:rgba(255,255,255,.07);color:#fff}
+.tb-btns button.x:hover{background:var(--red);color:#fff}
+
+.main{flex:1;display:flex;min-height:0}
+
+/* sidebar */
+.side{width:210px;background:var(--panel);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;flex-shrink:0}
+.me{padding:16px 14px;border-bottom:1px solid var(--line);text-align:center}
+.me-av{width:60px;height:60px;border-radius:50%;margin:0 auto 8px;object-fit:cover;
+  background:var(--red);display:flex;align-items:center;justify-content:center;
+  font-size:24px;font-weight:bold;overflow:hidden}
+.me-av img{width:100%;height:100%;object-fit:cover}
+.me-name{font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me-sub{font-size:10px;color:var(--dim);margin-top:2px}
+.nav{flex:1;padding:8px}
+.nav button{display:flex;align-items:center;gap:10px;width:100%;background:none;border:none;
+  color:var(--dim);font-size:13px;padding:11px 12px;border-radius:10px;text-align:left;margin-bottom:2px}
+.nav button:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav button.on{background:rgba(255,70,85,.14);color:var(--red)}
+.side-foot{padding:10px;border-top:1px solid var(--line);font-size:10px;color:var(--dim);text-align:center;line-height:1.8}
+.side-foot a{color:var(--dim);text-decoration:none}
+.side-foot a:hover{color:#fff}
+
+/* content */
+.content{flex:1;overflow-y:auto;padding:22px 26px;min-width:0}
+.view{display:none}
+.view.on{display:block}
+h2{font-size:19px;margin-bottom:4px}
+.sub{font-size:11px;color:var(--dim);margin-bottom:18px}
+
+/* play */
+.hero{background:linear-gradient(135deg,rgba(255,70,85,.16),rgba(255,107,53,.08));
+  border:2px solid rgba(255,107,53,.35);border-bottom:5px solid rgba(150,50,20,.5);
+  border-radius:20px;padding:26px;margin-bottom:16px}
+.hero h1{font-size:30px;letter-spacing:2px;
+  background:linear-gradient(135deg,var(--red),var(--orange),#FFD700);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:12px;color:#C9C9C9;margin:6px 0 16px;line-height:1.7}
+.play-btn{background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;
+  border:2px solid rgba(255,255,255,.15);border-bottom:5px solid rgba(0,0,0,.4);
+  border-radius:30px;padding:14px 44px;font-size:17px;font-weight:bold;
+  text-transform:uppercase;letter-spacing:2px}
+.play-btn:hover{filter:brightness(1.08)}
+.play-btn:active{transform:translateY(2px);border-bottom-width:3px}
+.play-btn:disabled{opacity:.5;cursor:default}
+
+.ibar{height:8px;background:rgba(0,0,0,.5);border:1px solid var(--line);
+  border-radius:5px;overflow:hidden}
+.ibar-fill{height:100%;width:0%;background:linear-gradient(90deg,var(--red),var(--orange));
+  transition:width .25s}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:14px;text-align:center}
+.stat .k{font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1px}
+.stat .v{font-size:20px;font-weight:bold;color:#fff;margin-top:4px}
+
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px;margin-bottom:9px}
+.card h3{font-size:13px;color:#fff;margin-bottom:4px}
+.card p{font-size:11px;color:#A0A0A0;line-height:1.8}
+.card .when{font-size:9px;color:var(--dim);margin-top:6px}
+.chg{font-size:11px;color:#C9C9C9;line-height:1.9;padding-left:14px}
+
+.lock-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:9px}
+.lock-item{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
+  padding:14px 8px;text-align:center}
+.lock-item.rare{border-color:rgba(255,215,0,.5);background:rgba(255,215,0,.06)}
+.li-ico{font-size:26px}
+.li-name{font-size:11px;color:#EDEDED;margin-top:6px;text-transform:capitalize}
+.li-tag{font-size:8px;color:#FFD700;margin-top:3px;text-transform:uppercase;letter-spacing:1px}
+
+.empty{text-align:center;color:var(--dim);font-size:12px;padding:44px 20px;line-height:1.9}
+
+/* sign in */
+#gate{position:fixed;inset:34px 0 0;background:var(--bg);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.gate-card{width:100%;max-width:340px;text-align:center}
+.gate-logo{font-size:26px;letter-spacing:3px;text-transform:uppercase;
+  background:linear-gradient(135deg,var(--red),var(--orange));-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text}
+.gate-sub{font-size:11px;color:var(--dim);margin:6px 0 22px}
+.inp{width:100%;background:#0b0b12;border:1px solid var(--line);color:#fff;
+  border-radius:10px;padding:11px 14px;font-size:13px;margin-bottom:9px}
+.inp:focus{outline:none;border-color:var(--orange)}
+.btn{width:100%;background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;
+  border:2px solid rgba(255,255,255,.15);border-bottom:4px solid rgba(0,0,0,.4);
+  border-radius:26px;padding:11px;font-size:13px;font-weight:bold;text-transform:uppercase;letter-spacing:1px}
+.btn.g{background:#fff;color:#222;border-color:#ccc;margin-bottom:8px}
+.btn.ghost{background:var(--panel2);border-color:var(--line);color:#C9C9C9;margin-top:8px}
+.sep{display:flex;align-items:center;gap:10px;color:var(--dim);font-size:10px;margin:14px 0}
+.sep::before,.sep::after{content:'';flex:1;height:1px;background:var(--line)}
+.err{color:var(--red);font-size:11px;min-height:16px;margin-top:8px;line-height:1.6}
+
+/* update bar */
+#updBar{display:none;align-items:center;gap:10px;background:rgba(39,169,245,.1);
+  border-top:1px solid rgba(39,169,245,.3);padding:9px 16px;font-size:11px;flex-shrink:0}
+#updBar.on{display:flex}
+.spin{width:13px;height:13px;border:2px solid rgba(39,169,245,.25);border-top-color:var(--blue);
+  border-radius:50%;animation:sp .7s linear infinite;flex-shrink:0}
+@keyframes sp{to{transform:rotate(360deg)}}
+#updBtn{background:var(--blue);border:none;color:#fff;border-radius:14px;padding:5px 14px;font-size:10px}
+</style>
+</head>
+<body>
+
+<div class="titlebar">
+  <img src="https://crixgamingvr.com/img/newfavicon.png" alt=""
+       style="width:18px;height:18px;margin-right:8px;vertical-align:middle"
+       onerror="this.style.display='none'">
+  <span class="tb-name">Flappy Crix Launcher</span>
+  <span class="tb-studio">CRIX STUDIOS</span>
+  <div class="tb-btns">
+    <button id="btnMin">─</button>
+    <button id="btnMax">▢</button>
+    <button class="x" id="btnClose">✕</button>
+  </div>
+</div>
+
+<div class="main">
+  <aside class="side">
+    <div class="me">
+      <div class="me-av" id="meAv">?</div>
+      <div class="me-name" id="meName">Not signed in</div>
+      <div class="me-sub" id="meSub">—</div>
+    </div>
+    <nav class="nav">
+      <button class="on" data-v="play">🎮 <span>Play</span></button>
+      <button data-v="stats">📊 <span>Stats</span></button>
+      <button data-v="locker">👕 <span>Locker</span></button>
+      <button data-v="news">📰 <span>News</span></button>
+      <button data-v="alerts">🔔 <span>Notifications</span></button>
+      <button data-v="settings">⚙ <span>Settings</span></button>
+    </nav>
+    <div class="side-foot">
+      <div id="verLine">v1.0.0</div>
+      <div style="margin-top:4px"><a href="#" id="signOut">Sign out</a></div>
+    </div>
+  </aside>
+
+  <div class="content">
+    <!-- PLAY -->
+    <div class="view on" id="v-play">
+      <div class="hero">
+        <h1>FLAPPY CRIX</h1>
+        <p id="heroText">Multiplayer Flappy Bird. Race friends, climb the ranks, collect drip.</p>
+        <button class="play-btn" id="playBtn">▶ Play</button>
+        <div id="installBox" style="display:none;margin-top:14px;">
+          <div class="ibar"><div class="ibar-fill" id="ibarFill"></div></div>
+          <div id="installMsg" style="font-size:11px;color:#A0A0A0;margin-top:7px;">Preparing…</div>
+        </div>
+      </div>
+      <div class="grid">
+        <div class="stat"><div class="k">Level</div><div class="v" id="qLevel">—</div></div>
+        <div class="stat"><div class="k">Coins</div><div class="v" id="qCoins">—</div></div>
+        <div class="stat"><div class="k">Best score</div><div class="v" id="qBest">—</div></div>
+        <div class="stat"><div class="k">Rank</div><div class="v" id="qRank">—</div></div>
+      </div>
+      <div style="margin-top:16px;display:flex;gap:9px">
+        <button class="btn ghost" id="chatBtn" style="width:auto;padding:11px 22px;margin:0">💬 Open CRIX Chat</button>
+        <button class="btn ghost" id="siteBtn" style="width:auto;padding:11px 22px;margin:0">🌐 Website</button>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="view" id="v-stats">
+      <h2>Your stats</h2>
+      <p class="sub">Pulled from your account.</p>
+      <div class="grid" id="statGrid"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- LOCKER -->
+    <div class="view" id="v-locker">
+      <h2>Locker</h2>
+      <p class="sub">Everything you own. Equip in the game.</p>
+      <div id="lockerGrid"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- NEWS -->
+    <div class="view" id="v-news">
+      <h2>What's new</h2>
+      <p class="sub">The game updates itself — you never need to reinstall.</p>
+      <div id="newsList"><div class="empty">Loading…</div></div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="view" id="v-alerts">
+      <h2>Notifications</h2>
+      <p class="sub">Friend requests, moderation notices and announcements.</p>
+      <div id="alertList"><div class="empty">Nothing right now.</div></div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="view" id="v-settings">
+      <h2>Settings</h2>
+      <p class="sub">Launcher options.</p>
+      <div class="card">
+        <h3>Game files</h3>
+        <p>Saved data and logs live in the launcher folder.</p>
+        <button class="btn ghost" id="folderBtn" style="width:auto;padding:9px 18px;margin-top:10px">📁 Open folder</button>
+      </div>
+      <div class="card">
+        <h3>Updates</h3>
+        <p id="updText">The launcher updates itself in the background.
+           The game loads from the website, so it is always current.</p>
+      </div>
+      <div class="card">
+        <h3>About</h3>
+        <p><b>Flappy Crix</b> by <b>CRIX STUDIOS</b><br>
+           Inspired by Flappy Bird by Dong Nguyen.<br>
+           <a href="#" id="termsLink" style="color:var(--green)">Terms</a> ·
+           <a href="#" id="privLink" style="color:var(--green)">Privacy</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="updBar">
+  <div class="spin" id="updSpin"></div>
+  <span id="updMsg" style="flex:1">Checking for updates…</span>
+  <button id="updBtn" style="display:none">Restart now</button>
+</div>
+
+<!-- SIGN IN -->
+<div id="gate">
+  <div class="gate-card">
+    <img src="https://crixgamingvr.com/img/newfavicon.png" alt=""
+         style="width:78px;height:78px;margin:0 auto 14px;display:block;border-radius:18px"
+         onerror="this.style.display='none'">
+    <div class="gate-logo">FLAPPY CRIX</div>
+    <div class="gate-sub">Sign in to download and play</div>
+    <button class="btn g" id="gGoogle">
+      <svg width="17" height="17" viewBox="0 0 48 48" style="vertical-align:-3px;margin-right:8px">
+        <path fill="#4285F4" d="M45 24c0-1.6-.1-2.7-.4-3.9H24v7.1h12c-.2 1.9-1.5 4.7-4.4 6.6l6.8 5.3C42.3 35.4 45 30.2 45 24z"/>
+        <path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-6.8-5.3c-1.9 1.3-4.4 2.2-7.7 2.2-5.9 0-10.9-3.9-12.7-9.2l-7 5.4C7.9 41 15.4 46 24 46z"/>
+        <path fill="#FBBC05" d="M11.3 28.4c-.5-1.4-.7-2.9-.7-4.4s.3-3 .7-4.4l-7-5.4C2.8 17.1 2 20.4 2 24s.8 6.9 2.3 9.8l7-5.4z"/>
+        <path fill="#EA4335" d="M24 10.5c4.2 0 7 1.8 8.6 3.3l6.3-6.1C35 4.1 29.9 2 24 2 15.4 2 7.9 7 4.3 14.2l7 5.4C13.1 14.4 18.1 10.5 24 10.5z"/>
+      </svg>
+      Continue with Google
+    </button>
+    <div class="sep">or use an email</div>
+    <input class="inp" type="email" id="email" placeholder="Email">
+    <input class="inp" type="password" id="pass" placeholder="Password">
+    <button class="btn" id="gAuth">Sign in</button>
+    <div class="err" id="gErr"></div>
+    <div class="gate-sub" style="margin-top:18px;line-height:1.9">
+      No account yet? Sign in with Google and one is made for you.<br>
+      <span style="opacity:.7">Your progress works across every device.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = i => document.getElementById(i);
+
+// The preload bridge should always exist, but if it does not, failing loudly
+// in the console beats a launcher that silently does nothing.
+// ── APP ONLY ──
+// The launcher app appends FlappyCrixLauncher to its user agent and exposes
+// window.crix. A normal browser has neither, and gets a 404 — this page is
+// not meant to be a website.
+(function appOnly() {
+    const isApp = !!window.crix ||
+                  /FlappyCrixLauncher/.test(navigator.userAgent) ||
+                  /Electron/.test(navigator.userAgent);
+    if (isApp) return;
+
+    document.documentElement.innerHTML = `
+      <head><meta charset="utf-8"><title>404 — Not found</title>
+      <link rel="icon" href="/img/newfavicon.png">
+      <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+      <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{background:#0A0A0F;color:#C9C9C9;font-family:'Fredoka One',system-ui,sans-serif;
+          height:100vh;display:flex;align-items:center;justify-content:center;
+          text-align:center;padding:24px;
+          background-image:linear-gradient(rgba(255,70,85,.03) 1px,transparent 1px),
+                           linear-gradient(90deg,rgba(255,70,85,.03) 1px,transparent 1px);
+          background-size:48px 48px}
+        .code{font-size:74px;font-weight:bold;letter-spacing:4px;
+          background:linear-gradient(135deg,#FF4655,#FF6B35);
+          -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+        h1{font-size:19px;color:#EDEDED;margin:10px 0 8px}
+        p{font-size:13px;line-height:1.9;max-width:360px;margin:0 auto}
+        .row{display:flex;gap:10px;justify-content:center;margin-top:22px;flex-wrap:wrap}
+        a{text-decoration:none;font-size:13px;padding:11px 24px;border-radius:26px;
+          border:2px solid rgba(255,255,255,.12);border-bottom-width:4px;
+          border-bottom-color:rgba(0,0,0,.4);color:#EDEDED;background:#15151F}
+        a.p{background:linear-gradient(135deg,#FF4655,#FF6B35);color:#fff;
+          border-color:rgba(255,255,255,.15)}
+        a:hover{filter:brightness(1.1)}
+      </style></head>
+      <body><div>
+        <div class="code">404</div>
+        <h1>Nothing here</h1>
+        <p>The launcher only runs as an app. There is nothing to see on this page.</p>
+        <div class="row">
+          <a class="p" href="/download">Download for Windows</a>
+          <a href="/flappycrix">Play in browser</a>
+          <a href="/">Home</a>
+        </div>
+      </div></body>`;
+
+    // So it is a real 404 to anything checking, not just visually
+    try { history.replaceState(null, '', '/404'); } catch (e) {}
+    throw new Error('launcher: app only');   // stops the rest of the script
+})();
+
+if (!window.crix) {
+    console.error('[launcher] preload bridge missing');
+    window.crix = new Proxy({}, { get: () => async () => {
+        console.warn('[launcher] crix bridge unavailable');
+        return null;
+    }});
+}
+const safe = (fn, fallback) => { try { return fn(); } catch (e) {
+    console.warn('[launcher]', e.message); return fallback; } };
+const esc = s => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
+const SITE = 'https://crixgamingvr.com';
+let auth = null, db = null, me = null;
+
+/* window controls */
+$('btnMin').onclick = () => crix.windowAction('minimise');
+$('btnMax').onclick = () => crix.windowAction('maximise');
+$('btnClose').onclick = () => crix.windowAction('close');
+
+/* nav */
+document.querySelectorAll('.nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.nav button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + b.dataset.v));
+  if (b.dataset.v === 'news') loadNews();
+  if (b.dataset.v === 'stats') loadStats();
+  if (b.dataset.v === 'locker') loadLocker();
+});
+
+/* boot */
+(async function () {
+  try { $('verLine').textContent = 'v' + await crix.getVersion(); } catch (e) {}
+
+  let cfg;
+  try { cfg = await (await fetch(SITE + '/api.json?cb=' + Date.now())).json(); }
+  catch { $('gErr').textContent = 'Could not reach the servers. Check your connection.'; return; }
+
+  firebase.initializeApp(cfg.firebase);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  // Keeps the session so the game window opens already signed in
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+
+  auth.onAuthStateChanged(u => {
+    me = u;
+    $('gate').style.display = u ? 'none' : 'flex';
+    if (u) { renderMe(); loadStats(); loadNews(); loadAlerts(); }
+  });
+})();
+
+/* auth */
+$('gGoogle').onclick = async () => {
+  const p = new firebase.auth.GoogleAuthProvider();
+  p.setCustomParameters({ prompt: 'select_account' });
+  try {
+    await auth.signInWithPopup(p);
+  } catch (e) {
+    if (e.code === 'auth/popup-closed-by-user') return;
+    if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
+      return auth.signInWithRedirect(p);
+    }
+    // The old file:// error, in case an older build is still around
+    if (/not supported in the environment/i.test(e.message)) {
+      $('gErr').innerHTML = 'This launcher build is out of date.<br>' +
+                            'Download the latest from crixgamingvr.com/download';
+      return;
+    }
+    $('gErr').textContent = e.message;
+  }
+};
+
+// Completes a redirect sign-in when the window comes back
+if (auth) auth.getRedirectResult().catch(() => {});
+$('gAuth').onclick = async () => {
+  const em = $('email').value.trim(), pw = $('pass').value;
+  if (!em || !pw) { $('gErr').textContent = 'Enter your email and password.'; return; }
+  $('gAuth').disabled = true;
+  try { await auth.signInWithEmailAndPassword(em, pw); }
+  catch (e) {
+    const m = { 'auth/wrong-password':'Incorrect password.',
+                'auth/user-not-found':'No account with that email.',
+                'auth/invalid-credential':'Incorrect email or password.' };
+    $('gErr').textContent = m[e.code] || e.message;
+  } finally { $('gAuth').disabled = false; }
+};
+$('signOut').onclick = e => { e.preventDefault(); auth.signOut(); };
+
+function renderMe() {
+  const name = me.displayName || (me.email || '').split('@')[0] || 'Player';
+  $('meName').textContent = name;
+  $('meSub').textContent = me.email || '';
+  $('meAv').innerHTML = me.photoURL
+    ? `<img src="${esc(me.photoURL)}" alt="">`
+    : esc(name.charAt(0).toUpperCase());
+}
+
+/* stats */
+async function loadStats() {
+  if (!me) return;
+  try {
+    const d = await db.collection('users').doc(me.uid).get();
+    const v = d.exists ? d.data() : {};
+    // The game writes stats at the top level, not nested — accept either so
+    // this works regardless of which wrote last.
+    const s = v.stats || v || {};
+    if (v.avatar) $('meAv').innerHTML = `<img src="${esc(v.avatar)}" alt="">`;
+
+    $('qLevel').textContent = s.level ?? '—';
+    $('qCoins').textContent = s.coins != null ? Number(s.coins).toLocaleString() : '—';
+    $('qBest').textContent  = s.highScore ?? '—';
+    $('qRank').textContent  = s.rank || '—';
+
+    const rows = [
+      ['Level', s.level], ['XP', s.xp], ['Coins', s.coins],
+      ['Best score', s.highScore], ['Rank', s.rank], ['Rank points', s.rp],
+      ['Games played', s.games], ['Multiplayer wins', s.wins]
+    ].filter(r => r[1] != null);
+
+    $('statGrid').innerHTML = rows.length
+      ? rows.map(([k, v2]) =>
+          `<div class="stat"><div class="k">${esc(k)}</div>
+           <div class="v">${typeof v2 === 'number' ? v2.toLocaleString() : esc(v2)}</div></div>`).join('')
+      : '<div class="empty">Play a round and your stats will show up here.</div>';
+  } catch (e) {
+    $('statGrid').innerHTML = `<div class="empty">Could not load stats.<br>${esc(e.message)}</div>`;
+  }
+}
+
+/* news — read straight from the game's changelog */
+async function loadNews() {
+  try {
+    const html = await (await fetch(SITE + '/flappycrix?cb=' + Date.now())).text();
+    const block = html.match(/const CHANGELOG = \[([\s\S]*?)\n        \];/);
+    if (!block) throw new Error('no changelog');
+    const entries = [...block[1].matchAll(
+      /v:\s*'([^']+)',\s*date:\s*'([^']+)',\s*title:\s*'([^']+)',\s*changes:\s*\[([\s\S]*?)\]/g)];
+    $('newsList').innerHTML = entries.slice(0, 6).map(m => {
+      const changes = [...m[4].matchAll(/'((?:[^'\\]|\\.)*)'/g)].map(x => x[1].replace(/\\'/g, "'"));
+      return `<div class="card">
+        <h3>${esc(m[1])} — ${esc(m[3])}</h3>
+        <div class="chg">${changes.map(ch => '• ' + esc(ch)).join('<br>')}</div>
+        <div class="when">${esc(m[2])}</div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    $('newsList').innerHTML = '<div class="empty">Could not load the news right now.</div>';
+  }
+}
+
+/* notifications */
+async function loadAlerts() {
+  if (!me) return;
+  try {
+    const pf = (await db.collection('users').doc(me.uid).get()).data()?.playFabId;
+    const out = [];
+
+    if (pf) {
+      const bans = await db.collection('bans').doc(pf).get();
+      if (bans.exists) {
+        const b = bans.data();
+        out.push({ t: '🔨 You are banned', p: b.reason || 'Breaking the rules',
+                   w: b.expiresAt ? 'Until ' + new Date(b.expiresAt).toLocaleString() : 'Permanent' });
+      }
+      const fr = await db.collection('friendRequests')
+        .where('toPlayFabId', '==', pf).where('status', '==', 'pending').get();
+      fr.forEach(d => out.push({ t: '👤 Friend request',
+                                 p: (d.data().fromName || 'Someone') + ' wants to be friends',
+                                 w: 'Accept it in the game' }));
+    }
+
+    const ev = await db.collection('config').doc('event').get();
+    if (ev.exists && ev.data().active) {
+      const e = ev.data();
+      out.push({ t: (e.icon || '🎉') + ' ' + (e.title || 'Event'),
+                 p: e.description || 'An event is running now',
+                 w: e.endsAt ? 'Ends ' + new Date(e.endsAt).toLocaleString() : '' });
+    }
+
+    $('alertList').innerHTML = out.length
+      ? out.map(o => `<div class="card"><h3>${esc(o.t)}</h3><p>${esc(o.p)}</p>
+                      <div class="when">${esc(o.w)}</div></div>`).join('')
+      : '<div class="empty">Nothing right now.</div>';
+  } catch (e) {
+    $('alertList').innerHTML = '<div class="empty">Could not load notifications.</div>';
+  }
+}
+
+/* actions */
+// First run installs the game; after that Play launches it directly.
+let gameReady = false;
+
+async function refreshPlayButton() {
+  try { gameReady = await crix.gameInstalled(); } catch (e) { gameReady = false; }
+  const btn = $('playBtn');
+  const hero = $('heroText');
+  if (btn) btn.textContent = gameReady ? '▶ Play' : '⬇ Download Flappy Crix';
+  if (hero) hero.textContent = gameReady
+    ? 'Ready to play. Your progress syncs with the browser version.'
+    : 'Downloads once, then opens straight from here every time.';
+}
+// Only after the page is ready, and only once signed in — pressing Play
+// signed out did nothing with no explanation.
+window.addEventListener('DOMContentLoaded', async () => {
+  await refreshPlayButton();
+  checkGameUpdate();
+});
+
+$('playBtn').onclick = async () => {
+  const btn = $('playBtn');
+  if (!me) {
+    $('gErr').textContent = 'Sign in first.';
+    $('gate').style.display = 'flex';
+    return;
+  }
+
+  if (!gameReady) {
+    btn.disabled = true;
+    btn.textContent = 'Installing…';
+    $('installBox').style.display = '';
+    const res = await crix.installGame();
+    if (res.ok) {
+      gameReady = true;
+      $('installBox').style.display = 'none';
+      btn.textContent = '▶ Play';
+    }
+    btn.disabled = false;
+    return;
+  }
+
+  btn.disabled = true; btn.textContent = 'Launching…';
+  const r = await crix.launchInstalled();
+  // Falls back to the web version if the local copy is missing
+  if (!r.ok) await crix.launchGame(me ? await me.getIdToken() : null);
+  setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Play'; }, 2500);
+};
+
+crix.onInstallProgress(d => {
+  const fill = $('ibarFill'), msg = $('installMsg');
+  if (d.state === 'checking')    msg.textContent = 'Checking for the latest version…';
+  if (d.state === 'downloading') {
+    fill.style.width = (d.percent || 0) + '%';
+    msg.textContent = `Downloading — ${d.percent || 0}%` +
+                      (d.sizeMB ? ` of ${d.sizeMB} MB` : '');
+  }
+  if (d.state === 'done') {
+    fill.style.width = '100%';
+    msg.textContent = 'Installed. Press Play.';
+  }
+  if (d.state === 'error') {
+    msg.textContent = 'Install failed: ' + d.message + ' — you can still play in the browser.';
+  }
+});
+crix.onGameClosed(() => { $('playBtn').disabled = false; $('playBtn').textContent = '▶ Play'; });
+
+$('chatBtn').onclick = () => crix.openChat();
+$('siteBtn').onclick = () => crix.openExternal(SITE);
+$('folderBtn').onclick = () => crix.openFolder();
+$('termsLink').onclick = e => { e.preventDefault(); crix.openExternal(SITE + '/terms'); };
+$('privLink').onclick = e => { e.preventDefault(); crix.openExternal(SITE + '/privacy'); };
+
+
+/* ---- LOCKER ---- */
+// Read-only. Equipping happens in the game, where it can be validated.
+async function loadLocker() {
+  const el = $('lockerGrid');
+  if (!me) { el.innerHTML = '<div class="empty">Sign in to see your locker.</div>'; return; }
+  el.innerHTML = '<div class="empty">Loading…</div>';
+
+  try {
+    const d = await db.collection('users').doc(me.uid).get();
+    const v = d.exists ? d.data() : {};
+    const owned = v.inventory || v.cosmetics || [];
+
+    if (!owned.length) {
+      el.innerHTML = `<div class="empty">Nothing yet.<br>
+        Buy cosmetics in the game's store, or win an event for the crown.</div>`;
+      return;
+    }
+
+    el.innerHTML = '<div class="lock-grid">' + owned.map(it => {
+      const id = typeof it === 'string' ? it : (it.id || it.ItemId || '');
+      const name = (typeof it === 'object' && (it.name || it.DisplayName)) ||
+                   id.replace(/^(hat|shirt|pu)_/, '').replace(/[-_]/g, ' ');
+      const special = /crown/i.test(id);
+      return `<div class="lock-item${special ? ' rare' : ''}">
+        <div class="li-ico">${special ? '👑' : /hat/i.test(id) ? '🎩' : /shirt/i.test(id) ? '👕' : '⚡'}</div>
+        <div class="li-name">${esc(name)}</div>
+        ${special ? '<div class="li-tag">Event winner</div>' : ''}
+      </div>`;
+    }).join('') + '</div>';
+  } catch (e) {
+    el.innerHTML = `<div class="empty">Could not load your locker.<br>${esc(e.message)}</div>`;
+  }
+}
+
+/* ---- GAME UPDATE PROMPT ---- */
+// The website is the source of truth; if it moved on, the local client is stale.
+async function checkGameUpdate() {
+  if (!gameReady) return;
+  try {
+    const r = await crix.checkGameVersion();
+    if (r.updateAvailable) {
+      const bar = $('updBar');
+      bar.classList.add('on');
+      $('updSpin').style.display = 'none';
+      $('updMsg').innerHTML =
+        `Flappy Crix <b>${esc(r.webVersion)}</b> is out — you have ${esc(r.installed)}.`;
+      const btn = $('updBtn');
+      btn.style.display = '';
+      btn.textContent = 'Update game';
+      btn.onclick = async () => {
+        $('installBox').style.display = '';
+        bar.classList.remove('on');
+        document.querySelector('.nav button[data-v="play"]').click();
+        await crix.installGame();
+        $('installBox').style.display = 'none';
+      };
+    }
+  } catch (e) {}
+}
+setInterval(checkGameUpdate, 15 * 60 * 1000);
+
+/* updates */
+crix.onUpdateStatus(s => {
+  const bar = $('updBar'), msg = $('updMsg'), btn = $('updBtn'), spin = $('updSpin');
+  if (!bar) return;
+  // Checking happens silently; only show the bar once there is real news
+  if (s.state === 'checking' || s.state === 'current' || s.state === 'error') {
+    bar.classList.remove('on');
+    return;
+  }
+  bar.classList.add('on');
+  btn.style.display = 'none'; spin.style.display = '';
+  if (s.state === 'checking')    msg.textContent = 'Checking for updates…';
+  if (s.state === 'current')   { bar.classList.remove('on'); }
+  if (s.state === 'downloading') msg.textContent =
+      `Downloading update${s.percent ? ' — ' + s.percent + '%' : ''}…`;
+  if (s.state === 'ready') {
+    spin.style.display = 'none';
+    msg.textContent = `Update ${s.version} ready. Restart to apply.`;
+    btn.style.display = ''; btn.onclick = () => crix.installUpdate();
+  }
+  if (s.state === 'error') { bar.classList.remove('on'); }
+});
+</script>
+</body>
+</html>
