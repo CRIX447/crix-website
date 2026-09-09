@@ -507,6 +507,32 @@
         .game-sub { font-size:10px; color:var(--green); letter-spacing:2px;
             text-transform:uppercase; margin-top:3px; opacity:.85; }
 
+        /* ---- DOWNLOAD BANNER ---- */
+        .dl-banner {
+            display: flex; align-items: center; gap: 12px;
+            text-decoration: none; color: #fff;
+            background: linear-gradient(135deg, rgba(39,169,245,.18), rgba(39,169,245,.06));
+            border: 2px solid rgba(39,169,245,.45);
+            border-bottom: 4px solid rgba(20,90,140,.6);
+            border-radius: 16px; padding: 13px 16px; margin-top: 12px;
+            transition: transform .12s, border-color .12s;
+        }
+        .dl-banner:hover { border-color: #27A9F5; transform: translateY(-1px); }
+        .dl-banner:active { transform: translateY(2px); border-bottom-width: 2px; }
+        .dlb-ico { font-size: 22px; flex-shrink: 0; color: #27A9F5; }
+        .dlb-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .dlb-txt b { font-size: 13px; }
+        .dlb-txt i { font-style: normal; font-size: 10px; color: #8FC7EE; }
+        .dlb-arrow { font-size: 16px; color: rgba(255,255,255,.35); flex-shrink: 0; }
+
+        /* Pointless inside an app that IS the download */
+        html.android-app .dl-banner,
+        body.is-desktop-app .dl-banner { display: none !important; }
+
+        @media (max-width: 700px) {
+            .dl-banner { margin: 12px 14px 0; }
+        }
+
         .menu-footer {
             display:flex; gap:6px; justify-content:center; flex-wrap:wrap;
             margin-top:14px; padding-bottom:env(safe-area-inset-bottom);
@@ -1938,6 +1964,15 @@
             <button class="game-btn" id="startGameBtn">▶ START</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
+        <a class="dl-banner" id="dlBanner" href="/download">
+            <span class="dlb-ico">⬇</span>
+            <span class="dlb-txt">
+                <b>Download Flappy Crix for Windows</b>
+                <i>Faster, updates itself, and CRIX Chat built in</i>
+            </span>
+            <span class="dlb-arrow">→</span>
+        </a>
+
         <div class="menu-footer">
             <button class="foot-btn" id="tutorialBtn">❓ How to play</button>
             <button class="foot-btn" id="creditsBtn">✨ Credits</button>
@@ -5264,6 +5299,35 @@
         document.getElementById('closePairBtn')?.addEventListener('click', () =>
             document.getElementById('pairModal').classList.remove('active'));
         setInterval(updatePairTimer, 30000);
+
+        // The banner should not promise a Windows download to someone on a
+        // phone, or appear at all inside an installed app.
+        function setupDownloadBanner() {
+            const el = document.getElementById('dlBanner');
+            if (!el) return;
+
+            const plat = typeof detectPlatform === 'function' ? detectPlatform() : 'unknown';
+
+            if (plat === 'desktop' || window.__IS_ANDROID_APP__) {
+                el.style.display = 'none';
+                document.body.classList.add('is-desktop-app');
+                return;
+            }
+
+            const txt = el.querySelector('.dlb-txt');
+            if (plat === 'android' || plat === 'ios') {
+                // No mobile build yet — be honest rather than linking nowhere
+                txt.innerHTML = '<b>Also on Windows</b>' +
+                                '<i>A desktop version is available. Mobile is coming.</i>';
+            } else if (/Mac/i.test(navigator.userAgent)) {
+                txt.innerHTML = '<b>Download for Windows</b>' +
+                                '<i>Mac and Linux are planned — browser works fine meanwhile</i>';
+            } else if (/Linux/i.test(navigator.userAgent) && plat !== 'android') {
+                txt.innerHTML = '<b>Download for Windows</b>' +
+                                '<i>Linux is planned — browser works fine meanwhile</i>';
+            }
+        }
+        setTimeout(setupDownloadBanner, 300);
 
         // ═══════════ PLATFORM DETECTION ═══════════
         // Shown next to names so people know what someone is playing on —
