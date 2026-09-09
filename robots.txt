@@ -3,5 +3,6 @@ Allow: /
 Disallow: /console
 Disallow: /api/
 Disallow: /evidence
+Disallow: /launcher
 
 Sitemap: https://crixgamingvr.com/sitemap.xml
