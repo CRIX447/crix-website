@@ -42,7 +42,7 @@
     
 
     <script src="/filter.js?v=2026082519"></script>
-    <script src="/ui.js?v=2026091024"></script>
+    <script src="/ui.js?v=2026091101"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
     <script src="/playfab-manager.js?v=2026082519"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
@@ -4118,37 +4118,94 @@
             return g;
         }
 
-        // Two layers drifting at different speeds. Cheap, and it gives the
-        // playfield a sense of distance behind the pipes.
+        // Backdrop in the style of the original — sky, a distant skyline, a
+        // bush line, and a striped ground that scrolls with the pipes.
         let _bgOffset = 0;
+
         function drawBackdrop() {
             const light = document.documentElement.classList.contains('theme-light');
             const W = canvas.width, H = canvas.height;
+            const groundH = Math.round(H * 0.11);
+            const skyH = H - groundH;
 
-            const sky = ctx.createLinearGradient(0, 0, 0, H);
-            if (light) { sky.addColorStop(0, '#DDE8F5'); sky.addColorStop(1, '#EEEEF4'); }
-            else       { sky.addColorStop(0, '#141426'); sky.addColorStop(1, '#0A0A12'); }
+            // ---- sky ----
+            const sky = ctx.createLinearGradient(0, 0, 0, skyH);
+            if (light) { sky.addColorStop(0, '#4EC0CA'); sky.addColorStop(1, '#8FD9E0'); }
+            else       { sky.addColorStop(0, '#12203A'); sky.addColorStop(1, '#1B3352'); }
             ctx.fillStyle = sky;
-            ctx.fillRect(0, 0, W, H);
+            ctx.fillRect(0, 0, W, skyH);
 
-            if (gameRunning && !gameOver) _bgOffset += 0.35;
+            if (gameRunning && !gameOver) _bgOffset += 0.4;
 
-            // Far layer — slow, faint
-            ctx.fillStyle = light ? 'rgba(120,150,190,.16)' : 'rgba(70,90,150,.14)';
-            for (let i = 0; i < 6; i++) {
-                const x = ((i * 140 - _bgOffset * 0.25) % (W + 160)) - 80;
-                const h = 70 + (i % 3) * 40;
-                ctx.fillRect(x, H - h, 90, h);
+            // ---- clouds ----
+            ctx.fillStyle = light ? 'rgba(255,255,255,.85)' : 'rgba(180,200,235,.10)';
+            for (let i = 0; i < 4; i++) {
+                const x = ((i * 150 - _bgOffset * 0.12) % (W + 180)) - 90;
+                const y = 26 + (i % 3) * 34;
+                blob(x, y, 30, 12);
+                blob(x + 22, y - 7, 22, 10);
+                blob(x + 42, y, 26, 11);
             }
 
-            // Near layer — faster, darker
-            ctx.fillStyle = light ? 'rgba(90,120,165,.22)' : 'rgba(40,55,100,.24)';
-            for (let i = 0; i < 5; i++) {
-                const x = ((i * 190 - _bgOffset * 0.6) % (W + 200)) - 100;
-                const h = 45 + (i % 2) * 30;
-                ctx.fillRect(x, H - h, 120, h);
+            // ---- skyline, well behind everything ----
+            const cityY = skyH - Math.round(H * 0.13);
+            ctx.fillStyle = light ? 'rgba(120,200,205,.75)' : 'rgba(35,60,95,.7)';
+            for (let i = 0; i < 14; i++) {
+                const x = ((i * 62 - _bgOffset * 0.2) % (W + 140)) - 70;
+                const h = 26 + ((i * 37) % 46);
+                ctx.fillRect(x, cityY + (46 - h), 44, h);
+                // a suggestion of windows, not actual detail
+                ctx.fillStyle = light ? 'rgba(255,255,255,.22)' : 'rgba(120,160,220,.16)';
+                for (let wy = cityY + (46 - h) + 6; wy < cityY + 42; wy += 11) {
+                    ctx.fillRect(x + 8, wy, 6, 5);
+                    ctx.fillRect(x + 24, wy, 6, 5);
+                }
+                ctx.fillStyle = light ? 'rgba(120,200,205,.75)' : 'rgba(35,60,95,.7)';
             }
+
+            // ---- bushes along the horizon ----
+            const bushY = skyH - Math.round(H * 0.045);
+            ctx.fillStyle = light ? '#5BAF3E' : '#1E4A2E';
+            for (let i = 0; i < 12; i++) {
+                const x = ((i * 74 - _bgOffset * 0.45) % (W + 160)) - 80;
+                blob(x, bushY, 34, 15);
+                blob(x + 26, bushY - 5, 28, 14);
+            }
+            ctx.fillRect(0, bushY, W, skyH - bushY);
+
+            // ---- ground ----
+            ctx.fillStyle = light ? '#DED895' : '#2A2A22';
+            ctx.fillRect(0, skyH, W, groundH);
+            ctx.fillStyle = light ? '#C9C177' : '#22221C';
+            ctx.fillRect(0, skyH, W, 4);
+
+            // Diagonal stripes, the detail that makes it feel like it moves
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(0, skyH + 4, W, groundH - 4);
+            ctx.clip();
+            ctx.fillStyle = light ? 'rgba(180,170,90,.5)' : 'rgba(255,255,255,.05)';
+            const stripeW = 14, span = groundH;
+            for (let x = -span; x < W + span; x += stripeW * 2) {
+                const ox = x - (_bgOffset % (stripeW * 2));
+                ctx.beginPath();
+                ctx.moveTo(ox, skyH + groundH);
+                ctx.lineTo(ox + span, skyH + 4);
+                ctx.lineTo(ox + span + stripeW, skyH + 4);
+                ctx.lineTo(ox + stripeW, skyH + groundH);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
         }
+
+        // Rounded lump used for clouds and bushes
+        function blob(x, y, w, h) {
+            ctx.beginPath();
+            ctx.ellipse(x, y, w / 2, h, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
 
         function drawPipe(x, y, w, h, isTop) {
             if (h <= 0) return;
@@ -4190,7 +4247,34 @@
                 drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
             } 
             // Draw coins
-            for(let c of coinsArr){ if(!c.collected && coinImage.complete) ctx.drawImage(coinImage, c.x, c.y, 20, 20); } 
+            // Coins spin and bob. The spin is a horizontal squash on a sine
+            // wave, which reads as rotation without needing sprite frames.
+            for (const co of coinsArr) {
+                if (co.collected || !coinImage.complete) continue;
+                const t = frameCount * 0.08 + (co.x * 0.05);
+                const spin = Math.abs(Math.cos(t));          // 1 → face on, 0 → edge on
+                const bob = Math.sin(t * 0.7) * 2.5;
+                const w = 20 * Math.max(0.18, spin);
+
+                ctx.save();
+                ctx.translate(co.x + 10, co.y + 10 + bob);
+
+                // Edge catches the light as it turns
+                if (spin < 0.35) {
+                    ctx.fillStyle = '#B8860B';
+                    ctx.fillRect(-w / 2, -10, w, 20);
+                } else {
+                    ctx.drawImage(coinImage, -w / 2, -10, w, 20);
+                }
+
+                // A soft glow so they stand out against the new background
+                ctx.globalAlpha = 0.18 * spin;
+                ctx.fillStyle = '#FFD700';
+                ctx.beginPath();
+                ctx.arc(0, 0, 13, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            } 
             // Draw other multiplayer players (host's pipes are authoritative, so guests see the same layout)
             if (typeof mpDrawOtherPlayers === 'function') mpDrawOtherPlayers(ctx);
             if (typeof mpDrawOffscreenArrows === 'function') mpDrawOffscreenArrows(ctx);
