@@ -322,6 +322,10 @@
 
 
 
+        /* Off until a layout below claims it — every shell places it itself.
+           Declared here, ahead of them all, so plain source order decides. */
+        .menu-bird { display: none; }
+
         /* ═══════════ DESKTOP RESET ═══════════
            Explicitly undoes anything phone-shaped above 700px. Defensive, but
            a single leaking rule was throwing the whole layout off.
@@ -335,15 +339,62 @@
 
             .game-container {
                 position: static !important; inset: auto !important;
-                width: auto !important; height: auto !important;
-                max-width: 520px !important; margin: 0 auto !important;
-                display: block !important;
+                /* 100%, not auto: as a flex item of <body> an auto width
+                   shrink-wraps to the content and never reaches max-width */
+                width: 100% !important; height: auto !important;
+                max-width: min(620px, calc(100vw - 40px)) !important;
+                margin: 0 auto !important;
+                /* flex, so the menu can be ordered the way the phone shell
+                   orders it — see MENU ORDER below */
+                display: flex !important; flex-direction: column;
             }
             .canvas-wrapper {
                 position: relative !important; inset: auto !important;
                 width: fit-content !important; height: auto !important;
                 margin: 12px auto !important;
             }
+
+            /* A 400px playfield on a 1080p screen is a postage stamp. Grow it
+               with the window, keeping the 2:3 the canvas is drawn at. */
+            canvas {
+                width: min(560px, calc(100vw - 80px), calc((100dvh - 120px) * 0.6667)) !important;
+            }
+
+            /* ---- MENU ORDER ----
+               Source order puts MULTIPLAYER and the icon grid above START,
+               so the primary action landed underneath everything else. */
+            .user-section    { order: 1; }
+            .game-header     { order: 2; }
+            .menu-bird       { order: 3; }
+            .canvas-wrapper  { order: 4; }
+            .stats-grid      { order: 5; }
+            .cheat-indicators, .active-powerups { order: 6; }
+            .game-controls   { order: 7; }
+            .mp-banner-btn   { order: 8; }
+            .icon-bar        { order: 9; }
+            .menu-footer     { order: 10; }
+
+            /* START and MUSIC share the width instead of huddling in the middle */
+            .game-controls .game-btn { flex: 1; min-height: 52px; font-size: 16px; }
+            /* 6 across, so SETTINGS stops orphaning onto its own row */
+            .icon-bar { grid-template-columns: repeat(6, 1fr) !important; }
+
+            /* The mascot fills the gap the menu leaves, same as on a phone */
+            .menu-bird {
+                display: block;
+                width: 132px; aspect-ratio: 1; object-fit: cover;
+                margin: 14px auto 4px;
+                border: 3px solid rgba(255,107,53,.55);
+                border-bottom-width: 5px;
+                border-radius: 26px;
+                box-shadow: 0 14px 28px rgba(0,0,0,.35);
+                animation: birdBobStill 3.4s ease-in-out infinite;
+            }
+            @keyframes birdBobStill {
+                0%, 100% { transform: translateY(0); }
+                50%      { transform: translateY(-9px); }
+            }
+            body.playing .menu-bird, body.dead .menu-bird { display: none; }
             /* These overlays anchor to the wrapper; keep them inside it */
             .hud-live, .ingame-bar, .race-meter, .death-screen {
                 position: absolute !important;
@@ -2054,9 +2105,6 @@
         }
         .store-tab:hover:not(.active) { transform: translateY(-1px); box-shadow: 2px 3px 0 rgba(0,0,0,0.3); }
 
-        /* Only the phone shell has empty space to fill — see MASCOT below */
-        .menu-bird { display: none; }
-
         /* ---- STORE / LOCKER CARDS ----
            These were built inline in the template strings, which meant a
            hardcoded dark panel that light mode could not reach. */
@@ -2154,6 +2202,24 @@
             border-color: rgba(0,0,0,.1) !important;
         }
         html.theme-light .store-buy { color: #fff !important; }
+
+        /* The sign-in bar and the toasts both carry their own dark panel */
+        html.theme-light .user-section {
+            background: #F4F4F8;
+            border-bottom-color: rgba(196,80,30,.45);
+        }
+        html.theme-light .user-name { color: #1A1A22; }
+        html.theme-light .save-status {
+            background: rgba(0,0,0,.04); color: #0A8A54;
+            border-color: rgba(0,204,122,.35);
+        }
+        html.theme-light .toast {
+            background: #FFFFFF;
+            box-shadow: 3px 3px 0 rgba(0,0,0,.12);
+        }
+        html.theme-light .toast-title { color: #1A1A22; }
+        html.theme-light .toast-body  { color: #4A4A56; }
+        html.theme-light .toast-btn.no { background: #EDEDF3; color: #3A3A46; }
 
         @media (max-width: 450px) {
             .stats-grid { gap: 5px; }
@@ -2353,6 +2419,14 @@
             /* No room for it between a 27px title and the deck */
             .menu-bird { display: none; }
 
+            /* Sideways the limit is height, so drive the canvas off height and
+               let width follow. `width: 100%` with a clamped max-height does
+               NOT re-derive the width — it just squashes the playfield. */
+            canvas {
+                width: auto !important; height: 100% !important;
+                max-width: 100% !important;
+            }
+
             /* Bottom sheets get the whole height on a short screen */
             .mp-modal-content, .modal-content { max-height: 96dvh; }
         }
@@ -2480,8 +2554,6 @@
             </div>
         </div>
         
-        <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-        </div>
         <div class="stats-grid">
             <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
             <div class="cyber-stat"><div class="stat-label">BEST</div><div class="stat-value" id="highScore">0</div></div>
