@@ -633,6 +633,71 @@
         html.theme-light .foot-btn:hover { color: #1A1A22; }
         html.theme-light canvas { box-shadow: 0 4px 18px rgba(0,0,0,.12); }
 
+        /* ---- modal body text ----
+           `.modal-content`/`.mp-modal-content` force every div/span/p/label/li
+           inside a modal to a light colour so it read on the old all-dark
+           panels. That rule ships regardless of theme, so once the panel
+           itself turned white the text stayed near-invisible on top of it. */
+        html.theme-light .modal-content, html.theme-light .modal-content div,
+        html.theme-light .modal-content span, html.theme-light .modal-content p,
+        html.theme-light .modal-content label, html.theme-light .modal-content li,
+        html.theme-light .mp-modal-content, html.theme-light .mp-modal-content div,
+        html.theme-light .mp-modal-content span, html.theme-light .mp-modal-content p,
+        html.theme-light .mp-modal-content label, html.theme-light .mp-modal-content li {
+            color: #1A1A22;
+        }
+        html.theme-light .store-grid div, html.theme-light .product-info div,
+        html.theme-light #achievementsGrid div, html.theme-light #lockerHats div,
+        html.theme-light #lockerShirts div { color: #1A1A22; }
+
+        /* ---- the rest: classes with their own hardcoded light-on-dark colour,
+           which the broad rule above can't reach because a same-specificity
+           class selector wins by source order, not by which theme is active ---- */
+        html.theme-light .tut-page h3,
+        html.theme-light .cred-list > div span:last-child,
+        html.theme-light .cred-inspired p,
+        html.theme-light .po,
+        html.theme-light .diag-name,
+        html.theme-light .ev-txt b,
+        html.theme-light .friend-tab i,
+        html.theme-light .notif-t { color: #1A1A22 !important; }
+
+        html.theme-light .tut-page p,
+        html.theme-light .cred-by,
+        html.theme-light .cred-thanks,
+        html.theme-light .legal-body,
+        html.theme-light .online-bar,
+        html.theme-light .tos-check,
+        html.theme-light .ps-name,
+        html.theme-light .fr-deny { color: #3A3A46 !important; }
+
+        html.theme-light .cred-ver,
+        html.theme-light .cred-note,
+        html.theme-light .cred-list > div span:first-child,
+        html.theme-light .po-state,
+        html.theme-light .legal-tab,
+        html.theme-light .legal-updated,
+        html.theme-light .diag-detail,
+        html.theme-light .mp-room-meta,
+        html.theme-light .mp-empty-state,
+        html.theme-light .browse-toggle,
+        html.theme-light .browse-toggle span,
+        html.theme-light .streak-sub,
+        html.theme-light .rw-day,
+        html.theme-light .reward-note,
+        html.theme-light .ev-time,
+        html.theme-light .friend-btn,
+        html.theme-light .notif-b { color: #5A5A68 !important; }
+
+        html.theme-light .social { color: #1A1A22 !important; }
+        html.theme-light .social,
+        html.theme-light .legal-tab,
+        html.theme-light .browse-toggle,
+        html.theme-light .fr-deny,
+        html.theme-light .friend-tab i {
+            background: #F0F0F6 !important; border-color: rgba(0,0,0,.1) !important;
+        }
+
         /* Phone shell also applies to consoles */
         html.plat-mobile .game-container,
         html.plat-console .game-container { position: fixed; inset: 0; }
@@ -1270,14 +1335,16 @@
         .mp-copy-code-btn { background: rgba(0,204,122,0.1); border: 1px solid var(--green); color: var(--green); font-size: 10px; padding: 4px 12px; border-radius: 20px; cursor: pointer; display: block; margin: 4px auto 0; }
 
         /* ---- IN-GAME MULTIPLAYER HUD ---- */
-        /* Must sit below the modals or it covers the lobby view */
+        /* Must sit below the modals or it covers the lobby view.
+           Anchored to the bottom, not the top, so it doesn't sit over the
+           bird's flight path while a match is in progress. */
         .mp-hud {
             display: none;
-            position: absolute; top: 50px; right: 8px; z-index: 25;
+            position: absolute; bottom: calc(8px + env(safe-area-inset-bottom)); right: 8px; z-index: 25;
             background: rgba(8,8,14,.94); backdrop-filter: blur(8px);
             border: 1px solid rgba(255,107,53,.35);
             border-radius: 14px; padding: 10px 12px;
-            min-width: 150px; max-width: 210px; max-height: 60%;
+            min-width: 150px; max-width: 210px; max-height: 45%;
             overflow-y: auto; font-size: 11px;
             box-shadow: 0 6px 24px rgba(0,0,0,.6);
         }
@@ -7152,6 +7219,7 @@
         // Staff menu during a match — useful for dealing with someone
         // mid-game rather than having to leave first.
         document.getElementById('mpHudBtn')?.addEventListener('click', () => {
+            if (!mpCurrentRoom) return;   // stale button state should never open an empty/stale panel
             document.getElementById('mpHud')?.classList.toggle('open');
         });
         // First tap expands the row, second pauses. Keeps one icon on screen
@@ -10449,7 +10517,9 @@
 
         function mpEndMatchUI() {
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
-            document.getElementById('mpHud').classList.remove('active');
+            document.getElementById('mpHud').classList.remove('active', 'open');
+            document.getElementById('mpHud').innerHTML = '';
+            document.getElementById('mpHudBtn')?.classList.remove('on');
             document.getElementById('mpChatToggleBtn').classList.remove('active');
             document.getElementById('mpChatPanel').classList.remove('active');
             document.getElementById('mpGodmodeBanner').classList.remove('active');
