@@ -42,7 +42,7 @@
     
 
     <script src="/filter.js?v=2026082519"></script>
-    <script src="/ui.js?v=2026091021"></script>
+    <script src="/ui.js?v=2026091023"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
     <script src="/playfab-manager.js?v=2026082519"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
@@ -3490,7 +3490,8 @@
         
         let cosmetics = [
             { id: 'crown', name: "CHAMPION'S CROWN", type: 'hat', price: null, exclusive: true,
-              desc: 'Won in an event. Cannot be bought.', img: '/img/crown.png' },
+              desc: 'Won in an event. Cannot be bought.',
+              image: '/img/crown.png', owned: false, equipped: false },
             { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, image: '/img/bucket-hat.avif', owned: false, equipped: false },
             { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, image: '/img/cap.png', owned: false, equipped: false },
             { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 450, image: '/img/tank-top.avif', owned: false, equipped: false },
@@ -3810,7 +3811,7 @@
             previewCtx.save(); 
             previewCtx.translate(40,40); 
             let sz = cheats.bigbird ? 45 : 32; 
-            if(birdImage.complete) previewCtx.drawImage(birdImage, -sz/2, -sz/2, sz, sz); 
+            drawSprite(previewCtx, birdImage, 0, 0, sz); 
             let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
             if(shirt){ const si=cachedImage(shirt.image); if(si){ const sw=sz*0.72, sh=sz*0.55; previewCtx.drawImage(si, -sw/2, sz*0.02, sw, sh); } } 
             let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
@@ -4019,6 +4020,21 @@
             }
         }
 
+        // The bird sprite was drawn into a square box regardless of its real
+        // shape, which squashed it. This fits it inside the box and keeps the
+        // proportions, centring whatever is left over.
+        function drawSprite(context, img, cx, cy, boxSize) {
+            if (!img || !img.complete || !img.naturalWidth) return false;
+
+            const ratio = img.naturalWidth / img.naturalHeight;
+            let w = boxSize, h = boxSize;
+            if (ratio > 1) h = boxSize / ratio;   // wider than tall
+            else if (ratio < 1) w = boxSize * ratio;
+
+            context.drawImage(img, cx - w / 2, cy - h / 2, w, h);
+            return true;
+        }
+
         function drawGame(){
             // The HUD rebuilt its DOM every frame, which was the main cause
             // of the lag. Text changes 10x a second is plenty and the
@@ -4040,7 +4056,7 @@
             let rot=Math.min(Math.max(bird.velocity*0.1,-0.5),0.5); 
             ctx.rotate(rot); 
             let birdSize = cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30);
-            if(birdImage.complete) ctx.drawImage(birdImage,-birdSize/2,-birdSize/2,birdSize,birdSize); 
+            drawSprite(ctx, birdImage, 0, 0, birdSize); 
             // Shirt: narrower and lower so it sits on the body, not over the whole bird
             let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped);
             if(shirt){
@@ -10174,7 +10190,7 @@
                 ctx.translate(p.x * sx, p.y * sy);
                 if (birdImage.complete) {
                     ctx.globalAlpha = 0.9;
-                    ctx.drawImage(birdImage, -10, -10, 20, 20);
+                    drawSprite(ctx, birdImage, 0, 0, 20);
                 }
                 ctx.globalAlpha = 1;
                 ctx.fillStyle = p.colour || '#FF6B35';
@@ -10277,8 +10293,7 @@
                     _imgCache[item.image] = img;
                 }
                 if (img.complete && img.naturalWidth > 0) {
-                    const s = size * scale;
-                    context.drawImage(img, -s/2, -s/2 + yOffset, s, s);
+                    drawSprite(context, img, 0, yOffset, size * scale);
                 }
             };
             draw(p.shirt, size * 0.10, 1.0);
@@ -10322,7 +10337,7 @@
                 // Bird sprite
                 context.globalAlpha = alpha;
                 if (birdImage.naturalWidth > 0) {
-                    context.drawImage(birdImage, -birdSize/2, -birdSize/2, birdSize, birdSize);
+                    drawSprite(context, birdImage, 0, 0, birdSize);
                     // Their equipped cosmetics. Previously these were only ever
                     // drawn on your own bird, so nobody could see anyone's drip.
                     mpDrawWornCosmetics(context, p, birdSize);
