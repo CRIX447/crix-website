@@ -42,7 +42,7 @@
     
 
     <script src="/filter.js?v=2026082519"></script>
-    <script src="/ui.js?v=2026091010"></script>
+    <script src="/ui.js?v=2026091021"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
     <script src="/playfab-manager.js?v=2026082519"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
@@ -473,21 +473,113 @@
         .pad-hints span { display: flex; align-items: center; }
 
         /* Light theme adjustments the variables cannot cover */
+        /* ═══════════ LIGHT THEME ═══════════
+           The game is drawn in dark surfaces with light text. Flipping the
+           background alone left dark cards on a white page and text that
+           nearly vanished, so every surface is redefined here. */
         html.theme-light { color-scheme: light; }
-        html.theme-light body { color: var(--txt); }
-        html.theme-light .game-title { filter: drop-shadow(0 2px 0 rgba(0,0,0,.18)); }
+
+        html.theme-light body {
+            color: #1A1A22;
+            background-image:
+                linear-gradient(rgba(255,70,85,.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,70,85,.05) 1px, transparent 1px);
+        }
+
+        /* ---- containers ---- */
+        html.theme-light .game-container {
+            background: #FFFFFF;
+            border-color: #FF4655;
+            box-shadow: 6px 6px 0 rgba(0,0,0,.12);
+        }
+        html.theme-light .canvas-wrapper {
+            background: #EEEEF4;
+            border-color: rgba(255,107,53,.5);
+        }
+
+        /* ---- cards and rows ---- */
+        html.theme-light .cyber-stat,
+        html.theme-light .icon-btn,
+        html.theme-light .foot-btn,
+        html.theme-light .mp-banner-btn,
+        html.theme-light .rw,
+        html.theme-light .po,
+        html.theme-light .pause-stats > div,
+        html.theme-light .approve-detail,
+        html.theme-light .lock-item {
+            background: #F4F4F8 !important;
+            border-color: rgba(0,0,0,.12) !important;
+            box-shadow: 2px 2px 0 rgba(0,0,0,.08);
+        }
+
+        /* ---- text ---- */
         html.theme-light .stat-value,
         html.theme-light .set-label,
-        html.theme-light .modal-title { color: #1A1A22 !important; }
+        html.theme-light .modal-title,
+        html.theme-light .icon-btn label,
+        html.theme-light .m-name,
+        html.theme-light .friend-name { color: #1A1A22 !important; }
+
+        html.theme-light .stat-label,
         html.theme-light .set-sub,
-        html.theme-light .stat-label { color: #5F5F6B !important; }
+        html.theme-light .game-sub,
+        html.theme-light .foot-btn { color: #5A5A68 !important; }
+
+        html.theme-light .mp-section-title { color: #C43D2E !important; }
+
+        /* ---- modals ---- */
+        html.theme-light .mp-modal,
+        html.theme-light .store-modal,
+        html.theme-light .locker-modal,
+        html.theme-light .achievements-modal { background: rgba(0,0,0,.35); }
+
         html.theme-light .mp-modal-content,
-        html.theme-light .modal-content { background: #FFFFFF !important; color: #1A1A22; }
+        html.theme-light .modal-content {
+            background: #FFFFFF !important;
+            color: #1A1A22;
+            border-color: rgba(0,0,0,.12);
+            box-shadow: 0 12px 40px rgba(0,0,0,.18);
+        }
+        html.theme-light .modal-header { border-bottom-color: rgba(0,0,0,.1); }
+        html.theme-light .set-row { border-bottom-color: rgba(0,0,0,.08); }
+
+        /* ---- inputs ---- */
         html.theme-light .mp-input,
         html.theme-light input, html.theme-light select, html.theme-light textarea {
-            background: #F2F2F6 !important; color: #1A1A22 !important;
-            border-color: rgba(0,0,0,.15) !important; }
-        html.theme-light .cyber-stat { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.1); }
+            background: #F4F4F8 !important;
+            color: #1A1A22 !important;
+            border-color: rgba(0,0,0,.16) !important;
+        }
+        html.theme-light input::placeholder { color: #9A9AA6; }
+
+        /* ---- tabs and chips ---- */
+        html.theme-light .set-tab,
+        html.theme-light .queue-tab,
+        html.theme-light .friend-tab {
+            background: #F0F0F6; border-color: rgba(0,0,0,.1); color: #5A5A68;
+        }
+        html.theme-light .set-tab.active,
+        html.theme-light .queue-tab.active,
+        html.theme-light .friend-tab.active {
+            background: rgba(255,107,53,.14); border-color: #FF6B35; color: #C4501E;
+        }
+
+        /* ---- the title keeps its gradient, just a softer shadow ---- */
+        html.theme-light .game-title { filter: drop-shadow(0 2px 0 rgba(0,0,0,.15)); }
+
+        /* ---- in-game overlays ---- */
+        html.theme-light .hud-score { color: #1A1A22; text-shadow: 0 2px 0 rgba(0,0,0,.15); }
+        html.theme-light .ig-btn,
+        html.theme-light .hud-coins,
+        html.theme-light .hud-rush {
+            background: rgba(255,255,255,.9); color: #1A1A22;
+            border-color: rgba(0,0,0,.14);
+        }
+
+        /* Primary buttons stay bold in both themes — they are the brand */
+        html.theme-light .game-btn,
+        html.theme-light .mp-btn-primary,
+        html.theme-light .death-btn.retry { color: #fff; }
         html.theme-light .cyber-stat { background: rgba(0,0,0,.04); }
         html.theme-light .foot-btn { background: rgba(0,0,0,.04); color: #5A5A66; }
         html.theme-light .foot-btn:hover { color: #1A1A22; }
