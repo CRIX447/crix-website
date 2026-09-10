@@ -42,7 +42,7 @@
     
 
     <script src="/filter.js?v=2026082519"></script>
-    <script src="/ui.js?v=2026091007"></script>
+    <script src="/ui.js?v=2026091010"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
     <script src="/playfab-manager.js?v=2026082519"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
@@ -473,7 +473,21 @@
         .pad-hints span { display: flex; align-items: center; }
 
         /* Light theme adjustments the variables cannot cover */
+        html.theme-light { color-scheme: light; }
+        html.theme-light body { color: var(--txt); }
         html.theme-light .game-title { filter: drop-shadow(0 2px 0 rgba(0,0,0,.18)); }
+        html.theme-light .stat-value,
+        html.theme-light .set-label,
+        html.theme-light .modal-title { color: #1A1A22 !important; }
+        html.theme-light .set-sub,
+        html.theme-light .stat-label { color: #5F5F6B !important; }
+        html.theme-light .mp-modal-content,
+        html.theme-light .modal-content { background: #FFFFFF !important; color: #1A1A22; }
+        html.theme-light .mp-input,
+        html.theme-light input, html.theme-light select, html.theme-light textarea {
+            background: #F2F2F6 !important; color: #1A1A22 !important;
+            border-color: rgba(0,0,0,.15) !important; }
+        html.theme-light .cyber-stat { background: rgba(0,0,0,.04); border-color: rgba(0,0,0,.1); }
         html.theme-light .cyber-stat { background: rgba(0,0,0,.04); }
         html.theme-light .foot-btn { background: rgba(0,0,0,.04); color: #5A5A66; }
         html.theme-light .foot-btn:hover { color: #1A1A22; }
@@ -556,6 +570,23 @@
         }
         .game-sub { font-size:10px; color:var(--green); letter-spacing:2px;
             text-transform:uppercase; margin-top:3px; opacity:.85; }
+
+        /* ---- BROADCAST ---- */
+        .broadcast {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; z-index: 55000;
+            padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
+            background: linear-gradient(135deg, #FF4655, #FF6B35);
+            box-shadow: 0 4px 20px rgba(0,0,0,.5);
+            animation: bcDrop .35s cubic-bezier(.2,.9,.3,1.1);
+        }
+        .broadcast.on { display: block; }
+        @keyframes bcDrop { from { transform: translateY(-100%); } to { transform: none; } }
+        .bc-inner { max-width: 640px; margin: 0 auto; text-align: center;
+            font-size: 13px; line-height: 1.6; color: #fff; }
+        .bc-from { font-weight: bold; margin-right: 6px; }
+        .bc-msg { opacity: .95; }
+        body.clean-mode .broadcast { display: none !important; }
 
         /* ---- CLEAN MODE (trailer capture) ---- */
         body.clean-mode .ingame-bar,
@@ -684,6 +715,32 @@
         .legal-body a { color:var(--green); }
         .legal-updated { font-size:10px; color:#8C8C8C; font-style:italic;
             margin-top:14px; padding-top:10px; border-top:1px solid rgba(255,255,255,.08); }
+
+        /* ---- SETTINGS TABS ---- */
+        .set-tabs {
+            display: flex; gap: 5px; margin-bottom: 12px;
+            overflow-x: auto; flex-shrink: 0; padding-bottom: 3px;
+            scrollbar-width: none;
+        }
+        .set-tabs::-webkit-scrollbar { display: none; }
+        .set-tab {
+            flex: 0 0 auto; background: rgba(255,255,255,.04);
+            border: 1px solid rgba(255,255,255,.1); color: #A0A0A0;
+            font-family: inherit; font-size: 11px; padding: 9px 14px;
+            border-radius: 20px; cursor: pointer; white-space: nowrap;
+        }
+        .set-tab.active { background: rgba(255,107,53,.16); border-color: var(--orange);
+            color: var(--orange); }
+        .set-tab:hover { color: #fff; }
+        @media (pointer: coarse) { .set-tab { min-height: 40px; padding: 10px 16px; } }
+
+        /* Only the chosen group is shown */
+        .settings-body[data-showing] .set-group { display: none; }
+        .settings-body[data-showing="account"] .set-group[data-group="account"],
+        .settings-body[data-showing="game"]    .set-group[data-group="game"],
+        .settings-body[data-showing="audio"]   .set-group[data-group="audio"],
+        .settings-body[data-showing="social"]  .set-group[data-group="social"],
+        .settings-body[data-showing="about"]   .set-group[data-group="about"] { display: block; }
 
         /* ---- SETTINGS PANEL ---- */
         /* 19 rows overflowed the modal on shorter screens; the body scrolls
@@ -1988,6 +2045,13 @@
                 <div class="rm-label"><span id="rmScore">0</span> / <span id="rmTarget">100</span></div>
             </div>
 
+            <div class="broadcast" id="broadcast">
+                <div class="bc-inner">
+                    <span class="bc-from" id="bcFrom"></span>
+                    <span class="bc-msg" id="bcMsg"></span>
+                </div>
+            </div>
+
             <div class="pad-hints" id="padHints">
                 <span data-prompt="a">Flap</span>
                 <span data-prompt="start">Play</span>
@@ -2934,6 +2998,13 @@
             <div class="modal-header">
                 <div class="modal-title">⚙️ SETTINGS</div>
                 <button class="modal-close" id="closeSettingsBtn">✕</button>
+            </div>
+            <div class="set-tabs">
+                <button class="set-tab active" data-st="account">👤 Account</button>
+                <button class="set-tab" data-st="game">🎮 Game</button>
+                <button class="set-tab" data-st="audio">🔊 Audio</button>
+                <button class="set-tab" data-st="social">👥 Social</button>
+                <button class="set-tab" data-st="about">ℹ️ About</button>
             </div>
             <div class="settings-body">
 
@@ -4310,6 +4381,7 @@
         }
 
         function refreshSettingsUI() {
+            buildSettingsGroups();
             // The Discord row only exists once the settings markup is present,
             // so rebind here rather than relying on a single call at sign-in.
             try { refreshDiscordRow(); } catch(e) {}
@@ -5039,6 +5111,100 @@
 
 
 
+
+
+        // ═══════════ BROADCASTS ═══════════
+        // Staff messages that appear on everyone's screen at once.
+        let _bcSeen = null, _bcTimer = null;
+
+        function watchBroadcasts() {
+            if (!db) return;
+            db.collection('config').doc('broadcast').onSnapshot(d => {
+                if (!d.exists) return;
+                const b = d.data();
+                if (!b.message || !b.at) return;
+
+                // Only show each one once, and ignore anything older than
+                // 5 minutes so joining late does not replay old messages.
+                if (b.at === _bcSeen) return;
+                if (Date.now() - b.at > 300000) { _bcSeen = b.at; return; }
+                _bcSeen = b.at;
+
+                showBroadcast(b);
+            }, e => console.warn('[Broadcast]', e.message));
+        }
+
+        function showBroadcast(b) {
+            const el = document.getElementById('broadcast');
+            if (!el) return;
+            document.getElementById('bcFrom').textContent = (b.from || 'STAFF') + ':';
+            document.getElementById('bcMsg').textContent = b.message;
+
+            if (b.colour) {
+                el.style.background = b.colour;
+            } else {
+                el.style.background = 'linear-gradient(135deg,#FF4655,#FF6B35)';
+            }
+
+            el.classList.add('on');
+            playSfx('notify');
+
+            clearTimeout(_bcTimer);
+            _bcTimer = setTimeout(() => el.classList.remove('on'),
+                                  Math.max(6000, (b.message.length / 12) * 1000));
+
+            // Also drop it into lobby chat so it is not missed
+            if (typeof mpLobbyChatAppend === 'function' && mpCurrentRoom) {
+                mpLobbyChatAppend(null, `📢 ${b.from || 'STAFF'}: ${b.message}`, true);
+            }
+        }
+
+        setTimeout(watchBroadcasts, 1500);
+
+
+        // ═══════════ SETTINGS TABS ═══════════
+        // The panel had 20+ rows in one scroll. Grouping them by section
+        // title means you find what you came for without hunting.
+        const SET_GROUPS = {
+            '👤': 'account', '🔗': 'account', '🔑': 'account', '📧': 'account',
+            '🎮': 'game',    '⚙': 'game',    '🖥': 'game',    '🎨': 'game',
+            '🔊': 'audio',   '🎵': 'audio',   '🔇': 'audio',
+            '👥': 'social',  '💬': 'social',  '🔔': 'social',  '🛡': 'social',
+            'ℹ': 'about',   '📄': 'about',   '🐛': 'about'
+        };
+
+        function buildSettingsGroups() {
+            const body = document.querySelector('.settings-body');
+            if (!body || body.dataset.grouped) return;
+
+            const children = [...body.children];
+            let current = null, group = 'about';
+
+            children.forEach(el => {
+                if (el.classList.contains('mp-section-title')) {
+                    const key = Object.keys(SET_GROUPS).find(k => el.textContent.trim().startsWith(k));
+                    group = SET_GROUPS[key] || 'game';
+                    current = document.createElement('div');
+                    current.className = 'set-group';
+                    current.dataset.group = group;
+                    body.insertBefore(current, el);
+                }
+                if (current) current.appendChild(el);
+            });
+
+            body.dataset.grouped = '1';
+            body.dataset.showing = 'account';
+        }
+
+        document.querySelectorAll('.set-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.set-tab').forEach(t =>
+                    t.classList.toggle('active', t === tab));
+                const body = document.querySelector('.settings-body');
+                if (body) { body.dataset.showing = tab.dataset.st; body.scrollTop = 0; }
+                playSfx('pop', .35);
+            });
+        });
 
         // ═══════════ THEME ═══════════
         function refreshThemeRow() {
@@ -6694,8 +6860,27 @@
         // ================= PATCH NOTES (in code) =================
         // Kept here rather than in patchnotes.json so shipping an update means
         // editing one place. Bump GAME_VERSION and add an entry at the top.
-        const GAME_VERSION = '1.6.0';
+        const GAME_VERSION = '1.0.0';
         const CHANGELOG = [
+            {
+                v: '1.0.0', date: '2026-09-10', title: 'Full Release',
+                changes: [
+                    'Flappy Crix is out of testing — this is the full release',
+                    'Windows version at crixgamingvr.com/download',
+                    'Daily rewards you can see a week ahead — no lootboxes, ever',
+                    'Events with double coins or XP, and a crown only event winners get',
+                    'Pause mid-run and buy power-ups without losing your game',
+                    'Everyone can finally see the hats and shirts you are wearing',
+                    'An icon by your name shows what you are playing on',
+                    'Console support with proper button prompts',
+                    'Dark and light mode',
+                    'Friends show when they were last online',
+                    'Appearing offline now properly hides you',
+                    'The game reconnects on its own if your connection drops',
+                    'Fixed profile pictures not saving',
+                    'Fixed the daily reward being claimable more than once'
+                ]
+            },
             {
                 v: '1.6.0', date: '2026-08-20', title: 'Ranked Rework',
                 changes: [
