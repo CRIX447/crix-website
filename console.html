@@ -826,23 +826,68 @@ $('stripRole').onclick = () => {
       () => 'All roles removed.');
 };
 
-/* ---------- economy ---------- */
+/* ---------- economy ----------
+   These go through /api/admin, because granting currency needs PlayFab's
+   server API and a browser can never hold the secret key. */
+async function adminCall(action, body) {
+  const idToken = await firebase.auth().currentUser.getIdToken();
+  const r = await fetch('/api/admin', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, action, ...body })
+  });
+  if (r.status === 404) throw new Error('/api/admin is not deployed yet.');
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || d.error || 'Request failed');
+  return d;
+}
+
 $('giveCoins').onclick = () => {
   const amt = parseInt($('coinAmt').value, 10);
   if (!amt) { $('coinOut').textContent = 'Enter an amount.'; return; }
   const target = $('coinId').value.trim() || PlayFabManager.playFabId;
   run('coinOut',
-      () => PlayFabManager.adminAction('giveCoins', { targetPlayFabId: target, amount: amt }),
-      r => `Granted ${amt.toLocaleString()}. New balance: ${r.balance ?? '?'}`);
+      () => adminCall('giveCoins', { targetPlayFabId: target, amount: amt }),
+      r => `Done. New balance: ${(r.balance ?? 0).toLocaleString()}`);
 };
 
 $('giveItem').onclick = () => {
   const item = $('itemPick').value;
+  if (!item) { $('itemOut').textContent = 'Pick an item first.'; return; }
   const target = $('itemId').value.trim() || PlayFabManager.playFabId;
   run('itemOut',
-      () => PlayFabManager.adminAction('giveItem', { targetPlayFabId: target, itemId: item }),
-      () => `Granted ${item}.`);
+      () => adminCall('grantItem', { targetPlayFabId: target, itemId: item }),
+      () => `Granted ${item} to ${target}.`);
 };
+
+// Fills the dropdown from the live catalog, so it can never list something
+// that does not exist.
+async function loadItemList() {
+  const sel = $('itemPick');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const d = await adminCall('listItems', { targetPlayFabId: PlayFabManager.playFabId });
+    const groups = {};
+    d.items.forEach(i => {
+      const g = /hat/i.test(i.id) ? '🎩 Hats'
+              : /shirt/i.test(i.id) ? '👕 Shirts'
+              : /^pu_|powerup/i.test(i.id) ? '⚡ Power-ups'
+              : /role/i.test(i.id) ? '🛡️ Roles'
+              : '📦 Other';
+      (groups[g] = groups[g] || []).push(i);
+    });
+    sel.innerHTML = '<option value="">Choose an item…</option>' +
+      Object.entries(groups).map(([g, items]) =>
+        `<optgroup label="${esc(g)}">` +
+        items.map(i => `<option value="${esc(i.id)}">${esc(i.name)}` +
+          (i.price ? ` — ${i.price.toLocaleString()} coins` : ' — grant only') +
+          `</option>`).join('') + '</optgroup>').join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Could not load the catalog</option>';
+    $('itemOut').className = 'out bad';
+    $('itemOut').textContent = e.message;
+  }
+}
 
 /* ---------- system ---------- */
 async function renderMe() {
