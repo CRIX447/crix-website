@@ -489,6 +489,13 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
 
       <div class="panel">
         <h2>Quick presets</h2>
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn" id="trBatch">⬇ Generate the whole trailer set</button>
+        </div>
+        <p class="dt" style="margin-bottom:14px">
+          Makes all six assets from TRAILER.md and downloads them with the right
+          file names. Your browser may ask to allow multiple downloads.
+        </p>
         <div class="row" style="flex-wrap:wrap;gap:6px">
           <button class="btn sm ghost" data-preset="title">Title card</button>
           <button class="btn sm ghost" data-preset="feature">Feature callout</button>
@@ -1363,6 +1370,58 @@ function drawTrailerAsset() {
   $('trOut').textContent = `${w} × ${h} ready` +
     (trFontReady ? '' : ' — game font did not load, using a fallback');
 }
+
+
+/* ---- BATCH: the full trailer set ---- */
+const TRAILER_SET = [
+  { file:'title-main',          text:'FLAPPY CRIX',        sub:'CRIX STUDIOS',
+    style:'gradient', back:'none',  pos:'center' },
+  { file:'feature-multiplayer', text:'IT IS NOT JUST YOU', sub:'',
+    style:'white',    back:'lower', pos:'lower' },
+  { file:'feature-cosmetics',   text:'EARN EVERYTHING',    sub:'no ads · no purchases · no lootboxes',
+    style:'white',    back:'lower', pos:'lower' },
+  { file:'feature-ranked',      text:'CLIMB THE RANKS',    sub:'Bronze to Unreal',
+    style:'gradient', back:'lower', pos:'lower' },
+  { file:'feature-crossplay',   text:'PLAY ANYWHERE',      sub:'Windows · browser · same account',
+    style:'white',    back:'lower', pos:'lower' },
+  { file:'end-card',            text:'OUT NOW',            sub:'crixgamingvr.com',
+    style:'gradient', back:'panel', pos:'center' }
+];
+
+bind('trBatch', async () => {
+  const out = $('trOut');
+  out.className = 'out';
+
+  // Both orientations, since the vertical cut needs its own set
+  const sizes = [['1920x1080', ''], ['1080x1920', '-vertical']];
+  let made = 0;
+
+  for (const [size, suffix] of sizes) {
+    for (const a of TRAILER_SET) {
+      $('trText').value  = a.text;
+      $('trSub').value   = a.sub;
+      $('trStyle').value = a.style;
+      $('trBack').value  = a.back;
+      $('trPos').value   = a.pos;
+      $('trSize').value  = size;
+      drawTrailerAsset();
+
+      const link = document.createElement('a');
+      link.download = `${a.file}${suffix}.png`;
+      link.href = $('trCanvas').toDataURL('image/png');
+      link.click();
+      made++;
+
+      out.textContent = `Generating… ${made} of ${TRAILER_SET.length * sizes.length}`;
+      // Browsers throttle rapid downloads, so pace them
+      await new Promise(r => setTimeout(r, 450));
+    }
+  }
+
+  out.className = 'out ok';
+  out.textContent = `${made} assets downloaded — horizontal and vertical. ` +
+                    `File names match the table in TRAILER.md.`;
+});
 
 bind('trMake', drawTrailerAsset);
 bind('trDownload', () => {
