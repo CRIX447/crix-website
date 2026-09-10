@@ -305,6 +305,33 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
       </div>
 
       <div class="panel">
+        <h2>Broadcast</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Appears at the top of every player's screen with a sound. Shows for
+          about six seconds, longer for a long message.
+        </p>
+        <div class="row"><label>Shown as</label><input id="bcFrom" placeholder="CRIX" value="CRIX"></div>
+        <div class="row"><label>Message</label><input id="bcMsg" placeholder="Hi everyone" maxlength="140"></div>
+        <div class="row">
+          <label>Colour</label>
+          <select id="bcColour" style="flex:0 0 170px">
+            <option value="">Red — normal</option>
+            <option value="linear-gradient(135deg,#00CC7A,#0F9B5E)">Green — good news</option>
+            <option value="linear-gradient(135deg,#27A9F5,#1B7FBF)">Blue — information</option>
+            <option value="linear-gradient(135deg,#7B2FF7,#F107A3)">Purple — event</option>
+            <option value="linear-gradient(135deg,#FFB300,#FF8A00)">Amber — warning</option>
+          </select>
+          <button class="btn sm" id="bcSend">Send to everyone</button>
+        </div>
+        <div class="out" id="bcOut">—</div>
+        <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+          <button class="btn sm ghost" data-bc="Server restarting in 5 minutes">Restart warning</button>
+          <button class="btn sm ghost" data-bc="Double coins are live for the weekend">Event live</button>
+          <button class="btn sm ghost" data-bc="Thanks for playing — 1.0 is out now">Release</button>
+        </div>
+      </div>
+
+      <div class="panel">
         <h2>Events</h2>
         <p class="dt" style="margin-bottom:12px">
           Double coin or XP weekends and challenges. Live the moment you save.
@@ -1445,6 +1472,39 @@ document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
                           $('trStyle').value='white'; $('trBack').value='bar'; $('trPos').value='lower'; }
   drawTrailerAsset();
 });
+
+
+/* ---- BROADCAST ---- */
+bind('bcSend', async () => {
+  const out = $('bcOut');
+  const msg = $('bcMsg').value.trim();
+  const from = $('bcFrom').value.trim() || 'STAFF';
+
+  if (!msg) { out.className = 'out bad'; out.textContent = 'Type a message first.'; return; }
+  if (!confirm(`Send this to everyone currently playing?\n\n${from}: ${msg}`)) return;
+
+  out.className = 'out'; out.textContent = 'Sending…';
+  try {
+    await firebase.firestore().collection('config').doc('broadcast').set({
+      message: msg,
+      from,
+      colour: $('bcColour').value || null,
+      at: Date.now(),
+      sentBy: firebase.auth().currentUser?.uid || null
+    });
+    out.className = 'out ok';
+    out.textContent = `Sent. Everyone online sees it within a second or two.`;
+    $('bcMsg').value = '';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked — owners only. Check firestore.rules is published.'
+      : e.message;
+  }
+});
+
+document.querySelectorAll('[data-bc]').forEach(b =>
+  b.onclick = () => { $('bcMsg').value = b.dataset.bc; $('bcMsg').focus(); });
 
 /* ---- EVENTS ---- */
 async function evtLoad() {
