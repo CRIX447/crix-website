@@ -3415,7 +3415,40 @@
             else saveToLocal();
         }
         
-        async function saveToCloud() { 
+        // Mirrors headline stats into Firestore so the launcher can read them
+        // without signing into PlayFab. Throttled — it does not need to run
+        // on every coin.
+        let _lastMirror = 0;
+        function mirrorStatsToFirestore(force) {
+            if (!currentUser || !db) return;
+            if (!force && Date.now() - _lastMirror < 30000) return;
+            _lastMirror = Date.now();
+
+            const rk = typeof rankFor === 'function' ? rankFor(playerRP) : null;
+            db.collection('users').doc(currentUser.uid).set({
+                stats: {
+                    level: playerLevel,
+                    xp: playerXp,
+                    coins: coinCount,
+                    highScore: highScore,
+                    rp: playerRP,
+                    rank: rk ? rk.name : null,
+                    games: gamesPlayed,
+                    achievements: achievements.filter(a => a.unlocked).length,
+                    achievementsTotal: achievements.length,
+                    updatedAt: Date.now()
+                },
+                playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                displayName: typeof mpGetDisplayName === 'function' ? mpGetDisplayName() : null,
+                avatar: (typeof mpProfile !== 'undefined' && mpProfile.avatar) || null,
+                inventory: cosmetics.filter(x => x.owned).map(x => ({ id: x.id, name: x.name })),
+                lastSeen: Date.now()
+            }, { merge: true }).catch(e => console.warn('[Stats] mirror failed:', e.message));
+        }
+
+        async function saveToCloud() {
+            mirrorStatsToFirestore();
+
             if(!currentUser || !db) return; 
             try {
                 await db.collection('users').doc(currentUser.uid).set({ 
@@ -5385,6 +5418,7 @@
             // Only now award it. Anything failing past this point costs the
             // player a reward, which is far better than granting infinite ones.
             coinCount += reward;
+            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
             try { if (typeof updateCoinDisplay === 'function') updateCoinDisplay(); } catch (e) {}
             try { if (typeof autoSave === 'function') autoSave(); } catch (e) {
                 console.warn('[Daily] autoSave failed, coins are still local:', e);
@@ -6500,6 +6534,7 @@
             }
             if (bgMusic && !musicMuted) bgMusic.pause();
             updateHighScore();
+            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
             if (typeof mpReportDeath === 'function') mpReportDeath();
             if (!mpMatchActive) showDeathScreen();
         }
