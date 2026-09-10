@@ -128,7 +128,7 @@
             '--line':      'rgba(0,0,0,.12)',
             '--txt':       '#1A1A22',
             '--dim':       '#5F5F6B',
-            '--canvas-bg': '#DFDFE8',
+            '--canvas-bg': '#EEEEF4',
             '--card-bg':   '#FFFFFF'
         }
     };
