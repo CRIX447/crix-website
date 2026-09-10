@@ -5106,18 +5106,29 @@
             _cleanCv = null;
         }
 
-        document.getElementById('autopilotToggle')?.addEventListener('click', function () {
+        function ownerOnly(fn) {
+            return function (...a) {
+                if (!myRoles.includes('OWNER')) {
+                    toast({ kind:'warn', title:'Owners only',
+                            body:'Moderators do not have access to this.' });
+                    return;
+                }
+                return fn.apply(this, a);
+            };
+        }
+
+        document.getElementById('autopilotToggle')?.addEventListener('click', ownerOnly(function () {
             this.classList.toggle('active');
             toggleAutopilot(this.classList.contains('active'));
-        });
-        document.getElementById('cleanToggle')?.addEventListener('click', function () {
+        }));
+        document.getElementById('cleanToggle')?.addEventListener('click', ownerOnly(function () {
             this.classList.toggle('active');
             toggleCleanMode(this.classList.contains('active'));
-        });
+        }));
         document.getElementById('recMode')?.addEventListener('change', function () {
             recMode = this.value;
         });
-        document.getElementById('recBtn')?.addEventListener('click', toggleRecording);
+        document.getElementById('recBtn')?.addEventListener('click', ownerOnly(toggleRecording));
 
         document.addEventListener('keydown', e => {
             if (e.key === 'c' && (myRoles.includes('OWNER')) && !e.ctrlKey && !e.metaKey) {
@@ -7185,7 +7196,37 @@
             while (el.children.length > 8) el.lastChild.remove();
         }
 
+        // Sections a MOD should never see. Moderation is about handling
+        // players, not having powers over the game itself.
+        const OWNER_ONLY_SECTIONS = ['🎥 CAPTURE', '🎬 EFFECTS', '💰 ECONOMY', '⚙️ LOBBY'];
+
+        function applyStaffScope() {
+            const isOwner = myRoles.includes('OWNER');
+            const modal = document.getElementById('ownerModal');
+            if (!modal) return;
+
+            let hiding = false;
+            modal.querySelectorAll('.mp-section-title, .set-row, select, button, p').forEach(el => {
+                if (el.classList.contains('mp-section-title')) {
+                    hiding = !isOwner && OWNER_ONLY_SECTIONS.some(s => el.textContent.trim().startsWith(s.slice(0, 3)));
+                }
+                if (el.closest('.modal-header')) return;
+                if (hiding) el.style.display = 'none';
+                else if (el.style.display === 'none' && el.dataset.hiddenByScope) el.style.display = '';
+                if (hiding) el.dataset.hiddenByScope = '1';
+            });
+
+            const note = document.getElementById('ownerRoleNote');
+            if (note) {
+                note.textContent = isOwner
+                    ? 'Owner — full access.'
+                    : 'Moderator — kick, mute, ban and reports. Game controls are owner only.';
+                note.style.color = isOwner ? '#FF4655' : '#00ffd5';
+            }
+        }
+
         function refreshOwnerTargets() {
+            applyStaffScope();
             const sel = document.getElementById('ownerTarget');
             if (!sel) return;
             const prev = sel.value;
