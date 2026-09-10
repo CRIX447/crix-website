@@ -305,6 +305,16 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
       </div>
 
       <div class="panel">
+        <h2>Image check</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Loads every image the game references and reports which are missing
+          or the wrong shape.
+        </p>
+        <div class="row"><button class="btn sm" id="imgCheck">Check images</button></div>
+        <div id="imgResults" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel">
         <h2>Broadcast</h2>
         <p class="dt" style="margin-bottom:12px">
           Appears at the top of every player's screen with a sound. Shows for
@@ -1473,6 +1483,79 @@ document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
   drawTrailerAsset();
 });
 
+
+
+/* ---- IMAGE CHECK ---- */
+const GAME_IMAGES = [
+  ['bird.png',          'Bird sprite'],
+  ['crown.png',         "Champion's Crown"],
+  ['bucket-hat.avif',   'Bucket hat'],
+  ['cap.png',           'Baseball cap'],
+  ['tank-top.avif',     'Tank top'],
+  ['new-t-shirt.png',   'T-shirt'],
+  ['newfavicon.png',    'Favicon'],
+  ['imcrix123.png',     'Bio avatar'],
+  ['fp.png',            'Bio: Flappy Crix'],
+  ['aac.png',           'Bio: CRIX Chat'],
+  ['is.png',            'Bio: store'],
+  ['font.otf',          'Game font']
+];
+
+bind('imgCheck', async () => {
+  const box = $('imgResults');
+  box.innerHTML = '<div class="dt">Checking…</div>';
+  const rows = [];
+
+  for (const [file, label] of GAME_IMAGES) {
+    const url = '/img/' + file + '?cb=' + Date.now();
+
+    // A font cannot be loaded as an image, so fetch it instead
+    if (file.endsWith('.otf')) {
+      try {
+        const r = await fetch(url, { method: 'HEAD' });
+        rows.push([label, file, r.ok ? 'ok' : 'missing', r.ok ? 'found' : 'HTTP ' + r.status]);
+      } catch (e) { rows.push([label, file, 'missing', e.message]); }
+      continue;
+    }
+
+    const info = await new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        const r = img.naturalWidth / img.naturalHeight;
+        const square = Math.abs(r - 1) < 0.02;
+        res({
+          state: square ? 'ok' : 'warn',
+          detail: `${img.naturalWidth} × ${img.naturalHeight}` +
+                  (square ? ' — square' : ` — ${r > 1 ? 'wide' : 'tall'}, ratio ${r.toFixed(2)}`)
+        });
+      };
+      img.onerror = () => res({ state: 'missing', detail: 'not found in /img' });
+      img.src = url;
+      setTimeout(() => res({ state: 'missing', detail: 'timed out' }), 6000);
+    });
+    rows.push([label, file, info.state, info.detail]);
+  }
+
+  const icons = { ok: '✅', warn: '⚠️', missing: '❌' };
+  const missing = rows.filter(r => r[2] === 'missing').length;
+
+  box.innerHTML =
+    `<div class="out ${missing ? 'bad' : 'ok'}" style="margin-bottom:8px">` +
+    (missing ? `${missing} file${missing === 1 ? '' : 's'} missing from /img`
+             : 'Every image loaded') + '</div>' +
+    rows.map(([label, file, state, detail]) =>
+      `<div class="row" style="margin:0;padding:6px 0;border-bottom:1px solid var(--line)">
+         <span style="width:22px">${icons[state]}</span>
+         <span style="flex:0 0 150px;font-size:12px">${esc(label)}</span>
+         <span style="flex:0 0 130px;font-size:11px;color:#8C8C8C">${esc(file)}</span>
+         <span style="flex:1;font-size:11px;color:${state === 'ok' ? '#8C8C8C' : state === 'warn' ? '#FFB347' : '#ff6b74'}">
+           ${esc(detail)}</span>
+       </div>`).join('') +
+    `<p class="dt" style="margin-top:10px">
+       A ⚠️ only means the image is not square. The game fits it without
+       stretching, but square artwork lines up best.
+     </p>`;
+});
 
 /* ---- BROADCAST ---- */
 bind('bcSend', async () => {
