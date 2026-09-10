@@ -84,9 +84,11 @@ body{background:#0A0A0F;color:#EDEDED;font-family:'CRIX Pixel','Fredoka One',sys
   <div id="done" style="display:none">
     <div class="done">
       <div class="tick">✅</div>
-      <div style="font-size:17px;font-weight:bold;color:#00CC7A;margin-bottom:8px">Device linked</div>
+      <div style="font-size:17px;font-weight:bold;color:#00CC7A;margin-bottom:8px">Signed in</div>
       <p style="font-size:12px;color:#C9C9C9;line-height:1.8">
-        Your console should be signing in now. You can close this page.
+        Go back to <b>Flappy Crix Launcher</b> — it should be signed in
+        within a few seconds.<br><br>
+        You can close this page.
       </p>
     </div>
   </div>
@@ -113,6 +115,13 @@ let auth = null;
     if (!u) {
       $('signIn').style.display = '';
       $('enterCode').style.display = 'none';
+      // Hold the code across sign-in so the link still completes after
+      const c0 = new URLSearchParams(location.search).get('code');
+      if (c0) {
+        try { sessionStorage.setItem('pending_code', c0); } catch (e) {}
+        $('signInMsg').className = 'msg';
+        $('signInMsg').textContent = 'Sign in to finish linking your launcher.';
+      }
       return;
     }
     $('signIn').style.display = 'none';
@@ -121,13 +130,16 @@ let auth = null;
     $('meName').textContent = name;
     $('meAv').textContent = name.charAt(0).toUpperCase();
     if (u.photoURL) $('meAv').outerHTML = `<img class="av" id="meAv" src="${u.photoURL}" alt="">`;
-    // The launcher opens this with the code already in the URL, so there is
-  // nothing to type — just sign in and confirm.
+    // The launcher opens this with the code in the URL. Once signed in there
+  // is nothing left to decide, so it links itself — asking someone to press
+  // a button they did not know about is how this silently failed before.
   const preset = new URLSearchParams(location.search).get('code');
   if (preset) {
     $('code').value = preset.toUpperCase();
     $('linkMsg').className = 'msg';
-    $('linkMsg').textContent = 'Code filled in from the launcher — press Link device.';
+    $('linkMsg').textContent = 'Linking your launcher…';
+    setTimeout(() => $('linkBtn').click(), 400);
+    return;
   }
   $('code').focus();
   });
