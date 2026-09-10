@@ -383,29 +383,83 @@ document.querySelectorAll('.nav button').forEach(b => b.onclick = () => {
 
   auth.onAuthStateChanged(u => {
     me = u;
+    if (u) clearInterval(browserPoll);
     $('gate').style.display = u ? 'none' : 'flex';
     if (u) { renderMe(); loadStats(); loadNews(); loadAlerts(); }
   });
 })();
 
 /* auth */
+// Google blocks sign-in inside an embedded window, so this opens the real
+// browser and waits. The browser side links itself automatically.
+let browserPoll = null;
+
 $('gGoogle').onclick = async () => {
-  const p = new firebase.auth.GoogleAuthProvider();
-  p.setCustomParameters({ prompt: 'select_account' });
+  const err = $('gErr');
+  const btn = $('gGoogle');
+  err.style.color = '';
+  err.textContent = 'Opening your browser…';
+  btn.disabled = true;
+
   try {
-    await auth.signInWithPopup(p);
+    const r = await fetch(SITE + '/api/device-link', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'create' })
+    });
+    if (r.status === 404) throw new Error('Sign-in service unavailable. Use email instead.');
+    const d = await r.json();
+    if (!d.code) throw new Error(d.detail || d.error || 'Could not start sign-in');
+
+    crix.openExternal(`${SITE}/link?code=${encodeURIComponent(d.code)}`);
+
+    err.style.color = '#00CC7A';
+    err.innerHTML =
+      '<b>Finish signing in in your browser</b>' +
+      '<span style="color:#8C8C8C;font-size:10px;line-height:1.9;display:block;margin-top:4px">' +
+      'A tab should have opened. Sign in there and this continues on its own.<br>' +
+      'If nothing opened, go to <b>crixgamingvr.com/link</b> and enter <b>' + d.code + '</b>' +
+      '</span>';
+
+    let waited = 0;
+    clearInterval(browserPoll);
+    browserPoll = setInterval(async () => {
+      waited += 3;
+      if (waited > 300) {
+        clearInterval(browserPoll);
+        err.style.color = '#FF4655';
+        err.textContent = 'Sign-in timed out. Try again.';
+        btn.disabled = false;
+        return;
+      }
+      try {
+        const p = await fetch(SITE + '/api/device-link', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'poll', code: d.code, token: d.token })
+        });
+        const pd = await p.json();
+
+        if (pd.customToken) {
+          clearInterval(browserPoll);
+          err.style.color = '#00CC7A';
+          err.textContent = 'Signing you in…';
+          await auth.signInWithCustomToken(pd.customToken);
+          err.textContent = '';
+          btn.disabled = false;
+          return;
+        }
+        if (p.status === 404 || p.status === 410) {
+          clearInterval(browserPoll);
+          err.style.color = '#FF4655';
+          err.textContent = 'That sign-in expired. Press the button to try again.';
+          btn.disabled = false;
+        }
+      } catch (e) { /* network blip — keep waiting */ }
+    }, 3000);
+
   } catch (e) {
-    if (e.code === 'auth/popup-closed-by-user') return;
-    if (e.code === 'auth/popup-blocked' || e.code === 'auth/cancelled-popup-request') {
-      return auth.signInWithRedirect(p);
-    }
-    // The old file:// error, in case an older build is still around
-    if (/not supported in the environment/i.test(e.message)) {
-      $('gErr').innerHTML = 'This launcher build is out of date.<br>' +
-                            'Download the latest from crixgamingvr.com/download';
-      return;
-    }
-    $('gErr').textContent = e.message;
+    err.style.color = '#FF4655';
+    err.textContent = e.message;
+    btn.disabled = false;
   }
 };
 
