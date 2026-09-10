@@ -127,6 +127,33 @@ h2{font-size:19px;margin-bottom:4px}
 .err{color:var(--red);font-size:11px;min-height:16px;margin-top:8px;line-height:1.6}
 
 /* update bar */
+/* chat */
+.fr{display:flex;align-items:center;gap:11px;background:var(--panel2);
+  border:1px solid var(--line);border-radius:14px;padding:11px 13px;margin-bottom:7px}
+.fr-av{width:38px;height:38px;border-radius:50%;object-fit:cover;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff}
+.fr-name{font-size:13px;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fr-sub{font-size:10px;color:var(--dim);margin-top:2px;display:flex;align-items:center;gap:6px}
+.fr-dot{width:7px;height:7px;border-radius:50%;background:#00CC7A;flex-shrink:0}
+
+#chatFab{position:fixed;right:18px;bottom:18px;z-index:80;width:52px;height:52px;
+  border-radius:50%;border:2px solid rgba(255,255,255,.15);border-bottom-width:4px;
+  border-bottom-color:rgba(0,0,0,.4);
+  background:linear-gradient(135deg,var(--red),var(--orange));color:#fff;font-size:21px}
+#chatFab:hover{filter:brightness(1.1)}
+#chatDot{position:absolute;top:4px;right:6px;width:10px;height:10px;border-radius:50%;
+  background:#00CC7A;border:2px solid var(--panel)}
+#chatPanel{position:fixed;right:18px;bottom:80px;z-index:80;width:370px;height:540px;
+  max-height:calc(100vh - 130px);background:var(--panel);border:2px solid var(--line);
+  border-radius:16px;overflow:hidden;display:none;flex-direction:column;
+  box-shadow:0 14px 44px rgba(0,0,0,.65)}
+#chatPanel.open{display:flex}
+.cp-head{display:flex;align-items:center;padding:10px 14px;background:var(--panel2);
+  border-bottom:1px solid var(--line);font-size:12px;flex-shrink:0}
+.cp-head button{margin-left:auto;background:none;border:none;color:var(--dim);font-size:14px}
+.cp-head button:hover{color:#fff}
+#chatFrame{flex:1;width:100%;border:none;background:#0A0A0F}
+
 #updBar{display:none;align-items:center;gap:10px;background:rgba(39,169,245,.1);
   border-top:1px solid rgba(39,169,245,.3);padding:9px 16px;font-size:11px;flex-shrink:0}
 #updBar.on{display:flex}
@@ -162,6 +189,7 @@ h2{font-size:19px;margin-bottom:4px}
       <button class="on" data-v="play">🎮 <span>Play</span></button>
       <button data-v="stats">📊 <span>Stats</span></button>
       <button data-v="locker">👕 <span>Locker</span></button>
+      <button data-v="friends">👥 <span>Friends</span></button>
       <button data-v="news">📰 <span>News</span></button>
       <button data-v="alerts">🔔 <span>Notifications</span></button>
       <button data-v="settings">⚙ <span>Settings</span></button>
@@ -210,6 +238,13 @@ h2{font-size:19px;margin-bottom:4px}
       <div id="lockerGrid"><div class="empty">Loading…</div></div>
     </div>
 
+    <!-- FRIENDS -->
+    <div class="view" id="v-friends">
+      <h2>Friends</h2>
+      <p class="sub">Who is online right now.</p>
+      <div id="friendList"><div class="empty">Loading…</div></div>
+    </div>
+
     <!-- NEWS -->
     <div class="view" id="v-news">
       <h2>What's new</h2>
@@ -247,6 +282,16 @@ h2{font-size:19px;margin-bottom:4px}
       </div>
     </div>
   </div>
+</div>
+
+<button id="chatFab" title="Chat">💬<span id="chatDot" style="display:none"></span></button>
+
+<div id="chatPanel">
+  <div class="cp-head">
+    <span>💬 CRIX Chat</span>
+    <button id="chatClose">✕</button>
+  </div>
+  <iframe id="chatFrame" src="about:blank" title="CRIX Chat"></iframe>
 </div>
 
 <div id="updBar">
@@ -365,6 +410,7 @@ document.querySelectorAll('.nav button').forEach(b => b.onclick = () => {
   if (b.dataset.v === 'news') loadNews();
   if (b.dataset.v === 'stats') loadStats();
   if (b.dataset.v === 'locker') loadLocker();
+  if (b.dataset.v === 'friends') loadFriends();
 });
 
 /* boot */
@@ -614,6 +660,71 @@ async function loadAlerts() {
   }
 }
 
+
+/* ---- FRIENDS ---- */
+async function loadFriends() {
+  const el = $('friendList');
+  if (!me) { el.innerHTML = '<div class="empty">Sign in to see your friends.</div>'; return; }
+  el.innerHTML = '<div class="empty">Loading…</div>';
+
+  try {
+    const mine = (await db.collection('users').doc(me.uid).get()).data() || {};
+    const myPf = mine.playFabId;
+
+    // Presence is keyed by PlayFab id, and a heartbeat older than two
+    // minutes means they closed the game rather than went idle.
+    const snap = await db.collection('presence').get();
+    const now = Date.now();
+    const online = [];
+    snap.forEach(d => {
+      const v = d.data();
+      if (v.playFabId === myPf) return;
+      const age = v.at?.toMillis ? now - v.at.toMillis() : 1e9;
+      if (age > 120000 || v.invisible || v.status === 'offline') return;
+      online.push(v);
+    });
+
+    if (!online.length) {
+      el.innerHTML = `<div class="empty">Nobody is online right now.<br>
+        Add friends in the game and they show up here.</div>`;
+      return;
+    }
+
+    online.sort((a, b) => (b.level || 0) - (a.level || 0));
+    el.innerHTML = online.map(f => {
+      const ini = esc((f.name || '?').charAt(0).toUpperCase());
+      const av = f.photo
+        ? `<img class="fr-av" src="${esc(f.photo)}" alt="">`
+        : `<div class="fr-av" style="background:#FF4655">${ini}</div>`;
+      const where = f.roomCode ? 'In a lobby' : 'Online';
+      return `<div class="fr">
+        ${av}
+        <div style="flex:1;min-width:0">
+          <div class="fr-name">${esc(f.name || 'Player')}</div>
+          <div class="fr-sub"><span class="fr-dot"></span>${where}${f.level ? ' · lvl ' + f.level : ''}</div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = `<div class="empty">Could not load friends.<br>${esc(e.message)}</div>`;
+  }
+}
+
+/* ---- CHAT PANEL ---- */
+// Loaded in an iframe rather than a separate window, so it sits alongside
+// the launcher instead of covering it.
+let chatLoaded = false;
+$('chatFab').onclick = () => {
+  const panel = $('chatPanel');
+  const open = panel.classList.toggle('open');
+  if (open && !chatLoaded) {
+    $('chatFrame').src = SITE + '/crixchat';
+    chatLoaded = true;
+  }
+  $('chatDot').style.display = 'none';
+};
+$('chatClose').onclick = () => $('chatPanel').classList.remove('open');
+
 /* actions */
 // First run installs the game; after that Play launches it directly.
 let gameReady = false;
@@ -642,25 +753,44 @@ $('playBtn').onclick = async () => {
     return;
   }
 
-  if (!gameReady) {
-    btn.disabled = true;
-    btn.textContent = 'Installing…';
-    $('installBox').style.display = '';
-    const res = await crix.installGame();
-    if (res.ok) {
-      gameReady = true;
-      $('installBox').style.display = 'none';
-      btn.textContent = '▶ Play';
-    }
-    btn.disabled = false;
+  // Already installed — run the local copy
+  if (gameReady) {
+    btn.disabled = true; btn.textContent = 'Launching…';
+    const r = await crix.launchInstalled();
+    if (!r.ok) await crix.launchGame(null);   // fall back to the web build
+    setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Play'; }, 2500);
     return;
   }
 
-  btn.disabled = true; btn.textContent = 'Launching…';
-  const r = await crix.launchInstalled();
-  // Falls back to the web version if the local copy is missing
-  if (!r.ok) await crix.launchGame(me ? await me.getIdToken() : null);
-  setTimeout(() => { btn.disabled = false; btn.textContent = '▶ Play'; }, 2500);
+  // Not installed. Try to download it, but never leave someone unable to
+  // play just because the download failed — open the web version instead.
+  btn.disabled = true;
+  btn.textContent = 'Installing…';
+  $('installBox').style.display = '';
+
+  let res;
+  try { res = await crix.installGame(); }
+  catch (e) { res = { ok: false, error: e.message }; }
+
+  $('installBox').style.display = 'none';
+  btn.disabled = false;
+
+  if (res && res.ok) {
+    gameReady = true;
+    btn.textContent = '▶ Play';
+    return;
+  }
+
+  // Say what went wrong, then play anyway
+  $('installMsg').style.display = '';
+  $('installBox').style.display = '';
+  $('installMsg').innerHTML =
+    `Could not download the game files.<br>` +
+    `<span style="font-size:10px;color:#8C8C8C">${esc(res?.error || 'Unknown error')} — ` +
+    `opening the online version instead.</span>`;
+  btn.textContent = '▶ Play';
+  await crix.launchGame(null);
+  setTimeout(() => { $('installBox').style.display = 'none'; }, 6000);
 };
 
 crix.onInstallProgress(d => {
@@ -681,7 +811,7 @@ crix.onInstallProgress(d => {
 });
 crix.onGameClosed(() => { $('playBtn').disabled = false; $('playBtn').textContent = '▶ Play'; });
 
-$('chatBtn').onclick = () => crix.openChat();
+$('chatBtn').onclick = () => $('chatFab').click();
 $('siteBtn').onclick = () => crix.openExternal(SITE);
 $('folderBtn').onclick = () => crix.openFolder();
 $('termsLink').onclick = e => { e.preventDefault(); crix.openExternal(SITE + '/terms'); };
