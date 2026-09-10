@@ -104,24 +104,32 @@
 
     /* ─────────── THEME ─────────── */
 
+    // These names match what the game's stylesheet already uses. Inventing a
+    // parallel set was why switching themes appeared to do nothing.
     const THEMES = {
         dark: {
-            '--bg': '#0A0A0F',
-            '--panel': '#101018',
-            '--panel2': '#15151F',
-            '--line': 'rgba(255,255,255,.07)',
-            '--txt': '#EDEDED',
-            '--dim': '#8C8C8C',
-            '--canvas-bg': '#0d0d16'
+            '--dark':      '#0A0A0F',
+            '--darker':    '#050508',
+            '--bg':        '#0A0A0F',
+            '--panel':     '#101018',
+            '--panel2':    '#15151F',
+            '--line':      'rgba(255,255,255,.07)',
+            '--txt':       '#EDEDED',
+            '--dim':       '#8C8C8C',
+            '--canvas-bg': '#0d0d16',
+            '--card-bg':   '#12121A'
         },
         light: {
-            '--bg': '#F4F4F7',
-            '--panel': '#FFFFFF',
-            '--panel2': '#EDEDF2',
-            '--line': 'rgba(0,0,0,.1)',
-            '--txt': '#1A1A22',
-            '--dim': '#6A6A75',
-            '--canvas-bg': '#E8E8EE'
+            '--dark':      '#F2F2F6',
+            '--darker':    '#E4E4EC',
+            '--bg':        '#F2F2F6',
+            '--panel':     '#FFFFFF',
+            '--panel2':    '#EAEAF0',
+            '--line':      'rgba(0,0,0,.12)',
+            '--txt':       '#1A1A22',
+            '--dim':       '#5F5F6B',
+            '--canvas-bg': '#DFDFE8',
+            '--card-bg':   '#FFFFFF'
         }
     };
 
