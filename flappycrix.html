@@ -42,7 +42,7 @@
     
 
     <script src="/filter.js?v=2026082519"></script>
-    <script src="/ui.js?v=2026091023"></script>
+    <script src="/ui.js?v=2026091024"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
     <script src="/playfab-manager.js?v=2026082519"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
@@ -580,6 +580,54 @@
         html.theme-light .game-btn,
         html.theme-light .mp-btn-primary,
         html.theme-light .death-btn.retry { color: #fff; }
+
+        /* ---- light mode polish ---- */
+        /* Borders were tuned for a dark page and looked muddy on white */
+        html.theme-light .game-container { border-width: 3px; }
+        html.theme-light .icon-btn,
+        html.theme-light .foot-btn,
+        html.theme-light .cyber-stat { border-bottom-width: 3px;
+            border-bottom-color: rgba(0,0,0,.16) !important; }
+        html.theme-light .icon-btn:hover { background: #EAEAF2 !important;
+            border-color: rgba(255,107,53,.5) !important; }
+
+        /* Secondary buttons need real contrast, not grey on grey */
+        html.theme-light .mp-btn-secondary,
+        html.theme-light .set-mini-btn {
+            background: #FFFFFF !important; color: #C4501E !important;
+            border-color: rgba(255,107,53,.45) !important;
+        }
+        html.theme-light .mp-btn-secondary:hover,
+        html.theme-light .set-mini-btn:hover { background: #FFF3EE !important; }
+
+        /* Chat and lists */
+        html.theme-light .mp-chat-panel,
+        html.theme-light .friend-row,
+        html.theme-light .room-item,
+        html.theme-light .online-row {
+            background: #F6F6FA !important; border-color: rgba(0,0,0,.1) !important;
+            color: #1A1A22;
+        }
+        html.theme-light .mp-chat-msg { color: #2A2A34; }
+
+        /* Toggles read as off when they were on */
+        html.theme-light .mp-toggle-switch { background: #D4D4DE; }
+        html.theme-light .mp-toggle-switch.active { background: rgba(0,204,122,.35); }
+
+        /* Green and gold are hard to read on white, so darken them */
+        html.theme-light .game-sub,
+        html.theme-light .stat-label { color: #0A8A54 !important; }
+        html.theme-light .stat-value[style*="FFD700"],
+        html.theme-light .rw-amt { color: #B8860B !important; }
+
+        /* Modal backdrop was too light to separate the panel from the page */
+        html.theme-light .mp-modal,
+        html.theme-light .store-modal,
+        html.theme-light .locker-modal { background: rgba(20,20,30,.45); }
+
+        /* Scrollbars */
+        html.theme-light ::-webkit-scrollbar-thumb { background: #C6C6D2; }
+        html.theme-light ::-webkit-scrollbar-track { background: #EFEFF4; }
         html.theme-light .cyber-stat { background: rgba(0,0,0,.04); }
         html.theme-light .foot-btn { background: rgba(0,0,0,.04); color: #5A5A66; }
         html.theme-light .foot-btn:hover { color: #1A1A22; }
@@ -4035,16 +4083,112 @@
             return true;
         }
 
+        // Hats sit ON the head, overlapping the top of the sprite slightly so
+        // they look worn rather than floating. Aspect is preserved.
+        function drawHat(context, img, birdSize) {
+            if (!img || !img.complete || !img.naturalWidth) return;
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const w = birdSize * 0.86;
+            const h = w / ratio;
+            // Overlap the head by about a fifth of the hat's height
+            const y = -birdSize * 0.42 - h * 0.55;
+            context.drawImage(img, -w / 2, y, w, h);
+        }
+
+        function drawShirt(context, img, birdSize) {
+            if (!img || !img.complete || !img.naturalWidth) return;
+            const ratio = img.naturalWidth / img.naturalHeight;
+            const w = birdSize * 0.92;
+            const h = w / ratio;
+            context.drawImage(img, -w / 2, -h * 0.18, w, h);
+        }
+
+        // A pipe with a lit edge, a shaded edge and a rim, so it reads as a
+        // cylinder rather than a green rectangle.
+        let _pipeGrad = null, _pipeGradW = 0;
+        function pipeGradient(w) {
+            if (_pipeGrad && _pipeGradW === w) return _pipeGrad;
+            const g = ctx.createLinearGradient(0, 0, w, 0);
+            g.addColorStop(0,    '#0B8F56');
+            g.addColorStop(0.18, '#00CC7A');
+            g.addColorStop(0.42, '#4DE8A8');   // highlight, slightly left of centre
+            g.addColorStop(0.72, '#00CC7A');
+            g.addColorStop(1,    '#076B41');
+            _pipeGrad = g; _pipeGradW = w;
+            return g;
+        }
+
+        // Two layers drifting at different speeds. Cheap, and it gives the
+        // playfield a sense of distance behind the pipes.
+        let _bgOffset = 0;
+        function drawBackdrop() {
+            const light = document.documentElement.classList.contains('theme-light');
+            const W = canvas.width, H = canvas.height;
+
+            const sky = ctx.createLinearGradient(0, 0, 0, H);
+            if (light) { sky.addColorStop(0, '#DDE8F5'); sky.addColorStop(1, '#EEEEF4'); }
+            else       { sky.addColorStop(0, '#141426'); sky.addColorStop(1, '#0A0A12'); }
+            ctx.fillStyle = sky;
+            ctx.fillRect(0, 0, W, H);
+
+            if (gameRunning && !gameOver) _bgOffset += 0.35;
+
+            // Far layer — slow, faint
+            ctx.fillStyle = light ? 'rgba(120,150,190,.16)' : 'rgba(70,90,150,.14)';
+            for (let i = 0; i < 6; i++) {
+                const x = ((i * 140 - _bgOffset * 0.25) % (W + 160)) - 80;
+                const h = 70 + (i % 3) * 40;
+                ctx.fillRect(x, H - h, 90, h);
+            }
+
+            // Near layer — faster, darker
+            ctx.fillStyle = light ? 'rgba(90,120,165,.22)' : 'rgba(40,55,100,.24)';
+            for (let i = 0; i < 5; i++) {
+                const x = ((i * 190 - _bgOffset * 0.6) % (W + 200)) - 100;
+                const h = 45 + (i % 2) * 30;
+                ctx.fillRect(x, H - h, 120, h);
+            }
+        }
+
+        function drawPipe(x, y, w, h, isTop) {
+            if (h <= 0) return;
+            ctx.save();
+            ctx.translate(x, 0);
+
+            ctx.fillStyle = pipeGradient(w);
+            ctx.fillRect(0, y, w, h);
+
+            // The rim at the opening, which is what sells the depth
+            const rimH = Math.min(16, w * 0.34);
+            const rimY = isTop ? y + h - rimH : y;
+            const overhang = w * 0.09;
+
+            ctx.fillStyle = pipeGradient(w + overhang * 2);
+            ctx.fillRect(-overhang, rimY, w + overhang * 2, rimH);
+
+            ctx.fillStyle = 'rgba(255,255,255,.16)';
+            ctx.fillRect(-overhang, rimY, w + overhang * 2, 2);
+            ctx.fillStyle = 'rgba(0,0,0,.22)';
+            ctx.fillRect(-overhang, rimY + rimH - 2, w + overhang * 2, 2);
+
+            ctx.restore();
+        }
+
         function drawGame(){
             // The HUD rebuilt its DOM every frame, which was the main cause
             // of the lag. Text changes 10x a second is plenty and the
             // difference is invisible.
             if (gameRunning && !gameOver && (frameCount % 6) === 0) updateLiveHud();
             if (autopilotOn) autopilotStep(); 
-            ctx.clearRect(0,0,canvas.width,canvas.height); 
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            drawBackdrop(); 
             // Draw pipes
-            ctx.fillStyle='#00CC7A'; 
-            for(let p of pipes){ ctx.fillRect(p.x,0,pipeWidth,p.top); ctx.fillRect(p.x,p.bottom,pipeWidth,canvas.height-p.bottom); } 
+            // Shaded pipes. The hitbox is unchanged — this is purely how they
+            // are painted, so the game plays exactly the same.
+            for (const p of pipes) {
+                drawPipe(p.x, 0, pipeWidth, p.top, true);
+                drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
+            } 
             // Draw coins
             for(let c of coinsArr){ if(!c.collected && coinImage.complete) ctx.drawImage(coinImage, c.x, c.y, 20, 20); } 
             // Draw other multiplayer players (host's pipes are authoritative, so guests see the same layout)
@@ -4056,6 +4200,16 @@
             let rot=Math.min(Math.max(bird.velocity*0.1,-0.5),0.5); 
             ctx.rotate(rot); 
             let birdSize = cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30);
+
+            // Soft shadow so the bird sits in the scene rather than on top of it
+            ctx.save();
+            ctx.globalAlpha = 0.26;
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.ellipse(2, birdSize * 0.5, birdSize * 0.33, birdSize * 0.11, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+
             drawSprite(ctx, birdImage, 0, 0, birdSize); 
             // Shirt: narrower and lower so it sits on the body, not over the whole bird
             let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped);
@@ -4070,10 +4224,7 @@
             let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped);
             if(hat){
                 const hi = cachedImage(hat.image);
-                if (hi) {
-                    const hw = birdSize * 0.78, hh = birdSize * 0.58;
-                    ctx.drawImage(hi, -hw/2, -birdSize/2 - hh*0.62, hw, hh);
-                }
+                if (hi) drawHat(ctx, hi, birdSize);
             } 
             ctx.restore(); 
             const mpGodmodeActiveDraw = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
@@ -10282,7 +10433,7 @@
         // ----- DRAW OTHER PLAYERS with interpolation -----
         // Uses the shared image cache, so this costs nothing extra per frame.
         function mpDrawWornCosmetics(context, p, size) {
-            const draw = (id, yOffset, scale) => {
+            const drawWith = (id, fn) => {
                 if (!id) return;
                 const item = cosmetics.find(c => c.id === id);
                 if (!item || !item.image) return;
@@ -10292,12 +10443,11 @@
                     img.src = item.image;
                     _imgCache[item.image] = img;
                 }
-                if (img.complete && img.naturalWidth > 0) {
-                    drawSprite(context, img, 0, yOffset, size * scale);
-                }
+                fn(context, img, size);
             };
-            draw(p.shirt, size * 0.10, 1.0);
-            draw(p.hat,  -size * 0.42, 0.85);
+            // Shirt first so the hat layers over it
+            drawWith(p.shirt, drawShirt);
+            drawWith(p.hat, drawHat);
         }
 
         function mpDrawOtherPlayers(context) {
