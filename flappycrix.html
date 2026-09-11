@@ -1723,11 +1723,12 @@
         .owner-btn.good { border-color:rgba(0,204,122,0.4); color:#00CC7A; }
         .owner-btn.good:hover:not(:disabled) { background:rgba(0,204,122,0.1); }
 
-        /* ---- LEVEL TELEPORT ---- */
-        /* No inner scroll — the modal already scrolls, and nesting the two
-           makes the grid a trap to swipe on a phone. */
-        .level-tp-grid {
-            display:grid; grid-template-columns:repeat(auto-fit,minmax(38px,1fr));
+        /* ---- DISTANCE JUMP ---- */
+        .dist-jump-row { display:flex; gap:6px; align-items:stretch; margin-bottom:6px; }
+        .dist-jump-row .mp-input { flex:1; min-width:0; text-align:center; letter-spacing:1px; }
+        .dist-jump-row .mp-btn-primary { flex:0 0 auto; padding:10px 20px; }
+        .dist-jump-quick {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(58px,1fr));
             gap:4px; padding:2px;
         }
         .level-tp {
@@ -3476,12 +3477,26 @@
                 <button class="owner-btn" data-act="unlockAll">🔓 Unlock Cosmetics</button>
             </div>
 
-            <!-- LEVEL TELEPORT -->
-            <div class="mp-section-title" style="margin-top:16px;">🚀 LEVEL TELEPORT</div>
+            <!-- DISTANCE JUMP -->
+            <div class="mp-section-title" style="margin-top:16px;">🚀 DISTANCE JUMP</div>
             <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
-                Jump straight to any level. XP resets to the start of the level you pick.
+                Type a distance and send the run straight to it — 0 to 2,147,483,647.
+                Starts a run if one isn't going. Milestones fire as you fly <i>past</i> them,
+                so the −1 presets let the next pipe trigger one.
             </div>
-            <div class="level-tp-grid" id="levelTpGrid"></div>
+            <div class="dist-jump-row">
+                <input type="number" class="mp-input" id="distJumpInput" inputmode="numeric"
+                       min="0" max="2147483647" step="1" placeholder="2147483647">
+                <button class="mp-btn-primary" id="distJumpBtn">JUMP</button>
+            </div>
+            <div class="dist-jump-quick" id="distJumpQuick">
+                <button class="level-tp" data-dist="66">66</button>
+                <button class="level-tp" data-dist="999">999</button>
+                <button class="level-tp" data-dist="1000000">1M</button>
+                <button class="level-tp" data-dist="1000000000">1B</button>
+                <button class="level-tp" data-dist="2147483646">MAX−1</button>
+                <button class="level-tp" data-dist="2147483647">MAX</button>
+            </div>
 
             <div id="ownerLog" class="owner-log"></div>
         </div>
@@ -4377,20 +4392,7 @@
                         boomSound.play(); victorySound.play();
                         setTimeout(hideBoom, 1600);
                     }
-                    if(score===MAX_SCORE){
-                        gameRunning=false; if(animationId) cancelAnimationFrame(animationId);
-                        showBoomAt(bird.x, bird.y);
-                        boomSound.play();
-                        setTimeout(()=>{
-                            hideBoom();
-                            const vo=document.getElementById('victoryOverlay'); vo.style.display='flex';
-                            document.getElementById('victoryMessage').innerHTML =
-                                Object.values(cheats).some(v=>v)
-                                    ? 'You maxed out a 32-bit integer. With cheats on.'
-                                    : 'MAX SCORE — 2,147,483,647. There is nothing left to count.';
-                            victorySound.play();
-                        },2000);
-                    }
+                    if(score===MAX_SCORE) finishAtMaxScore();
                     checkAchievements();
                 }
                 if(pipes[i].x+pipeWidth<0) pipes.splice(i--,1); 
@@ -4859,6 +4861,26 @@
             boom.innerHTML  = '<img src="/img/boom.gif" style="max-width:180px;">';
             boom.style.display = 'block';
         }
+        // Reached from two directions: flying the last pipe, or a staff jump
+        // landing on the ceiling.
+        function finishAtMaxScore() {
+            if (!gameRunning && gameOver) return;
+            gameRunning = false;
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+            showBoomAt(bird.x, bird.y);
+            boomSound.play();
+            setTimeout(() => {
+                hideBoom();
+                const vo = document.getElementById('victoryOverlay');
+                vo.style.display = 'flex';
+                document.getElementById('victoryMessage').innerHTML =
+                    Object.values(cheats).some(v => v)
+                        ? 'You maxed out a 32-bit integer. With cheats on.'
+                        : 'MAX SCORE — 2,147,483,647. There is nothing left to count.';
+                victorySound.play();
+            }, 2000);
+        }
+
         function hideBoom() {
             const boom = document.getElementById('boomOverlay');
             if (!boom) return;
@@ -7656,7 +7678,7 @@
         });
         document.getElementById('ingameStaffBtn')?.addEventListener('click', () => {
             if (typeof refreshOwnerTargets === 'function') refreshOwnerTargets();
-            if (typeof buildLevelTeleport === 'function') buildLevelTeleport(myRoles.includes('OWNER'));
+            if (typeof buildDistanceJump === 'function') buildDistanceJump(myRoles.includes('OWNER'));
             document.getElementById('ownerModal')?.classList.add('active');
         });
         document.getElementById('ingameMenuBtn')?.addEventListener('click', () => {
@@ -11977,45 +11999,57 @@
         document.querySelectorAll('#playerModal .pm-coin')
             .forEach(b => b.addEventListener('click', () => pmGiveCoins(parseInt(b.dataset.amt))));
 
-        // ---- LEVEL TELEPORT ----
-        // Level is a synced account stat, so this stays owner-gated rather
-        // than living in the sandbox menu with the local-only cheats.
-        function buildLevelTeleport(isOwner) {
-            const grid = document.getElementById('levelTpGrid');
-            if (!grid) return;
-            if (!grid.dataset.built) {
-                let html = '';
-                for (let l = 1; l <= MAX_LEVEL; l++)
-                    html += `<button class="level-tp" data-lv="${l}">${l}</button>`;
-                grid.innerHTML = html;
-                grid.dataset.built = '1';
-                grid.addEventListener('click', e => {
-                    const b = e.target.closest('.level-tp');
-                    if (b && !b.disabled) teleportToLevel(parseInt(b.dataset.lv, 10));
-                });
-            }
-            grid.querySelectorAll('.level-tp').forEach(b => {
-                b.disabled = !isOwner;
-                b.classList.toggle('current', parseInt(b.dataset.lv, 10) === playerLevel);
+        // ---- DISTANCE JUMP ----
+        // Owner-gated: it writes the live score, which multiplayer and the
+        // high score both read.
+        function buildDistanceJump(isOwner) {
+            const input = document.getElementById('distJumpInput');
+            const go    = document.getElementById('distJumpBtn');
+            const quick = document.getElementById('distJumpQuick');
+            if (!input || !go || !quick) return;
+            input.disabled = !isOwner;
+            go.disabled = !isOwner;
+            quick.querySelectorAll('.level-tp').forEach(b => { b.disabled = !isOwner; });
+            if (quick.dataset.wired) return;
+            quick.dataset.wired = '1';
+            go.addEventListener('click', () => jumpToDistance(input.value));
+            input.addEventListener('keydown', e => { if (e.key === 'Enter') jumpToDistance(input.value); });
+            quick.addEventListener('click', e => {
+                const b = e.target.closest('.level-tp');
+                if (!b || b.disabled) return;
+                input.value = b.dataset.dist;
+                jumpToDistance(b.dataset.dist);
             });
         }
 
-        function teleportToLevel(lv) {
+        function jumpToDistance(raw) {
             if (!myRoles.includes('OWNER')) { ownerLog('Owner only', false); return; }
-            playerLevel = Math.max(1, Math.min(MAX_LEVEL, lv));
-            playerXp = 0;
-            saveLevel();
-            refreshSettingsUI();
-            buildLevelTeleport(true);
+            let n = Math.floor(Number(raw));
+            if (!Number.isFinite(n)) { ownerLog('Enter a distance', false); return; }
+            n = Math.max(0, Math.min(MAX_SCORE, n));
+
+            // Nothing to jump in if a run isn't going — start one first. The
+            // order matters: startGame() resets the score.
+            if (!gameRunning || gameOver) {
+                document.getElementById('ownerModal')?.classList.remove('active');
+                startGame();
+            }
+            score = n;
+            // Don't wait on the next frame to redraw it — if the run has
+            // already stopped there may not be one.
+            if (typeof updateLiveHud === 'function') updateLiveHud();
+            if (typeof mpReportScore === 'function') mpReportScore(score);
+            checkAchievements();
             playSfx('levelup', .5);
-            ownerLog('Teleported to level ' + playerLevel);
+            ownerLog('Jumped to ' + n.toLocaleString());
+            if (score >= MAX_SCORE) finishAtMaxScore();
         }
 
         // ---- STAFF MENU ----
         document.getElementById('ownerBtn')?.addEventListener('click', () => {
             refreshOwnerTargets();
             const isOwner = myRoles.includes('OWNER');
-            buildLevelTeleport(isOwner);
+            buildDistanceJump(isOwner);
             document.getElementById('ownerRoleNote').textContent = isOwner
                 ? 'Signed in as OWNER — full access.'
                 : 'Signed in as MOD — kick and ban only. Owner-only actions will be refused.';
