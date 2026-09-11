@@ -322,24 +322,79 @@
 
 
 
+        /* Off until a layout below claims it — every shell places it itself.
+           Declared here, ahead of them all, so plain source order decides. */
+        .menu-bird { display: none; }
+
         /* ═══════════ DESKTOP RESET ═══════════
            Explicitly undoes anything phone-shaped above 700px. Defensive, but
-           a single leaking rule was throwing the whole layout off. */
-        @media (min-width: 701px) {
+           a single leaking rule was throwing the whole layout off.
+           The height half matters as much as the width: a phone turned
+           sideways is over 700px wide, and the desktop menu is ~530px tall,
+           so it used to hang off the bottom of the screen. This and the phone
+           shell below are exact complements — every viewport gets one. */
+        @media (min-width: 701px) and (min-height: 521px) {
             html, body { height: auto; overflow: auto; }
             body { display: flex; align-items: center; justify-content: center; padding: 15px; }
 
             .game-container {
                 position: static !important; inset: auto !important;
-                width: auto !important; height: auto !important;
-                max-width: 520px !important; margin: 0 auto !important;
-                display: block !important;
+                /* 100%, not auto: as a flex item of <body> an auto width
+                   shrink-wraps to the content and never reaches max-width */
+                width: 100% !important; height: auto !important;
+                max-width: min(620px, calc(100vw - 40px)) !important;
+                margin: 0 auto !important;
+                /* flex, so the menu can be ordered the way the phone shell
+                   orders it — see MENU ORDER below */
+                display: flex !important; flex-direction: column;
             }
             .canvas-wrapper {
                 position: relative !important; inset: auto !important;
                 width: fit-content !important; height: auto !important;
                 margin: 12px auto !important;
             }
+
+            /* A 400px playfield on a 1080p screen is a postage stamp. Grow it
+               with the window, keeping the 2:3 the canvas is drawn at. */
+            canvas {
+                width: min(560px, calc(100vw - 80px), calc((100dvh - 120px) * 0.6667)) !important;
+            }
+
+            /* ---- MENU ORDER ----
+               Source order puts MULTIPLAYER and the icon grid above START,
+               so the primary action landed underneath everything else. */
+            .user-section    { order: 1; }
+            .game-header     { order: 2; }
+            .menu-bird       { order: 3; }
+            .canvas-wrapper  { order: 4; }
+            .stats-grid      { order: 5; }
+            .cheat-indicators, .active-powerups { order: 6; }
+            .game-controls   { order: 7; }
+            .mp-banner-btn   { order: 8; }
+            .icon-bar        { order: 9; }
+            .menu-footer     { order: 10; }
+
+            /* START and MUSIC share the width instead of huddling in the middle */
+            .game-controls .game-btn { flex: 1; min-height: 52px; font-size: 16px; }
+            /* 6 across, so SETTINGS stops orphaning onto its own row */
+            .icon-bar { grid-template-columns: repeat(6, 1fr) !important; }
+
+            /* The mascot fills the gap the menu leaves, same as on a phone */
+            .menu-bird {
+                display: block;
+                width: 132px; aspect-ratio: 1; object-fit: cover;
+                margin: 14px auto 4px;
+                border: 3px solid rgba(255,107,53,.55);
+                border-bottom-width: 5px;
+                border-radius: 26px;
+                box-shadow: 0 14px 28px rgba(0,0,0,.35);
+                animation: birdBobStill 3.4s ease-in-out infinite;
+            }
+            @keyframes birdBobStill {
+                0%, 100% { transform: translateY(0); }
+                50%      { transform: translateY(-9px); }
+            }
+            body.playing .menu-bird, body.dead .menu-bird { display: none; }
             /* These overlays anchor to the wrapper; keep them inside it */
             .hud-live, .ingame-bar, .race-meter, .death-screen {
                 position: absolute !important;
@@ -632,6 +687,71 @@
         html.theme-light .foot-btn { background: rgba(0,0,0,.04); color: #5A5A66; }
         html.theme-light .foot-btn:hover { color: #1A1A22; }
         html.theme-light canvas { box-shadow: 0 4px 18px rgba(0,0,0,.12); }
+
+        /* ---- modal body text ----
+           `.modal-content`/`.mp-modal-content` force every div/span/p/label/li
+           inside a modal to a light colour so it read on the old all-dark
+           panels. That rule ships regardless of theme, so once the panel
+           itself turned white the text stayed near-invisible on top of it. */
+        html.theme-light .modal-content, html.theme-light .modal-content div,
+        html.theme-light .modal-content span, html.theme-light .modal-content p,
+        html.theme-light .modal-content label, html.theme-light .modal-content li,
+        html.theme-light .mp-modal-content, html.theme-light .mp-modal-content div,
+        html.theme-light .mp-modal-content span, html.theme-light .mp-modal-content p,
+        html.theme-light .mp-modal-content label, html.theme-light .mp-modal-content li {
+            color: #1A1A22;
+        }
+        html.theme-light .store-grid div, html.theme-light .product-info div,
+        html.theme-light #achievementsGrid div, html.theme-light #lockerHats div,
+        html.theme-light #lockerShirts div { color: #1A1A22; }
+
+        /* ---- the rest: classes with their own hardcoded light-on-dark colour,
+           which the broad rule above can't reach because a same-specificity
+           class selector wins by source order, not by which theme is active ---- */
+        html.theme-light .tut-page h3,
+        html.theme-light .cred-list > div span:last-child,
+        html.theme-light .cred-inspired p,
+        html.theme-light .po,
+        html.theme-light .diag-name,
+        html.theme-light .ev-txt b,
+        html.theme-light .friend-tab i,
+        html.theme-light .notif-t { color: #1A1A22 !important; }
+
+        html.theme-light .tut-page p,
+        html.theme-light .cred-by,
+        html.theme-light .cred-thanks,
+        html.theme-light .legal-body,
+        html.theme-light .online-bar,
+        html.theme-light .tos-check,
+        html.theme-light .ps-name,
+        html.theme-light .fr-deny { color: #3A3A46 !important; }
+
+        html.theme-light .cred-ver,
+        html.theme-light .cred-note,
+        html.theme-light .cred-list > div span:first-child,
+        html.theme-light .po-state,
+        html.theme-light .legal-tab,
+        html.theme-light .legal-updated,
+        html.theme-light .diag-detail,
+        html.theme-light .mp-room-meta,
+        html.theme-light .mp-empty-state,
+        html.theme-light .browse-toggle,
+        html.theme-light .browse-toggle span,
+        html.theme-light .streak-sub,
+        html.theme-light .rw-day,
+        html.theme-light .reward-note,
+        html.theme-light .ev-time,
+        html.theme-light .friend-btn,
+        html.theme-light .notif-b { color: #5A5A68 !important; }
+
+        html.theme-light .social { color: #1A1A22 !important; }
+        html.theme-light .social,
+        html.theme-light .legal-tab,
+        html.theme-light .browse-toggle,
+        html.theme-light .fr-deny,
+        html.theme-light .friend-tab i {
+            background: #F0F0F6 !important; border-color: rgba(0,0,0,.1) !important;
+        }
 
         /* Phone shell also applies to consoles */
         html.plat-mobile .game-container,
@@ -1270,14 +1390,16 @@
         .mp-copy-code-btn { background: rgba(0,204,122,0.1); border: 1px solid var(--green); color: var(--green); font-size: 10px; padding: 4px 12px; border-radius: 20px; cursor: pointer; display: block; margin: 4px auto 0; }
 
         /* ---- IN-GAME MULTIPLAYER HUD ---- */
-        /* Must sit below the modals or it covers the lobby view */
+        /* Must sit below the modals or it covers the lobby view.
+           Bottom-LEFT: the top is the bird's flight path and the bottom right
+           already belongs to the chat button and its panel. */
         .mp-hud {
             display: none;
-            position: absolute; top: 50px; right: 8px; z-index: 25;
+            position: absolute; bottom: calc(8px + env(safe-area-inset-bottom)); left: 8px; z-index: 25;
             background: rgba(8,8,14,.94); backdrop-filter: blur(8px);
             border: 1px solid rgba(255,107,53,.35);
             border-radius: 14px; padding: 10px 12px;
-            min-width: 150px; max-width: 210px; max-height: 60%;
+            min-width: 150px; max-width: 210px; max-height: 45%;
             overflow-y: auto; font-size: 11px;
             box-shadow: 0 6px 24px rgba(0,0,0,.6);
         }
@@ -1600,6 +1722,31 @@
         .owner-btn.warn:hover:not(:disabled) { background:rgba(255,165,0,0.1); }
         .owner-btn.good { border-color:rgba(0,204,122,0.4); color:#00CC7A; }
         .owner-btn.good:hover:not(:disabled) { background:rgba(0,204,122,0.1); }
+
+        /* ---- LEVEL TELEPORT ---- */
+        /* No inner scroll — the modal already scrolls, and nesting the two
+           makes the grid a trap to swipe on a phone. */
+        .level-tp-grid {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(38px,1fr));
+            gap:4px; padding:2px;
+        }
+        .level-tp {
+            background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+            color:#EDEDED; font-family:inherit; font-size:11px; padding:8px 0;
+            border-radius:8px; cursor:pointer;
+        }
+        .level-tp:hover:not(:disabled) { background:rgba(255,107,53,.16); border-color:var(--orange); }
+        .level-tp.current {
+            background:rgba(255,215,0,.18); border-color:#FFD700;
+            color:#FFD700; font-weight:700;
+        }
+        .level-tp:disabled { cursor:not-allowed; opacity:.35; }
+        html.theme-light .level-tp {
+            background:#F0F0F6; border-color:rgba(0,0,0,.12); color:#1A1A22;
+        }
+        html.theme-light .level-tp.current {
+            background:rgba(255,215,0,.28); border-color:#D9A400; color:#7A5C00;
+        }
         .owner-log { margin-top:14px; max-height:110px; overflow-y:auto; font-size:10px;
             font-family:monospace; background:rgba(0,0,0,0.35); border-radius:8px; padding:8px 10px; }
         .owner-log:empty { display:none; }
@@ -1930,8 +2077,12 @@
             z-index: 10000;
             padding: 15px;
             overflow-y: auto;
+            align-items: flex-start;
+            justify-content: center;
         }
-        .store-modal.active, .locker-modal.active, .achievements-modal.active { display: block; }
+        /* flex, not block: these carry bottom-sheet styling on phones, and
+           `align-items: flex-end` is what docks them to the bottom edge */
+        .store-modal.active, .locker-modal.active, .achievements-modal.active { display: flex; }
         .modal-content {
             max-width: 450px;
             margin: 20px auto;
@@ -1978,7 +2129,123 @@
             border-bottom-color: rgba(150,120,0,0.8);
         }
         .store-tab:hover:not(.active) { transform: translateY(-1px); box-shadow: 2px 3px 0 rgba(0,0,0,0.3); }
-        
+
+        /* ---- STORE / LOCKER CARDS ----
+           These were built inline in the template strings, which meant a
+           hardcoded dark panel that light mode could not reach. */
+        .store-card, .locker-card {
+            background: linear-gradient(160deg, #1D1D2B, #14141F);
+            border: 2px solid rgba(255,107,53,.55);
+            border-bottom: 4px solid rgba(150,60,0,.7);
+            border-radius: 16px;
+            padding: 12px 10px;
+            text-align: center;
+            box-shadow: 2px 3px 0 rgba(0,0,0,.35);
+            transition: transform .12s, border-color .12s;
+        }
+        .store-card:hover, .locker-card:hover {
+            transform: translateY(-2px); border-color: var(--orange);
+        }
+        .store-card img, .locker-card img {
+            width: 46px; height: 46px; object-fit: contain; margin-bottom: 6px;
+        }
+        .store-card-name, .locker-card-name {
+            font-size: 11px; font-weight: 700; letter-spacing: .5px;
+            line-height: 1.35; margin-bottom: 4px;
+        }
+        .store-card-desc { font-size: 10px; line-height: 1.6; margin-bottom: 6px; opacity: .8; }
+        .store-card-price { font-size: 13px; font-weight: 700; color: #FFD700; margin-bottom: 8px; }
+        /* Event-only items have no price at all — printing one read "NULL" */
+        .store-card-price.exclusive { color: #C9A0FF; font-size: 11px; letter-spacing: .5px; }
+        .store-buy {
+            background: linear-gradient(135deg, #FF4655, #FF6B35);
+            border: 2px solid rgba(255,255,255,.15);
+            border-bottom: 4px solid rgba(0,0,0,.4);
+            padding: 6px 16px; border-radius: 30px; cursor: pointer;
+            color: #fff; font-family: inherit; font-weight: 700; font-size: 11px;
+            box-shadow: 1px 2px 0 rgba(0,0,0,.3);
+        }
+        .store-buy:active { transform: translateY(2px); border-bottom-width: 2px; box-shadow: none; }
+        .store-buy[disabled] {
+            background: rgba(255,255,255,.09); color: #9A9AA6;
+            border-color: rgba(255,255,255,.12); cursor: default;
+        }
+        .locker-card { padding: 9px 7px; position: relative; cursor: pointer; }
+        .locker-card.equipped { border-color: var(--green); box-shadow: 0 0 0 2px rgba(0,204,122,.22); }
+        .locker-tick {
+            position: absolute; top: -7px; right: -7px;
+            background: var(--green); border: 2px solid #005533; color: #04301F;
+            border-radius: 50%; width: 20px; height: 20px; font-size: 11px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .locker-empty { font-size: 12px; padding: 12px; opacity: .7; }
+
+        /* ---- ACHIEVEMENT ROWS ---- */
+        .ach-section {
+            font-size: 10px; color: var(--orange); text-transform: uppercase;
+            letter-spacing: 2px; margin: 10px 0 2px;
+        }
+        .ach-row {
+            display: flex; gap: 12px; align-items: center;
+            background: linear-gradient(160deg, #1B1B27, #131320);
+            border: 1px solid rgba(255,255,255,.08);
+            border-radius: 14px; padding: 12px;
+            box-shadow: 2px 2px 0 rgba(0,0,0,.3);
+        }
+        .ach-row.unlocked {
+            border: 2px solid #FFD700;
+            box-shadow: 2px 2px 0 rgba(150,120,0,.5);
+        }
+        .ach-icon { font-size: 22px; }
+        .ach-text { flex: 1; min-width: 0; }
+        .ach-name { font-weight: bold; font-size: 13px; }
+        .ach-desc { font-size: 10px; margin-top: 2px; opacity: .72; }
+        .ach-prog { font-size: 10px; margin-top: 3px; opacity: .6; }
+        .ach-done { color: var(--green); font-size: 18px; }
+
+        html.theme-light .ach-row {
+            background: #FFFFFF;
+            border-color: rgba(0,0,0,.12);
+            box-shadow: 2px 2px 0 rgba(0,0,0,.07);
+        }
+        html.theme-light .ach-row.unlocked {
+            border-color: #D9A400; box-shadow: 2px 2px 0 rgba(217,164,0,.28);
+        }
+        html.theme-light .ach-section { color: #C4501E; }
+
+        html.theme-light .store-card,
+        html.theme-light .locker-card {
+            background: #FFFFFF;
+            border-color: rgba(255,107,53,.5);
+            border-bottom-color: rgba(196,80,30,.5);
+            box-shadow: 2px 3px 0 rgba(0,0,0,.08);
+        }
+        html.theme-light .store-card-price { color: #B8860B !important; }
+        html.theme-light .store-card-price.exclusive { color: #6D3FB5 !important; }
+        html.theme-light .store-buy[disabled] {
+            background: #EDEDF3 !important; color: #7A7A88 !important;
+            border-color: rgba(0,0,0,.1) !important;
+        }
+        html.theme-light .store-buy { color: #fff !important; }
+
+        /* The sign-in bar and the toasts both carry their own dark panel */
+        html.theme-light .user-section {
+            background: #F4F4F8;
+            border-bottom-color: rgba(196,80,30,.45);
+        }
+        html.theme-light .user-name { color: #1A1A22; }
+        html.theme-light .save-status {
+            background: rgba(0,0,0,.04); color: #0A8A54;
+            border-color: rgba(0,204,122,.35);
+        }
+        html.theme-light .toast {
+            background: #FFFFFF;
+            box-shadow: 3px 3px 0 rgba(0,0,0,.12);
+        }
+        html.theme-light .toast-title { color: #1A1A22; }
+        html.theme-light .toast-body  { color: #4A4A56; }
+        html.theme-light .toast-btn.no { background: #EDEDF3; color: #3A3A46; }
+
         @media (max-width: 450px) {
             .stats-grid { gap: 5px; }
             .stat-value { font-size: 13px; }
@@ -1990,9 +2257,10 @@
            These override the base layout, so they have to come after it.
            Sitting earlier in the file meant base rules defined later won
            instead, which broke both layouts. */
-        /* Phone layout is driven by WIDTH. Using `, (pointer: coarse)` made
-           it an OR, so touchscreen laptops and desktops got the phone shell. */
-        @media (max-width: 700px) {
+        /* Phone layout is driven by WIDTH, plus HEIGHT for landscape. Using
+           `, (pointer: coarse)` made it an OR, so touchscreen laptops and
+           desktops got the phone shell; a short viewport does not. */
+        @media (max-width: 700px), (max-height: 520px) {
 
             html, body { height: 100%; overflow: hidden; }
             body { padding: 0; margin: 0; display: block; }
@@ -2078,6 +2346,48 @@
 
             body.playing .hud-live { display: flex !important; }
 
+            /* ---- MASCOT ----
+               The phone shell pins the title to the top and the buttons to
+               the bottom, which on a tall screen leaves a few hundred pixels
+               of nothing in between. */
+            .menu-bird {
+                display: block;
+                position: absolute; z-index: 20;
+                top: 50%; left: 50%;
+                width: min(132px, 34vw); aspect-ratio: 1;
+                object-fit: cover;
+                /* the sprite art is a square with its own backdrop, so it is
+                   framed as a portrait rather than floated as a cut-out */
+                border: 3px solid rgba(255,107,53,.55);
+                border-bottom-width: 5px;
+                border-radius: 26px;
+                box-shadow: 0 14px 28px rgba(0,0,0,.45);
+                animation: birdBob 3.4s ease-in-out infinite;
+                pointer-events: none;
+            }
+            @keyframes birdBob {
+                0%, 100% { transform: translate(-50%, -62%); }
+                50%      { transform: translate(-50%, -74%); }
+            }
+            body.playing .menu-bird, body.dead .menu-bird { display: none; }
+
+            /* ---- TOASTS ----
+               Docked top-right they landed straight on the title and the
+               stat pills, because the phone shell puts those at y=0. There
+               is nothing along the bottom except the menu's button deck. */
+            #toasts {
+                top: auto; bottom: calc(10px + env(safe-area-inset-bottom));
+                left: 14px; right: 14px; max-width: none;
+            }
+            body:not(.playing):not(.dead) #toasts {
+                bottom: calc(262px + env(safe-area-inset-bottom));
+            }
+            /* With a sheet up, that raised spot is the middle of the sheet —
+               its tab row. The bottom edge is the least destructive place. */
+            body:has(.mp-modal.active, .store-modal.active, .locker-modal.active, .achievements-modal.active) #toasts {
+                bottom: calc(10px + env(safe-area-inset-bottom));
+            }
+
             /* ---- BOTTOM SHEETS ---- */
             .mp-modal, .store-modal, .locker-modal, .achievements-modal {
                 align-items: flex-end; padding: 0;
@@ -2095,6 +2405,55 @@
                 margin: 0 auto 14px;
             }
             @keyframes sheetUp { from { transform: translateY(100%); } to { transform: none; } }
+        }
+
+        /* ═══════════ LANDSCAPE / SHORT SCREEN ═══════════
+           Same shell, but ~390px of height instead of ~850. At the portrait
+           spacing the button deck starts higher up the screen than the stat
+           pills end, so the two used to sit on top of each other. */
+        @media (max-height: 520px) {
+            .game-header { padding: calc(10px + env(safe-area-inset-top)) 20px 0; }
+            .game-title { font-size: clamp(24px, 7vh, 34px); }
+            .game-sub { font-size: 9px; margin-top: 2px; }
+
+            .stats-grid { top: calc(60px + env(safe-area-inset-top)); }
+            .cyber-stat { padding: 5px 6px; }
+            .stat-value { font-size: 13px; margin-top: 1px; }
+
+            .game-controls { bottom: calc(140px + env(safe-area-inset-bottom)); }
+            .mp-banner-btn { bottom: calc(94px  + env(safe-area-inset-bottom)); min-height: 40px; font-size: 13px; }
+            .icon-bar      { bottom: calc(44px  + env(safe-area-inset-bottom)); }
+            .menu-footer   { bottom: calc(6px   + env(safe-area-inset-bottom)); }
+
+            .game-btn { min-height: 44px; font-size: 15px; }
+            .icon-btn { min-height: 42px; padding: 6px 2px 5px; }
+            .icon-btn span { font-size: 16px; }
+            .foot-btn { padding: 7px 4px; }
+
+            /* A landscape screen is wide — stretching the deck edge to edge
+               puts the buttons an inch and a half apart. */
+            .game-controls, .mp-banner-btn, .icon-bar, .menu-footer {
+                left: 50%; right: auto; transform: translateX(-50%);
+                width: min(560px, calc(100% - 28px));
+            }
+
+            body:not(.playing):not(.dead) #toasts {
+                bottom: calc(192px + env(safe-area-inset-bottom));
+            }
+
+            /* No room for it between a 27px title and the deck */
+            .menu-bird { display: none; }
+
+            /* Sideways the limit is height, so drive the canvas off height and
+               let width follow. `width: 100%` with a clamped max-height does
+               NOT re-derive the width — it just squashes the playfield. */
+            canvas {
+                width: auto !important; height: 100% !important;
+                max-width: 100% !important;
+            }
+
+            /* Bottom sheets get the whole height on a short screen */
+            .mp-modal-content, .modal-content { max-height: 96dvh; }
         }
 
     </style>
@@ -2145,7 +2504,9 @@
             <div class="game-title">FLAPPY CRIX</div>
             <div class="game-sub">tap · collect · drip</div>
         </div>
-        
+
+        <img class="menu-bird" id="menuBird" src="/img/bird.png" alt="">
+
         <div class="canvas-wrapper" id="canvasWrapper">
             <canvas id="gameCanvas" width="400" height="600"></canvas>
             <!-- DEATH SCREEN -->
@@ -2218,8 +2579,6 @@
             </div>
         </div>
         
-        <div style="display:flex;justify-content:flex-end;margin-bottom:4px;">
-        </div>
         <div class="stats-grid">
             <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
             <div class="cyber-stat"><div class="stat-label">BEST</div><div class="stat-value" id="highScore">0</div></div>
@@ -3117,6 +3476,13 @@
                 <button class="owner-btn" data-act="unlockAll">🔓 Unlock Cosmetics</button>
             </div>
 
+            <!-- LEVEL TELEPORT -->
+            <div class="mp-section-title" style="margin-top:16px;">🚀 LEVEL TELEPORT</div>
+            <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
+                Jump straight to any level. XP resets to the start of the level you pick.
+            </div>
+            <div class="level-tp-grid" id="levelTpGrid"></div>
+
             <div id="ownerLog" class="owner-log"></div>
         </div>
     </div>
@@ -3303,6 +3669,25 @@
             </div>
 
             <button class="mp-btn-secondary" id="resetSettingsBtn" style="width:100%;margin-top:18px;">RESET TO DEFAULTS</button>
+
+            <div class="mp-section-title" style="margin-top:16px;">ℹ️ ABOUT</div>
+            <div class="set-row">
+                <span class="set-label">Version</span>
+                <span class="set-sub" id="setVersion">—</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Build</span>
+                <span class="set-sub" id="setBuild">—</span>
+            </div>
+            <div class="set-row">
+                <span class="set-label">Device</span>
+                <span class="set-sub" id="setPlatform">—</span>
+            </div>
+            <div style="display:flex;gap:6px;margin-top:12px;">
+                <button class="mp-btn-secondary" id="setTutorialBtn" style="flex:1;">HOW TO PLAY</button>
+                <button class="mp-btn-secondary" id="setCreditsBtn" style="flex:1;">CREDITS</button>
+                <button class="mp-btn-secondary" id="setLegalBtn" style="flex:1;">LEGAL</button>
+            </div>
         </div>
         </div>
     </div>
@@ -3511,6 +3896,12 @@
         let cheats = { godmode: false, coinlord: false, slowmo: false, bigbird: false };
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5 };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
+        // How far a run can go. A signed 32-bit int is the ceiling every
+        // scoreboard this talks to is built on, so the run ends there rather
+        // than letting the number drift past what they can store.
+        const MAX_SCORE = 2147483647;
+        // 1000 used to end the run outright; it is a milestone now.
+        const MILESTONE_SCORE = 1000;
         
         // Cosmetic images are cached — previously a new Image() was allocated
         // every frame for each equipped item, which caused heavy stutter and
@@ -3552,7 +3943,7 @@
             { id: 'score50', name: 'SCORE 50', desc: 'Reach a score of 50', icon: '50', unlocked: false, progress: 0, target: 50 },
             { id: 'score100', name: 'SCORE 100', desc: 'Reach a score of 100', icon: '💯', unlocked: false, progress: 0, target: 100 },
             { id: 'mystery', name: 'MYSTERY LEVEL', desc: 'Find the secret', icon: '❓', unlocked: false, progress: 0, target: 1 },
-            { id: 'legend', name: 'LEGEND', desc: 'Reach level 1000', icon: '👑', unlocked: false, progress: 0, target: 1 },
+            { id: 'legend', name: 'LEGEND', desc: 'Reach a score of 1,000', icon: '👑', unlocked: false, progress: 0, target: 1 },
             { id: 'score25',   name: 'GETTING GOING',  desc: 'Reach a score of 25',            icon: '🎯', unlocked: false, progress: 0, target: 25 },
             { id: 'score250',  name: 'IRON WINGS',     desc: 'Reach a score of 250',           icon: '🦾', unlocked: false, progress: 0, target: 250 },
             { id: 'coins1k',   name: 'COIN HOARDER',   desc: 'Collect 1,000 coins total',      icon: '💰', unlocked: false, progress: 0, target: 1000 },
@@ -3814,13 +4205,30 @@
         function updateCheatIndicators() { let html = ''; if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>'; if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>'; if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>'; if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>'; document.getElementById('cheatIndicators').innerHTML = html; }
         function updateActivePowerups() { let active = powerups.filter(p => p.active); let html = ''; active.forEach(p => { html += `<div class="powerup-badge">${p.name} <span style="background:#FF4655;border-radius:20px;padding:1px 5px;">${p.timeLeft}s</span></div>`; }); document.getElementById('activePowerups').innerHTML = html; }
         
-        function updateStoreDisplay() { 
-            let phtml = ''; powerups.forEach(p => { phtml += `<div style="background:#1a1a2a;border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.7);border-radius:14px;padding:10px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"><div style="font-weight:bold;margin-bottom:4px;">⚡ ${p.name}</div><div style="font-size:10px;color:#ccc;margin-bottom:4px;">${p.desc}</div><div style="color:gold;margin-bottom:6px;">🪙 ${p.price}</div><button onclick="buyPowerup('${p.id}')" style="background:${p.active?'#555':'linear-gradient(135deg,#FF4655,#FF6B35)'};border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);padding:4px 12px;border-radius:30px;margin-top:2px;cursor:pointer;color:white;font-weight:bold;font-size:11px;box-shadow:1px 1px 0 rgba(0,0,0,0.3);" ${p.active?'disabled':''}>${p.active?'ACTIVE':'BUY'}</button></div>`; }); document.getElementById('powerupsStoreGrid').innerHTML = phtml; 
+        function updateStoreDisplay() {
+            let phtml = '';
+            powerups.forEach(p => {
+                phtml += `<div class="store-card">
+                    <div class="store-card-name">⚡ ${p.name}</div>
+                    <div class="store-card-desc">${p.desc}</div>
+                    <div class="store-card-price">🪙 ${p.price}</div>
+                    <button class="store-buy" onclick="buyPowerup('${p.id}')" ${p.active?'disabled':''}>${p.active?'ACTIVE':'BUY'}</button>
+                </div>`;
+            });
+            document.getElementById('powerupsStoreGrid').innerHTML = phtml;
+
             let chtml = ''; cosmetics.forEach(c => {
                 // Exclusive items never appear in the shop unless owned —
                 // showing something permanently unbuyable is just a tease.
-                if ((c.exclusive || c.price == null) && !c.owned) return;
-                chtml += `<div style="background:#1a1a2a;border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.7);border-radius:14px;padding:10px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"><img src="${c.image}" style="width:44px;height:44px;object-fit:contain;margin-bottom:4px;" onerror="this.style.display='none'"><div style="font-size:11px;margin-bottom:3px;">${c.name}</div><div style="color:gold;margin-bottom:5px;">🪙 ${c.price}</div><button onclick="buyCosmetic('${c.id}')" style="background:${c.owned?'#333':'linear-gradient(135deg,#FF4655,#FF6B35)'};border:2px solid rgba(255,255,255,0.15);border-bottom:4px solid rgba(0,0,0,0.4);padding:4px 12px;border-radius:30px;cursor:pointer;color:white;font-weight:bold;font-size:11px;box-shadow:1px 1px 0 rgba(0,0,0,0.3);" ${c.owned?'disabled':''}>${c.owned?'OWNED':'BUY'}</button></div>`; }); document.getElementById('cosmeticsStoreGrid').innerHTML = chtml; 
+                const exclusive = c.exclusive || c.price == null;
+                if (exclusive && !c.owned) return;
+                chtml += `<div class="store-card">
+                    <img src="${c.image}" onerror="this.style.display='none'">
+                    <div class="store-card-name">${c.name}</div>
+                    <div class="store-card-price${exclusive ? ' exclusive' : ''}">${exclusive ? '👑 EVENT REWARD' : '🪙 ' + c.price}</div>
+                    <button class="store-buy" onclick="buyCosmetic('${c.id}')" ${c.owned||exclusive?'disabled':''}>${c.owned?'OWNED':'BUY'}</button>
+                </div>`; });
+            document.getElementById('cosmeticsStoreGrid').innerHTML = chtml;
         }
         
         function updateUnlocksStore() {
@@ -3828,17 +4236,17 @@
             if (!g) return;
             const owned = ownsPlayerMenu();
             g.innerHTML = `
-                <div style="background:#1a1a2a;border:2px solid ${owned?'#00CC7A':'#FFD700'};border-bottom:4px solid rgba(0,0,0,0.4);border-radius:16px;padding:18px;text-align:center;box-shadow:2px 2px 0 rgba(0,0,0,0.4);">
+                <div class="store-card" style="padding:18px;border-color:${owned?'var(--green)':'#FFD700'};">
                     <div style="font-size:34px;margin-bottom:8px;">${owned?'✅':'🎮'}</div>
-                    <div style="font-size:15px;font-weight:bold;color:#fff;margin-bottom:6px;">PLAYER MENU</div>
-                    <div style="font-size:11px;color:#bbb;line-height:1.7;max-width:320px;margin:0 auto 14px;">
+                    <div class="store-card-name" style="font-size:15px;">PLAYER MENU</div>
+                    <div class="store-card-desc" style="max-width:320px;margin:0 auto 14px;">
                         A single-player sandbox: godmode, big and tiny bird, slow motion,
                         coin rain, low gravity and sandbox coins.<br>
-                        <span style="color:#A0A0A0;">Locked during multiplayer so matches stay fair.</span>
+                        Locked during multiplayer so matches stay fair.
                     </div>
-                    <div style="font-size:19px;color:#FFD700;font-weight:bold;margin-bottom:12px;">🪙 ${formatCoins(PLAYER_MENU_PRICE)}</div>
+                    <div class="store-card-price" style="font-size:19px;">🪙 ${formatCoins(PLAYER_MENU_PRICE)}</div>
                     ${owned
-                        ? '<div style="color:#00CC7A;font-weight:bold;font-size:13px;">OWNED — open it from the main screen</div>'
+                        ? '<div style="color:var(--green);font-weight:bold;font-size:13px;">OWNED — open it from the main screen</div>'
                         : `<button class="product-buy" id="shopBuyPlayerMenu" style="padding:10px 26px;font-size:13px;">UNLOCK</button>
                            <div id="shopBuyErr" style="font-size:11px;margin-top:10px;min-height:16px;"></div>`}
                 </div>`;
@@ -3846,10 +4254,17 @@
             if (b) b.addEventListener('click', () => buyPlayerMenu('shopBuyErr'));
         }
 
-        function updateLockerDisplay() { 
-            let hatsHtml = ''; cosmetics.filter(c=>c.type==='hat'&&c.owned).forEach(h=>{ hatsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;position:relative;cursor:pointer;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${h.id}')"><img src="${h.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${h.name}</div>${h.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerHats').innerHTML = hatsHtml || '<div style="color:#969696;font-size:12px;padding:10px;">No hats owned yet</div>'; 
-            let shirtsHtml = ''; cosmetics.filter(c=>c.type==='shirt'&&c.owned).forEach(s=>{ shirtsHtml += `<div style="border:2px solid #FF6B35;border-bottom:4px solid rgba(150,60,0,0.6);border-radius:14px;padding:8px;text-align:center;cursor:pointer;position:relative;box-shadow:2px 2px 0 rgba(0,0,0,0.4);" onclick="equipItem('${s.id}')"><img src="${s.image}" style="width:44px;height:44px;object-fit:contain;"><div style="font-size:10px;margin-top:4px;">${s.name}</div>${s.equipped?'<div style="position:absolute;top:-6px;right:-6px;background:#00CC7A;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:11px;border:2px solid #005533;">✓</div>':''}</div>`; }); document.getElementById('lockerShirts').innerHTML = shirtsHtml || '<div style="color:#969696;font-size:12px;padding:10px;">No shirts owned yet</div>'; 
-            document.getElementById('lockerBalance').innerHTML = `🪙 ${coinCount}`; 
+        function updateLockerDisplay() {
+            const card = item => `<div class="locker-card${item.equipped?' equipped':''}" onclick="equipItem('${item.id}')">
+                <img src="${item.image}" onerror="this.style.display='none'">
+                <div class="locker-card-name">${item.name}</div>
+                ${item.equipped ? '<div class="locker-tick">✓</div>' : ''}
+            </div>`;
+            const hats = cosmetics.filter(c => c.type === 'hat' && c.owned).map(card).join('');
+            const shirts = cosmetics.filter(c => c.type === 'shirt' && c.owned).map(card).join('');
+            document.getElementById('lockerHats').innerHTML = hats || '<div class="locker-empty">No hats owned yet</div>';
+            document.getElementById('lockerShirts').innerHTML = shirts || '<div class="locker-empty">No shirts owned yet</div>';
+            document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`;
         }
         
         function updatePreview() { 
@@ -3948,14 +4363,36 @@
                 if(!shieldActive && bird.x+15>pipes[i].x && bird.x-15<pipes[i].x+pipeWidth && (bird.y-15<pipes[i].top || bird.y+15>pipes[i].bottom)){ 
                     gameOver=true; playSound(deathSound); handleDeath(); return; 
                 } 
-                if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){ 
-                    score++; pipes[i].scored=true; 
+                if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){
+                    pipes[i].scored=true;
+                    if (score < MAX_SCORE) score++;
                     grantXp(1, 'score');
                     if (typeof mpReportScore === 'function') mpReportScore(score);
-                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); } 
-                    if(score===1000 && !hasTriggered1000){ hasTriggered1000=true; gameRunning=false; cancelAnimationFrame(animationId); let boom=document.getElementById('boomOverlay'); boom.style.display='block'; boom.innerHTML='<img src="/img/boom.gif" style="max-width:180px;">'; boomSound.play(); setTimeout(()=>{boom.style.display='none'; let vo=document.getElementById('victoryOverlay'); vo.style.display='flex'; document.getElementById('victoryMessage').innerHTML=Object.values(cheats).some(v=>v)?'You conquered with style!':'VICTORY! LEGEND!'; victorySound.play();},2000); } 
-                    checkAchievements(); 
-                } 
+                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); }
+                    if(score===MILESTONE_SCORE && !hasTriggered1000){
+                        // Celebrate on the bird and keep flying — the run only
+                        // ends at MAX_SCORE now.
+                        hasTriggered1000=true;
+                        showBoomAt(bird.x, bird.y);
+                        boomSound.play(); victorySound.play();
+                        setTimeout(hideBoom, 1600);
+                    }
+                    if(score===MAX_SCORE){
+                        gameRunning=false; if(animationId) cancelAnimationFrame(animationId);
+                        showBoomAt(bird.x, bird.y);
+                        boomSound.play();
+                        setTimeout(()=>{
+                            hideBoom();
+                            const vo=document.getElementById('victoryOverlay'); vo.style.display='flex';
+                            document.getElementById('victoryMessage').innerHTML =
+                                Object.values(cheats).some(v=>v)
+                                    ? 'You maxed out a 32-bit integer. With cheats on.'
+                                    : 'MAX SCORE — 2,147,483,647. There is nothing left to count.';
+                            victorySound.play();
+                        },2000);
+                    }
+                    checkAchievements();
+                }
                 if(pipes[i].x+pipeWidth<0) pipes.splice(i--,1); 
             }
             for(let i=0;i<coinsArr.length;i++){ 
@@ -4408,6 +4845,27 @@
             checkAchievements();
             if (typeof mpOnLocalStart === 'function') mpOnLocalStart();
         }
+        // The boom overlay is position:fixed, so left/top 50% put it in the
+        // middle of the WINDOW — nowhere near the bird, and further off the
+        // wider the window got. Place it over the bird's actual pixels: the
+        // canvas is drawn at 400x600 but displayed at whatever size fits, so
+        // canvas coordinates have to be scaled by the rendered size.
+        function showBoomAt(canvasX, canvasY) {
+            const boom = document.getElementById('boomOverlay');
+            if (!boom || !canvas) return;
+            const r = canvas.getBoundingClientRect();
+            boom.style.left = (r.left + canvasX * (r.width  / canvas.width))  + 'px';
+            boom.style.top  = (r.top  + canvasY * (r.height / canvas.height)) + 'px';
+            boom.innerHTML  = '<img src="/img/boom.gif" style="max-width:180px;">';
+            boom.style.display = 'block';
+        }
+        function hideBoom() {
+            const boom = document.getElementById('boomOverlay');
+            if (!boom) return;
+            boom.style.display = 'none';
+            boom.innerHTML = '';   // so the gif restarts from frame one next time
+        }
+
         function updateHighScore(){
             if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
             // Note: fail sound only plays at end of MP match, not on individual deaths.
@@ -4623,8 +5081,16 @@
             let g=document.getElementById('achievementsGrid');
             const mp = (typeof MP_ACHIEVEMENTS !== 'undefined') ? MP_ACHIEVEMENTS : [];
             const sectionHtml = (title, list) =>
-                `<div style="font-size:10px;color:#FF6B35;text-transform:uppercase;letter-spacing:2px;margin:6px 0 2px;">${title} · ${list.filter(a=>a.unlocked).length}/${list.length}</div>` +
-                list.map(a=>`<div style="background:#111;border:${a.unlocked?'2px solid gold':'1px solid #333'};border-radius:14px;padding:12px;display:flex;gap:12px;align-items:center;box-shadow:${a.unlocked?'2px 2px 0 rgba(150,120,0,0.5)':'2px 2px 0 rgba(0,0,0,0.3)'};"><div style="font-size:22px;">${a.icon}</div><div style="flex:1;"><div style="font-weight:bold;font-size:13px;">${a.name}</div><div style="font-size:10px;color:#aaa;margin-top:2px;">${a.desc}</div>${!a.unlocked&&a.target>1?`<div style="font-size:10px;color:#969696;margin-top:3px;">${a.progress||0}/${a.target}</div>`:''}</div>${a.unlocked?'<div style="color:#00CC7A;font-size:18px;">✅</div>':''}</div>`).join('');
+                `<div class="ach-section">${title} · ${list.filter(a=>a.unlocked).length}/${list.length}</div>` +
+                list.map(a => `<div class="ach-row${a.unlocked ? ' unlocked' : ''}">
+                    <div class="ach-icon">${a.icon}</div>
+                    <div class="ach-text">
+                        <div class="ach-name">${a.name}</div>
+                        <div class="ach-desc">${a.desc}</div>
+                        ${!a.unlocked && a.target > 1 ? `<div class="ach-prog">${a.progress||0}/${a.target}</div>` : ''}
+                    </div>
+                    ${a.unlocked ? '<div class="ach-done">✅</div>' : ''}
+                </div>`).join('');
             g.innerHTML = sectionHtml('Single Player', achievements) +
                           (mp.length ? sectionHtml('Multiplayer', mp) : '');
             document.getElementById('achievementsModal').classList.add('active');
@@ -5539,8 +6005,22 @@
             body.dataset.showing = 'account';
         }
 
+        // The About tab reuses the menu's own panels rather than a second copy
+        ['tutorial','credits','legal'].forEach(name => {
+            const btn = document.getElementById('set' + name[0].toUpperCase() + name.slice(1) + 'Btn');
+            if (btn) btn.addEventListener('click', () => document.getElementById(name + 'Btn')?.click());
+        });
+
+        function fillAboutPanel() {
+            const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+            set('setVersion', GAME_VERSION);
+            set('setBuild', window.__BUILD__ || '—');
+            set('setPlatform', window.CrixUI ? `${CrixUI.platform} · ${CrixUI.input}` : '—');
+        }
+
         document.querySelectorAll('.set-tab').forEach(tab => {
             tab.addEventListener('click', () => {
+                if (tab.dataset.st === 'about') fillAboutPanel();
                 document.querySelectorAll('.set-tab').forEach(t =>
                     t.classList.toggle('active', t === tab));
                 const body = document.querySelector('.settings-body');
@@ -7152,6 +7632,7 @@
         // Staff menu during a match — useful for dealing with someone
         // mid-game rather than having to leave first.
         document.getElementById('mpHudBtn')?.addEventListener('click', () => {
+            if (!mpCurrentRoom) return;   // stale button state should never open an empty/stale panel
             document.getElementById('mpHud')?.classList.toggle('open');
         });
         // First tap expands the row, second pauses. Keeps one icon on screen
@@ -7175,6 +7656,7 @@
         });
         document.getElementById('ingameStaffBtn')?.addEventListener('click', () => {
             if (typeof refreshOwnerTargets === 'function') refreshOwnerTargets();
+            if (typeof buildLevelTeleport === 'function') buildLevelTeleport(myRoles.includes('OWNER'));
             document.getElementById('ownerModal')?.classList.add('active');
         });
         document.getElementById('ingameMenuBtn')?.addEventListener('click', () => {
@@ -8863,7 +9345,7 @@
         }
 
         // ---- LEVELS ----
-        const MAX_LEVEL = 1000000;
+        const MAX_LEVEL = 50;
         const LEVEL_KEY = 'crix_level_v1';
         let playerXp = 0, playerLevel = 1;
         // Rising curve: level N needs 50*N xp to advance
@@ -10449,7 +10931,9 @@
 
         function mpEndMatchUI() {
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
-            document.getElementById('mpHud').classList.remove('active');
+            document.getElementById('mpHud').classList.remove('active', 'open');
+            document.getElementById('mpHud').innerHTML = '';
+            document.getElementById('mpHudBtn')?.classList.remove('on');
             document.getElementById('mpChatToggleBtn').classList.remove('active');
             document.getElementById('mpChatPanel').classList.remove('active');
             document.getElementById('mpGodmodeBanner').classList.remove('active');
@@ -11493,10 +11977,45 @@
         document.querySelectorAll('#playerModal .pm-coin')
             .forEach(b => b.addEventListener('click', () => pmGiveCoins(parseInt(b.dataset.amt))));
 
+        // ---- LEVEL TELEPORT ----
+        // Level is a synced account stat, so this stays owner-gated rather
+        // than living in the sandbox menu with the local-only cheats.
+        function buildLevelTeleport(isOwner) {
+            const grid = document.getElementById('levelTpGrid');
+            if (!grid) return;
+            if (!grid.dataset.built) {
+                let html = '';
+                for (let l = 1; l <= MAX_LEVEL; l++)
+                    html += `<button class="level-tp" data-lv="${l}">${l}</button>`;
+                grid.innerHTML = html;
+                grid.dataset.built = '1';
+                grid.addEventListener('click', e => {
+                    const b = e.target.closest('.level-tp');
+                    if (b && !b.disabled) teleportToLevel(parseInt(b.dataset.lv, 10));
+                });
+            }
+            grid.querySelectorAll('.level-tp').forEach(b => {
+                b.disabled = !isOwner;
+                b.classList.toggle('current', parseInt(b.dataset.lv, 10) === playerLevel);
+            });
+        }
+
+        function teleportToLevel(lv) {
+            if (!myRoles.includes('OWNER')) { ownerLog('Owner only', false); return; }
+            playerLevel = Math.max(1, Math.min(MAX_LEVEL, lv));
+            playerXp = 0;
+            saveLevel();
+            refreshSettingsUI();
+            buildLevelTeleport(true);
+            playSfx('levelup', .5);
+            ownerLog('Teleported to level ' + playerLevel);
+        }
+
         // ---- STAFF MENU ----
         document.getElementById('ownerBtn')?.addEventListener('click', () => {
             refreshOwnerTargets();
             const isOwner = myRoles.includes('OWNER');
+            buildLevelTeleport(isOwner);
             document.getElementById('ownerRoleNote').textContent = isOwner
                 ? 'Signed in as OWNER — full access.'
                 : 'Signed in as MOD — kick and ban only. Owner-only actions will be refused.';
