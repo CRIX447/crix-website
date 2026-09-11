@@ -1722,6 +1722,31 @@
         .owner-btn.warn:hover:not(:disabled) { background:rgba(255,165,0,0.1); }
         .owner-btn.good { border-color:rgba(0,204,122,0.4); color:#00CC7A; }
         .owner-btn.good:hover:not(:disabled) { background:rgba(0,204,122,0.1); }
+
+        /* ---- LEVEL TELEPORT ---- */
+        /* No inner scroll — the modal already scrolls, and nesting the two
+           makes the grid a trap to swipe on a phone. */
+        .level-tp-grid {
+            display:grid; grid-template-columns:repeat(auto-fit,minmax(38px,1fr));
+            gap:4px; padding:2px;
+        }
+        .level-tp {
+            background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12);
+            color:#EDEDED; font-family:inherit; font-size:11px; padding:8px 0;
+            border-radius:8px; cursor:pointer;
+        }
+        .level-tp:hover:not(:disabled) { background:rgba(255,107,53,.16); border-color:var(--orange); }
+        .level-tp.current {
+            background:rgba(255,215,0,.18); border-color:#FFD700;
+            color:#FFD700; font-weight:700;
+        }
+        .level-tp:disabled { cursor:not-allowed; opacity:.35; }
+        html.theme-light .level-tp {
+            background:#F0F0F6; border-color:rgba(0,0,0,.12); color:#1A1A22;
+        }
+        html.theme-light .level-tp.current {
+            background:rgba(255,215,0,.28); border-color:#D9A400; color:#7A5C00;
+        }
         .owner-log { margin-top:14px; max-height:110px; overflow-y:auto; font-size:10px;
             font-family:monospace; background:rgba(0,0,0,0.35); border-radius:8px; padding:8px 10px; }
         .owner-log:empty { display:none; }
@@ -3451,6 +3476,13 @@
                 <button class="owner-btn" data-act="unlockAll">🔓 Unlock Cosmetics</button>
             </div>
 
+            <!-- LEVEL TELEPORT -->
+            <div class="mp-section-title" style="margin-top:16px;">🚀 LEVEL TELEPORT</div>
+            <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
+                Jump straight to any level. XP resets to the start of the level you pick.
+            </div>
+            <div class="level-tp-grid" id="levelTpGrid"></div>
+
             <div id="ownerLog" class="owner-log"></div>
         </div>
     </div>
@@ -3864,6 +3896,12 @@
         let cheats = { godmode: false, coinlord: false, slowmo: false, bigbird: false };
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5 };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
+        // How far a run can go. A signed 32-bit int is the ceiling every
+        // scoreboard this talks to is built on, so the run ends there rather
+        // than letting the number drift past what they can store.
+        const MAX_SCORE = 2147483647;
+        // 1000 used to end the run outright; it is a milestone now.
+        const MILESTONE_SCORE = 1000;
         
         // Cosmetic images are cached — previously a new Image() was allocated
         // every frame for each equipped item, which caused heavy stutter and
@@ -3905,7 +3943,7 @@
             { id: 'score50', name: 'SCORE 50', desc: 'Reach a score of 50', icon: '50', unlocked: false, progress: 0, target: 50 },
             { id: 'score100', name: 'SCORE 100', desc: 'Reach a score of 100', icon: '💯', unlocked: false, progress: 0, target: 100 },
             { id: 'mystery', name: 'MYSTERY LEVEL', desc: 'Find the secret', icon: '❓', unlocked: false, progress: 0, target: 1 },
-            { id: 'legend', name: 'LEGEND', desc: 'Reach level 1000', icon: '👑', unlocked: false, progress: 0, target: 1 },
+            { id: 'legend', name: 'LEGEND', desc: 'Reach a score of 1,000', icon: '👑', unlocked: false, progress: 0, target: 1 },
             { id: 'score25',   name: 'GETTING GOING',  desc: 'Reach a score of 25',            icon: '🎯', unlocked: false, progress: 0, target: 25 },
             { id: 'score250',  name: 'IRON WINGS',     desc: 'Reach a score of 250',           icon: '🦾', unlocked: false, progress: 0, target: 250 },
             { id: 'coins1k',   name: 'COIN HOARDER',   desc: 'Collect 1,000 coins total',      icon: '💰', unlocked: false, progress: 0, target: 1000 },
@@ -4325,14 +4363,36 @@
                 if(!shieldActive && bird.x+15>pipes[i].x && bird.x-15<pipes[i].x+pipeWidth && (bird.y-15<pipes[i].top || bird.y+15>pipes[i].bottom)){ 
                     gameOver=true; playSound(deathSound); handleDeath(); return; 
                 } 
-                if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){ 
-                    score++; pipes[i].scored=true; 
+                if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){
+                    pipes[i].scored=true;
+                    if (score < MAX_SCORE) score++;
                     grantXp(1, 'score');
                     if (typeof mpReportScore === 'function') mpReportScore(score);
-                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); } 
-                    if(score===1000 && !hasTriggered1000){ hasTriggered1000=true; gameRunning=false; cancelAnimationFrame(animationId); let boom=document.getElementById('boomOverlay'); boom.style.display='block'; boom.innerHTML='<img src="/img/boom.gif" style="max-width:180px;">'; boomSound.play(); setTimeout(()=>{boom.style.display='none'; let vo=document.getElementById('victoryOverlay'); vo.style.display='flex'; document.getElementById('victoryMessage').innerHTML=Object.values(cheats).some(v=>v)?'You conquered with style!':'VICTORY! LEGEND!'; victorySound.play();},2000); } 
-                    checkAchievements(); 
-                } 
+                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); }
+                    if(score===MILESTONE_SCORE && !hasTriggered1000){
+                        // Celebrate on the bird and keep flying — the run only
+                        // ends at MAX_SCORE now.
+                        hasTriggered1000=true;
+                        showBoomAt(bird.x, bird.y);
+                        boomSound.play(); victorySound.play();
+                        setTimeout(hideBoom, 1600);
+                    }
+                    if(score===MAX_SCORE){
+                        gameRunning=false; if(animationId) cancelAnimationFrame(animationId);
+                        showBoomAt(bird.x, bird.y);
+                        boomSound.play();
+                        setTimeout(()=>{
+                            hideBoom();
+                            const vo=document.getElementById('victoryOverlay'); vo.style.display='flex';
+                            document.getElementById('victoryMessage').innerHTML =
+                                Object.values(cheats).some(v=>v)
+                                    ? 'You maxed out a 32-bit integer. With cheats on.'
+                                    : 'MAX SCORE — 2,147,483,647. There is nothing left to count.';
+                            victorySound.play();
+                        },2000);
+                    }
+                    checkAchievements();
+                }
                 if(pipes[i].x+pipeWidth<0) pipes.splice(i--,1); 
             }
             for(let i=0;i<coinsArr.length;i++){ 
@@ -4785,6 +4845,27 @@
             checkAchievements();
             if (typeof mpOnLocalStart === 'function') mpOnLocalStart();
         }
+        // The boom overlay is position:fixed, so left/top 50% put it in the
+        // middle of the WINDOW — nowhere near the bird, and further off the
+        // wider the window got. Place it over the bird's actual pixels: the
+        // canvas is drawn at 400x600 but displayed at whatever size fits, so
+        // canvas coordinates have to be scaled by the rendered size.
+        function showBoomAt(canvasX, canvasY) {
+            const boom = document.getElementById('boomOverlay');
+            if (!boom || !canvas) return;
+            const r = canvas.getBoundingClientRect();
+            boom.style.left = (r.left + canvasX * (r.width  / canvas.width))  + 'px';
+            boom.style.top  = (r.top  + canvasY * (r.height / canvas.height)) + 'px';
+            boom.innerHTML  = '<img src="/img/boom.gif" style="max-width:180px;">';
+            boom.style.display = 'block';
+        }
+        function hideBoom() {
+            const boom = document.getElementById('boomOverlay');
+            if (!boom) return;
+            boom.style.display = 'none';
+            boom.innerHTML = '';   // so the gif restarts from frame one next time
+        }
+
         function updateHighScore(){
             if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
             // Note: fail sound only plays at end of MP match, not on individual deaths.
@@ -7575,6 +7656,7 @@
         });
         document.getElementById('ingameStaffBtn')?.addEventListener('click', () => {
             if (typeof refreshOwnerTargets === 'function') refreshOwnerTargets();
+            if (typeof buildLevelTeleport === 'function') buildLevelTeleport(myRoles.includes('OWNER'));
             document.getElementById('ownerModal')?.classList.add('active');
         });
         document.getElementById('ingameMenuBtn')?.addEventListener('click', () => {
@@ -9263,7 +9345,7 @@
         }
 
         // ---- LEVELS ----
-        const MAX_LEVEL = 1000000;
+        const MAX_LEVEL = 50;
         const LEVEL_KEY = 'crix_level_v1';
         let playerXp = 0, playerLevel = 1;
         // Rising curve: level N needs 50*N xp to advance
@@ -11895,10 +11977,45 @@
         document.querySelectorAll('#playerModal .pm-coin')
             .forEach(b => b.addEventListener('click', () => pmGiveCoins(parseInt(b.dataset.amt))));
 
+        // ---- LEVEL TELEPORT ----
+        // Level is a synced account stat, so this stays owner-gated rather
+        // than living in the sandbox menu with the local-only cheats.
+        function buildLevelTeleport(isOwner) {
+            const grid = document.getElementById('levelTpGrid');
+            if (!grid) return;
+            if (!grid.dataset.built) {
+                let html = '';
+                for (let l = 1; l <= MAX_LEVEL; l++)
+                    html += `<button class="level-tp" data-lv="${l}">${l}</button>`;
+                grid.innerHTML = html;
+                grid.dataset.built = '1';
+                grid.addEventListener('click', e => {
+                    const b = e.target.closest('.level-tp');
+                    if (b && !b.disabled) teleportToLevel(parseInt(b.dataset.lv, 10));
+                });
+            }
+            grid.querySelectorAll('.level-tp').forEach(b => {
+                b.disabled = !isOwner;
+                b.classList.toggle('current', parseInt(b.dataset.lv, 10) === playerLevel);
+            });
+        }
+
+        function teleportToLevel(lv) {
+            if (!myRoles.includes('OWNER')) { ownerLog('Owner only', false); return; }
+            playerLevel = Math.max(1, Math.min(MAX_LEVEL, lv));
+            playerXp = 0;
+            saveLevel();
+            refreshSettingsUI();
+            buildLevelTeleport(true);
+            playSfx('levelup', .5);
+            ownerLog('Teleported to level ' + playerLevel);
+        }
+
         // ---- STAFF MENU ----
         document.getElementById('ownerBtn')?.addEventListener('click', () => {
             refreshOwnerTargets();
             const isOwner = myRoles.includes('OWNER');
+            buildLevelTeleport(isOwner);
             document.getElementById('ownerRoleNote').textContent = isOwner
                 ? 'Signed in as OWNER — full access.'
                 : 'Signed in as MOD — kick and ban only. Owner-only actions will be refused.';
