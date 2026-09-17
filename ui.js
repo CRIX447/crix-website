@@ -150,8 +150,10 @@
             const s = localStorage.getItem('crix_theme');
             if (s) return s;
         } catch (e) {}
-        // Follow the system if they have never chosen
-        return window.matchMedia?.('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        // Dark is the game's default look, so it no longer follows the OS —
+        // a phone set to light mode was getting the light theme on first run
+        // without ever asking for it. The toggle still wins once used.
+        return 'dark';
     }
 
     /* ─────────── APPLY ─────────── */
