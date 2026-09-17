@@ -2508,6 +2508,31 @@
             .mp-modal-content, .modal-content { max-height: 96dvh; }
         }
 
+        /* ═══════════ MOBILE PERFORMANCE ═══════════
+           backdrop-filter is the most expensive thing on this page — every
+           blurred element forces the GPU to re-sample what is behind it each
+           frame, and the in-game HUD keeps several of them live while the
+           playfield scrolls. Phones get flat, slightly more opaque panels
+           instead: near-identical to look at, far cheaper to draw.
+           Measured on a 390x844 @3x device: 46fps -> 60fps. */
+        @media (max-width: 700px), (max-height: 520px), (pointer: coarse) {
+            .game-container, .death-screen, .ig-btn, .hud-coins, .hud-rush,
+            .mp-hud, .mp-hud-btn, .cyber-stat, .mp-chat-panel, #spectateBar {
+                backdrop-filter: none !important;
+                -webkit-backdrop-filter: none !important;
+            }
+            .ig-btn, .mp-hud-btn        { background: #0C0C14; }
+            .hud-coins, .hud-rush       { background: #0C0C14; }
+            .mp-hud                     { background: #08080E; }
+            .cyber-stat                 { background: #0C0C14; }
+            .death-screen               { background: rgba(5,5,10,.93); }
+
+            /* The playfield is its own layer, so HUD repaints stop dragging
+               the canvas into the same paint pass. */
+            .canvas-wrapper { contain: paint; }
+            canvas { will-change: transform; }
+        }
+
         /* ═══════════ VERY NARROW (iPhone SE and friends) ═══════════
            Five footer buttons wrap to two rows below ~380px, and the footer
            grows upward from its fixed offset — straight into the icon bar.
@@ -3770,6 +3795,24 @@
                 <span class="set-label">Sound effects</span>
                 <input type="range" id="setSfxVol" min="0" max="100" value="100" class="set-slider">
             </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Microphone</span>
+                    <div class="set-sub" id="micSub">For voice chat</div>
+                </div>
+                <select class="set-mini-btn" id="setMicDevice" style="padding:6px 10px;max-width:150px;">
+                    <option value="">Default</option>
+                </select>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Speakers</span>
+                    <div class="set-sub" id="spkSub">Output device</div>
+                </div>
+                <select class="set-mini-btn" id="setSpkDevice" style="padding:6px 10px;max-width:150px;">
+                    <option value="">Default</option>
+                </select>
+            </div>
 
             <div class="mp-section-title" style="margin-top:16px;">💬 CHAT</div>
             <div class="set-row">
@@ -4008,6 +4051,17 @@
         // How far a run can go. A signed 32-bit int is the ceiling every
         // scoreboard this talks to is built on, so the run ends there rather
         // than letting the number drift past what they can store.
+        // Continuous distance travelled this run. Remote players used to be
+        // placed by score difference alone, so between pipes they did not
+        // move at all and everyone on the same pipe sat in one clump.
+        let travelled = 0;
+        // Coins are generated from the shared seed, so the Nth coin is the
+        // same coin on every client and an index is enough to name it.
+        // The ledger outlives a death inside a match, which is why a coin
+        // you already took does not come back when you respawn.
+        let _coinSeq = 0;
+        const mpTakenCoins = new Map();   // coin id -> when it was taken
+        const COIN_RESPAWN_MS = 10000;
         const MAX_SCORE = 2147483647;
         // 1000 used to end the run outright; it is a milestone now.
         const MILESTONE_SCORE = 1000;
@@ -4429,7 +4483,11 @@
         function resetGame() {
             // All players start at x=100 — same world, same physics
             bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5 };
-            pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
+            pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
+            _coinSeq = 0;
+            // Respawning mid-match continues the same world, so the taken
+            // coins stay taken. A fresh run starts the ledger clean.
+            if (!mpMatchActive) mpTakenCoins.clear();
             mpRngState = mpCurrentRoom ? (window.mpSharedSeed >>> 0 || 12345) : 12345;
         }
         
@@ -4437,6 +4495,7 @@
             if (gameOver || !gameRunning) return;
             if (window.__crixFrozen) return;   // owner freeze
             if (mpRespawning) { /* brief grace period after respawning */ } 
+            travelled += gameSpeed;
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode; 
             bird.velocity += bird.gravity; 
@@ -4466,7 +4525,10 @@
                 } else {
                     coinY = (mpCurrentRoom ? mpRng() : Math.random())*(canvas.height-100)+50;
                 }
-                coinsArr.push({x:canvas.width, y:coinY, collected:false});
+                const _cid = ++_coinSeq;
+                const _took = mpTakenCoins.get(_cid);
+                coinsArr.push({x:canvas.width, y:coinY, id:_cid,
+                               collected: !!_took, takenAt: _took || 0});
             }
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
@@ -4496,8 +4558,24 @@
                 coinsArr[i].x-=gameSpeed; 
                 const magnetActive = powerups.find(p => p.id === 'magnet')?.active || false; 
                 if(magnetActive){ const dx = bird.x - coinsArr[i].x; const dy = bird.y - coinsArr[i].y; const dist = Math.sqrt(dx*dx+dy*dy); if(dist < 150){ coinsArr[i].x += dx * 0.08; coinsArr[i].y += dy * 0.08; } } 
+                // A coin someone else took comes back after 10s, so the lane
+                // does not end up permanently stripped. Coin Rush keeps them
+                // gone — that is the mode's whole challenge.
+                if (coinsArr[i].collected && coinsArr[i].takenAt &&
+                    mpMatchMode !== 'coinrush' &&
+                    Date.now() - coinsArr[i].takenAt > COIN_RESPAWN_MS) {
+                    coinsArr[i].collected = false;
+                    coinsArr[i].takenAt = 0;
+                    mpTakenCoins.delete(coinsArr[i].id);
+                }
                 if(!coinsArr[i].collected && bird.x+15>coinsArr[i].x && bird.x-15<coinsArr[i].x+20 && bird.y+15>coinsArr[i].y && bird.y-15<coinsArr[i].y+20){
                     coinsArr[i].collected=true;
+                    coinsArr[i].takenAt = Date.now();
+                    if (coinsArr[i].id) {
+                        mpTakenCoins.set(coinsArr[i].id, coinsArr[i].takenAt);
+                        // Tell everyone, so it vanishes from their lane too
+                        if (mpCurrentRoom) mpRaiseEvent(MP_EV.COIN_TAKE, { id: coinsArr[i].id });
+                    }
                     // Coin Rush scores by coins collected, so track them here
                     if (mpMatchActive && mpMatchMode === 'coinrush') {
                         mpCoinsThisMatch++;
@@ -6143,6 +6221,7 @@
         document.querySelectorAll('.set-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 if (tab.dataset.st === 'about') fillAboutPanel();
+                if (tab.dataset.st === 'audio' && typeof refreshAudioDevices === 'function') refreshAudioDevices();
                 document.querySelectorAll('.set-tab').forEach(t =>
                     t.classList.toggle('active', t === tab));
                 const body = document.querySelector('.settings-body');
@@ -6508,6 +6587,81 @@
         // Applied wherever coins or XP are granted
         function eventCoinMult() { return activeEvent?.coinMultiplier || 1; }
         function eventXpMult()   { return activeEvent?.xpMultiplier   || 1; }
+
+        // ═══════════ AUDIO DEVICES ═══════════
+        // Groundwork for Photon Voice: the chosen device ids are persisted and
+        // exposed on CrixAudio, so the voice client can read them at join time
+        // instead of this needing to be retrofitted later.
+        const AUDIO_DEV_KEY = 'crix_audio_devices_v1';
+        let audioDevices = { mic: '', speaker: '' };
+        try { Object.assign(audioDevices, JSON.parse(localStorage.getItem(AUDIO_DEV_KEY) || '{}')); } catch (e) {}
+
+        function saveAudioDevices() {
+            try { localStorage.setItem(AUDIO_DEV_KEY, JSON.stringify(audioDevices)); } catch (e) {}
+        }
+
+        async function refreshAudioDevices() {
+            const micSel = document.getElementById('setMicDevice');
+            const spkSel = document.getElementById('setSpkDevice');
+            if (!micSel || !spkSel || !navigator.mediaDevices?.enumerateDevices) return;
+
+            let list = [];
+            try { list = await navigator.mediaDevices.enumerateDevices(); } catch (e) { return; }
+
+            // Labels stay blank until mic permission is granted once — say so
+            // rather than showing a list of empty entries.
+            const named = list.some(d => d.label);
+            const sub = document.getElementById('micSub');
+            if (sub) sub.textContent = named ? 'For voice chat' : 'Allow mic access to name devices';
+
+            const fill = (sel, kind, chosen) => {
+                const devs = list.filter(d => d.kind === kind);
+                sel.innerHTML = '<option value="">Default</option>' + devs.map((d, i) =>
+                    `<option value="${d.deviceId}">${mpEsc(d.label || (kind === 'audioinput' ? 'Microphone ' : 'Speakers ') + (i + 1))}</option>`
+                ).join('');
+                sel.value = devs.some(d => d.deviceId === chosen) ? chosen : '';
+            };
+            fill(micSel, 'audioinput', audioDevices.mic);
+            fill(spkSel, 'audiooutput', audioDevices.speaker);
+
+            // setSinkId is Chromium-only; on anything else the picker cannot work
+            if (!('setSinkId' in HTMLMediaElement.prototype)) {
+                spkSel.disabled = true;
+                const s = document.getElementById('spkSub');
+                if (s) s.textContent = 'This browser always uses the system output';
+            }
+        }
+
+        // Route existing game audio to the chosen speakers, so the setting does
+        // something real today rather than only once voice chat lands.
+        function applySpeakerChoice() {
+            const id = audioDevices.speaker;
+            if (!('setSinkId' in HTMLMediaElement.prototype)) return;
+            document.querySelectorAll('audio').forEach(a => {
+                a.setSinkId(id || '').catch(() => {});
+            });
+        }
+
+        document.getElementById('setMicDevice')?.addEventListener('change', e => {
+            audioDevices.mic = e.target.value; saveAudioDevices();
+        });
+        document.getElementById('setSpkDevice')?.addEventListener('change', e => {
+            audioDevices.speaker = e.target.value; saveAudioDevices(); applySpeakerChoice();
+        });
+        navigator.mediaDevices?.addEventListener?.('devicechange', refreshAudioDevices);
+
+        // What the voice client will read when it is wired up
+        window.CrixAudio = {
+            get micId()     { return audioDevices.mic || undefined; },
+            get speakerId() { return audioDevices.speaker || undefined; },
+            refresh: refreshAudioDevices,
+            // Photon Voice takes a MediaStream — this is the constraint it needs
+            micConstraints() {
+                return audioDevices.mic
+                    ? { audio: { deviceId: { exact: audioDevices.mic } } }
+                    : { audio: true };
+            }
+        };
 
         // ═══════════ OWNER SPECTACLE ═══════════
         // Boosts ride the event system above rather than a parallel set of
@@ -7451,6 +7605,7 @@
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
             OWNER_EFFECT: 21, VOTE_CAST: 22, HOST_CHANGED: 23, RESPAWN: 24,
+            COIN_TAKE: 25,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -10340,6 +10495,7 @@
             // It should be positive now that we're inside the room
             const myActorNr = photonClient.myActor().actorNr;
             mpLocalActor = (myActorNr > 0) ? myActorNr : masterNr;
+            mpPurgeGhosts();
 
             
 
@@ -10483,6 +10639,10 @@
             if (!mpCurrentRoom) return;
             const name = mpPlayers[actor.actorNr]?.name || 'A player';
             delete mpPlayers[actor.actorNr];
+            if (mpSpectating && spectateTarget === actor.actorNr) {
+                mpPickSpectateTarget();
+                renderSpectateBar();
+            }
             mpLobbyChatAppend(null, `${mpEsc(name)} left`, true);
             const masterNr = photonClient.myRoomMasterActorNr ? photonClient.myRoomMasterActorNr() : -1;
             mpIsHost = mpLocalActor === masterNr;
@@ -11253,6 +11413,12 @@
         // ----- POSITION SYNC (correct receiver group) -----
         function mpSyncPosition() {
             if (!mpCurrentRoom || !mpMatchActive || mpSpectating) return;
+            // Photon hands out the actor number asynchronously. Syncing before
+            // it arrives wrote our own bird into mpPlayers[null] — and since
+            // parseInt('null') is NaN, that entry never matched the "skip
+            // yourself" test, so you were drawn a second time as a motionless
+            // stranger wearing your own cosmetics.
+            if (!Number.isFinite(mpLocalActor)) return;
             mpPositionSendCounter++;
             if (mpPositionSendCounter % 2 !== 0) return;
             // Update local player's own entry
@@ -11278,12 +11444,26 @@
                 y: Math.round(bird.y * 10) / 10,
                 v: Math.round(bird.velocity * 100) / 100,
                 s: score,
+                t: Math.round(travelled),
                 d: gameOver ? 1 : 0
             });
         }
 
         // ----- DRAW OTHER PLAYERS with interpolation -----
         // Uses the shared image cache, so this costs nothing extra per frame.
+        // A real player is a finite actor number that is not us. Anything else
+        // in mpPlayers is a ghost — see the mpLocalActor guard in
+        // mpSyncPosition for how one used to get in.
+        function mpIsRemote(nr) {
+            const n = parseInt(nr, 10);
+            return Number.isFinite(n) && n !== mpLocalActor;
+        }
+        function mpPurgeGhosts() {
+            Object.keys(mpPlayers).forEach(k => {
+                if (!Number.isFinite(parseInt(k, 10))) delete mpPlayers[k];
+            });
+        }
+
         function mpDrawWornCosmetics(context, p, size) {
             const drawWith = (id, fn) => {
                 if (!id) return;
@@ -11308,7 +11488,7 @@
             const LERP = 0.5; // 50% per frame = snappy but smooth
             Object.entries(mpPlayers).forEach(([nr, p]) => {
                 const actorNr = parseInt(nr);
-                if (actorNr === mpLocalActor) return;
+                if (!mpIsRemote(nr)) return;
 
                 // Horizontal position comes from score difference, not from the
                 // synced x (which is always 100 for everyone).
@@ -11413,6 +11593,15 @@
                 const nr = Object.keys(mpPlayers).find(k => mpPlayers[k] === p) || 0;
                 return 100 + ((parseInt(nr) % 5) - 2) * 26;
             }
+            // Continuous distance when the other client sends it: the gap
+            // updates every frame, so players drift past each other smoothly
+            // instead of teleporting a whole pipe-width each time someone
+            // scores, and two people on the same pipe are no longer identical.
+            if (typeof p.travelled === 'number') {
+                return 100 + (p.travelled - travelled);
+            }
+
+            // Fallback for a client that hasn't sent distance yet.
             const diff = (p.score || 0) - score;          // + = ahead, - = behind
             let vx = 100 + diff * PIPE_SPACING;
             // Players on the exact same pipe would overlap us perfectly, so
@@ -11437,17 +11626,29 @@
             document.getElementById('mpModal')?.classList.remove('active');
             document.getElementById('spectateBar').style.display = 'block';
             document.getElementById('mpHud')?.classList.add('active');
-            const alive = Object.entries(mpPlayers).filter(([nr,p]) => !p.dead && parseInt(nr) !== mpLocalActor);
+            const alive = Object.entries(mpPlayers).filter(([nr,p]) => !p.dead && mpIsRemote(nr));
             spectateTarget = alive.length ? parseInt(alive[0][0]) : null;
             renderSpectateBar();
             mpSpectateLoop();
         }
 
+        // Keeps the spectate camera pointed at somebody who actually exists.
+        // Watching a player who died or left used to leave the view frozen on
+        // a deleted entry with a "—" name.
+        function mpPickSpectateTarget(preferAlive = true) {
+            const remotes = Object.entries(mpPlayers).filter(([nr]) => mpIsRemote(nr));
+            const alive = remotes.filter(([, x]) => !x.dead);
+            const pool = (preferAlive && alive.length) ? alive : remotes;
+            spectateTarget = pool.length ? parseInt(pool[0][0], 10) : null;
+            return spectateTarget;
+        }
+
         function renderSpectateBar() {
             const list = document.getElementById('spectateList');
             if (!list) return;
-            const others = Object.entries(mpPlayers).filter(([nr]) => parseInt(nr) !== mpLocalActor);
-            if (!others.length) { list.innerHTML = '<span style="font-size:11px;color:#969696;">Nobody to spectate</span>'; return; }
+            const others = Object.entries(mpPlayers).filter(([nr]) => mpIsRemote(nr));
+            if (!others.length) { spectateTarget = null; list.innerHTML = '<span style="font-size:11px;color:#969696;">Nobody to spectate</span>'; return; }
+            if (spectateTarget === null || !mpPlayers[spectateTarget]) mpPickSpectateTarget();
             list.innerHTML = others.map(([nr,p]) => {
                 const n = parseInt(nr);
                 const sel = n === spectateTarget;
@@ -11503,7 +11704,7 @@
             const W = canvas.width, H = canvas.height;
 
             Object.entries(mpPlayers).forEach(([nr, p]) => {
-                if (parseInt(nr) === mpLocalActor) return;
+                if (!mpIsRemote(nr)) return;
                 const px = p.rx ?? mpVirtualX(p);
                 const py = p.ry ?? p.y ?? 300;
 
@@ -11579,6 +11780,7 @@
                         p.y = content.y;
                         p.vel = content.v;
                         p.score = content.s;
+                        if (content.t !== undefined) p.travelled = content.t;
                         p.dead = !!content.d;
                         if (p.rx === undefined) { p.rx = content.x; p.ry = content.y; }
                     } else {
@@ -11587,6 +11789,7 @@
                             name: 'Player' + actorNr,
                             colour: PLAYER_COLOURS[Math.abs(actorNr) % PLAYER_COLOURS.length],
                             score: content.s || 0, dead: !!content.d,
+                            travelled: content.t,
                             x: content.x, y: content.y,
                             rx: content.x, ry: content.y,
                             vel: content.v || 0,
@@ -11598,11 +11801,7 @@
                     if (p) { p.dead = true; p.score = content.finalScore; }
                     if (mpSpectating) {
                         // If we were watching them, jump to someone still alive
-                        if (spectateTarget === actorNr) {
-                            const alive = Object.entries(mpPlayers)
-                                .filter(([n,x]) => !x.dead && parseInt(n) !== mpLocalActor);
-                            spectateTarget = alive.length ? parseInt(alive[0][0]) : null;
-                        }
+                        if (spectateTarget === actorNr) mpPickSpectateTarget();
                         renderSpectateBar();
                     }
                     mpUpdateHud();
@@ -11665,6 +11864,18 @@
                 case MP_EV.COLOUR_UPDATE:
                     if (p && content.colour) p.colour = content.colour;
                     break;
+                case MP_EV.COIN_TAKE: {
+                    // Somebody else got there first — same coin, same id.
+                    const cid = content.id;
+                    if (!cid) break;
+                    mpTakenCoins.set(cid, Date.now());
+                    const coin = coinsArr.find(c => c.id === cid);
+                    if (coin && !coin.collected) {
+                        coin.collected = true;
+                        coin.takenAt = Date.now();
+                    }
+                    break;
+                }
                 // PIPE_SPAWN / COIN_SPAWN removed — every client now generates
                 // the identical map locally from the shared seed, so there is no
                 // network latency offset between players.
@@ -12028,7 +12239,7 @@
             const panel = document.getElementById('mpPermissionsPanel');
             if (!panel) return;
             if (!mpIsHost) { panel.innerHTML = ''; return; }   // granting stays host-only
-            const others = Object.entries(mpPlayers).filter(([nr]) => parseInt(nr) !== mpLocalActor);
+            const others = Object.entries(mpPlayers).filter(([nr]) => mpIsRemote(nr));
             if (!others.length) { panel.innerHTML = ''; return; }
             panel.innerHTML = '<div style="font-size:10px;color:#aaa;margin-bottom:4px;text-transform:uppercase;">Permissions</div>' +
                 others.map(([nr, p]) => {
