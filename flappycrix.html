@@ -4660,7 +4660,12 @@
             if (window.__crixFrozen) return;   // owner freeze
             if (mpRespawning) { /* brief grace period after respawning */ } 
             travelled += gameSpeed;
-            if (equippedTrail()) pushTrail(_localTrail, bird.x, bird.y);
+            if (equippedTrail()) {
+                advanceTrail(_localTrail, gameSpeed);
+                pushTrail(_localTrail, bird.x, bird.y);
+            } else if (_localTrail.length) {
+                _localTrail.length = 0;
+            }
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode; 
             bird.velocity += bird.gravity; 
@@ -4865,7 +4870,9 @@
         // ---- TRAILS ----
         // Drawn in world space behind the bird, so they are pushed BEFORE the
         // per-bird translate rather than inside it.
-        const TRAIL_LEN = 16;
+        // One point is pushed per frame, so the trail is TRAIL_LEN * gameSpeed
+        // pixels long — about 75px behind a 30px bird at normal speed.
+        const TRAIL_LEN = 30;
         let _localTrail = [];
 
         function equippedTrail() {
@@ -4879,6 +4886,14 @@
         function pushTrail(store, x, y) {
             store.push(x, y);
             while (store.length > TRAIL_LEN * 2) store.splice(0, 2);
+        }
+        // The bird never moves horizontally — the world scrolls past it — so
+        // points left where they were pushed all stacked up at bird.x and the
+        // trail only ever moved when you jumped. Carrying the old points
+        // backwards at the same speed as the pipes is what makes it stream
+        // out behind you.
+        function advanceTrail(store, dx) {
+            for (let i = 0; i < store.length; i += 2) store[i] -= dx;
         }
         function drawTrail(context, flat, colours, size) {
             if (!flat || flat.length < 4 || !colours || !colours.length) return;
@@ -11797,6 +11812,7 @@
                 const _pt = trailById(p.trail);
                 if (_pt && !p.dead) {
                     p._trail = p._trail || [];
+                    if (mpMatchActive) advanceTrail(p._trail, gameSpeed);
                     pushTrail(p._trail, p.rx ?? mpVirtualX(p), p.ry ?? p.y ?? 300);
                     drawTrail(context, p._trail, _pt.colours, 26);
                 } else if (p._trail) {
