@@ -1775,6 +1775,16 @@
             100% { filter: none; }
         }
 
+        .guest-notice {
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+            background: rgba(255,165,0,.08); border: 1px solid rgba(255,165,0,.3);
+            border-radius: 12px; padding: 9px 12px; margin-bottom: 8px;
+            font-size: 11px; line-height: 1.5;
+        }
+        .guest-notice b { color: #FFB347; }
+        .guest-notice .set-mini-btn { margin-left: auto; flex-shrink: 0; }
+        html.theme-light .guest-notice { background: rgba(255,165,0,.12); }
+
         /* ---- DISTANCE JUMP ---- */
         .dist-jump-row { display:flex; gap:6px; align-items:stretch; margin-bottom:6px; }
         .dist-jump-row .mp-input { flex:1; min-width:0; text-align:center; letter-spacing:1px; }
@@ -2627,6 +2637,7 @@
                     <button class="ig-btn" id="ingameMenuBtn" title="Lobby">☰</button>
                     <button class="ig-btn" id="ingameMusicBtn" title="Music">🔊</button>
                     <button class="ig-btn sandbox" id="ingameSandboxBtn" title="Sandbox" style="display:none;">🎮</button>
+                    <button class="ig-btn" id="ingameCreatorBtn" title="Creator Studio">🎬</button>
                     <button class="ig-btn staff" id="ingameStaffBtn" title="Staff" style="display:none;">🛡️</button>
                 </div>
             </div>
@@ -2746,12 +2757,12 @@
                 <div style="display:flex;flex-direction:column;gap:6px;justify-content:center;">
                     <div id="previewTitle" style="color:gold;font-size:12px;text-align:center;">DRIP</div>
                     <button class="game-btn secondary" style="min-width:unset;font-size:10px;padding:5px 12px;" id="unequipHat">UNEQUIP HAT</button>
-                    <button class="game-btn secondary" style="min-width:unset;font-size:10px;padding:5px 12px;" id="unequipShirt">UNEQUIP SHIRT</button>
+                    <button class="game-btn secondary" style="min-width:unset;font-size:10px;padding:5px 12px;" id="unequipShirt">UNEQUIP TRAIL</button>
                 </div>
             </div>
             <div style="color:#FF6B35;font-size:13px;margin-bottom:8px;font-weight:bold;">🧢 HATS</div>
             <div id="lockerHats" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
-            <div style="color:#FF6B35;font-size:13px;margin-top:14px;margin-bottom:8px;font-weight:bold;">👕 SHIRTS</div>
+            <div style="color:#FF6B35;font-size:13px;margin-top:14px;margin-bottom:8px;font-weight:bold;">✨ TRAILS</div>
             <div id="lockerShirts" style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;"></div>
         </div>
     </div>
@@ -2809,6 +2820,11 @@
 
             <!-- VIEW: BROWSE / HOME -->
             <div id="mpViewHome">
+                <div id="guestNotice" class="guest-notice" style="display:none;">
+                    <span>Playing as <b id="guestNoticeName">Guest</b> — no rank, friends or custom name.</span>
+                    <button class="set-mini-btn" id="guestSignInBtn">SIGN IN</button>
+                </div>
+
                 <!-- Create and Join code live in the .mm-row below, next to
                      Quick Play and Ranked. This row used to repeat both. -->
                 <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
@@ -4099,8 +4115,19 @@
               image: '/img/crown.png', owned: false, equipped: false },
             { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, image: '/img/bucket-hat.avif', owned: false, equipped: false },
             { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, image: '/img/cap.png', owned: false, equipped: false },
-            { id: 'tank', name: 'TANK TOP', type: 'shirt', price: 450, image: '/img/tank-top.avif', owned: false, equipped: false },
-            { id: 'tshirt', name: 'T-SHIRT', type: 'shirt', price: 400, image: '/img/new-t-shirt.png', owned: false, equipped: false }
+            // Trails replaced shirts — a sprite stretched over the bird read
+            // as a smudge, a trail reads at any size and in motion.
+            { id: 'trail_rainbow', name: 'RAINBOW TRAIL', type: 'trail', price: 800,
+              colours: ['#FF0040','#FF8A00','#FFE800','#00E05A','#00B7FF','#9B4DFF'],
+              owned: false, equipped: false },
+            { id: 'trail_ember',   name: 'EMBER TRAIL',   type: 'trail', price: 500,
+              colours: ['#FFE08A','#FF9A3C','#FF4655'], owned: false, equipped: false },
+            { id: 'trail_frost',   name: 'FROST TRAIL',   type: 'trail', price: 500,
+              colours: ['#FFFFFF','#9BE7FF','#27A9F5'], owned: false, equipped: false },
+            { id: 'trail_toxic',   name: 'TOXIC TRAIL',   type: 'trail', price: 600,
+              colours: ['#D4FF3C','#00CC7A','#0B6B3A'], owned: false, equipped: false },
+            { id: 'trail_void',    name: 'VOID TRAIL',    type: 'trail', price: 900,
+              colours: ['#E0C3FF','#9B4DFF','#2A0A4A'], owned: false, equipped: false }
         ];
         
         let achievements = [
@@ -4239,10 +4266,35 @@
         }
         
         // ========== SAVING SYSTEM ==========
-        function autoSave() {
+        // Coalesced. This used to fire on every coin, which meant a Firestore
+        // write per coin when signed in and six localStorage writes plus two
+        // JSON.stringify calls per coin as a guest — all on the main thread
+        // while the playfield scrolls. That is the mobile stutter.
+        // Writes are batched to one every few seconds and flushed immediately
+        // on death or when the page goes away, so nothing is lost.
+        const SAVE_MIN_GAP = 3000;
+        let _saveQueued = false, _lastSaveAt = 0, _saveTimer = null;
+
+        function flushSave() {
+            if (_saveTimer) { clearTimeout(_saveTimer); _saveTimer = null; }
+            if (!_saveQueued) return;
+            _saveQueued = false;
+            _lastSaveAt = Date.now();
             if (currentUser && db) saveToCloud();
             else saveToLocal();
         }
+
+        function autoSave(immediate) {
+            _saveQueued = true;
+            if (immediate) { flushSave(); return; }
+            if (_saveTimer) return;
+            const wait = Math.max(0, SAVE_MIN_GAP - (Date.now() - _lastSaveAt));
+            _saveTimer = setTimeout(() => { _saveTimer = null; flushSave(); }, wait);
+        }
+
+        // Nothing in flight should survive the tab closing or backgrounding
+        addEventListener('pagehide', flushSave);
+        addEventListener('visibilitychange', () => { if (document.hidden) flushSave(); });
         
         // Mirrors headline stats into Firestore so the launcher can read them
         // without signing into PlayFab. Throttled — it does not need to run
@@ -4285,7 +4337,7 @@
                     photoURL: currentUser.photoURL || null,
                     highScore, coinCount, gamesPlayed,
                     owned: cosmetics.filter(c=>c.owned).map(c=>c.id), 
-                    equipped: { hat: equippedId('hat'), shirt: equippedId('shirt') }, 
+                    equipped: { hat: equippedId('hat'), trail: equippedId('trail') }, 
                     achievements: achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))
                 }, { merge: true });
                 document.getElementById('saveStatusText').textContent = '☁️ Cloud';
@@ -4324,7 +4376,7 @@
             localStorage.setItem('flappyCrixCoins', coinCount);
             localStorage.setItem('flappyCrixGamesPlayed', gamesPlayed);
             localStorage.setItem('flappyCrixOwned', JSON.stringify(cosmetics.filter(c=>c.owned).map(c=>c.id))); 
-            localStorage.setItem('flappyCrixEquipped', JSON.stringify({ hat: equippedId('hat'), shirt: equippedId('shirt') })); 
+            localStorage.setItem('flappyCrixEquipped', JSON.stringify({ hat: equippedId('hat'), trail: equippedId('trail') })); 
             localStorage.setItem('flappyAchievements', JSON.stringify(achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))));
         }
         
@@ -4360,7 +4412,7 @@
             cosmetics.forEach(c => {
                 if (!c.owned) return;                      // never equip what isn't owned
                 if (c.type === 'hat'   && eq.hat   === c.id) c.equipped = true;
-                if (c.type === 'shirt' && eq.shirt === c.id) c.equipped = true;
+                if (c.type === 'trail' && eq.trail === c.id) c.equipped = true;
             });
         }
 
@@ -4441,9 +4493,9 @@
                 ${item.equipped ? '<div class="locker-tick">✓</div>' : ''}
             </div>`;
             const hats = cosmetics.filter(c => c.type === 'hat' && c.owned).map(card).join('');
-            const shirts = cosmetics.filter(c => c.type === 'shirt' && c.owned).map(card).join('');
+            const shirts = cosmetics.filter(c => c.type === 'trail' && c.owned).map(card).join('');
             document.getElementById('lockerHats').innerHTML = hats || '<div class="locker-empty">No hats owned yet</div>';
-            document.getElementById('lockerShirts').innerHTML = shirts || '<div class="locker-empty">No shirts owned yet</div>';
+            document.getElementById('lockerShirts').innerHTML = shirts || '<div class="locker-empty">No trails owned yet</div>';
             document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`;
         }
         
@@ -4455,8 +4507,12 @@
             previewCtx.translate(40,40); 
             let sz = cheats.bigbird ? 45 : 32; 
             drawSprite(previewCtx, birdImage, 0, 0, sz); 
-            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped&&c.owned); 
-            if(shirt){ const si=cachedImage(shirt.image); if(si){ const sw=sz*0.72, sh=sz*0.55; previewCtx.drawImage(si, -sw/2, sz*0.02, sw, sh); } } 
+            let shirt = equippedTrail();
+            if (shirt) {
+                const pts = [];
+                for (let i = 0; i < TRAIL_LEN; i++) pts.push(-8 - i * 2.0, Math.sin(i * 0.5) * 3);
+                drawTrail(previewCtx, pts, shirt.colours, sz);
+            }
             let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned); 
             if(hat){ const hi=cachedImage(hat.image); if(hi){ const hw=sz*0.78, hh=sz*0.58; previewCtx.drawImage(hi, -hw/2, -sz/2-hh*0.62, hw, hh); } } 
             previewCtx.restore(); 
@@ -4502,6 +4558,7 @@
             bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5 };
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             _coinSeq = 0;
+            _localTrail = [];
             // Respawning mid-match continues the same world, so the taken
             // coins stay taken. A fresh run starts the ledger clean.
             if (!mpMatchActive) mpTakenCoins.clear();
@@ -4513,6 +4570,7 @@
             if (window.__crixFrozen) return;   // owner freeze
             if (mpRespawning) { /* brief grace period after respawning */ } 
             travelled += gameSpeed;
+            if (equippedTrail()) pushTrail(_localTrail, bird.x, bird.y);
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode; 
             bird.velocity += bird.gravity; 
@@ -4714,6 +4772,43 @@
 
         // Hats sit ON the head, overlapping the top of the sprite slightly so
         // they look worn rather than floating. Aspect is preserved.
+        // ---- TRAILS ----
+        // Drawn in world space behind the bird, so they are pushed BEFORE the
+        // per-bird translate rather than inside it.
+        const TRAIL_LEN = 16;
+        let _localTrail = [];
+
+        function equippedTrail() {
+            return cosmetics.find(c => c.type === 'trail' && c.equipped && c.owned) || null;
+        }
+        function trailById(id) {
+            if (!id) return null;
+            const c = cosmetics.find(x => x.id === id && x.type === 'trail');
+            return c || null;
+        }
+        function pushTrail(store, x, y) {
+            store.push(x, y);
+            while (store.length > TRAIL_LEN * 2) store.splice(0, 2);
+        }
+        function drawTrail(context, flat, colours, size) {
+            if (!flat || flat.length < 4 || !colours || !colours.length) return;
+            const n = flat.length / 2;
+            context.save();
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            for (let i = 1; i < n; i++) {
+                const t = i / n;                       // 0 oldest -> 1 newest
+                context.globalAlpha = t * t * 0.7;     // fade out fast at the tail
+                context.lineWidth = Math.max(1, size * 0.5 * t);
+                context.strokeStyle = colours[(n - i) % colours.length];
+                context.beginPath();
+                context.moveTo(flat[(i - 1) * 2], flat[(i - 1) * 2 + 1]);
+                context.lineTo(flat[i * 2], flat[i * 2 + 1]);
+                context.stroke();
+            }
+            context.restore();
+        }
+
         function drawHat(context, img, birdSize) {
             if (!img || !img.complete || !img.naturalWidth) return;
             const ratio = img.naturalWidth / img.naturalHeight;
@@ -4907,6 +5002,11 @@
             // Draw other multiplayer players (host's pipes are authoritative, so guests see the same layout)
             if (typeof mpDrawOtherPlayers === 'function') mpDrawOtherPlayers(ctx);
             if (typeof mpDrawOffscreenArrows === 'function') mpDrawOffscreenArrows(ctx);
+            // Your trail — world space, before the bird's own transform, so it
+            // stays put in the level instead of rotating with the sprite.
+            const _mt = equippedTrail();
+            if (_mt) drawTrail(ctx, _localTrail, _mt.colours, cheats.bigbird ? 45 : 30);
+
             // Draw bird
             ctx.save(); 
             ctx.translate(bird.x,bird.y); 
@@ -4924,15 +5024,6 @@
             ctx.restore();
 
             drawSprite(ctx, birdImage, 0, 0, birdSize); 
-            // Shirt: narrower and lower so it sits on the body, not over the whole bird
-            let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped&&c.owned);
-            if(shirt){
-                const si = cachedImage(shirt.image);
-                if (si) {
-                    const sw = birdSize * 0.72, sh = birdSize * 0.55;
-                    ctx.drawImage(si, -sw/2, birdSize*0.02, sw, sh);
-                }
-            }
             // Hat: sits on top of the head, above the bird's outline
             let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned);
             if(hat){
@@ -4966,8 +5057,16 @@
                 ctx.save();
                 ctx.font = '10px monospace';
                 ctx.textAlign = 'right';
+                // y=14 sat directly under the standings button (top:12, 38px
+                // tall), so the counter was unreadable in a match. Clear it.
+                let _sy = 62;
                 ctx.fillStyle = _fps >= 55 ? '#00CC7A' : _fps >= 30 ? '#FFB347' : '#FF4655';
-                ctx.fillText(_fps + ' FPS', canvas.width - 8, 14);
+                ctx.fillText(_fps + ' FPS', canvas.width - 8, _sy);
+                if (mpCurrentRoom && mpPing) {
+                    _sy += 12;
+                    ctx.fillStyle = mpPing < 80 ? '#00CC7A' : mpPing < 180 ? '#FFB347' : '#FF4655';
+                    ctx.fillText(mpPing + ' ms', canvas.width - 8, _sy);
+                }
                 ctx.textAlign = 'left';
                 ctx.restore();
             }
@@ -5099,7 +5198,7 @@
             bump('lvl10',    (typeof playerLevel !== 'undefined') && playerLevel >= 10,  typeof playerLevel !== 'undefined' ? playerLevel : 0);
             bump('lvl25',    (typeof playerLevel !== 'undefined') && playerLevel >= 25,  typeof playerLevel !== 'undefined' ? playerLevel : 0);
             bump('lvlmax',   (typeof playerLevel !== 'undefined') && playerLevel >= 50,  typeof playerLevel !== 'undefined' ? playerLevel : 0);
-            bump('dripped',  cosmetics.some(x=>x.type==='hat'&&x.equipped) && cosmetics.some(x=>x.type==='shirt'&&x.equipped));
+            bump('dripped',  cosmetics.some(x=>x.type==='hat'&&x.equipped) && cosmetics.some(x=>x.type==='trail'&&x.equipped));
 
             if(unlocked){ achSound.play(); updateAchievementCount(); autoSave(); } }
         function jump(){ if(!gameRunning||gameOver) return; bird.velocity=bird.jump; playSound(jumpSound); if (typeof mpSendJump === 'function') mpSendJump(); }
@@ -5314,7 +5413,7 @@
         };
         const _b_closeAchievementsBtn = document.getElementById('closeAchievementsBtn'); if (_b_closeAchievementsBtn) _b_closeAchievementsBtn.onclick = () => document.getElementById('achievementsModal').classList.remove('active');
         const _b_unequipHat = document.getElementById('unequipHat'); if (_b_unequipHat) _b_unequipHat.onclick = () => { let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped); if(hat){ hat.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
-        const _b_unequipShirt = document.getElementById('unequipShirt'); if (_b_unequipShirt) _b_unequipShirt.onclick = () => { let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped); if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
+        const _b_unequipShirt = document.getElementById('unequipShirt'); if (_b_unequipShirt) _b_unequipShirt.onclick = () => { let shirt=cosmetics.find(c=>c.type==='trail'&&c.equipped); if(shirt){ shirt.equipped=false; updateLockerDisplay(); updatePreview(); autoSave(); } };
         const _b_victoryRestart = document.getElementById('victoryRestart'); if (_b_victoryRestart) _b_victoryRestart.onclick = () => { document.getElementById('victoryOverlay').style.display='none'; startGame(); };
         
         
@@ -7619,7 +7718,7 @@
             COLOUR_UPDATE: 13, NAME_UPDATE: 14,
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
             OWNER_EFFECT: 21, VOTE_CAST: 22, HOST_CHANGED: 23, RESPAWN: 24,
-            COIN_TAKE: 25,
+            COIN_TAKE: 25, PING: 26,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -7991,6 +8090,7 @@
             }
             if (bgMusic && !musicMuted) bgMusic.pause();
             updateHighScore();
+            flushSave();   // the run is over — write it now, not in 3s
             if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
             if (typeof mpReportDeath === 'function') mpReportDeath();
             if (!mpMatchActive) showDeathScreen();
@@ -8320,14 +8420,23 @@
         }
         document.getElementById('legalBtn')?.addEventListener('click', () => openLegal('terms'));
 
+        document.getElementById('guestSignInBtn')?.addEventListener('click', () => {
+            document.getElementById('mpModal')?.classList.remove('active');
+            document.getElementById('authModal')?.classList.add('active');
+        });
+
         // ---- CREATOR STUDIO ----
         // The recording tools used to live inside the staff menu, which meant
         // you needed OWNER or MOD to record anything. They change nothing but
         // what is on screen, so they get their own door.
-        document.getElementById('creatorBtn')?.addEventListener('click', () => {
+        function openCreatorStudio() {
             document.getElementById('creatorModal')?.classList.add('active');
             playSfx('whoosh', .4);
-        });
+        }
+        document.getElementById('creatorBtn')?.addEventListener('click', openCreatorStudio);
+        // Same menu from inside a run — you cannot start a recording from the
+        // main menu if the thing you want to record is already happening.
+        document.getElementById('ingameCreatorBtn')?.addEventListener('click', openCreatorStudio);
         document.getElementById('closeCreatorBtn')?.addEventListener('click', () =>
             document.getElementById('creatorModal')?.classList.remove('active'));
         document.getElementById('creatorModal')?.addEventListener('click', e => {
@@ -9278,7 +9387,7 @@
                 pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
                 photo: (typeof currentAvatar === 'function' ? currentAvatar() : null),
                 hat: equippedId('hat'),
-                shirt: equippedId('shirt')
+                trail: equippedId('trail')
             }, extra || {});
         }
 
@@ -10145,11 +10254,9 @@
 
         // ----- ACCOUNT GATE -----
         function mpCheckAccountAndOpen() {
-            if (!currentUser) {
-                mpShowView('mpViewSignInRequired');
-                document.getElementById('mpModal').classList.add('active');
-                return false;
-            }
+            // Guests play. This used to hard-stop anyone without an account at
+            // a sign-in wall, which is what made the guest identity work
+            // pointless — the door was still locked.
             return true;
         }
 
@@ -10536,6 +10643,7 @@
             const myActorNr = photonClient.myActor().actorNr;
             mpLocalActor = (myActorNr > 0) ? myActorNr : masterNr;
             mpPurgeGhosts();
+            mpStartPing();
 
             
 
@@ -10701,6 +10809,12 @@
                 const el = document.getElementById(v);
                 if (el) el.style.display = v === id ? 'block' : 'none';
             });
+            const gn = document.getElementById('guestNotice');
+            if (gn) {
+                gn.style.display = (id === 'mpViewHome' && isGuest()) ? 'flex' : 'none';
+                const nm = document.getElementById('guestNoticeName');
+                if (nm) nm.textContent = mpGetDisplayName();
+            }
         }
         function mpShowLobbyView() {
             mpShowView('mpViewLobby');
@@ -11075,6 +11189,7 @@
             document.body.classList.remove('playing');
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
+            mpStopPing();
             if (typeof sendHeartbeat === 'function') sendHeartbeat();
             mpMatchActive = false; mpSpectating = false;
             mpMatchMode = 'freemode';   // reset so coinrush rates don't leak into single player
@@ -11535,6 +11650,16 @@
                     p.travelled += gameSpeed;
                 }
 
+                // Their trail, in world space before the per-bird transform
+                const _pt = trailById(p.trail);
+                if (_pt && !p.dead) {
+                    p._trail = p._trail || [];
+                    pushTrail(p._trail, p.rx ?? mpVirtualX(p), p.ry ?? p.y ?? 300);
+                    drawTrail(context, p._trail, _pt.colours, 26);
+                } else if (p._trail) {
+                    p._trail.length = 0;
+                }
+
                 // Horizontal position comes from score difference, not from the
                 // synced x (which is always 100 for everyone).
                 const tx = mpVirtualX(p);
@@ -11816,6 +11941,28 @@
             });
         }
 
+        // ----- PING -----
+        // The JS SDK exposes no round-trip time, so measure it: raise an event
+        // to All (which echoes back to the sender) and time the return leg.
+        // Once a second is plenty and costs nothing next to the position
+        // stream already running at ~30/s.
+        let mpPing = 0, _pingSentAt = 0, _pingTimer = null;
+        function mpStartPing() {
+            if (_pingTimer) return;
+            _pingTimer = setInterval(() => {
+                if (!mpCurrentRoom || !photonClient) return;
+                _pingSentAt = performance.now();
+                try {
+                    const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                    photonClient.raiseEvent(MP_EV.PING, { t: _pingSentAt }, { receivers: RC.All });
+                } catch (e) {}
+            }, 1000);
+        }
+        function mpStopPing() {
+            if (_pingTimer) { clearInterval(_pingTimer); _pingTimer = null; }
+            mpPing = 0;
+        }
+
         // ----- EVENT HANDLING -----
         function mpHandleEvent(code, content, actorNr) {
             const p = mpPlayers[actorNr];
@@ -11907,7 +12054,7 @@
                         // Only touch cosmetics when the sender actually sent
                         // them — a partial payload must not wipe them.
                         if ('hat' in content)   p.hat   = content.hat;
-                        if ('shirt' in content) p.shirt = content.shirt;
+                        if ('trail' in content) p.trail = content.trail;
                         p.presence = content.presence || 'online';
                         p.platform = content.platform || p.platform;
                         rememberPlayer(p);
@@ -11916,6 +12063,12 @@
                     break;
                 case MP_EV.COLOUR_UPDATE:
                     if (p && content.colour) p.colour = content.colour;
+                    break;
+                case MP_EV.PING:
+                    // Only our own echo tells us anything about our latency
+                    if (actorNr === mpLocalActor && content && content.t) {
+                        mpPing = Math.round(performance.now() - content.t);
+                    }
                     break;
                 case MP_EV.COIN_TAKE: {
                     // Somebody else got there first — same coin, same id.
@@ -12362,11 +12515,6 @@
             if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) {
                 const banned = await checkMyBan();
                 if (banned) { showBanScreen(window.__crixBanInfo || {}); return; }
-            }
-            if (!currentUser) {
-                mpShowView('mpViewSignInRequired');
-                document.getElementById('mpModal').classList.add('active');
-                return;
             }
             const modal = document.getElementById('mpModal');
             modal.classList.add('active');
