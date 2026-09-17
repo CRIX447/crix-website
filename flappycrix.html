@@ -836,14 +836,18 @@
             display: none;
             position: fixed; top: 0; left: 0; right: 0; z-index: 55000;
             padding: 12px 16px; padding-top: calc(12px + env(safe-area-inset-top));
-            background: linear-gradient(135deg, #FF4655, #FF6B35);
-            box-shadow: 0 4px 20px rgba(0,0,0,.5);
+            /* Transparent, so a broadcast reads over the game instead of
+               boxing it out. The text carries its own shadow to stay legible
+               against whatever happens to be behind it. */
+            background: transparent;
             animation: bcDrop .35s cubic-bezier(.2,.9,.3,1.1);
+            pointer-events: none;
         }
         .broadcast.on { display: block; }
         @keyframes bcDrop { from { transform: translateY(-100%); } to { transform: none; } }
         .bc-inner { max-width: 640px; margin: 0 auto; text-align: center;
-            font-size: 13px; line-height: 1.6; color: #fff; }
+            font-size: 13px; line-height: 1.6; color: #fff;
+            text-shadow: 0 1px 3px rgba(0,0,0,.95), 0 0 10px rgba(0,0,0,.8); }
         .bc-from { font-weight: bold; margin-right: 6px; }
         .bc-msg { opacity: .95; }
         body.clean-mode .broadcast { display: none !important; }
@@ -1723,6 +1727,53 @@
         .owner-btn.good { border-color:rgba(0,204,122,0.4); color:#00CC7A; }
         .owner-btn.good:hover:not(:disabled) { background:rgba(0,204,122,0.1); }
 
+        /* ---- DISCO MODE ---- */
+        /* Hue-rotating wash over everything. Held to the overlay so the game
+           keeps rendering underneath rather than being tinted frame by frame. */
+        body.disco::after {
+            content: ''; position: fixed; inset: 0; z-index: 59000;
+            pointer-events: none; mix-blend-mode: hue;
+            animation: discoHue 1.4s linear infinite;
+        }
+        @keyframes discoHue {
+            0%   { background: #FF0000; }
+            16%  { background: #FF8A00; }
+            33%  { background: #FFF400; }
+            50%  { background: #00FF3C; }
+            66%  { background: #00C2FF; }
+            83%  { background: #B400FF; }
+            100% { background: #FF0000; }
+        }
+        body.disco .game-container { animation: discoShake .9s ease-in-out infinite; }
+        @keyframes discoShake {
+            0%,100% { transform: none; }
+            25%     { transform: translateX(-3px) rotate(-.25deg); }
+            75%     { transform: translateX(3px)  rotate(.25deg); }
+        }
+        body.reduced-motion.disco::after,
+        body.reduced-motion.disco .game-container { animation: none; }
+
+        /* ---- NUKE ---- */
+        .nuke-overlay {
+            position: fixed; inset: 0; z-index: 60000; pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .nuke-bomb {
+            width: min(180px, 42vw);
+            animation: nukeDrop 1.1s cubic-bezier(.5,0,.85,.4) forwards;
+        }
+        @keyframes nukeDrop {
+            from { transform: translateY(-70vh) rotate(-12deg); opacity: 0; }
+            20%  { opacity: 1; }
+            to   { transform: translateY(0) rotate(4deg); opacity: 1; }
+        }
+        .nuke-blast { width: min(520px, 96vw); }
+        body.nuke-flash { animation: nukeFlash .45s ease-out; }
+        @keyframes nukeFlash {
+            0%   { filter: brightness(7) saturate(0); }
+            100% { filter: none; }
+        }
+
         /* ---- DISTANCE JUMP ---- */
         .dist-jump-row { display:flex; gap:6px; align-items:stretch; margin-bottom:6px; }
         .dist-jump-row .mp-input { flex:1; min-width:0; text-align:center; letter-spacing:1px; }
@@ -2457,6 +2508,17 @@
             .mp-modal-content, .modal-content { max-height: 96dvh; }
         }
 
+        /* ═══════════ VERY NARROW (iPhone SE and friends) ═══════════
+           Five footer buttons wrap to two rows below ~380px, and the footer
+           grows upward from its fixed offset — straight into the icon bar.
+           Give the deck the extra row back. */
+        @media (max-width: 380px) {
+            .icon-bar      { bottom: calc(86px  + env(safe-area-inset-bottom)); }
+            .mp-banner-btn { bottom: calc(160px + env(safe-area-inset-bottom)); }
+            .game-controls { bottom: calc(224px + env(safe-area-inset-bottom)); }
+            .foot-btn      { font-size: 8px; padding: 9px 3px; }
+        }
+
     </style>
 </head>
 <body>
@@ -2618,6 +2680,7 @@
             <button class="foot-btn" id="tutorialBtn">❓ How to play</button>
             <button class="foot-btn" id="creditsBtn">✨ Credits</button>
             <button class="foot-btn" id="legalBtn">📄 Legal</button>
+            <button class="foot-btn" id="creatorBtn">🎬 Creator</button>
             <a class="foot-btn" id="siteBtn" href="https://crixgamingvr.com" target="_blank">🌐 Website</a>
         </div>
     </div>
@@ -3136,8 +3199,11 @@
                 <div><span>Coins</span><b id="pauseCoins">0</b></div>
             </div>
 
-            <div class="mp-section-title">⚡ QUICK BUY</div>
+            <div class="mp-section-title" id="pauseShopTitle">⚡ QUICK BUY</div>
             <div class="pause-shop" id="pauseShop"></div>
+            <div class="set-sub" id="pauseNoShop" style="display:none;line-height:1.6;">
+                Power-ups are single player only — a match has to be won on equal terms.
+            </div>
 
             <button class="mp-btn-primary" id="pauseResume" style="width:100%;margin-top:12px;">RESUME</button>
             <button class="mp-btn-secondary" id="pauseQuit" style="width:100%;margin-top:8px;">QUIT TO MENU</button>
@@ -3399,17 +3465,18 @@
     </div>
 
     <!-- STAFF / OWNER MENU -->
-    <div class="mp-modal" id="ownerModal" style="z-index:47000;">
-        <div class="mp-modal-content" style="max-width:520px;">
+
+    <!-- CONTENT CREATOR MENU -->
+    <div class="mp-modal" id="creatorModal" style="z-index:46500;">
+        <div class="mp-modal-content" style="max-width:460px;">
             <div class="modal-header">
-                <div class="modal-title" style="color:#FF4655;">🛡️ STAFF MENU</div>
-                <button class="modal-close" id="closeOwnerBtn">✕</button>
+                <div class="modal-title">🎬 CREATOR STUDIO</div>
+                <button class="modal-close" id="closeCreatorBtn">✕</button>
             </div>
-
-            <div id="ownerRoleNote" style="font-size:10px;color:#ABABAB;margin-bottom:12px;"></div>
-
-            <!-- CAPTURE -->
-            <div class="mp-section-title">🎥 CAPTURE</div>
+            <div class="set-sub" style="margin-bottom:12px;line-height:1.6;">
+                Recording tools. These are cosmetic — nothing here touches your
+                score, coins or rank, so anyone can use them.
+            </div>
             <div class="set-row">
                 <div style="flex:1;min-width:0;">
                     <span class="set-label">Autopilot</span>
@@ -3441,6 +3508,18 @@
                 </div>
                 <button class="set-mini-btn" id="recBtn">RECORD</button>
             </div>
+
+        </div>
+    </div>
+
+    <div class="mp-modal" id="ownerModal" style="z-index:47000;">
+        <div class="mp-modal-content" style="max-width:520px;">
+            <div class="modal-header">
+                <div class="modal-title" style="color:#FF4655;">🛡️ STAFF MENU</div>
+                <button class="modal-close" id="closeOwnerBtn">✕</button>
+            </div>
+
+            <div id="ownerRoleNote" style="font-size:10px;color:#ABABAB;margin-bottom:12px;"></div>
 
             <!-- PLAYER ACTIONS -->
             <div class="mp-section-title">👤 PLAYER ACTIONS</div>
@@ -3478,6 +3557,21 @@
             </div>
 
             <!-- DISTANCE JUMP -->
+            <!-- EFFECTS -->
+            <div class="mp-section-title" style="margin-top:16px;">🎬 EFFECTS</div>
+            <div class="owner-grid">
+                <button class="owner-btn" data-act="disco">🪩 Disco Mode</button>
+                <button class="owner-btn danger" data-act="nuke">☢️ Nuke All Servers</button>
+            </div>
+
+            <!-- ECONOMY -->
+            <div class="mp-section-title" style="margin-top:16px;">💰 ECONOMY</div>
+            <div class="owner-grid">
+                <button class="owner-btn good" data-act="tripleXp">⚡ 3× XP &amp; Coins · 5 min</button>
+                <button class="owner-btn warn" data-act="halfOff">🏷️ 50% Off Shop</button>
+            </div>
+            <div class="set-sub" id="eventStatus" style="margin-top:6px;min-height:14px;"></div>
+
             <div class="mp-section-title" style="margin-top:16px;">🚀 DISTANCE JUMP</div>
             <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
                 Type a distance and send the run straight to it — 0 to 2,147,483,647.
@@ -4226,7 +4320,7 @@
                 phtml += `<div class="store-card">
                     <div class="store-card-name">⚡ ${p.name}</div>
                     <div class="store-card-desc">${p.desc}</div>
-                    <div class="store-card-price">🪙 ${p.price}</div>
+                    <div class="store-card-price">🪙 ${salePrice(p.price)}${shopSale>0?` <s style="opacity:.55;font-size:10px;">${p.price}</s>`:''}</div>
                     <button class="store-buy" onclick="buyPowerup('${p.id}')" ${p.active?'disabled':''}>${p.active?'ACTIVE':'BUY'}</button>
                 </div>`;
             });
@@ -4240,7 +4334,7 @@
                 chtml += `<div class="store-card">
                     <img src="${c.image}" onerror="this.style.display='none'">
                     <div class="store-card-name">${c.name}</div>
-                    <div class="store-card-price${exclusive ? ' exclusive' : ''}">${exclusive ? '👑 EVENT REWARD' : '🪙 ' + c.price}</div>
+                    <div class="store-card-price${exclusive ? ' exclusive' : ''}">${exclusive ? '👑 EVENT REWARD' : `🪙 ${salePrice(c.price)}${shopSale>0?` <s style="opacity:.55;font-size:10px;">${c.price}</s>`:''}`}</div>
                     <button class="store-buy" onclick="buyCosmetic('${c.id}')" ${c.owned||exclusive?'disabled':''}>${c.owned?'OWNED':'BUY'}</button>
                 </div>`; });
             document.getElementById('cosmeticsStoreGrid').innerHTML = chtml;
@@ -4300,7 +4394,7 @@
         
         window.buyPowerup = function(id) {
             if (mpMatchActive && mpMatchMode === 'coinrush') return; // no powerups in coinrush
-            let p = powerups.find(p=>p.id===id); if(!p||p.active||coinCount<p.price) return; coinCount -= p.price; updateCoinDisplay(); p.active = true; p.timeLeft = p.duration; powerupSound.play(); if(id==='x2coins') coinMultiplier=2; let interval = setInterval(()=>{ p.timeLeft--; if(p.timeLeft<=0){ p.active=false; clearInterval(interval); if(id==='x2coins') coinMultiplier=1; updateActivePowerups(); autoSave(); } updateActivePowerups(); }, 1000); updateActivePowerups(); updateStoreDisplay(); autoSave(); 
+            let p = powerups.find(p=>p.id===id); const _pc = salePrice(p && p.price); if(!p||p.active||coinCount<_pc) return; coinCount -= _pc; updateCoinDisplay(); p.active = true; p.timeLeft = p.duration; powerupSound.play(); if(id==='x2coins') coinMultiplier=2; let interval = setInterval(()=>{ p.timeLeft--; if(p.timeLeft<=0){ p.active=false; clearInterval(interval); if(id==='x2coins') coinMultiplier=1; updateActivePowerups(); autoSave(); } updateActivePowerups(); }, 1000); updateActivePowerups(); updateStoreDisplay(); autoSave(); 
         };
         
         window.buyCosmetic = function(id) { 
@@ -4313,12 +4407,13 @@
                         body:'The crown is only awarded to event winners.' });
                 return;
             }
-            if (coinCount < c.price) return;
-            coinCount -= c.price; c.owned = true; updateCoinDisplay(); playSound(selectSound); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
+            const _cc = salePrice(c.price);
+            if (coinCount < _cc) return;
+            coinCount -= _cc; c.owned = true; updateCoinDisplay(); playSound(selectSound); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
         };
         
         window.equipItem = function(id) { 
-            let item = cosmetics.find(c=>c.id===id); if(!item||!item.owned) return; cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); item.equipped=true; updateLockerDisplay(); updatePreview(); playSound(selectSound); autoSave(); 
+            let item = cosmetics.find(c=>c.id===id); if(!item||!item.owned) return; cosmetics.forEach(c=>{ if(c.type===item.type && c.equipped) c.equipped=false; }); item.equipped=true; updateLockerDisplay(); updatePreview(); playSound(selectSound); checkAchievements(); autoSave();
         };
         
         // Game functions
@@ -5099,7 +5194,12 @@
         const _b_closeStoreBtn = document.getElementById('closeStoreBtn'); if (_b_closeStoreBtn) _b_closeStoreBtn.onclick = () => document.getElementById('storeModal').classList.remove('active');
         const _b_lockerBtn = document.getElementById('lockerBtn'); if (_b_lockerBtn) _b_lockerBtn.onclick = () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); };
         const _b_closeLockerBtn = document.getElementById('closeLockerBtn'); if (_b_closeLockerBtn) _b_closeLockerBtn.onclick = () => document.getElementById('lockerModal').classList.remove('active');
-        const _b_achievementsBtn = document.getElementById('achievementsBtn'); if (_b_achievementsBtn) _b_achievementsBtn.onclick = () => { 
+        const _b_achievementsBtn = document.getElementById('achievementsBtn'); if (_b_achievementsBtn) _b_achievementsBtn.onclick = () => {
+            // Re-evaluate before rendering. Conditions are met all over the
+            // place — equipping in the locker, levelling, buying coins — and
+            // only pipes and coin pickups used to run the checker, so the
+            // panel would sit there claiming you hadn't earned things you had.
+            checkAchievements();
             let g=document.getElementById('achievementsGrid');
             const mp = (typeof MP_ACHIEVEMENTS !== 'undefined') ? MP_ACHIEVEMENTS : [];
             const sectionHtml = (title, list) =>
@@ -6301,12 +6401,23 @@
         function renderPauseShop() {
             const el = document.getElementById('pauseShop');
             if (!el) return;
+            // Multiplayer keeps the same pause menu, minus the shop — buying a
+            // shield mid-match is not a fair way to win one.
+            const shopOpen = !mpMatchActive;
+            const title = document.getElementById('pauseShopTitle');
+            const note  = document.getElementById('pauseNoShop');
+            if (title) title.style.display = shopOpen ? '' : 'none';
+            if (note)  note.style.display  = shopOpen ? 'none' : '';
+            el.style.display = shopOpen ? '' : 'none';
+            if (!shopOpen) { el.innerHTML = ''; return; }
+
             el.innerHTML = powerups.map(p => {
-                const cannot = p.active || coinCount < p.price;
+                const cost = salePrice(p.price);
+                const cannot = p.active || coinCount < cost;
                 return `<div class="ps-item ${cannot ? 'ps-off' : ''}" data-pu="${p.id}">
                     <div class="ps-ico">${p.active ? '✓' : '⚡'}</div>
                     <div class="ps-name">${mpEsc(p.name)}</div>
-                    <div class="ps-cost">${p.active ? 'Active' : formatCoins(p.price)}</div>
+                    <div class="ps-cost">${p.active ? 'Active' : formatCoins(cost)}</div>
                 </div>`;
             }).join('');
         }
@@ -6397,6 +6508,101 @@
         // Applied wherever coins or XP are granted
         function eventCoinMult() { return activeEvent?.coinMultiplier || 1; }
         function eventXpMult()   { return activeEvent?.xpMultiplier   || 1; }
+
+        // ═══════════ OWNER SPECTACLE ═══════════
+        // Boosts ride the event system above rather than a parallel set of
+        // multipliers, so the banner, the timer and the expiry all come free.
+        function startOwnerEvent({ name, xpMultiplier, coinMultiplier, minutes }) {
+            activeEvent = {
+                active: true, type: 'boost', prize: false, name,
+                xpMultiplier, coinMultiplier,
+                endsAt: Date.now() + minutes * 60000
+            };
+            renderEventBanner();
+            updateEventTimer();
+            updateEventStatus();
+        }
+
+        // Shop sale. Kept as a fraction so the label and the charge can never
+        // disagree — everything prices through salePrice().
+        // Covers the coin shop only. The player-menu unlock prices through
+        // PlayFab's catalog server-side, so discounting it here would just
+        // advertise a number PlayFab will refuse to charge.
+        let shopSale = 0;
+        function salePrice(p) {
+            if (p == null) return p;
+            return shopSale > 0 ? Math.max(1, Math.round(p * (1 - shopSale))) : p;
+        }
+        function setShopSale(frac) {
+            shopSale = frac;
+            updateStoreDisplay();
+            if (typeof updateUnlocksStore === 'function') updateUnlocksStore();
+            updateEventStatus();
+        }
+
+        function updateEventStatus() {
+            const el = document.getElementById('eventStatus');
+            if (!el) return;
+            const bits = [];
+            if (activeEvent?.endsAt) {
+                const mins = Math.max(0, Math.ceil((activeEvent.endsAt - Date.now()) / 60000));
+                bits.push(`${activeEvent.name || 'Event'} · ${mins}m left`);
+            }
+            if (shopSale > 0) bits.push(`Shop ${Math.round(shopSale * 100)}% off`);
+            el.textContent = bits.join('  ·  ');
+        }
+        setInterval(updateEventStatus, 30000);
+
+        // ---- DISCO ----
+        let discoOn = false;
+        function setDisco(on, fromNetwork) {
+            discoOn = !!on;
+            document.body.classList.toggle('disco', discoOn);
+            if (!fromNetwork && mpCurrentRoom && photonClient) {
+                try {
+                    const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                    photonClient.raiseEvent(MP_EV.OWNER_EFFECT,
+                        { effect: discoOn ? 'discoOn' : 'discoOff' }, { receivers: RC.All });
+                } catch (e) {}
+            }
+        }
+
+        // ---- NUKE ----
+        // nuke.png falls in, nexp.gif goes off, everyone dies.
+        function playNukeSequence() {
+            const wrap = document.createElement('div');
+            wrap.className = 'nuke-overlay';
+            // The art is optional — if nuke.png/nexp.gif aren't uploaded yet the
+            // sequence still runs, it just detonates without a picture.
+            wrap.innerHTML = '<img class="nuke-bomb" src="/img/nuke.png" alt="" onerror="this.style.visibility=\'hidden\'">';
+            document.body.appendChild(wrap);
+            try { boomSound.currentTime = 0; boomSound.play(); } catch (e) {}
+            setTimeout(() => {
+                wrap.innerHTML = '<img class="nuke-blast" src="/img/nexp.gif" alt="" onerror="this.style.visibility=\'hidden\'">';
+                document.body.classList.add('nuke-flash');
+                if (gameRunning && !gameOver) {
+                    gameOver = true;
+                    playSound(deathSound);
+                    window.dispatchEvent(new Event('crix:death'));
+                    if (typeof mpReportDeath === 'function') mpReportDeath();
+                    handleDeath();
+                }
+            }, 1100);
+            setTimeout(() => { wrap.remove(); document.body.classList.remove('nuke-flash'); }, 3200);
+        }
+
+        function nukeAllServers() {
+            if (mpCurrentRoom && photonClient) {
+                try {
+                    const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                    photonClient.raiseEvent(MP_EV.OWNER_EFFECT, { effect: 'nuke' }, { receivers: RC.All });
+                } catch (e) {}
+                ownerLog('☢️ Nuked the lobby');
+            } else {
+                ownerLog('☢️ Nuked (no lobby — local only)');
+            }
+            playNukeSequence();
+        }
 
         // ═══════════ DAILY REWARDS ═══════════
         // Deliberately NOT a wheel, crate or any other randomised reward.
@@ -7286,8 +7492,9 @@
         // player can't grant themselves OWNER by editing anything client-side.
         const ROLE_TAGS = {
             OWNER:  { label: 'OWNER',  colour: '#FF0000', order: 1 },
-            MOD:    { label: 'MOD',    colour: '#00ffd5', order: 2 },
-            FRIEND: { label: 'FRIEND', colour: '#27A9F5', order: 3 }
+            DEV:    { label: 'DEV',    colour: '#C9A0FF', order: 2 },
+            MOD:    { label: 'MOD',    colour: '#00ffd5', order: 3 },
+            FRIEND: { label: 'FRIEND', colour: '#27A9F5', order: 4 }
         };
         let myRoles = [];
 
@@ -7944,6 +8151,20 @@
             document.getElementById('legalPrivacy').style.display = which === 'privacy' ? '' : 'none';
         }
         document.getElementById('legalBtn')?.addEventListener('click', () => openLegal('terms'));
+
+        // ---- CREATOR STUDIO ----
+        // The recording tools used to live inside the staff menu, which meant
+        // you needed OWNER or MOD to record anything. They change nothing but
+        // what is on screen, so they get their own door.
+        document.getElementById('creatorBtn')?.addEventListener('click', () => {
+            document.getElementById('creatorModal')?.classList.add('active');
+            playSfx('whoosh', .4);
+        });
+        document.getElementById('closeCreatorBtn')?.addEventListener('click', () =>
+            document.getElementById('creatorModal')?.classList.remove('active'));
+        document.getElementById('creatorModal')?.addEventListener('click', e => {
+            if (e.target.id === 'creatorModal') e.target.classList.remove('active');
+        });
         document.getElementById('closeLegalBtn')?.addEventListener('click', () => closeModal('legalModal'));
         document.querySelectorAll('.legal-tab').forEach(t =>
             t.addEventListener('click', () => { switchLegal(t.dataset.lt); }));
@@ -8307,7 +8528,7 @@
             // Staff tools work anywhere — that is the point of them.
             const staff = document.getElementById('ingameStaffBtn');
             if (staff) staff.style.display =
-                (myRoles.includes('OWNER') || myRoles.includes('MOD')) ? '' : 'none';
+                (myRoles.includes('OWNER') || myRoles.includes('DEV') || myRoles.includes('MOD')) ? '' : 'none';
 
             // Sandbox is single player only. Spawning coins or flying mid-match
             // would just be cheating in front of other people.
@@ -8322,11 +8543,11 @@
         function updateOwnerButton() {
             const btn = document.getElementById('ownerBtn');
             if (!btn) return;
-            const staff = myRoles.includes('OWNER') || myRoles.includes('MOD');
+            const staff = myRoles.includes('OWNER') || myRoles.includes('DEV') || myRoles.includes('MOD');
             btn.style.display = staff ? '' : 'none';
             // Update only the label, or we'd wipe the icon markup
             const lbl = btn.querySelector('label');
-            if (lbl) lbl.textContent = myRoles.includes('OWNER') ? 'Owner' : 'Mod';
+            if (lbl) lbl.textContent = myRoles.includes('OWNER') ? 'Owner' : myRoles.includes('DEV') ? 'Dev' : 'Mod';
         }
 
         function ownerLog(msg, ok = true) {
@@ -8341,7 +8562,7 @@
 
         // Sections a MOD should never see. Moderation is about handling
         // players, not having powers over the game itself.
-        const OWNER_ONLY_SECTIONS = ['🎥 CAPTURE', '🎬 EFFECTS', '💰 ECONOMY', '⚙️ LOBBY'];
+        const OWNER_ONLY_SECTIONS = ['🎬 EFFECTS', '💰 ECONOMY', '⚙️ LOBBY'];
 
         function applyStaffScope() {
             const isOwner = myRoles.includes('OWNER');
@@ -8492,6 +8713,35 @@
                         updateLockerDisplay(); autoSave();
                         ownerLog('Unlocked all cosmetics');
                         break;
+
+                    case 'tripleXp':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        // Rides the existing event system rather than a second
+                        // set of multipliers — the banner and timer come free.
+                        startOwnerEvent({
+                            name: '3× XP & COINS',
+                            xpMultiplier: 3, coinMultiplier: 3,
+                            minutes: 5
+                        });
+                        ownerLog('3× XP and coins for 5 minutes');
+                        break;
+
+                    case 'halfOff':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        setShopSale(shopSale > 0 ? 0 : 0.5);
+                        ownerLog(shopSale > 0 ? 'Shop is 50% off' : 'Sale ended');
+                        break;
+
+                    case 'disco':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        setDisco(!discoOn);
+                        ownerLog('Disco mode ' + (discoOn ? 'ON' : 'OFF'));
+                        break;
+
+                    case 'nuke':
+                        if (!isOwner) { ownerLog('Owner only', false); return; }
+                        nukeAllServers();
+                        break;
                 }
             } catch (e) {
                 ownerLog(e.message || 'Action failed', false);
@@ -8520,6 +8770,17 @@
                 case 'normalAll':
                     cheats.bigbird = false; updateCheatIndicators();
                     mpLobbyChatAppend(null, '🐦 Normal size restored', true);
+                    break;
+                case 'discoOn':
+                    setDisco(true, true);
+                    mpLobbyChatAppend(null, '🪩 Disco mode', true);
+                    break;
+                case 'discoOff':
+                    setDisco(false, true);
+                    break;
+                case 'nuke':
+                    playNukeSequence();
+                    mpLobbyChatAppend(null, '☢️ An owner nuked the server', true);
                     break;
                 case 'freezeAll':
                     window.__crixFrozen = true;
@@ -9428,7 +9689,7 @@
                 levelled = true;
             }
             saveLevel();
-            if (levelled) showLevelUp();
+            if (levelled) { showLevelUp(); checkAchievements(); }
             refreshSettingsUI();
         }
         function showLevelUp() {
@@ -9486,6 +9747,7 @@
         function topRole(roles) {
             if (!roles || !roles.length) return null;
             if (roles.includes('OWNER')) return 'OWNER';
+            if (roles.includes('DEV')) return 'DEV';
             if (roles.includes('MOD')) return 'MOD';
             return null;
         }
@@ -11751,12 +12013,12 @@
             const p = mpPlayers[actorNr];
             if (!p) return false;
             const r = p.roles || [];
-            return r.includes('OWNER') || r.includes('MOD');
+            return r.includes('OWNER') || r.includes('DEV') || r.includes('MOD');
         }
         function mpProtectedName(actorNr) {
             const p = mpPlayers[actorNr];
             const r = (p?.roles) || [];
-            return r.includes('OWNER') ? 'an owner' : 'a moderator';
+            return r.includes('OWNER') ? 'an owner' : r.includes('DEV') ? 'a developer' : 'a moderator';
         }
 
         function mpHasPerm(actorNr, perm) {
@@ -11802,7 +12064,14 @@
         function mpCheckAchievement(id, data) {
             const ach = MP_ACHIEVEMENTS.find(a => a.id === id);
             if (!ach || ach.unlocked) return;
-            if (id === 'mp_chat') { ach.progress = (ach.progress||0)+1; if (ach.progress < ach.target) return; }
+            if (id === 'mp_chat') {
+                ach.progress = (ach.progress||0)+1;
+                // Part-way progress has to persist too. Only the unlock was
+                // ever written, so the count reset on every reload and the
+                // target was unreachable unless you did it all in one sitting.
+                try { localStorage.setItem('crix_mp_prog_' + id, String(ach.progress)); } catch(e) {}
+                if (ach.progress < ach.target) return;
+            }
             ach.unlocked = true;
             achSound.play();
             const notif = document.createElement('div');
@@ -11813,7 +12082,11 @@
             localStorage.setItem('crix_mp_ach_' + id, '1');
         }
         // Load saved MP achievements
-        MP_ACHIEVEMENTS.forEach(a => { if (localStorage.getItem('crix_mp_ach_' + a.id)) a.unlocked = true; });
+        MP_ACHIEVEMENTS.forEach(a => {
+            if (localStorage.getItem('crix_mp_ach_' + a.id)) a.unlocked = true;
+            const p = parseInt(localStorage.getItem('crix_mp_prog_' + a.id), 10);
+            if (Number.isFinite(p)) a.progress = Math.max(a.progress || 0, p);
+        });
 
         // ----- DOM EVENT WIRING -----
         document.getElementById('multiplayerBtn')?.addEventListener('click', async () => {
