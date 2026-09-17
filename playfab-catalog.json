@@ -1,0 +1,190 @@
+{
+  "CatalogVersion": "Main",
+  "Catalog": [
+
+    {
+      "ItemId": "crown",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Champion's Crown",
+      "Description": "Won in an event. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "event"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"image\":\"/img/crown.png\"}"
+    },
+    {
+      "ItemId": "bucket",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Bucket Hat",
+      "Description": "A bucket hat.",
+      "VirtualCurrencyPrices": { "CN": 600 },
+      "Tags": ["cosmetic", "hat"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"hat\",\"image\":\"/img/bucket-hat.avif\"}"
+    },
+    {
+      "ItemId": "cap",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Baseball Cap",
+      "Description": "A baseball cap.",
+      "VirtualCurrencyPrices": { "CN": 500 },
+      "Tags": ["cosmetic", "hat"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"hat\",\"image\":\"/img/cap.png\"}"
+    },
+
+    {
+      "ItemId": "trail_rainbow",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Rainbow Trail",
+      "Description": "Six colours streaming out behind you.",
+      "VirtualCurrencyPrices": { "CN": 800 },
+      "Tags": ["cosmetic", "trail"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"trail\",\"colours\":[\"#FF0040\",\"#FF8A00\",\"#FFE800\",\"#00E05A\",\"#00B7FF\",\"#9B4DFF\"]}"
+    },
+    {
+      "ItemId": "trail_ember",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Ember Trail",
+      "Description": "Burning embers in your wake.",
+      "VirtualCurrencyPrices": { "CN": 500 },
+      "Tags": ["cosmetic", "trail"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"trail\",\"colours\":[\"#FFE08A\",\"#FF9A3C\",\"#FF4655\"]}"
+    },
+    {
+      "ItemId": "trail_frost",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Frost Trail",
+      "Description": "A cold blue streak.",
+      "VirtualCurrencyPrices": { "CN": 500 },
+      "Tags": ["cosmetic", "trail"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"trail\",\"colours\":[\"#FFFFFF\",\"#9BE7FF\",\"#27A9F5\"]}"
+    },
+    {
+      "ItemId": "trail_toxic",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Toxic Trail",
+      "Description": "Acid green, do not touch.",
+      "VirtualCurrencyPrices": { "CN": 600 },
+      "Tags": ["cosmetic", "trail"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"trail\",\"colours\":[\"#D4FF3C\",\"#00CC7A\",\"#0B6B3A\"]}"
+    },
+    {
+      "ItemId": "trail_void",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Void Trail",
+      "Description": "Deep purple pulled out of nowhere.",
+      "VirtualCurrencyPrices": { "CN": 900 },
+      "Tags": ["cosmetic", "trail"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"slot\":\"trail\",\"colours\":[\"#E0C3FF\",\"#9B4DFF\",\"#2A0A4A\"]}"
+    },
+
+    {
+      "ItemId": "x2coins",
+      "ItemClass": "powerup",
+      "CatalogVersion": "Main",
+      "DisplayName": "2x Coins",
+      "Description": "Double coins for 30 seconds.",
+      "VirtualCurrencyPrices": { "CN": 1200 },
+      "Tags": ["powerup", "timed"],
+      "IsStackable": true,
+      "IsTradable": false,
+      "Consumable": { "UsagePeriod": 30, "UsagePeriodGroup": "powerup" },
+      "CustomData": "{\"duration\":30}"
+    },
+    {
+      "ItemId": "shield",
+      "ItemClass": "powerup",
+      "CatalogVersion": "Main",
+      "DisplayName": "Shield",
+      "Description": "Invincible for 20 seconds.",
+      "VirtualCurrencyPrices": { "CN": 900 },
+      "Tags": ["powerup", "timed"],
+      "IsStackable": true,
+      "IsTradable": false,
+      "Consumable": { "UsagePeriod": 20, "UsagePeriodGroup": "powerup" },
+      "CustomData": "{\"duration\":20}"
+    },
+    {
+      "ItemId": "magnet",
+      "ItemClass": "powerup",
+      "CatalogVersion": "Main",
+      "DisplayName": "Magnet",
+      "Description": "Pulls coins towards you for 15 seconds.",
+      "VirtualCurrencyPrices": { "CN": 750 },
+      "Tags": ["powerup", "timed"],
+      "IsStackable": true,
+      "IsTradable": false,
+      "Consumable": { "UsagePeriod": 15, "UsagePeriodGroup": "powerup" },
+      "CustomData": "{\"duration\":15}"
+    },
+
+    {
+      "ItemId": "player_menu",
+      "ItemClass": "unlock",
+      "CatalogVersion": "Main",
+      "DisplayName": "Player Menu",
+      "Description": "Single-player sandbox: godmode, big and tiny bird, slow motion, coin rain, low gravity and sandbox coins. Locked during multiplayer so matches stay fair.",
+      "VirtualCurrencyPrices": { "CN": 100000000 },
+      "Tags": ["unlock", "sandbox"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"permanent\":true}"
+    },
+
+    {
+      "ItemId": "role_owner",
+      "ItemClass": "role",
+      "CatalogVersion": "Main",
+      "DisplayName": "Owner",
+      "Description": "Staff role. Granted from Game Manager only — this item has no price, so PurchaseItem can never award it.",
+      "Tags": ["role", "staff", "grant-only"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"role\":\"OWNER\"}"
+    },
+    {
+      "ItemId": "role_dev",
+      "ItemClass": "role",
+      "CatalogVersion": "Main",
+      "DisplayName": "Developer",
+      "Description": "Staff role. Granted from Game Manager only — this item has no price, so PurchaseItem can never award it.",
+      "Tags": ["role", "staff", "grant-only"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"role\":\"DEV\"}"
+    },
+    {
+      "ItemId": "role_mod",
+      "ItemClass": "role",
+      "CatalogVersion": "Main",
+      "DisplayName": "Moderator",
+      "Description": "Staff role. Granted from Game Manager only — this item has no price, so PurchaseItem can never award it.",
+      "Tags": ["role", "staff", "grant-only"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "CustomData": "{\"role\":\"MOD\"}"
+    }
+  ]
+}

@@ -2243,6 +2243,49 @@
         }
         .locker-empty { font-size: 12px; padding: 12px; opacity: .7; }
 
+        /* ---- STORE SECTIONS ----
+           The cosmetics tab used to be one flat grid with hats and trails
+           jumbled together, which only got worse as items were added. */
+        .store-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 10px;
+        }
+        .store-card.owned { border-color: rgba(0,204,122,.5); border-bottom-color: rgba(0,120,70,.7); }
+        .store-section { margin-bottom: 18px; }
+        .store-section:last-child { margin-bottom: 0; }
+        .store-section-head {
+            display: flex; align-items: baseline; gap: 8px;
+            padding: 0 2px 7px;
+            border-bottom: 2px solid rgba(255,107,53,.25);
+            margin-bottom: 11px;
+        }
+        .store-section-title { font-size: 12px; font-weight: 700; letter-spacing: .6px; }
+        .store-section-sub { font-size: 10px; opacity: .6; margin-left: auto; }
+        .store-section-note { font-size: 10px; opacity: .65; }
+        /* The blanket ".modal-content div" colour rule is (0,1,1), so a bare
+           class here would lose to it in both themes. */
+        .modal-content .store-section-title { color: var(--orange); }
+        .modal-content .store-section-sub,
+        .modal-content .store-section-note { color: var(--dim); }
+        html.theme-light .store-section-title { color: #C04A18 !important; }
+        html.theme-light .store-section-sub,
+        html.theme-light .store-section-note { color: #5F5F6B !important; }
+        html.theme-light .store-section-head { border-bottom-color: rgba(192,74,24,.28); }
+
+        /* ---- TRAIL SWATCH ----
+           A trail has no sprite to show, so the card draws the real thing
+           with the same renderer the game uses. */
+        .cos-swatch {
+            width: 100%; max-width: 104px; height: 46px;
+            display: block; margin: 0 auto 6px;
+            border-radius: 10px;
+            /* Deliberately the same in both themes — a pale trail has to stay
+               readable, and this is what the sky looks like in game. */
+            background: radial-gradient(130% 150% at 25% 15%, #23304D, #0C0C15);
+        }
+        .locker-card .cos-swatch { height: 40px; }
+
         /* ---- ACHIEVEMENT ROWS ---- */
         .ach-section {
             font-size: 10px; color: var(--orange); text-transform: uppercase;
@@ -2702,7 +2745,7 @@
         <div class="icon-bar">
             <button class="icon-btn" id="dailyBtn"       title="Daily rewards"><span>🎁</span><label>Daily</label><span class="icon-dot" id="dailyDot" style="display:none;"></span></button>
             <button class="icon-btn" id="storeBtn"       title="Store"><span>🛒</span><label>Store</label></button>
-            <button class="icon-btn" id="lockerBtn"      title="Locker"><span>👕</span><label>Locker</label></button>
+            <button class="icon-btn" id="lockerBtn"      title="Locker"><span>🧢</span><label>Locker</label></button>
             <button class="icon-btn" id="notifBtn"       title="Notifications"><span>🔔</span><label>Alerts</label><i id="notifBadge" class="notif-badge" style="display:none;">0</i></button>
             <button class="icon-btn" id="playerMenuBtn"  title="Player menu"><span>🎮</span><label>Sandbox</label></button>
             <button class="icon-btn" id="settingsBtn"    title="Settings"><span>⚙️</span><label>Settings</label></button>
@@ -2735,11 +2778,11 @@
             </div>
             <div style="display:flex;gap:8px;justify-content:center;margin-bottom:15px;">
                 <button class="store-tab active" id="tabPowerupsStore">⚡ POWER-UPS</button>
-                <button class="store-tab" id="tabCosmeticsStore">👕 COSMETICS</button>
+                <button class="store-tab" id="tabCosmeticsStore">🎨 COSMETICS</button>
                 <button class="store-tab" id="tabUnlocksStore">🔓 UNLOCKS</button>
             </div>
             <div id="storePowerups"><div class="store-grid" id="powerupsStoreGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;"></div></div>
-            <div id="storeCosmetics" style="display:none;"><div class="store-grid" id="cosmeticsStoreGrid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;"></div></div>
+            <div id="storeCosmetics" style="display:none;"><div id="cosmeticsStoreGrid"></div></div>
             <div id="storeUnlocks" style="display:none;"><div id="unlocksStoreGrid"></div></div>
         </div>
     </div>
@@ -2748,7 +2791,7 @@
     <div class="locker-modal" id="lockerModal">
         <div class="modal-content">
             <div class="modal-header">
-                <div class="modal-title">👕 LOCKER</div>
+                <div class="modal-title">🧢 LOCKER</div>
                 <button class="modal-close" id="closeLockerBtn">✕</button>
             </div>
             <div class="locker-balance" id="lockerBalance" style="text-align:center;color:gold;margin:10px 0;font-size:16px;">🪙 0</div>
@@ -3295,7 +3338,7 @@
                 <div class="tut-art">🪙</div>
                 <h3>Collect coins</h3>
                 <p>Coins float between the pipes. Spend them in the <b>Store</b> on hats,
-                   shirts and power-ups. Some cosmetics only unlock at higher levels.</p>
+                   trails and power-ups. Some cosmetics only unlock at higher levels.</p>
             </div>
             <div class="tut-page" data-page="2" style="display:none;">
                 <div class="tut-art">🌐</div>
@@ -4143,7 +4186,7 @@
             { id: 'coins10k',  name: 'RICH BIRD',      desc: 'Collect 10,000 coins total',     icon: '💎', unlocked: false, progress: 0, target: 10000 },
             { id: 'games25',   name: 'REGULAR',        desc: 'Play 25 games',                  icon: '🕹️', unlocked: false, progress: 0, target: 25 },
             { id: 'games100',  name: 'DEDICATED',      desc: 'Play 100 games',                 icon: '🏅', unlocked: false, progress: 0, target: 100 },
-            { id: 'dripped',   name: 'DRIPPED OUT',    desc: 'Equip a hat and a shirt at once', icon: '🕶️', unlocked: false, progress: 0, target: 1 },
+            { id: 'dripped',   name: 'DRIPPED OUT',    desc: 'Equip a hat and a trail at once', icon: '🕶️', unlocked: false, progress: 0, target: 1 },
             { id: 'lvl10',     name: 'LEVEL 10',       desc: 'Reach account level 10',         icon: '⭐', unlocked: false, progress: 0, target: 10 },
             { id: 'lvl25',     name: 'LEVEL 25',       desc: 'Reach account level 25',         icon: '🌟', unlocked: false, progress: 0, target: 25 },
             { id: 'lvlmax',    name: 'MAXED OUT',      desc: 'Reach account level 50',         icon: '👑', unlocked: false, progress: 0, target: 50 }
@@ -4437,30 +4480,72 @@
         function updateCheatIndicators() { let html = ''; if (cheats.godmode) html += '<div class="cheat-badge godmode">⚡ GODMODE</div>'; if (cheats.coinlord) html += '<div class="cheat-badge coinlord">💰 COIN LORD</div>'; if (cheats.slowmo) html += '<div class="cheat-badge slowmo">⏱️ SLOW MO</div>'; if (cheats.bigbird) html += '<div class="cheat-badge bigbird">🦅 BIG BIRD</div>'; document.getElementById('cheatIndicators').innerHTML = html; }
         function updateActivePowerups() { let active = powerups.filter(p => p.active); let html = ''; active.forEach(p => { html += `<div class="powerup-badge">${p.name} <span style="background:#FF4655;border-radius:20px;padding:1px 5px;">${p.timeLeft}s</span></div>`; }); document.getElementById('activePowerups').innerHTML = html; }
         
+        // An item bought from the shop never shows a bare number now that a
+        // sale can be running — the old price is struck through beside it.
+        function priceTag(p) {
+            return `🪙 ${salePrice(p)}${shopSale > 0 ? ` <s style="opacity:.55;font-size:10px;">${p}</s>` : ''}`;
+        }
+
+        function isExclusive(c) { return !!c.exclusive || c.price == null; }
+
+        // Trails have no sprite, so the card draws the real trail with the
+        // same renderer the game uses — a colour chip would have been a lie
+        // about thickness and fade.
+        function cosmeticArt(c, h) {
+            return c.type === 'trail'
+                ? `<canvas class="cos-swatch" data-trail="${c.id}" width="208" height="${h * 2}"></canvas>`
+                : `<img src="${c.image}" onerror="this.style.display='none'">`;
+        }
+
+        function storeSection(title, note, items, cardFn) {
+            if (!items.length) return '';
+            const owned = items.filter(c => c.owned).length;
+            return `<div class="store-section">
+                <div class="store-section-head">
+                    <div class="store-section-title">${title}</div>
+                    <div class="store-section-note">${note}</div>
+                    <div class="store-section-sub">${owned}/${items.length} owned</div>
+                </div>
+                <div class="store-grid">${items.map(cardFn).join('')}</div>
+            </div>`;
+        }
+
         function updateStoreDisplay() {
             let phtml = '';
             powerups.forEach(p => {
                 phtml += `<div class="store-card">
                     <div class="store-card-name">⚡ ${p.name}</div>
                     <div class="store-card-desc">${p.desc}</div>
-                    <div class="store-card-price">🪙 ${salePrice(p.price)}${shopSale>0?` <s style="opacity:.55;font-size:10px;">${p.price}</s>`:''}</div>
+                    <div class="store-card-price">${priceTag(p.price)}</div>
                     <button class="store-buy" onclick="buyPowerup('${p.id}')" ${p.active?'disabled':''}>${p.active?'ACTIVE':'BUY'}</button>
                 </div>`;
             });
             document.getElementById('powerupsStoreGrid').innerHTML = phtml;
 
-            let chtml = ''; cosmetics.forEach(c => {
-                // Exclusive items never appear in the shop unless owned —
-                // showing something permanently unbuyable is just a tease.
-                const exclusive = c.exclusive || c.price == null;
-                if (exclusive && !c.owned) return;
-                chtml += `<div class="store-card">
-                    <img src="${c.image}" onerror="this.style.display='none'">
+            // Hats and trails used to sit in one undivided grid, so the shop
+            // got harder to read with every item added.
+            const card = c => {
+                const ex = isExclusive(c);
+                return `<div class="store-card${c.owned ? ' owned' : ''}">
+                    ${cosmeticArt(c, 46)}
                     <div class="store-card-name">${c.name}</div>
-                    <div class="store-card-price${exclusive ? ' exclusive' : ''}">${exclusive ? '👑 EVENT REWARD' : `🪙 ${salePrice(c.price)}${shopSale>0?` <s style="opacity:.55;font-size:10px;">${c.price}</s>`:''}`}</div>
-                    <button class="store-buy" onclick="buyCosmetic('${c.id}')" ${c.owned||exclusive?'disabled':''}>${c.owned?'OWNED':'BUY'}</button>
-                </div>`; });
-            document.getElementById('cosmeticsStoreGrid').innerHTML = chtml;
+                    <div class="store-card-price${ex ? ' exclusive' : ''}">${ex ? '👑 EVENT REWARD' : priceTag(c.price)}</div>
+                    <button class="store-buy" onclick="buyCosmetic('${c.id}')" ${c.owned || ex ? 'disabled' : ''}>${c.owned ? 'OWNED' : 'BUY'}</button>
+                </div>`;
+            };
+
+            // Exclusives are hidden until owned — showing something
+            // permanently unbuyable is just a tease — and then they get their
+            // own shelf rather than sitting among things you can buy.
+            const buyable = t => cosmetics.filter(c => c.type === t && !isExclusive(c));
+            const trophies = cosmetics.filter(c => isExclusive(c) && c.owned);
+
+            document.getElementById('cosmeticsStoreGrid').innerHTML =
+                storeSection('🧢 HATS',   'Worn on the head',              buyable('hat'),   card) +
+                storeSection('✨ TRAILS', 'Streams out behind you in flight', buyable('trail'), card) +
+                storeSection('👑 EVENT REWARDS', 'Awarded, never sold',    trophies,         card);
+
+            paintAllSwatches();
         }
         
         function updateUnlocksStore() {
@@ -4488,7 +4573,7 @@
 
         function updateLockerDisplay() {
             const card = item => `<div class="locker-card${item.equipped?' equipped':''}" onclick="equipItem('${item.id}')">
-                <img src="${item.image}" onerror="this.style.display='none'">
+                ${cosmeticArt(item, 40)}
                 <div class="locker-card-name">${item.name}</div>
                 ${item.equipped ? '<div class="locker-tick">✓</div>' : ''}
             </div>`;
@@ -4497,6 +4582,11 @@
             document.getElementById('lockerHats').innerHTML = hats || '<div class="locker-empty">No hats owned yet</div>';
             document.getElementById('lockerShirts').innerHTML = shirts || '<div class="locker-empty">No trails owned yet</div>';
             document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`;
+            // The preview used to keep whatever it was drawn with at load, so
+            // a cloud save that arrived afterwards left it showing the wrong
+            // drip until something was equipped by hand.
+            updatePreview();
+            paintAllSwatches();
         }
         
         function updatePreview() { 
@@ -4809,6 +4899,66 @@
             context.restore();
         }
 
+        // ---- TRAIL PREVIEWS ----
+        // A trail cannot be shown with a sprite, so the shop and the locker
+        // draw one through drawTrail — the same code the game runs — along a
+        // gentle S so the colour order and the fade are both visible.
+        function paintTrailSwatch(cv, colours, phase) {
+            if (!cv || !colours || !colours.length) return;
+            const g = cv.getContext('2d');
+            if (!g) return;
+            const w = cv.width, h = cv.height;
+            g.clearRect(0, 0, w, h);
+
+            const size = h * 0.5;
+            const tailX = size * 0.45, headX = w - size * 0.5;
+            const pts = [];
+            for (let i = 0; i < TRAIL_LEN; i++) {
+                const t = i / (TRAIL_LEN - 1);          // 0 tail -> 1 head
+                pts.push(tailX + (headX - tailX) * t,
+                         h / 2 + Math.sin(phase + t * 4.2) * h * 0.17 * (0.35 + t * 0.65));
+            }
+            drawTrail(g, pts, colours, size);
+
+            // A bright head instead of the bird sprite: bird.png carries an
+            // opaque box that cut a hard rectangle out of the swatch.
+            const hx = pts[pts.length - 2], hy = pts[pts.length - 1];
+            g.save();
+            g.fillStyle = colours[0];
+            g.beginPath(); g.arc(hx, hy, size * 0.3, 0, Math.PI * 2); g.fill();
+            g.fillStyle = 'rgba(255,255,255,.85)';
+            g.beginPath(); g.arc(hx, hy, size * 0.14, 0, Math.PI * 2); g.fill();
+            g.restore();
+        }
+
+        // One timer drives every visible swatch. A canvas inside a closed
+        // modal has no client rects, so a closed modal costs nothing and the
+        // timer stops itself rather than ticking for the whole session.
+        // (offsetParent is not the test to use here — it is null for anything
+        // inside a position:fixed ancestor, which every modal is.)
+        let _swatchTimer = null, _swatchPhase = 0;
+        function paintAllSwatches() {
+            document.querySelectorAll('canvas.cos-swatch[data-trail]').forEach(cv => {
+                if (!cv.getClientRects().length) return;   // hidden tab or modal
+                const c = trailById(cv.dataset.trail);
+                if (c) paintTrailSwatch(cv, c.colours, _swatchPhase);
+            });
+            // Whether to keep ticking is decided by the open modal rather than
+            // by what happened to be visible on this pass — the store opens on
+            // the power-ups tab, so the trails are hidden at that moment and a
+            // "did I paint anything" test would stop before the user ever got
+            // to them.
+            const want = !!document.querySelector('.store-modal.active, .locker-modal.active');
+            if (want && !_swatchTimer) {
+                // 20fps is more than enough for a 46px swatch and leaves the
+                // frame budget for the game alone.
+                _swatchTimer = setInterval(() => { _swatchPhase += 0.22; paintAllSwatches(); }, 50);
+            } else if (!want && _swatchTimer) {
+                clearInterval(_swatchTimer);
+                _swatchTimer = null;
+            }
+        }
+
         function drawHat(context, img, birdSize) {
             if (!img || !img.complete || !img.naturalWidth) return;
             const ratio = img.naturalWidth / img.naturalHeight;
@@ -4817,14 +4967,6 @@
             // Overlap the head by about a fifth of the hat's height
             const y = -birdSize * 0.42 - h * 0.55;
             context.drawImage(img, -w / 2, y, w, h);
-        }
-
-        function drawShirt(context, img, birdSize) {
-            if (!img || !img.complete || !img.naturalWidth) return;
-            const ratio = img.naturalWidth / img.naturalHeight;
-            const w = birdSize * 0.92;
-            const h = w / ratio;
-            context.drawImage(img, -w / 2, -h * 0.18, w, h);
         }
 
         // A pipe with a lit edge, a shaded edge and a rim, so it reads as a
@@ -5384,9 +5526,9 @@
             const saved = localStorage.getItem('crix_music');
             musicMuted = saved === '0';
         } catch(e) {}
-        const _b_storeBtn = document.getElementById('storeBtn'); if (_b_storeBtn) _b_storeBtn.onclick = () => { updateStoreDisplay(); document.getElementById('storeModal').classList.add('active'); };
+        const _b_storeBtn = document.getElementById('storeBtn'); if (_b_storeBtn) _b_storeBtn.onclick = () => { document.getElementById('storeModal').classList.add('active'); updateStoreDisplay(); };
         const _b_closeStoreBtn = document.getElementById('closeStoreBtn'); if (_b_closeStoreBtn) _b_closeStoreBtn.onclick = () => document.getElementById('storeModal').classList.remove('active');
-        const _b_lockerBtn = document.getElementById('lockerBtn'); if (_b_lockerBtn) _b_lockerBtn.onclick = () => { updateLockerDisplay(); document.getElementById('lockerModal').classList.add('active'); };
+        const _b_lockerBtn = document.getElementById('lockerBtn'); if (_b_lockerBtn) _b_lockerBtn.onclick = () => { document.getElementById('lockerModal').classList.add('active'); updateLockerDisplay(); };
         const _b_closeLockerBtn = document.getElementById('closeLockerBtn'); if (_b_closeLockerBtn) _b_closeLockerBtn.onclick = () => document.getElementById('lockerModal').classList.remove('active');
         const _b_achievementsBtn = document.getElementById('achievementsBtn'); if (_b_achievementsBtn) _b_achievementsBtn.onclick = () => {
             // Re-evaluate before rendering. Conditions are met all over the
@@ -5442,6 +5584,7 @@
             document.getElementById('storeCosmetics').style.display = 'block'; 
             document.getElementById('storeUnlocks').style.display = 'none';
             document.getElementById('tabUnlocksStore')?.classList.remove('active');
+            paintAllSwatches();
         };
         
         // ===== AUTH SETUP (called after Firebase config is loaded) =====
@@ -8192,7 +8335,7 @@
                     'Daily rewards you can see a week ahead — no lootboxes, ever',
                     'Events with double coins or XP, and a crown only event winners get',
                     'Pause mid-run and buy power-ups without losing your game',
-                    'Everyone can finally see the hats and shirts you are wearing',
+                    'Everyone can finally see the hats and trails you are wearing',
                     'An icon by your name shows what you are playing on',
                     'Console support with proper button prompts',
                     'Dark and light mode',
@@ -11628,8 +11771,8 @@
                 }
                 fn(context, img, size);
             };
-            // Shirt first so the hat layers over it
-            drawWith(p.shirt, drawShirt);
+            // Trails are drawn in world space by the caller, so the only
+            // worn sprite left here is the hat.
             drawWith(p.hat, drawHat);
         }
 

@@ -153,8 +153,8 @@ const PlayFabManager = (() => {
 
         /* ---- ROLES ------------------------------------------------
            Roles are catalog items in the player's inventory (role_owner,
-           role_mod). Those items have NO price, so PurchaseItem can never
-           buy them — only a server-side grant can add them.
+           role_dev, role_mod). Those items have NO price, so PurchaseItem
+           can never buy them — only a server-side grant can add them.
            ReadOnlyData is still checked as a fallback so older accounts
            set up the previous way keep working.                        */
         _extractRoles(payload) {
@@ -166,7 +166,11 @@ const PlayFabManager = (() => {
             // Primary source: inventory items of class "role"
             const inv = payload.UserInventory || [];
             inv.forEach(item => {
+                // role_dev was missing here, so the game's DEV tag could
+                // never be granted from PlayFab even though the client knows
+                // about it.
                 if (item.ItemId === 'role_owner') found.push('OWNER');
+                else if (item.ItemId === 'role_dev') found.push('DEV');
                 else if (item.ItemId === 'role_mod') found.push('MOD');
             });
 
