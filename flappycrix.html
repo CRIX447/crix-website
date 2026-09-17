@@ -378,6 +378,7 @@
             .game-controls .game-btn { flex: 1; min-height: 52px; font-size: 16px; }
             /* 6 across, so SETTINGS stops orphaning onto its own row */
             .icon-bar { grid-template-columns: repeat(6, 1fr) !important; }
+            .icon-bar.has-staff { grid-template-columns: repeat(7, 1fr) !important; }
 
             /* The mascot fills the gap the menu leaves, same as on a phone */
             .menu-bird {
@@ -2377,6 +2378,10 @@
             .menu-footer  { bottom: calc(10px + env(safe-area-inset-bottom)); }
             .icon-bar     { bottom: calc(58px + env(safe-area-inset-bottom));
                             grid-template-columns: repeat(6, 1fr); gap: 5px; }
+            .icon-bar.has-staff { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+            .icon-bar.has-staff .icon-btn { padding: 9px 1px 7px; }
+            .icon-bar.has-staff .icon-btn span  { font-size: 17px; }
+            .icon-bar.has-staff .icon-btn label { font-size: 6px; letter-spacing: 0; }
             .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
             .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
                             display: flex; gap: 10px; }
@@ -2804,17 +2809,15 @@
 
             <!-- VIEW: BROWSE / HOME -->
             <div id="mpViewHome">
+                <!-- Create and Join code live in the .mm-row below, next to
+                     Quick Play and Ranked. This row used to repeat both. -->
                 <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
-                    <button class="mp-btn-primary" id="mpCreateRoomBtn">➕ CREATE</button>
-                    <button class="mp-btn-secondary" id="mpJoinByCodeBtn">🔑 JOIN CODE</button>
-                    <button class="mp-btn-secondary" id="mpEditProfileBtn" style="background:linear-gradient(135deg,#444,#222);">👤 PROFILE</button>
+                    <button class="mp-btn-secondary" id="mpEditProfileBtn" style="flex:1;background:linear-gradient(135deg,#444,#222);">👤 PROFILE</button>
                 </div>
                 <div id="onlineBar" class="online-bar" style="display:none;">
                     <span class="dot" style="background:#00CC7A"></span>
                     <span id="onlineBarText">—</span>
-                    <button class="set-mini-btn" id="onlineListBtn" style="margin-left:auto;">WHO'S ON</button>
                 </div>
-                <div id="onlineList" class="online-list" style="display:none;"></div>
 
                 <!-- Primary actions. Most people want to press one button and
                      play, not read a lobby list. -->
@@ -8007,6 +8010,11 @@
         }
 
         function backToMenu() {
+            // Belt and braces: whatever route got us here, the spectate bar
+            // does not belong on the main menu.
+            const _sb = document.getElementById('spectateBar');
+            if (_sb) _sb.style.display = 'none';
+            mpSpectating = false;
             // Order matters: leaving the lobby can reset game state, so do that
             // first and set the screen last, or the menu flips straight back
             // into a running game.
@@ -8705,6 +8713,10 @@
             if (!btn) return;
             const staff = myRoles.includes('OWNER') || myRoles.includes('DEV') || myRoles.includes('MOD');
             btn.style.display = staff ? '' : 'none';
+            // The grid is pinned to a fixed column count, so the seventh
+            // button wrapped onto a row of its own for staff. Tell the grid
+            // how many buttons it is actually laying out.
+            document.querySelector('.icon-bar')?.classList.toggle('has-staff', staff);
             // Update only the label, or we'd wipe the icon markup
             const lbl = btn.querySelector('label');
             if (lbl) lbl.textContent = myRoles.includes('OWNER') ? 'Owner' : myRoles.includes('DEV') ? 'Dev' : 'Mod';
@@ -9368,51 +9380,10 @@
             const txt = document.getElementById('onlineBarText');
             if (bar && txt) {
                 bar.style.display = total ? 'flex' : 'none';
-                txt.innerHTML = `<strong style="color:#fff">${total}</strong> online` +
-                    (inLobby ? ` · ${inLobby} in a lobby` : '') +
-                    (joinable ? ` · <span style="color:#00CC7A">${joinable} joinable</span>` : '');
+                // Just the headcount — the roster of who is on was more
+                // information than this bar needed to carry.
+                txt.innerHTML = `<strong style="color:#fff">${total}</strong> online`;
             }
-            if (document.getElementById('onlineList')?.style.display !== 'none') renderOnlineList();
-        }
-
-        function renderOnlineList() {
-            const el = document.getElementById('onlineList');
-            if (!el) return;
-            const players = _onlineData.players.filter(p => p.playFabId !== PlayFabManager?.playFabId);
-            if (!players.length) {
-                el.innerHTML = '<div class="mp-empty-state">Nobody else is online right now.</div>';
-                return;
-            }
-            // Joinable first, then by level
-            players.sort((a,b) => (b.joinable - a.joinable) || (b.level - a.level));
-            el.innerHTML = players.map(p => {
-                const initial = mpEsc((p.name||'?').charAt(0).toUpperCase());
-                const av = p.photo
-                    ? `<img class="online-av" src="${mpEsc(p.photo)}" alt="" data-fallback="${initial}">`
-                    : `<div class="online-av" style="background:#FF4655">${initial}</div>`;
-                const where = p.roomCode
-                    ? (p.joinable ? `in a ${mpEsc(p.roomMode||'')} lobby` : 'in a match')
-                    : 'in the menu';
-                return `<div class="online-row">
-                    ${av}
-                    <div style="flex:1;min-width:0;">
-                        <div style="color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-                            ${platformBadge(p.plat)}<span class="mp-level-chip">${p.level}</span>${mpEsc(p.name)}
-                        </div>
-                        <div style="font-size:9px;color:#8C8C8C;">${where}</div>
-                    </div>
-                    ${p.joinable ? `<button class="fr-accept" data-join="${mpEsc(p.roomCode)}">JOIN</button>` : ''}
-                </div>`;
-            }).join('');
-            attachAvatarFallbacks(el);
-            el.querySelectorAll('[data-join]').forEach(b => b.addEventListener('click', () => {
-                const code = b.dataset.join;
-                if (mpCurrentRoom) mpLeaveLobby();
-                const input = document.getElementById('mpJoinCodeInput');
-                if (input) input.value = code;
-                mpShowView('mpViewJoinCode');
-                setTimeout(() => mpJoinByCode(), 250);
-            }));
         }
 
         // ---- BAN CHECK ----
@@ -11442,6 +11413,11 @@
             document.getElementById('mpChatPanel').classList.remove('active');
             document.getElementById('mpGodmodeBanner').classList.remove('active');
             document.getElementById('mpSpectateOverlay').style.display = 'none';
+            // The spectate bar is position:fixed at the bottom of the window,
+            // so leaving it up followed you all the way back to the main menu.
+            const _sb = document.getElementById('spectateBar');
+            if (_sb) _sb.style.display = 'none';
+            spectateTarget = null;
             if (mpSpectateAnimId) cancelAnimationFrame(mpSpectateAnimId);
             mpSpectating = false;
         }
@@ -12756,13 +12732,6 @@
         document.getElementById('vpYes')?.addEventListener('click', () => castVote(true));
         document.getElementById('vpNo')?.addEventListener('click', () => castVote(false));
 
-        document.getElementById('onlineListBtn')?.addEventListener('click', () => {
-            const el = document.getElementById('onlineList');
-            const showing = el.style.display !== 'none';
-            el.style.display = showing ? 'none' : 'flex';
-            document.getElementById('onlineListBtn').textContent = showing ? "WHO'S ON" : 'HIDE';
-            if (!showing) renderOnlineList();
-        });
 
         document.getElementById('mpClearBlocksBtn')?.addEventListener('click', mpClearLobbyBlocks);
         document.getElementById('mpAllowSpectate')?.addEventListener('click', function() {
