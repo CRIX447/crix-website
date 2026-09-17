@@ -87,12 +87,43 @@ def material(name, rgb, roughness=0.6, metallic=0.0):
     mat = bpy.data.materials.get(name)
     if mat is None:
         mat = bpy.data.materials.new(name)
-    mat.use_nodes = True
-    bsdf = mat.node_tree.nodes.get("Principled BSDF")
+    if not mat.use_nodes:          # already implicit in Blender 5, going in 6
+        try:
+            mat.use_nodes = True
+        except Exception:
+            pass
+    bsdf = mat.node_tree.nodes.get("Principled BSDF") if mat.node_tree else None
     if bsdf:
         bsdf.inputs["Base Color"].default_value = (rgb[0], rgb[1], rgb[2], 1.0)
         bsdf.inputs["Roughness"].default_value = roughness
         bsdf.inputs["Metallic"].default_value = metallic
+    return mat
+
+
+def vertex_colour_material(name, layer, fallback_rgb):
+    """Principled colour driven by a colour attribute.
+
+    The glTF exporter only writes COLOR_0 when the material reads the layer —
+    without this node the dome exported solid white and the exporter said so
+    in a warning that is easy to scroll past.
+    """
+    mat = material(name, fallback_rgb, 1.0)
+    nt = mat.node_tree
+    if nt is None:
+        return mat
+    bsdf = nt.nodes.get("Principled BSDF")
+    if bsdf is None:
+        return mat
+    node = next((x for x in nt.nodes if x.bl_idname in
+                 ("ShaderNodeVertexColor", "ShaderNodeAttribute")), None)
+    if node is None:
+        try:
+            node = nt.nodes.new("ShaderNodeVertexColor")
+            node.layer_name = layer
+        except Exception:
+            node = nt.nodes.new("ShaderNodeAttribute")
+            node.attribute_name = layer
+    nt.links.new(node.outputs["Color"], bsdf.inputs["Base Color"])
     return mat
 
 
@@ -157,8 +188,19 @@ def unwrap(obj, margin=0.02):
     return obj
 
 
+def centre_x(obj):
+    """Put the origin on the X midpoint of the geometry."""
+    xs = [v.co.x for v in obj.data.vertices]
+    return shift_mesh(obj, dx=-(min(xs) + max(xs)) / 2.0)
+
+
 def join(objects, name):
-    """Join into the first object and rename. Returns the survivor."""
+    """Join into the first object, rename, and bake the transform.
+
+    A join keeps the FIRST object's origin, which is only harmless while that
+    object happens to sit at the world origin. Baking location makes the
+    result's origin predictable, so each builder can then place it on purpose.
+    """
     objects = [o for o in objects if o is not None]
     bpy.ops.object.select_all(action='DESELECT')
     for o in objects:
@@ -169,6 +211,7 @@ def join(objects, name):
     out = bpy.context.view_layer.objects.active
     out.name = name
     out.data.name = name
+    apply_transform(out, location=True)
     return out
 
 
@@ -203,6 +246,43 @@ def ico(subdiv, radius, location=(0, 0, 0)):
 def cube(size, location=(0, 0, 0)):
     bpy.ops.mesh.primitive_cube_add(size=size, location=location)
     return bpy.context.active_object
+
+
+def blade(points2d, thickness, name):
+    """A flat outline extruded to thickness — used for the wings.
+
+    A scaled cube reads as a plank from any angle. An outline lets the wing
+    taper, sweep back and carry feather notches at the tip for the same
+    handful of triangles.
+    """
+    mesh = bpy.data.meshes.new(name)
+    obj = bpy.data.objects.new(name, mesh)
+    bpy.context.collection.objects.link(obj)
+    bm = bmesh.new()
+    verts = [bm.verts.new((x, y, 0.0)) for x, y in points2d]
+    bm.faces.new(verts)
+    bm.to_mesh(mesh)
+    bm.free()
+    mesh.update()
+    mod = obj.modifiers.new("solidify", 'SOLIDIFY')
+    mod.thickness = thickness
+    mod.offset = 0.0
+    return obj
+
+
+def wing_outline(chord, span, mirror=False):
+    """Swept wing with three primaries notched into the trailing tip."""
+    pts = [
+        ( 0.55 * chord, 0.00 * span),   # root, leading edge
+        ( 0.15 * chord, 1.00 * span),   # tip, swept back
+        ( 0.02 * chord, 0.93 * span),
+        (-0.02 * chord, 0.98 * span),   # primary 1
+        (-0.18 * chord, 0.88 * span),
+        (-0.22 * chord, 0.92 * span),   # primary 2
+        (-0.40 * chord, 0.80 * span),
+        (-0.55 * chord, 0.00 * span),   # root, trailing edge
+    ]
+    return [(x, -y) for x, y in pts] if mirror else pts
 
 
 def open_ends(obj):
@@ -244,7 +324,7 @@ def palette():
         'cloth':     material("crix_cloth",     (0.14, 0.14, 0.17), 0.85),
         'grass':     material("crix_grass",     (0.18, 0.55, 0.24), 0.90),
         'bush':      material("crix_bush",      (0.12, 0.42, 0.20), 0.90),
-        'sky':       material("crix_sky",       (0.13, 0.20, 0.42), 1.00),
+        'sky':       vertex_colour_material("crix_sky", "Col", (0.13, 0.20, 0.42)),
     }
 
 
@@ -271,9 +351,9 @@ def build_pipe_cap(P):
     skirt = cylinder(16, PIPE_CAP_R, PIPE_CAP_H, cap='NOTHING')
     open_ends(skirt)
     rim = cylinder(16, PIPE_CAP_R, 0.06, cap='NGON',
-                   location=(0, 0, PIPE_CAP_H / 2))
+                   location=(0, 0, PIPE_CAP_H / 2 - 0.03))   # flush with the top
     inner = cylinder(16, PIPE_R * 0.92, 0.10, cap='NGON',
-                     location=(0, 0, PIPE_CAP_H / 2 - 0.02))
+                     location=(0, 0, PIPE_CAP_H / 2 - 0.05))   # top flush at PIPE_CAP_H
     paint(skirt, P['pipe'])
     paint(rim, P['pipe'])
     # The mouth of the pipe reads as a hole only if it is darker than the
@@ -305,20 +385,24 @@ def build_bird(P):
     """
     L = BIRD_LEN
 
-    body = ico(2, L * 0.5)
+    body = ico(3, L * 0.5)
     body.scale = (1.15, 0.9, 0.95)
     apply_transform(body, rotation=False)
     paint(body, P['body'])
 
-    beak = cone(8, L * 0.14, 0.0, L * 0.30)
+    beak = cone(8, L * 0.17, 0.0, L * 0.34)
     beak.rotation_euler = (0, math.radians(90), 0)
-    beak.location = (L * 0.52, 0, -L * 0.02)
+    beak.location = (L * 0.60, 0, -L * 0.02)
     apply_transform(beak, location=True)
     paint(beak, P['beak'])
 
+    # The body is an ellipsoid with semi-axes (0.575, 0.45, 0.475) * L, so an
+    # eye at a comfortable-looking (0.30, 0.20, 0.16) * L is entirely INSIDE
+    # it — sum of squared ratios 0.58, well under 1. These sit on the surface.
     eyes = []
     for side in (1, -1):
-        e = ico(1, L * 0.09, location=(L * 0.30, side * L * 0.20, L * 0.16))
+        e = ico(1, L * 0.085,
+                location=(L * 0.414, side * L * 0.262, L * 0.200))
         paint(e, P['eye'])
         eyes.append(e)
 
@@ -337,17 +421,11 @@ def build_bird(P):
 
     wings = []
     for side, tag in ((1, "L"), (-1, "R")):
-        w = cube(1.0)
-        w.scale = (L * 0.34, L * 0.62, L * 0.045)
-        apply_transform(w, rotation=False)
-        # push the blade out from the origin: the origin is the shoulder
-        shift_mesh(w, dy=side * L * 0.62)
-        bevel(w, L * 0.03, 2)
-        w.name = "wing_" + tag
-        w.data.name = "wing_" + tag
+        w = blade(wing_outline(L * 0.42, L * 0.80, mirror=(side < 0)),
+                  L * 0.035, "wing_" + tag)
         paint(w, P['wing'])
         unwrap(w)
-        w.location = (0, side * L * 0.30, L * 0.55)
+        w.location = (0, side * L * 0.22, L * 0.50)
         w.parent = body
         w.matrix_parent_inverse = body.matrix_world.inverted()
         wings.append(w)
@@ -358,22 +436,7 @@ def build_bird(P):
 def build_wing_fp(P):
     """What you see on your own controller. Origin at the wrist."""
     L = BIRD_LEN * 2.6
-    blade = cube(1.0)
-    blade.scale = (L * 0.30, L * 0.55, L * 0.035)
-    apply_transform(blade, rotation=False)
-    shift_mesh(blade, dy=L * 0.55)
-
-    feathers = []
-    for i in range(4):
-        t = (i + 1) / 5.0
-        f = cube(1.0)
-        f.scale = (L * (0.22 - t * 0.09), L * 0.16, L * 0.025)
-        apply_transform(f, rotation=False)
-        shift_mesh(f, dx=-L * 0.10 * t, dy=L * (0.95 + t * 0.35))
-        feathers.append(f)
-
-    obj = join([blade] + feathers, "wing_fp")
-    bevel(obj, L * 0.012, 1)
+    obj = blade(wing_outline(L * 0.34, L * 0.90), L * 0.030, "wing_fp")
     paint(obj, P['wing'])
     unwrap(obj)
     return [obj]
@@ -455,16 +518,21 @@ def build_ground_tile(P):
 
 def build_bush_tile(P):
     """A hedge row exactly TILE long, so it repeats along the ground edge."""
+    # Each blob has to be wider than the gap to the next one or the row reads
+    # as separate lumps instead of a hedge. Spacing is TILE/n = 1.6 m, so the
+    # half-width after the X scale needs to comfortably exceed 0.8 m.
     blobs = []
     n = 5
     for i in range(n):
         x = -TILE / 2 + TILE * (i + 0.5) / n
-        h = 0.55 + (0.18 if i % 2 else 0.0)
-        b = ico(1, h, location=(x, 0, h * 0.35))
-        b.scale = (1.25, 0.85, 0.7)
+        h = 0.78 + (0.22 if i % 2 else 0.0)
+        b = ico(2, h, location=(x, 0, h * 0.25))
+        b.scale = (1.55, 1.05, 0.78)
         apply_transform(b, rotation=False)
         blobs.append(b)
     obj = join(blobs, "bush_tile")
+    centre_x(obj)                 # copies are placed every TILE metres
+    origin_to_bottom(obj)         # sits on the ground plane, not through it
     paint(obj, P['bush'])
     smooth(obj, 45)
     unwrap(obj)
@@ -474,7 +542,7 @@ def build_bush_tile(P):
 def build_sky_dome(P):
     """Normals face inward — you are inside it. Vertex colours carry the
     gradient so there is no texture to load and nothing to light."""
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=24, ring_count=12, radius=100.0)
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=24, radius=100.0)
     obj = bpy.context.active_object
 
     bm = bmesh.new()
