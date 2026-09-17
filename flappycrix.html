@@ -4282,7 +4282,7 @@
                     photoURL: currentUser.photoURL || null,
                     highScore, coinCount, gamesPlayed,
                     owned: cosmetics.filter(c=>c.owned).map(c=>c.id), 
-                    equipped: { hat: cosmetics.find(c=>c.type==='hat'&&c.equipped)?.id||null, shirt: cosmetics.find(c=>c.type==='shirt'&&c.equipped)?.id||null }, 
+                    equipped: { hat: equippedId('hat'), shirt: equippedId('shirt') }, 
                     achievements: achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))
                 }, { merge: true });
                 document.getElementById('saveStatusText').textContent = '☁️ Cloud';
@@ -4300,12 +4300,8 @@
                     gamesPlayed = d.gamesPlayed || 0;
                     renderUserProfile(currentUser);
                     cosmetics.forEach(c=>c.owned = (d.owned||[]).includes(c.id)); 
-                    if(d.equipped){ 
-                        cosmetics.forEach(c=>{ 
-                            if(c.type==='hat' && d.equipped.hat===c.id) c.equipped=true; 
-                            if(c.type==='shirt' && d.equipped.shirt===c.id) c.equipped=true; 
-                        }); 
-                    } 
+                    applyEquipped(d.equipped);
+                    
                     if(d.achievements) d.achievements.forEach(a=>{ 
                         let ach=achievements.find(x=>x.id===a.id); 
                         if(ach){ ach.unlocked=a.unlocked; ach.progress=a.progress||0; } 
@@ -4325,7 +4321,7 @@
             localStorage.setItem('flappyCrixCoins', coinCount);
             localStorage.setItem('flappyCrixGamesPlayed', gamesPlayed);
             localStorage.setItem('flappyCrixOwned', JSON.stringify(cosmetics.filter(c=>c.owned).map(c=>c.id))); 
-            localStorage.setItem('flappyCrixEquipped', JSON.stringify({ hat: cosmetics.find(c=>c.type==='hat'&&c.equipped)?.id||null, shirt: cosmetics.find(c=>c.type==='shirt'&&c.equipped)?.id||null })); 
+            localStorage.setItem('flappyCrixEquipped', JSON.stringify({ hat: equippedId('hat'), shirt: equippedId('shirt') })); 
             localStorage.setItem('flappyAchievements', JSON.stringify(achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))));
         }
         
@@ -4336,7 +4332,7 @@
             let owned = JSON.parse(localStorage.getItem('flappyCrixOwned')||'[]'); 
             cosmetics.forEach(c=>c.owned = owned.includes(c.id)); 
             let eq = JSON.parse(localStorage.getItem('flappyCrixEquipped')||'{}'); 
-            cosmetics.forEach(c=>{ if(c.type==='hat' && eq.hat===c.id) c.equipped=true; if(c.type==='shirt' && eq.shirt===c.id) c.equipped=true; });
+            applyEquipped(eq);
             let storedAchs = JSON.parse(localStorage.getItem('flappyAchievements')||'[]');
             if(storedAchs.length) storedAchs.forEach(sa=>{ let a=achievements.find(ac=>ac.id===sa.id); if(a){ a.unlocked=sa.unlocked; a.progress=sa.progress||0; } });
             document.getElementById('highScore').textContent = highScore; 
@@ -4347,6 +4343,24 @@
         }
         
         // UI Functions
+        // Equipped state has to be re-derived from what you actually own.
+        // Loading a save only ever set equipped=true and never cleared it, so
+        // whatever was equipped a moment ago survived into the next account —
+        // you ended up wearing, broadcasting and re-saving a hat you do not own.
+        function equippedId(type) {
+            const c = cosmetics.find(x => x.type === type && x.equipped && x.owned);
+            return c ? c.id : null;
+        }
+        function applyEquipped(eq) {
+            cosmetics.forEach(c => { c.equipped = false; });
+            if (!eq) return;
+            cosmetics.forEach(c => {
+                if (!c.owned) return;                      // never equip what isn't owned
+                if (c.type === 'hat'   && eq.hat   === c.id) c.equipped = true;
+                if (c.type === 'shirt' && eq.shirt === c.id) c.equipped = true;
+            });
+        }
+
         function formatCoins(n) {
             n = Math.floor(n);
             if (n >= 1e9) return (n/1e9).toFixed(2) + 'B';
@@ -4438,9 +4452,9 @@
             previewCtx.translate(40,40); 
             let sz = cheats.bigbird ? 45 : 32; 
             drawSprite(previewCtx, birdImage, 0, 0, sz); 
-            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped); 
+            let shirt = cosmetics.find(c=>c.type==='shirt'&&c.equipped&&c.owned); 
             if(shirt){ const si=cachedImage(shirt.image); if(si){ const sw=sz*0.72, sh=sz*0.55; previewCtx.drawImage(si, -sw/2, sz*0.02, sw, sh); } } 
-            let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped); 
+            let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned); 
             if(hat){ const hi=cachedImage(hat.image); if(hi){ const hw=sz*0.78, hh=sz*0.58; previewCtx.drawImage(hi, -hw/2, -sz/2-hh*0.62, hw, hh); } } 
             previewCtx.restore(); 
             document.getElementById('previewTitle').innerHTML = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP'; 
@@ -4908,7 +4922,7 @@
 
             drawSprite(ctx, birdImage, 0, 0, birdSize); 
             // Shirt: narrower and lower so it sits on the body, not over the whole bird
-            let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped);
+            let shirt=cosmetics.find(c=>c.type==='shirt'&&c.equipped&&c.owned);
             if(shirt){
                 const si = cachedImage(shirt.image);
                 if (si) {
@@ -4917,7 +4931,7 @@
                 }
             }
             // Hat: sits on top of the head, above the bird's outline
-            let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped);
+            let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned);
             if(hat){
                 const hi = cachedImage(hat.image);
                 if (hi) drawHat(ctx, hi, birdSize);
@@ -5854,10 +5868,7 @@
                 mpPlayers[mpLocalActor].roles = myRoles;
             }
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
-                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null,
-                    hat: cosmetics.find(x=>x.type==='hat'&&x.equipped)?.id || null,
-                    shirt: cosmetics.find(x=>x.type==='shirt'&&x.equipped)?.id || null });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload());
                 if (typeof mpRenderLobby === 'function') mpRenderLobby();
                 if (typeof mpUpdateHud === 'function') mpUpdateHud();
             }
@@ -7673,13 +7684,7 @@
             }
             // Tell anyone in the current room straight away
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, {
-                    name: mpGetDisplayName(),
-                    platform: myPlatform, colour: mpGetColour(), roles: myRoles,
-                    level: playerLevel, presence: status,
-                    pfId: (typeof PlayFabManager!=='undefined' && PlayFabManager.playFabId) || null,
-                    photo: currentAvatar()
-                });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload({ presence: status }));
             }
             document.querySelectorAll('.presence-opt').forEach(b =>
                 b.classList.toggle('active', b.dataset.status === status));
@@ -9216,14 +9221,7 @@
             // Tell anyone in the lobby, so it updates without a rejoin
             if (mpCurrentRoom && typeof mpRaiseEvent === 'function') {
                 try {
-                    mpRaiseEvent(MP_EV.NAME_UPDATE, {
-                        name: mpGetDisplayName(), platform: myPlatform,
-                        colour: mpGetColour(), roles: myRoles, level: playerLevel,
-                        pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
-                        photo: url,
-                        hat: cosmetics.find(x=>x.type==='hat'&&x.equipped)?.id || null,
-                        shirt: cosmetics.find(x=>x.type==='shirt'&&x.equipped)?.id || null
-                    }, { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
+                    mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload({ photo: url }), { receivers: Photon.LoadBalancing.Constants.ReceiverGroup.All });
                 } catch (e) {}
             }
         }
@@ -9252,6 +9250,26 @@
         function loadRoster() {
             try { knownPlayers = JSON.parse(localStorage.getItem(ROSTER_KEY) || '[]'); } catch(e) { knownPlayers = []; }
         }
+        // One identity payload for every NAME_UPDATE sender. There were six
+        // hand-written copies and four of them left out hat/shirt — and since
+        // the receiver does `content.hat ?? null`, any of those four wiped
+        // everyone's cosmetics for every observer. The join re-announce was
+        // one of them, so cosmetics broke the moment anybody joined.
+        function mpIdentityPayload(extra) {
+            return Object.assign({
+                name: mpGetDisplayName(),
+                platform: myPlatform,
+                colour: mpGetColour(),
+                roles: myRoles,
+                level: playerLevel,
+                presence: (typeof myPresence !== 'undefined' && myPresence) || 'online',
+                pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                photo: (typeof currentAvatar === 'function' ? currentAvatar() : null),
+                hat: equippedId('hat'),
+                shirt: equippedId('shirt')
+            }, extra || {});
+        }
+
         function rememberPlayer(p) {
             if (!p || !p.name || !p.pfId) return;
             const existing = knownPlayers.find(k => k.pfId === p.pfId);
@@ -9881,6 +9899,8 @@
             return myFriends.some(f => (p.pfId && f.pfId === p.pfId) || f.name === p.name);
         }
         function addFriend(p) {
+            if (isGuest()) { toast({ kind:'warn', title:'Guests cannot add friends',
+                                     body:'Make an account to keep a friends list.' }); return; }
             if (!p || isFriend(p)) return;
             myFriends.push({ pfId: p.pfId || null, name: p.name });
             saveFriends(); mpRenderLobby();
@@ -10046,10 +10066,56 @@
             }, delay);
         }
 
+        // ═══════════ GUESTS ═══════════
+        // Playing without an account, in the old Roblox sense: you get in, you
+        // can play and chat, and that is it. No name or avatar to change, no
+        // player id, no rank, no social graph.
+        const GUEST_KEY = 'crix_guest_v1';
+        let guestNumber = 0;
+        function guestId() {
+            if (guestNumber) return guestNumber;
+            try {
+                guestNumber = parseInt(localStorage.getItem(GUEST_KEY), 10) || 0;
+                if (!guestNumber) {
+                    guestNumber = 1000 + Math.floor(Math.random() * 9000);
+                    localStorage.setItem(GUEST_KEY, String(guestNumber));
+                }
+            } catch (e) {
+                guestNumber = 1000 + Math.floor(Math.random() * 9000);
+            }
+            return guestNumber;
+        }
+        function isGuest() { return !currentUser; }
+
+        // Grey out what a guest cannot change, and say why once rather than
+        // letting them type a name that silently will not save.
+        function applyGuestProfileLock() {
+            const guest = isGuest();
+            const nameInput = document.getElementById('mpDisplayNameInput');
+            const saveBtn = document.getElementById('mpProfileSaveBtn');
+            if (nameInput) {
+                nameInput.disabled = guest;
+                nameInput.title = guest ? 'Guests keep their assigned name' : '';
+            }
+            if (saveBtn) {
+                saveBtn.disabled = guest;
+                saveBtn.style.opacity = guest ? '.4' : '';
+                saveBtn.textContent = guest ? 'SIGN IN TO CUSTOMISE' : 'SAVE & CONTINUE';
+            }
+            document.querySelectorAll('#mpViewProfile .avatar-opt, #avatarUploadBtn')
+                .forEach(el => { el.style.pointerEvents = guest ? 'none' : ''; el.style.opacity = guest ? '.4' : ''; });
+        }
+        function guestName() { return 'Guest ' + guestId(); }
+
         function mpGetDisplayName() {
+            // A guest's name is fixed. This used to return a fresh
+            // 'Player' + Math.random() on EVERY call, so a signed-out player
+            // broadcast a different name with every update and their nametag
+            // flickered between random numbers.
+            if (isGuest()) return guestName();
             if (mpProfile.displayName) return mpProfile.displayName;
             if (currentUser) return currentUser.displayName || (currentUser.email ? currentUser.email.split('@')[0] : 'Player');
-            return 'Player' + Math.floor(Math.random() * 9999);
+            return guestName();
         }
 
         function mpGetColour() {
@@ -10377,6 +10443,9 @@
         }
         // Placement-style RP: win big, lose less
         function awardRP(place, total) {
+            // Guests play competitive but the ladder does not move for them —
+            // there is no account to attach a rank to.
+            if (isGuest()) return;
             // Top 3 gain, everyone below loses. Scaled by lobby size so a
             // win in a full lobby is worth more than one in a small lobby.
             const sizeBonus = Math.min(1.5, 0.75 + total * 0.09);
@@ -10556,8 +10625,7 @@
             
 
             // Broadcast our own name/colour to others
-            mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
-                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
+            mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload());
 
             document.getElementById('mpModal').classList.add('active');
             mpShowLobbyView();
@@ -10601,15 +10669,7 @@
             // Re-announce ourselves to the newcomer. Without this, anyone who
             // joins AFTER us never learns our name/colour/roles/level, which is
             // why tags were invisible to late joiners.
-            mpRaiseEvent(MP_EV.NAME_UPDATE, {
-                name: mpGetDisplayName(),
-                    platform: myPlatform,
-                colour: mpGetColour(),
-                roles: myRoles,
-                level: playerLevel,
-                pfId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
-                photo: currentAvatar()
-            });
+            mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload());
         }
 
         function mpHandleActorLeave(actor) {
@@ -11490,6 +11550,15 @@
                 const actorNr = parseInt(nr);
                 if (!mpIsRemote(nr)) return;
 
+                // Dead reckoning. Our own distance grows every frame but theirs
+                // only arrives ~30 times a second, so comparing the two made
+                // remote players stutter backwards between packets. Everyone
+                // scrolls at the same gameSpeed, so carry them forward locally
+                // and let the next packet correct it.
+                if (typeof p.travelled === 'number' && !p.dead && mpMatchActive) {
+                    p.travelled += gameSpeed;
+                }
+
                 // Horizontal position comes from score difference, not from the
                 // synced x (which is always 100 for everyone).
                 const tx = mpVirtualX(p);
@@ -11780,7 +11849,13 @@
                         p.y = content.y;
                         p.vel = content.v;
                         p.score = content.s;
-                        if (content.t !== undefined) p.travelled = content.t;
+                        if (content.t !== undefined) {
+                            // Blend toward the authoritative value instead of
+                            // jumping to it, so a late packet doesn't jolt.
+                            p.travelled = (typeof p.travelled === 'number')
+                                ? p.travelled + (content.t - p.travelled) * 0.5
+                                : content.t;
+                        }
                         p.dead = !!content.d;
                         if (p.rx === undefined) { p.rx = content.x; p.ry = content.y; }
                     } else {
@@ -11853,8 +11928,10 @@
                         p.level = content.level || 1;
                         p.pfId  = content.pfId || null;
                         p.photo = content.photo || null;
-                        p.hat   = content.hat ?? null;
-                        p.shirt = content.shirt ?? null;
+                        // Only touch cosmetics when the sender actually sent
+                        // them — a partial payload must not wipe them.
+                        if ('hat' in content)   p.hat   = content.hat;
+                        if ('shirt' in content) p.shirt = content.shirt;
                         p.presence = content.presence || 'online';
                         p.platform = content.platform || p.platform;
                         rememberPlayer(p);
@@ -12339,6 +12416,7 @@
         document.getElementById('mpRefreshBtn')?.addEventListener('click', () => { mpRenderRoomList(); playSound(selectSound); });
         document.getElementById('mpEditProfileBtn')?.addEventListener('click', () => {
             document.getElementById('mpDisplayNameInput').value = mpGetDisplayName().replace(/#.*$/, '');
+            applyGuestProfileLock();
             renderAvatarGrid();
             mpRenderColourGrid();
             mpShowView('mpViewProfile');
@@ -12346,6 +12424,11 @@
 
         // Profile
         document.getElementById('mpProfileSaveBtn')?.addEventListener('click', () => {
+            if (isGuest()) {
+                toast({ kind:'warn', title:'Guests keep their name',
+                        body:'Sign in to pick a name and an avatar.' });
+                return;
+            }
             const name = document.getElementById('mpDisplayNameInput').value.trim();
             if (name) mpProfile.displayName = name;
             const sel = document.querySelector('.mp-colour-swatch.selected');
@@ -12358,8 +12441,7 @@
                 PlayFabManager.setNameWithCode(mpGetDisplayName()).catch(() => {});
             }
             if (mpCurrentRoom) {
-                mpRaiseEvent(MP_EV.NAME_UPDATE, { name: mpGetDisplayName(),
-                    platform: myPlatform, colour: mpGetColour(), roles: myRoles, level: playerLevel, pfId: (typeof PlayFabManager!=='undefined'&&PlayFabManager.playFabId)||null, photo: (currentUser&&currentUser.photoURL)||null });
+                mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload());
                 if (mpPlayers[mpLocalActor]) {
                     mpPlayers[mpLocalActor].name = mpGetDisplayName();
                     mpPlayers[mpLocalActor].colour = mpGetColour();
