@@ -31,7 +31,7 @@
         "id": ""
       }
     ],
-    "_howToGetChannelId": "Open the channel > click the channel name > Share channel > Copy channel ID. Or on your own channels: youtube.com/account_advanced. Paste it as \"id\" below. With an id set, the site skips the handle lookup entirely \u2014 faster and immune to handle changes."
+    "_howToGetChannelId": "Open the channel > click the channel name > Share channel > Copy channel ID. Or on your own channels: youtube.com/account_advanced. Paste it as \"id\" below. With an id set, the site skips the handle lookup entirely — faster and immune to handle changes."
   },
   "firebase": {
     "apiKey": "AIzaSyD7ld0RxU5n4yiMygv7qrwAxT11FMxaAzs",
@@ -46,11 +46,11 @@
     "appVersion": "1.0",
     "region": "us",
     "chatAppId": "56ff5627-b073-412c-ac63-95fd3dc28484",
-    "_region": "Leave blank to auto-pick a region your app allows (recommended). Set a code like 'au', 'us', 'eu', 'asia' to force one \u2014 but it must be enabled in the Photon dashboard under Region Allowlist, or the connection is rejected.",
-    "_appId": "Your live site is using 56ff5627-... \u2014 keep whatever is already in YOUR api.json, do not paste this file over it. Replace the line above with your real Realtime App ID before pushing."
+    "_region": "Leave blank to auto-pick a region your app allows (recommended). Set a code like 'au', 'us', 'eu', 'asia' to force one — but it must be enabled in the Photon dashboard under Region Allowlist, or the connection is rejected.",
+    "_appId": "Your live site is using 56ff5627-... — keep whatever is already in YOUR api.json, do not paste this file over it. Replace the line above with your real Realtime App ID before pushing."
   },
   "discord": {
-    "_setup": "1) discord.com/developers \u2192 your app \u2192 OAuth2 \u2192 Redirects \u2192 add EXACTLY https://crixgamingvr.com/flappycrix  2) copy the Client ID below  3) put CLIENT SECRET in Vercel env vars as DISCORD_CLIENT_SECRET \u2014 never here, this file is public.",
+    "_setup": "1) discord.com/developers → your app → OAuth2 → Redirects → add EXACTLY https://crixgamingvr.com/flappycrix  2) copy the Client ID below  3) put CLIENT SECRET in Vercel env vars as DISCORD_CLIENT_SECRET — never here, this file is public.",
     "clientId": "1521661170438635644",
     "redirectUri": "https://crixgamingvr.com/flappycrix",
     "_vercelEnvVars": [
@@ -68,10 +68,12 @@
     "catalogVersion": "Main"
   },
   "voice": {
-    "_setup": "Photon Voice needs its own App ID \u2014 create one at dashboard.photonengine.com and pick the 'Voice' product (NOT Realtime, that's the separate one already above).",
+    "_setup": "Voice chat runs on WebRTC in the browser: audio goes peer to peer and Photon only carries the handshake, so no Voice App ID is needed for it to work. The appId below is for Photon's own Voice SDK, which is a manual download from photonengine.com/sdks (voice / javascript) and is not on npm.",
     "appId": "ac891a19-02cd-43dc-a6d0-7a38bb8027ae",
     "appVersion": "1.0",
     "region": "us",
-    "enabled": false
+    "enabled": true,
+    "_iceServers": "STUN alone fails behind a symmetric NAT, which is most mobile networks. Add a TURN server here and calls will relay through it: [{\"urls\":\"turn:your.host:3478\",\"username\":\"u\",\"credential\":\"p\"}]",
+    "iceServers": []
   }
 }
