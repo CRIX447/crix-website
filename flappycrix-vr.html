@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en" class="theme-dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Flappy Crix VR</title>
+<meta name="description" content="Flap your arms to fly. Flappy Crix in first person, for Quest and any WebXR headset.">
+<meta name="theme-color" content="#0A0A0F">
+<link rel="icon" href="/img/favicon.png">
+<style>
+    :root { --orange:#FF6B35; --red:#FF4655; --green:#00CC7A; --txt:#EDEDED; --dim:#9A9AA6; }
+    * { box-sizing: border-box; }
+    html, body { margin:0; padding:0; height:100%; background:#07070C; color:var(--txt);
+                 font-family:'Trebuchet MS',system-ui,sans-serif; overflow:hidden; }
+    canvas { display:block; }
+
+    #ui { position:fixed; inset:0; display:flex; flex-direction:column; align-items:center;
+          justify-content:center; gap:18px; padding:24px; text-align:center;
+          background:radial-gradient(120% 130% at 50% 20%, #15152A, #07070C); z-index:10; }
+    #ui.gone { display:none; }
+    h1 { margin:0; font-size:clamp(26px,7vw,44px); letter-spacing:1px;
+         background:linear-gradient(135deg,var(--orange),var(--red));
+         -webkit-background-clip:text; background-clip:text; color:transparent; }
+    .sub { margin:0; color:var(--dim); font-size:14px; max-width:34ch; line-height:1.6; }
+    #enter { display:flex; flex-direction:column; gap:10px; align-items:center; }
+    .btn { border:2px solid rgba(255,255,255,.14); border-bottom-width:4px; border-radius:30px;
+           padding:12px 30px; font:inherit; font-weight:700; font-size:15px; cursor:pointer;
+           color:#fff; background:linear-gradient(135deg,var(--red),var(--orange)); }
+    .btn:active { transform:translateY(2px); border-bottom-width:2px; }
+    .btn.ghost { background:rgba(255,255,255,.07); color:var(--txt); }
+    .btn[disabled] { opacity:.5; cursor:default; }
+    #note { font-size:12px; color:var(--dim); min-height:18px; }
+    #bar { width:min(320px,80vw); height:6px; border-radius:6px; background:rgba(255,255,255,.1); overflow:hidden; }
+    #bar > i { display:block; height:100%; width:0; background:var(--green); transition:width .2s; }
+    ul.how { text-align:left; color:var(--dim); font-size:13px; line-height:1.8; padding-left:20px; margin:0; max-width:36ch; }
+    ul.how b { color:var(--txt); }
+    a { color:var(--orange); }
+
+    /* three.js drops its own VR button in here so it keeps the page's styling */
+    #vrslot button { position:static !important; width:auto !important; padding:12px 30px !important;
+                     border:2px solid rgba(255,255,255,.14) !important; border-bottom-width:4px !important;
+                     border-radius:30px !important; background:linear-gradient(135deg,var(--red),var(--orange)) !important;
+                     color:#fff !important; font:inherit !important; font-weight:700 !important;
+                     font-size:15px !important; opacity:1 !important; cursor:pointer; }
+
+    #comfortWrap { font-size:12px; color:var(--dim); display:flex; align-items:center; gap:7px;
+                   cursor:pointer; user-select:none; }
+    #comfortWrap input { accent-color:var(--orange); width:15px; height:15px; }
+    #hud2d { position:fixed; top:12px; left:12px; z-index:5; font-size:13px; color:var(--txt);
+             background:rgba(0,0,0,.45); border-radius:10px; padding:8px 12px; display:none; line-height:1.6; }
+    #hud2d.on { display:block; }
+    #crash { position:fixed; inset:0; display:none; align-items:center; justify-content:center;
+             flex-direction:column; gap:14px; background:rgba(7,7,12,.82); z-index:8; }
+    #crash.on { display:flex; }
+</style>
+</head>
+<body>
+
+<div id="ui">
+    <h1>FLAPPY CRIX VR</h1>
+    <p class="sub">Flap your arms to fly. You are the bird.</p>
+    <div id="bar"><i id="barfill"></i></div>
+    <div id="note">Loading models…</div>
+    <div id="enter">
+        <div id="vrslot"></div>
+        <button class="btn ghost" id="flat" disabled>Try it on this screen</button>
+        <label id="comfortWrap"><input type="checkbox" id="comfort" checked> Comfort vignette</label>
+    </div>
+    <ul class="how">
+        <li><b>Both arms down</b> together to flap — harder swing, bigger climb</li>
+        <li><b>Grip or trigger</b> to recentre if you drift</li>
+        <li>On screen: <b>space</b> or <b>click</b> to flap</li>
+    </ul>
+</div>
+
+<div id="hud2d"></div>
+<div id="crash">
+    <h1 id="crashScore">0</h1>
+    <p class="sub" id="crashLine">You hit a pipe.</p>
+    <button class="btn" id="again">Go again</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "/vendor/three/three.module.min.js",
+    "three/addons/": "/vendor/three/addons/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { VRButton }   from 'three/addons/webxr/VRButton.js';
+
+/* ───────────────────────── tuning ─────────────────────────
+   Speed is deliberately CONSTANT. Acceleration is what the inner ear
+   objects to, not motion, so the one thing that must never change while
+   you are flying is how fast you are going. */
+
+const SPEED        = 9.0;    // m/s forward, never varies
+const GRAVITY      = -11.0;  // m/s²
+const FLAP_MIN_V   = 3.4;    // m/s up from the gentlest flap that counts
+const FLAP_MAX_V   = 7.0;    // m/s up from a hard one
+const HAND_MIN     = 0.85;   // m/s of downward hand speed to register at all
+const HAND_MAX     = 3.20;   // m/s that earns the full impulse
+const FLAP_COOLDOWN = 240;   // ms, so one swing is not counted twice
+const EYE_Y        = 1.6;    // where the head sits above the rig origin
+
+const FLOOR = 1.2, CEIL = 30.0, START_Y = 10.0;
+const PIPE_SPACING = 26.0, PIPE_GAP = 4.6, PIPE_R = 1.5, CAP_H = 0.6, BODY_H = 2.0;
+const BODY_R = 0.55;         // how fat you are, for hitting things
+const PIPE_POOL = 7, BUSH_POOL = 16, BUSH_STEP = 8.0;
+
+/* ───────────────────────── flap detection ─────────────────────────
+   A flap is both hands travelling downward at once. One hand is a wave, and
+   letting a single hand count meant resting an arm on a chair triggered it.
+
+   Hand height is read in the rig's own space, not the world's: the rig rises
+   and falls with the bird, and a hand that is perfectly still in the room
+   would otherwise look like it was moving every frame. */
+
+export class FlapDetector {
+    constructor() { this.reset(); }
+
+    reset() {
+        this.prev = { l: null, r: null };
+        this.vel  = { l: 0, r: 0 };
+        this.lastFlapAt = -1e9;
+        this.armed = true;
+    }
+
+    /** @returns {number} upward impulse in m/s, or 0 for no flap */
+    update(leftY, rightY, dt, now) {
+        if (dt <= 0) return 0;
+        // Light smoothing only: enough to reject controller jitter, not so much
+        // that a hard swing is still ramping up by the time it is read.
+        const smooth = (was, y, prev) =>
+            prev === null ? 0 : was * 0.25 + ((y - prev) / dt) * 0.75;
+
+        if (leftY  !== null) { this.vel.l = smooth(this.vel.l, leftY,  this.prev.l); this.prev.l = leftY; }
+        if (rightY !== null) { this.vel.r = smooth(this.vel.r, rightY, this.prev.r); this.prev.r = rightY; }
+        if (leftY === null || rightY === null) return 0;
+
+        // Both must be descending; the slower hand sets the strength, so a
+        // lazy arm cannot ride on an enthusiastic one.
+        const down = Math.min(-this.vel.l, -this.vel.r);
+
+        // Re-arm once the hands are no longer really going down. Without this
+        // the detector is a level trigger and a single long swing fires every
+        // time the cooldown lapses.
+        if (down < HAND_MIN * 0.4) this.armed = true;
+
+        if (!this.armed) return 0;
+        if (down < HAND_MIN) return 0;
+        if (now - this.lastFlapAt < FLAP_COOLDOWN) return 0;
+
+        this.armed = false;
+        this.lastFlapAt = now;
+        const t = Math.min(1, (down - HAND_MIN) / (HAND_MAX - HAND_MIN));
+        return FLAP_MIN_V + t * (FLAP_MAX_V - FLAP_MIN_V);
+    }
+}
+
+/* ───────────────────────── state ───────────────────────── */
+
+const state = {
+    running: false, dead: false,
+    y: START_Y, vy: 0, z: 0,
+    score: 0, coins: 0, best: 0,
+    nextPipeZ: -PIPE_SPACING * 2,
+    flaps: 0, lastImpulse: 0
+};
+
+const detector = new FlapDetector();
+
+/* ───────────────────────── scene ───────────────────────── */
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x22304f, 60, 190);
+
+const camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 400);
+const rig = new THREE.Group();
+rig.add(camera);
+camera.position.y = EYE_Y;          // only used off-headset; XR supplies its own
+scene.add(rig);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.xr.enabled = true;
+renderer.xr.setReferenceSpaceType('local-floor');
+document.body.appendChild(renderer.domElement);
+
+addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+});
+
+// Unlit-ish lighting: the models carry no baked light and Quest has no budget
+// for anything clever.
+scene.add(new THREE.HemisphereLight(0xBFD4FF, 0x2C3A22, 2.1));
+const sun = new THREE.DirectionalLight(0xFFF3DD, 1.5);
+sun.position.set(6, 14, 4);
+scene.add(sun);
+
+/* ───────────────────────── models ───────────────────────── */
+
+const NEEDED = ['pipe_body', 'pipe_cap', 'coin', 'wing_fp', 'ground_tile', 'bush_tile', 'sky_dome'];
+const M = {};
+
+function loadAll(onProgress) {
+    const loader = new GLTFLoader();
+    let done = 0;
+    return Promise.all(NEEDED.map(name => new Promise((res, rej) => {
+        loader.load(`/models/${name}.glb`, gltf => {
+            const root = gltf.scene;
+            root.traverse(o => { if (o.isMesh) { o.frustumCulled = true; o.castShadow = false; } });
+            M[name] = root;
+            onProgress(++done / NEEDED.length);
+            res();
+        }, undefined, err => rej(new Error(`${name}.glb: ${err.message || err}`)));
+    })));
+}
+
+const clone = name => M[name].clone(true);
+
+/* ───────────────────────── world ───────────────────────── */
+
+const pipes = [], bushes = [], coins = [];
+let sky, ground;
+
+function buildHalfPipe(height) {
+    /* The body tiles at BODY_H and the cap is CAP_H, so a pipe of any height
+       is a stack plus a lip. Scaling one body is a draw call instead of eight
+       — the tiling only starts to matter once there is a texture on it. */
+    const g = new THREE.Group();
+    const wall = Math.max(0.05, height - CAP_H);
+    const body = clone('pipe_body');
+    body.scale.y = wall / BODY_H;
+    g.add(body);
+    const cap = clone('pipe_cap');
+    cap.position.y = wall;
+    g.add(cap);
+    return g;
+}
+
+function makePipe() {
+    const p = new THREE.Group();
+    p.userData.lower = new THREE.Group();
+    p.userData.upper = new THREE.Group();
+    p.add(p.userData.lower, p.userData.upper);
+    p.visible = false;
+    scene.add(p);
+    pipes.push(p);
+    return p;
+}
+
+function placePipe(p, z, gapCentre) {
+    const bottom = gapCentre - PIPE_GAP / 2;
+    const top    = gapCentre + PIPE_GAP / 2;
+
+    p.userData.lower.clear();
+    p.userData.upper.clear();
+
+    p.userData.lower.add(buildHalfPipe(bottom));
+
+    // The upper half is the same piece turned over so its lip opens downward.
+    // Turning it over puts its geometry in local y = -h..0, so the holder goes
+    // at top + h to land it in top..top + h. Hanging it at `top` instead drops
+    // the whole thing through the gap and onto the lower pipe.
+    const upH = CEIL - top + 2;
+    const up = buildHalfPipe(upH);
+    up.rotation.x = Math.PI;
+    const holder = new THREE.Group();
+    holder.position.y = top + upH;
+    holder.add(up);
+    p.userData.upper.add(holder);
+
+    p.position.z = z;
+    p.visible = true;
+    p.userData.z = z;
+    p.userData.bottom = bottom;
+    p.userData.top = top;
+    p.userData.scored = false;
+}
+
+function makeCoin() {
+    const c = clone('coin');
+    c.rotation.x = Math.PI / 2;      // face the player
+    c.visible = false;
+    const holder = new THREE.Group();
+    holder.add(c);
+    holder.visible = false;
+    scene.add(holder);
+    holder.userData.spin = c;
+    coins.push(holder);
+    return holder;
+}
+
+function buildWorld() {
+    sky = clone('sky_dome');
+    sky.traverse(o => {
+        if (!o.isMesh) return;
+        o.material = new THREE.MeshBasicMaterial({
+            vertexColors: true, side: THREE.FrontSide, fog: false, depthWrite: false });
+        o.renderOrder = -1;
+    });
+    scene.add(sky);
+
+    // One scaled plane rather than a recycled grid: it is 32 triangles and
+    // perfectly flat, so scaling costs nothing until it carries a texture.
+    ground = clone('ground_tile');
+    ground.scale.set(30, 1, 30);
+    scene.add(ground);
+
+    for (let i = 0; i < BUSH_POOL; i++) {
+        const b = clone('bush_tile');
+        b.position.x = (i % 2 === 0) ? -13 : 13;
+        scene.add(b);
+        bushes.push(b);
+    }
+    for (let i = 0; i < PIPE_POOL; i++) makePipe();
+    for (let i = 0; i < PIPE_POOL; i++) makeCoin();
+}
+
+/* ───────────────────────── player-attached bits ───────────────────────── */
+
+const VIGNETTE_D = 0.35;
+let hudCanvas, hudCtx, hudTex, vignette;
+
+/* For a symmetric frustum m[0] = 1/tan(fovX/2) and m[5] = 1/tan(fovY/2), so
+   the visible half-extent at distance d is d/m. Fitting the plane to that
+   each frame keeps the dark ring on screen in a headset as well as a window. */
+function fitVignette(cam) {
+    if (!vignette) return;
+    const m = cam.projectionMatrix.elements;
+    if (!m[0] || !m[5]) return;
+    vignette.scale.set(2.05 * VIGNETTE_D / m[0], 2.05 * VIGNETTE_D / m[5], 1);
+}
+const hands = [];
+
+function buildRig() {
+    // Wings on the controllers. In XR these track your hands; off-headset
+    // they sit where a resting pair of hands would be, so the shot matches.
+    for (let i = 0; i < 2; i++) {
+        const c = renderer.xr.getController(i);
+        const w = clone('wing_fp');
+        w.rotation.z = (i === 0) ? 0.25 : -0.25;
+        if (i === 1) w.scale.z = -1;         // mirror for the other hand
+        c.add(w);
+        // Only a pose from the headset should move these; without one they sat
+        // at the rig origin, down by the feet and out of shot.
+        c.position.set(i === 0 ? -0.34 : 0.34, EYE_Y - 0.45, -0.28);
+        rig.add(c);
+        hands.push(c);
+    }
+
+    // A static reference frame. Something that never moves relative to your
+    // body is the cheapest nausea mitigation there is.
+    const hoop = new THREE.Mesh(
+        new THREE.TorusGeometry(0.62, 0.035, 8, 32),
+        new THREE.MeshStandardMaterial({ color: 0x2A2A38, roughness: 0.8 }));
+    hoop.rotation.x = Math.PI / 2;
+    hoop.position.y = EYE_Y - 0.95;
+    rig.add(hoop);
+
+    // HUD on a panel below the eye line rather than pinned to the screen —
+    // screen-locked text in a headset is unreadable and uncomfortable.
+    hudCanvas = document.createElement('canvas');
+    hudCanvas.width = 512; hudCanvas.height = 128;
+    hudCtx = hudCanvas.getContext('2d');
+    hudTex = new THREE.CanvasTexture(hudCanvas);
+    const panel = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.82, 0.205),
+        new THREE.MeshBasicMaterial({ map: hudTex, transparent: true, depthWrite: false }));
+    panel.position.set(0, EYE_Y - 0.55, -1.35);
+    panel.rotation.x = -0.42;
+    rig.add(panel);
+    drawHud();
+
+    // Vignette: tightens the field of view a little so the periphery, which is
+    // where motion sickness is triggered, sees less of the world going past.
+    const vc = document.createElement('canvas');
+    vc.width = vc.height = 256;
+    const g = vc.getContext('2d');
+    const rad = g.createRadialGradient(128, 128, 60, 128, 128, 128);
+    rad.addColorStop(0.00, 'rgba(0,0,0,0)');
+    rad.addColorStop(0.82, 'rgba(0,0,0,0)');
+    rad.addColorStop(1.00, 'rgba(0,0,0,0.40)');
+    g.fillStyle = rad; g.fillRect(0, 0, 256, 256);
+    vignette = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1),
+        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(vc), transparent: true,
+                                      depthTest: false, depthWrite: false }));
+    vignette.position.z = -VIGNETTE_D;
+    vignette.renderOrder = 999;
+    camera.add(vignette);
+}
+
+function drawHud() {
+    if (!hudCtx) return;
+    const g = hudCtx;
+    g.clearRect(0, 0, 512, 128);
+    g.fillStyle = 'rgba(8,8,14,.62)';
+    g.beginPath(); g.roundRect(0, 0, 512, 128, 22); g.fill();
+    g.textBaseline = 'middle';
+    g.fillStyle = '#EDEDED';
+    g.font = 'bold 62px Trebuchet MS, sans-serif';
+    g.textAlign = 'left';
+    g.fillText(String(state.score), 30, 66);
+    g.font = 'bold 34px Trebuchet MS, sans-serif';
+    g.fillStyle = '#FFD24A';
+    g.textAlign = 'right';
+    g.fillText('🪙 ' + state.coins, 482, 44);
+    g.fillStyle = '#9A9AA6';
+    g.font = '24px Trebuchet MS, sans-serif';
+    g.fillText('best ' + state.best, 482, 92);
+    hudTex.needsUpdate = true;
+}
+
+/* ───────────────────────── run ───────────────────────── */
+
+function reset() {
+    state.dead = false;
+    state.y = START_Y; state.vy = 0; state.z = 0;
+    state.score = 0; state.coins = 0;
+    state.flaps = 0; state.lastImpulse = 0;
+    state.nextPipeZ = -PIPE_SPACING * 2;
+    detector.reset();
+
+    pipes.forEach(p => { p.visible = false; p.userData.z = undefined; });
+    coins.forEach(c => { c.visible = false; });
+    bushes.forEach((b, i) => { b.position.z = -Math.floor(i / 2) * BUSH_STEP; });
+
+    rig.position.set(0, state.y, 0);
+    for (let i = 0; i < PIPE_POOL; i++) spawnNext();
+    drawHud();
+    state.running = true;
+    document.getElementById('crash').classList.remove('on');
+}
+
+function spawnNext() {
+    const p = pipes.find(x => !x.visible) ||
+              pipes.reduce((a, b) => (a.userData.z > b.userData.z ? a : b));
+    const gap = 6 + Math.random() * (CEIL - 12);
+    placePipe(p, state.nextPipeZ, gap);
+
+    const c = coins.find(x => !x.visible);
+    if (c && Math.random() < 0.72) {
+        c.position.set(0, gap, state.nextPipeZ);
+        c.visible = true;
+        c.userData.taken = false;
+    }
+    state.nextPipeZ -= PIPE_SPACING;
+}
+
+function flap(impulse) {
+    if (!state.running || state.dead) return;
+    state.vy = impulse;
+    state.flaps++;
+    state.lastImpulse = impulse;
+}
+
+function die(reason) {
+    if (state.dead) return;
+    state.dead = true;
+    state.running = false;
+    state.best = Math.max(state.best, state.score);
+    document.getElementById('crashScore').textContent = state.score;
+    document.getElementById('crashLine').textContent = reason;
+    document.getElementById('crash').classList.add('on');
+    drawHud();
+}
+
+function step(dt, now) {
+    if (!state.running || state.dead) return;
+    dt = Math.min(dt, 0.05);         // a dropped frame must not teleport you
+
+    // flap input from the hands
+    const ly = hands[0] ? hands[0].position.y : null;
+    const ry = hands[1] ? hands[1].position.y : null;
+    const impulse = detector.update(ly, ry, dt, now);
+    if (impulse > 0) flap(impulse);
+
+    state.vy += GRAVITY * dt;
+    state.y  += state.vy * dt;
+    state.z  -= SPEED * dt;           // constant, always
+
+    if (state.y <= FLOOR) { state.y = FLOOR; return die('You hit the ground.'); }
+    if (state.y >= CEIL)  { state.y = CEIL; state.vy = Math.min(state.vy, 0); }
+
+    rig.position.set(0, state.y, state.z);
+
+    // the sky and the ground travel with you so they never run out
+    if (sky)    sky.position.z = state.z;
+    if (ground) ground.position.z = state.z;
+    bushes.forEach(b => {
+        if (b.position.z > state.z + BUSH_STEP * 1.5) b.position.z -= BUSH_POOL / 2 * BUSH_STEP;
+    });
+
+    for (const p of pipes) {
+        if (!p.visible) continue;
+        const dz = state.z - p.userData.z;
+
+        if (!p.userData.scored && dz < -(PIPE_R + BODY_R)) {
+            p.userData.scored = true;
+            state.score++;
+            drawHud();
+        }
+        if (Math.abs(dz) < PIPE_R + BODY_R) {
+            const head = state.y + 0.0;
+            if (head < p.userData.bottom + BODY_R || head > p.userData.top - BODY_R)
+                return die('You hit a pipe.');
+        }
+        if (dz < -PIPE_SPACING * 1.2) { p.visible = false; spawnNext(); }
+    }
+
+    for (const c of coins) {
+        if (!c.visible) continue;
+        c.userData.spin.rotation.z += dt * 3.2;
+        if (Math.abs(state.z - c.position.z) < 1.0 && Math.abs(state.y - c.position.y) < 1.2) {
+            c.visible = false;
+            state.coins++;
+            drawHud();
+        } else if (c.position.z > state.z + 8) {
+            c.visible = false;
+        }
+    }
+}
+
+/* ───────────────────────── input off-headset ───────────────────────── */
+
+function screenFlap() { flap((FLAP_MIN_V + FLAP_MAX_V) / 2); }
+addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); screenFlap(); } });
+renderer.domElement.addEventListener('pointerdown', screenFlap);
+
+// Either controller button recentres, because drifting off the play space is
+// the single most common thing that goes wrong in a standing VR session.
+function wireControllerButtons() {
+    hands.forEach(c => {
+        c.addEventListener('selectstart', recentre);
+        c.addEventListener('squeezestart', recentre);
+    });
+}
+function recentre() {
+    const base = renderer.xr.getReferenceSpace && renderer.xr.getReferenceSpace();
+    if (base && base.getOffsetReferenceSpace) {
+        try {
+            renderer.xr.setReferenceSpace(base.getOffsetReferenceSpace(new XRRigidTransform()));
+        } catch (e) { /* not all runtimes allow it; harmless */ }
+    }
+    detector.reset();
+}
+
+/* ───────────────────────── loop ───────────────────────── */
+
+let last = 0;
+renderer.setAnimationLoop((time) => {
+    const now = time || performance.now();
+    const dt = last ? (now - last) / 1000 : 0;
+    last = now;
+    step(dt, now);
+    fitVignette(renderer.xr.isPresenting ? renderer.xr.getCamera().cameras[0] || camera : camera);
+    renderer.render(scene, camera);
+    const h = document.getElementById('hud2d');
+    if (h.classList.contains('on'))
+        h.innerHTML = `score ${state.score} &middot; coins ${state.coins}<br>` +
+                      `height ${state.y.toFixed(1)} m &middot; ${SPEED} m/s`;
+});
+
+/* ───────────────────────── boot ───────────────────────── */
+
+const ui = document.getElementById('ui');
+const note = document.getElementById('note');
+const barfill = document.getElementById('barfill');
+
+const comfortBox = document.getElementById('comfort');
+try { comfortBox.checked = localStorage.getItem('crix_vr_vignette') !== '0'; } catch (e) {}
+function applyComfort() {
+    if (vignette) vignette.visible = comfortBox.checked;
+    try { localStorage.setItem('crix_vr_vignette', comfortBox.checked ? '1' : '0'); } catch (e) {}
+}
+comfortBox.addEventListener('change', applyComfort);
+
+function start(flat) {
+    applyComfort();
+    ui.classList.add('gone');
+    document.getElementById('hud2d').classList.toggle('on', !!flat);
+    reset();
+}
+
+loadAll(p => { barfill.style.width = Math.round(p * 100) + '%'; })
+    .then(async () => {
+        buildWorld();
+        buildRig();
+        wireControllerButtons();
+
+        const supported = navigator.xr && await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
+        if (supported) {
+            const b = VRButton.createButton(renderer);
+            document.getElementById('vrslot').appendChild(b);
+            note.textContent = 'Headset found. Put it on and press the button.';
+        } else {
+            note.innerHTML = navigator.xr
+                ? 'No headset on this device — open this page in the headset’s own browser.'
+                : 'This browser has no WebXR. Try the Quest browser, or Chrome with a headset attached.';
+        }
+        const flatBtn = document.getElementById('flat');
+        flatBtn.disabled = false;
+        flatBtn.addEventListener('click', () => start(true));
+        renderer.xr.addEventListener('sessionstart', () => start(false));
+
+        window.__vr = { THREE, state, detector, FlapDetector, step, reset, flap, pipes, coins, rig, scene,
+                        consts: { SPEED, GRAVITY, FLAP_MIN_V, FLAP_MAX_V, HAND_MIN, HAND_MAX,
+                                  FLAP_COOLDOWN, PIPE_GAP, PIPE_SPACING, CEIL, FLOOR, START_Y },
+                        hands, applyComfort, vignetteOf: () => vignette, ready: true };
+    })
+    .catch(err => {
+        note.innerHTML = 'Could not load the models: ' + err.message;
+        window.__vr = { ready: false, error: err.message };
+    });
+
+document.getElementById('again').addEventListener('click', () => reset());
+</script>
+</body>
+</html>
