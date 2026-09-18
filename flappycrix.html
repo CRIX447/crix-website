@@ -3042,7 +3042,7 @@
 
                 <div class="mp-section-title" style="margin-top:14px;">PLAYERS (<span id="mpPlayerCount">1</span>/8)</div>
                 <div class="mp-voice-bar">
-                    <button class="mp-voice-btn" id="mpVoiceBtn">🎙️ JOIN VOICE</button>
+                    <button class="mp-voice-btn" id="mpVoiceBtn">🎙️ VOICE</button>
                     <button class="mp-voice-btn small" id="mpMuteBtn" style="display:none;">MUTE</button>
                 </div>
                 <div class="mp-player-list" id="mpPlayerList"></div>
@@ -3890,6 +3890,22 @@
             <div class="set-row">
                 <span class="set-label">Sound effects</span>
                 <input type="range" id="setSfxVol" min="0" max="100" value="100" class="set-slider">
+            </div>
+            <!-- Ask before the pickers, because a browser will not tell you what
+                 your devices are called until you have said yes once. -->
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Microphone access</span>
+                    <div class="set-sub" id="micPermSub">Needed to talk in multiplayer</div>
+                </div>
+                <button class="set-mini-btn" id="micPermBtn">ALLOW</button>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
+                    <span class="set-label">Notifications</span>
+                    <div class="set-sub" id="notifPermSub">Friend requests and invites</div>
+                </div>
+                <button class="set-mini-btn" id="notifPermBtn">ALLOW</button>
             </div>
             <div class="set-row">
                 <div style="flex:1;min-width:0;">
@@ -6526,7 +6542,10 @@
         document.querySelectorAll('.set-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 if (tab.dataset.st === 'about') fillAboutPanel();
-                if (tab.dataset.st === 'audio' && typeof refreshAudioDevices === 'function') refreshAudioDevices();
+                if (tab.dataset.st === 'audio' && typeof refreshAudioDevices === 'function') {
+                    refreshAudioDevices();
+                    if (typeof refreshPermissions === 'function') refreshPermissions();
+                }
                 document.querySelectorAll('.set-tab').forEach(t =>
                     t.classList.toggle('active', t === tab));
                 const body = document.querySelector('.settings-body');
@@ -6921,7 +6940,14 @@
 
             const fill = (sel, kind, chosen) => {
                 const devs = list.filter(d => d.kind === kind);
-                sel.innerHTML = '<option value="">Default</option>' + devs.map((d, i) =>
+                // Without permission the list is one blank entry, which renders
+                // as a picker that looks broken. Say what it is waiting for.
+                if (!named) {
+                    sel.innerHTML = '<option value="">Allow the mic to see names</option>';
+                    sel.value = '';
+                    return;
+                }
+                sel.innerHTML = '<option value="">System default</option>' + devs.map((d, i) =>
                     `<option value="${d.deviceId}">${mpEsc(d.label || (kind === 'audioinput' ? 'Microphone ' : 'Speakers ') + (i + 1))}</option>`
                 ).join('');
                 sel.value = devs.some(d => d.deviceId === chosen) ? chosen : '';
@@ -6978,8 +7004,87 @@
         });
         navigator.mediaDevices?.addEventListener?.('devicechange', refreshAudioDevices);
 
+        /* ---- PERMISSIONS ----
+           A browser hands back device ids but blank labels until the person
+           has granted the microphone once, which is why the pickers read
+           "Default" and nothing else. Asking is the only way to fill them, so
+           there is a button that asks rather than a list that looks broken. */
+
+        function setPermRow(btn, sub, state, desc) {
+            if (!btn || !sub) return;
+            if (state === 'granted') {
+                btn.textContent = 'ALLOWED'; btn.disabled = true;
+                btn.style.opacity = '.6'; sub.textContent = desc;
+            } else if (state === 'denied') {
+                btn.textContent = 'BLOCKED'; btn.disabled = true;
+                btn.style.opacity = '.6';
+                sub.textContent = 'Blocked — reset it with the padlock in the address bar';
+            } else {
+                btn.textContent = 'ALLOW'; btn.disabled = false;
+                btn.style.opacity = ''; sub.textContent = desc;
+            }
+        }
+
+        async function refreshPermissions() {
+            const mb = document.getElementById('micPermBtn');
+            const ms = document.getElementById('micPermSub');
+            const MIC_DESC = 'Needed to talk in multiplayer';
+            if (!navigator.mediaDevices?.getUserMedia) {
+                setPermRow(mb, ms, 'denied', MIC_DESC);
+                if (ms) ms.textContent = 'This browser cannot open a microphone';
+            } else {
+                // permissions.query does not know about 'microphone' on every
+                // browser, so a throw here means "we cannot tell", not "no".
+                let state = 'prompt';
+                try {
+                    const st = await navigator.permissions.query({ name: 'microphone' });
+                    state = st.state;
+                    st.onchange = () => { setPermRow(mb, ms, st.state, MIC_DESC); refreshAudioDevices(); };
+                } catch (e) { state = 'prompt'; }
+                setPermRow(mb, ms, state, MIC_DESC);
+            }
+
+            const nb = document.getElementById('notifPermBtn');
+            const ns = document.getElementById('notifPermSub');
+            const N_DESC = 'Friend requests and invites';
+            if (!('Notification' in window)) {
+                if (ns) ns.textContent = 'Not supported on this browser';
+                if (nb) nb.style.display = 'none';
+            } else {
+                setPermRow(nb, ns, Notification.permission === 'default' ? 'prompt' : Notification.permission, N_DESC);
+            }
+        }
+
+        async function askForMic() {
+            const ms = document.getElementById('micPermSub');
+            let problem = '';
+            try {
+                const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+                s.getTracks().forEach(t => t.stop());   // release it straight away
+                playSfx('join', .4);
+            } catch (e) {
+                problem = e.name === 'NotAllowedError'
+                    ? 'Denied — reset it with the padlock in the address bar'
+                    : e.name === 'NotFoundError'
+                        ? 'No microphone is plugged into this device'
+                        : 'Could not open a microphone: ' + e.message;
+            }
+            await refreshPermissions();
+            await refreshAudioDevices();    // labels exist now
+            // refreshPermissions rewrites this line from the permission state,
+            // so the reason has to be put back after it, not before.
+            if (problem && ms) ms.textContent = problem;
+        }
+
+        document.getElementById('micPermBtn')?.addEventListener('click', askForMic);
+        document.getElementById('notifPermBtn')?.addEventListener('click', async () => {
+            try { await Notification.requestPermission(); } catch (e) {}
+            refreshPermissions();
+        });
+
         // What the voice client will read when it is wired up
         window.CrixAudio = {
+            permissions: refreshPermissions,
             get micId()     { return audioDevices.mic || undefined; },
             get speakerId() { return audioDevices.speaker || undefined; },
             refresh: refreshAudioDevices,
@@ -7009,6 +7114,8 @@
         const voice = {
             on: false,            // are we transmitting
             joining: false,
+            blocked: false,       // the browser refused the microphone
+            autoTried: false,
             muted: false,
             stream: null,         // our microphone
             peers: new Map(),     // actorNr -> { pc, audio, stream, level }
@@ -7036,11 +7143,15 @@
                     window.CrixAudio ? CrixAudio.micConstraints() : { audio: true });
             } catch (e) {
                 voice.joining = false;
+                voice.blocked = (e.name === 'NotAllowedError');
                 voiceRenderButton();
                 toast({ kind: 'warn', title: 'Microphone blocked',
-                        body: 'Allow mic access in your browser to talk.' });
+                        body: voice.blocked
+                            ? 'Allow the mic to talk — the button retries it.'
+                            : 'No microphone found.' });
                 return;
             }
+            voice.blocked = false;
             voice.on = true;
             voice.joining = false;
             voiceMeterStart();
@@ -7221,10 +7332,13 @@
         function voiceRenderButton() {
             const b = document.getElementById('mpVoiceBtn');
             if (b) {
-                b.classList.toggle('on', voice.on);
+                b.classList.toggle('on', voice.on && !voice.muted);
+                // There is no joining in: you are in it. The only states worth
+                // a button are "talking", "muted", and "the browser said no".
                 b.textContent = voice.joining ? '⏳ CONNECTING'
                               : voice.on ? (voice.muted ? '🔇 MUTED' : '🎙️ TALKING')
-                              : '🎙️ JOIN VOICE';
+                              : voice.blocked ? '🚫 MIC BLOCKED'
+                              : '🎙️ ENABLE MIC';
             }
             const m = document.getElementById('mpMuteBtn');
             if (m) {
@@ -7269,7 +7383,13 @@
             }
         }
 
-        document.getElementById('mpVoiceBtn')?.addEventListener('click', () => { playSound(selectSound); voiceToggle(); });
+        document.getElementById('mpVoiceBtn')?.addEventListener('click', () => {
+            playSound(selectSound);
+            // Already in it: the button mutes. Not in it: it asks again, which
+            // is the only thing worth doing after a refusal.
+            if (voice.on) voiceSetMuted(!voice.muted);
+            else { voice.autoTried = true; voiceStart(); }
+        });
         document.getElementById('mpMuteBtn')?.addEventListener('click', () => voiceSetMuted(!voice.muted));
         document.getElementById('ingameMicBtn')?.addEventListener('click', () => voiceSetMuted(!voice.muted));
 
@@ -11334,6 +11454,17 @@
         function mpShowLobbyView() {
             mpShowView('mpViewLobby');
             document.getElementById('mpModalTitle').textContent = '🎮 LOBBY';
+            // You are in voice the moment you are in the room — there is no
+            // joining step. Tried once per room so a refusal is not a prompt
+            // that reappears every time the view is shown.
+            voiceAutoStart();
+        }
+
+        function voiceAutoStart() {
+            if (voice.on || voice.joining || voice.autoTried) return;
+            if (!mpCurrentRoom || !voiceSupported()) return;
+            voice.autoTried = true;
+            voiceStart();
         }
 
         function mpRenderLobby() {
@@ -11718,6 +11849,8 @@
             setTimeout(() => { mpIntentionalDisconnect = false; }, 3000);
             document.body.classList.remove('playing');
             if (voice.on) voiceStop();
+            voice.autoTried = false;
+            voice.blocked = false;
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpStopPing();

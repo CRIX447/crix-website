@@ -180,6 +180,7 @@ button,input,textarea{font-family:inherit}
     <div class="av" id="meAv" style="width:32px;height:32px;font-size:13px"></div>
     <span class="name">CRIX CHAT</span>
     <div style="margin-left:auto;display:flex;gap:2px">
+      <button class="ib" id="soundBtn" title="Sound effects">🔊</button>
       <button class="ib" id="setBtn" title="Settings">⚙</button>
       <button class="ib" id="playBtn" title="Play Flappy Crix">🎮</button>
       <button class="ib" id="outBtn" title="Sign out">⏻</button>
@@ -283,6 +284,13 @@ button,input,textarea{font-family:inherit}
       </div>
     </div>
     <select class="inp" id="micSelect" style="margin-bottom:10px"><option>Default</option></select>
+    <div class="srow">
+      <div style="flex:1">
+        <div class="sl">Speakers</div>
+        <div class="sd" id="spkNote">Where calls come out</div>
+      </div>
+    </div>
+    <select class="inp" id="spkSelect" style="margin-bottom:10px"><option>Default</option></select>
 
     <div class="sh">Privacy</div>
     <div class="srow">
@@ -435,15 +443,27 @@ $('gAuth').onclick = async () => {
     $('gErr').textContent = m[e.code] || e.message;
   } finally { $('gAuth').disabled = false; }
 };
-$('outBtn').onclick = () => { endCall(); auth.signOut(); };
-$('playBtn').onclick = () => location.href = '/flappycrix';
-$('soundBtn').textContent = soundOn ? '🔊' : '🔇';
-$('soundBtn').onclick = function () {
+/* on(id, event, handler) rather than $(id).onclick = ...
+   A missing element used to throw at the top level and kill every statement
+   after it — which is how the entire Settings panel came to be wired to
+   nothing. */
+function on(id, ev, fn) {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener(ev, fn);
+  else console.warn('[chat] no #' + id + ' to bind ' + ev);
+  return el;
+}
+
+on('outBtn', 'click', () => { endCall(); auth.signOut(); });
+on('playBtn', 'click', () => location.href = '/flappycrix');
+const _sb = document.getElementById('soundBtn');
+if (_sb) _sb.textContent = soundOn ? '🔊' : '🔇';
+on('soundBtn', 'click', function () {
   soundOn = !soundOn;
   try { localStorage.setItem('crixchat_sound', soundOn ? '1' : '0'); } catch {}
   this.textContent = soundOn ? '🔊' : '🔇';
   if (soundOn) beep('pop', .5);
-};
+});
 
 /* ---------- DISCORD ---------- */
 $('gDiscord').onclick = () => {
@@ -853,15 +873,18 @@ async function startCall(id, name, photo) {
   const mine = profile.pfId || profile.uid;
   try {
     localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() });
-  } catch {
-    alert('Microphone access is needed to make a call.');
+  } catch (e) {
+    toastChat(e.name === 'NotAllowedError'
+      ? 'Microphone blocked. Open Settings and allow it, then try again.'
+      : 'No microphone available: ' + e.message);
     return;
   }
   showCall({ uid:id, name, photo }, 'Calling…');
 
   pc = new RTCPeerConnection(ICE);
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; $('callStat').textContent = 'Connected'; };
+  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; applySpeaker();
+                      $('callStat').textContent = 'Connected'; };
 
   callDoc = db.collection('calls').doc();
   const offerCands = callDoc.collection('offerCandidates');
@@ -911,20 +934,62 @@ function watchCalls() {
       $('ansBtn').onclick = () => answer(d.ref, v);
       $('declineBtn').onclick = () => { d.ref.update({ status:'declined' }); $('ring').style.display='none';
         if (ringTone) { try { ringTone.pause(); } catch {} ringTone = null; } };
-    }, () => {});
+    }, err => {
+      // Swallowing this meant a rules denial or a missing composite index
+      // looked exactly like "nobody is calling you".
+      console.error('[calls]', err);
+      const note = /permission|insufficient/i.test(err.message || '')
+        ? 'Calls are blocked by the database rules — publish firestore.rules.'
+        : /index/i.test(err.message || '')
+          ? 'Calls need a Firestore index on calls(to, status). The console link in the error creates it.'
+          : 'Could not listen for calls: ' + err.message;
+      const el = $('micState');
+      if (el) el.textContent = note;
+      toastChat(note);
+    });
+}
+
+/* A visible message that is not an alert(), so it can carry a sentence and
+   not stop the page while someone reads it. */
+function toastChat(text) {
+  let el = document.getElementById('chatToast');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'chatToast';
+    el.style.cssText = 'position:fixed;left:50%;bottom:22px;transform:translateX(-50%);' +
+      'max-width:min(420px,88vw);padding:12px 16px;border-radius:14px;z-index:99999;' +
+      'background:rgba(10,10,16,.94);border:2px solid #FF6B35;color:#EDEDED;' +
+      "font:13px/1.55 'Trebuchet MS',system-ui,sans-serif;box-shadow:0 8px 28px rgba(0,0,0,.45)";
+    document.body.appendChild(el);
+  }
+  el.textContent = text;
+  el.style.display = 'block';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.style.display = 'none'; }, 6000);
 }
 
 async function answer(ref, v) {
+  // Ask for the microphone FIRST. Hiding the ring and then failing left the
+  // caller ringing out for forty seconds with no idea it had been picked up.
+  try { localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() }); }
+  catch (e) {
+    toastChat(e.name === 'NotAllowedError'
+      ? 'Microphone blocked, so the call cannot be answered. Allow it in Settings.'
+      : 'No microphone available: ' + e.message);
+    ref.update({ status: 'declined' }).catch(() => {});
+    $('ring').style.display = 'none';
+    if (ringTone) { try { ringTone.pause(); } catch {} ringTone = null; }
+    return;
+  }
   $('ring').style.display = 'none';
   if (ringTone) { try { ringTone.pause(); } catch {} ringTone = null; }
-  try { localStream = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() }); }
-  catch { alert('Microphone access is needed to answer.'); return; }
 
   showCall({ uid:v.from, name:v.fromName, photo:v.fromPhoto }, 'Connecting…');
   callDoc = ref;
   pc = new RTCPeerConnection(ICE);
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; $('callStat').textContent = 'Connected'; };
+  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; applySpeaker();
+                      $('callStat').textContent = 'Connected'; };
   pc.onicecandidate = e => e.candidate && ref.collection('answerCandidates').add(e.candidate.toJSON());
 
   await pc.setRemoteDescription(new RTCSessionDescription(v.offer));
@@ -954,7 +1019,7 @@ function endCall() {
   $('call').style.display = 'none';
   $('remoteAudio').srcObject = null;
 }
-$('endBtn').onclick = endCall;
+on('endBtn', 'click', endCall);
 $('muteBtn').onclick = function () {
   if (!localStream) return;
   const track = localStream.getAudioTracks()[0];
@@ -962,12 +1027,12 @@ $('muteBtn').onclick = function () {
   this.textContent = track.enabled ? '🎤' : '🔇';
   this.style.background = track.enabled ? '#2a2a38' : 'var(--red)';
 };
-$('callBtn').onclick = () => peer && startCall(peer.id, peer.name, peer.photo);
+on('callBtn', 'click', () => peer && startCall(peer.id, peer.name, peer.photo));
 window.addEventListener('beforeunload', endCall);
 
 /* ---------- SETTINGS ---------- */
-$('setBtn').onclick = () => { $('setModal').style.display='flex'; refreshPerms(); };
-$('setClose').onclick = () => $('setModal').style.display='none';
+on('setBtn', 'click', () => { $('setModal').style.display='flex'; refreshPerms(); });
+on('setClose', 'click', () => $('setModal').style.display='none');
 
 async function refreshPerms() {
   // Microphone
@@ -977,7 +1042,9 @@ async function refreshPerms() {
     setPerm(mb, ms, p.state, 'Needed for voice calls');
     p.onchange = () => setPerm(mb, ms, p.state, 'Needed for voice calls');
   } catch {
-    ms.textContent = 'Tap Allow when you first make a call';
+    // Not "denied" — this browser simply cannot report the state, so the
+    // button has to stay usable.
+    setPerm(mb, ms, 'prompt', 'Needed for voice calls');
   }
   // Notifications
   const nb = $('notifBtn'), ns = $('notifState');
@@ -1003,38 +1070,89 @@ function setPerm(btn, label, state, desc) {
   }
 }
 
-$('micBtn').onclick = async () => {
+on('micBtn', 'click', async () => {
+  let problem = '';
   try {
     const s = await navigator.mediaDevices.getUserMedia({ audio:true });
     s.getTracks().forEach(t => t.stop());     // release it straight away
     beep('pop', .5);
   } catch (e) {
-    $('micState').textContent = e.name === 'NotAllowedError'
+    problem = e.name === 'NotAllowedError'
       ? 'Denied — reset it via the padlock in the address bar'
-      : 'Could not access a microphone: ' + e.message;
+      : e.name === 'NotFoundError'
+        ? 'No microphone is plugged into this device'
+        : 'Could not access a microphone: ' + e.message;
   }
-  refreshPerms();
-};
+  await refreshPerms();
+  // refreshPerms rewrites this line from the permission state, so the reason
+  // has to go back afterwards or it is wiped the instant it is set.
+  if (problem) $('micState').textContent = problem;
+});
 
-$('notifBtn').onclick = async () => {
+on('notifBtn', 'click', async () => {
   try { await Notification.requestPermission(); } catch {}
   refreshPerms();
-};
+});
 
 async function listMics() {
-  const sel = $('micSelect');
-  try {
-    const devs = await navigator.mediaDevices.enumerateDevices();
-    const mics = devs.filter(d => d.kind === 'audioinput');
-    if (!mics.length || !mics[0].label) { sel.innerHTML = '<option>Default (allow the mic to see names)</option>'; return; }
-    const saved = localStorage.getItem('crixchat_mic') || '';
-    sel.innerHTML = mics.map(m =>
-      `<option value="${esc(m.deviceId)}"${m.deviceId===saved?' selected':''}>${esc(m.label)}</option>`).join('');
-  } catch { sel.innerHTML = '<option>Default</option>'; }
+  const sel = $('micSelect'), spk = $('spkSelect');
+  let devs = [];
+  try { devs = await navigator.mediaDevices.enumerateDevices(); }
+  catch { sel.innerHTML = '<option>Default</option>'; return; }
+
+  const named = devs.some(d => d.label);
+  const fill = (el, kind, key) => {
+    if (!el) return;
+    const list = devs.filter(d => d.kind === kind);
+    if (!named || !list.length) {
+      el.innerHTML = '<option value="">Allow the mic to see device names</option>';
+      return;
+    }
+    let saved = '';
+    try { saved = localStorage.getItem(key) || ''; } catch {}
+    el.innerHTML = '<option value="">System default</option>' + list.map(d =>
+      `<option value="${esc(d.deviceId)}"${d.deviceId===saved?' selected':''}>${esc(d.label)}</option>`).join('');
+  };
+  fill(sel, 'audioinput', 'crixchat_mic');
+  fill(spk, 'audiooutput', 'crixchat_spk');
+
+  // Chromium-only; on anything else the browser always uses the system output.
+  if (spk && !('setSinkId' in HTMLMediaElement.prototype)) {
+    spk.disabled = true;
+    const n = $('spkNote');
+    if (n) n.textContent = 'This browser always uses the system output';
+  }
 }
-$('micSelect').onchange = function () {
+$('micSelect').onchange = async function () {
   try { localStorage.setItem('crixchat_mic', this.value); } catch {}
+  // Swap the track on the live connection rather than making someone hang up
+  // and call again to change microphone.
+  if (!pc || !localStream) return;
+  let fresh;
+  try { fresh = await navigator.mediaDevices.getUserMedia({ audio: micConstraint() }); }
+  catch { return; }
+  const track = fresh.getAudioTracks()[0];
+  if (!track) return;
+  const was = localStream.getAudioTracks()[0];
+  track.enabled = was ? was.enabled : true;
+  const sender = pc.getSenders().find(x => x.track && x.track.kind === 'audio');
+  if (sender) sender.replaceTrack(track).catch(() => {});
+  localStream.getTracks().forEach(t => t.stop());
+  localStream = fresh;
 };
+
+$('spkSelect').onchange = function () {
+  try { localStorage.setItem('crixchat_spk', this.value); } catch {}
+  applySpeaker();
+};
+
+function applySpeaker() {
+  const a = $('remoteAudio');
+  if (!a || !('setSinkId' in a)) return;
+  let id = '';
+  try { id = localStorage.getItem('crixchat_spk') || ''; } catch {}
+  a.setSinkId(id).catch(() => {});
+}
 
 $('togSound').onclick = function () {
   soundOn = !soundOn;
