@@ -45,6 +45,7 @@
     <script src="/ui.js?v=2026091101"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
     <script src="/playfab-manager.js?v=2026082519"></script>
+    <script src="/cosmetic-art.js?v=2026091801"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -5283,17 +5284,7 @@
         // The bird sprite was drawn into a square box regardless of its real
         // shape, which squashed it. This fits it inside the box and keeps the
         // proportions, centring whatever is left over.
-        function drawSprite(context, img, cx, cy, boxSize) {
-            if (!img || !img.complete || !img.naturalWidth) return false;
-
-            const ratio = img.naturalWidth / img.naturalHeight;
-            let w = boxSize, h = boxSize;
-            if (ratio > 1) h = boxSize / ratio;   // wider than tall
-            else if (ratio < 1) w = boxSize * ratio;
-
-            context.drawImage(img, cx - w / 2, cy - h / 2, w, h);
-            return true;
-        }
+        const drawSprite = window.CrixArt.drawSprite;
 
         // Hats sit ON the head, overlapping the top of the sprite slightly so
         // they look worn rather than floating. Aspect is preserved.
@@ -5324,24 +5315,6 @@
         // out behind you.
         function advanceTrail(store, dx) {
             for (let i = 0; i < store.length; i += 2) store[i] -= dx;
-        }
-        function drawTrail(context, flat, colours, size) {
-            if (!flat || flat.length < 4 || !colours || !colours.length) return;
-            const n = flat.length / 2;
-            context.save();
-            context.lineCap = 'round';
-            context.lineJoin = 'round';
-            for (let i = 1; i < n; i++) {
-                const t = i / n;                       // 0 oldest -> 1 newest
-                context.globalAlpha = t * t * 0.7;     // fade out fast at the tail
-                context.lineWidth = Math.max(1, size * 0.5 * t);
-                context.strokeStyle = colours[(n - i) % colours.length];
-                context.beginPath();
-                context.moveTo(flat[(i - 1) * 2], flat[(i - 1) * 2 + 1]);
-                context.lineTo(flat[i * 2], flat[i * 2 + 1]);
-                context.stroke();
-            }
-            context.restore();
         }
 
         // ---- TRAIL PREVIEWS ----
@@ -5423,15 +5396,6 @@
             }
         }
 
-        function drawHat(context, img, birdSize) {
-            if (!img || !img.complete || !img.naturalWidth) return;
-            const ratio = img.naturalWidth / img.naturalHeight;
-            const w = birdSize * 0.86;
-            const h = w / ratio;
-            // Overlap the head by about a fifth of the hat's height
-            const y = -birdSize * 0.42 - h * 0.55;
-            context.drawImage(img, -w / 2, y, w, h);
-        }
 
         /* ---- DRAWN HATS ----
            The seasonal head items are drawn rather than loaded. Each one works
@@ -5447,191 +5411,10 @@
            than up where a hat goes.
            Everything is flat fill with a dark outline, to match the pipes and
            the rest of the canvas. */
-        function hatStroke(g, s) {
-            g.strokeStyle = 'rgba(12,6,20,.85)';
-            g.lineWidth = Math.max(1, s * 0.05);
-            g.lineJoin = 'round';
-            g.stroke();
-        }
-        // roundRect only arrived in Chrome 99 and Safari 16.4. Calling it on
-        // anything older throws, and this runs inside the draw loop, so it
-        // would take out the whole frame rather than one hat.
-        function hatRect(g, x, y, w, h, r) {
-            if (typeof g.roundRect === 'function') { g.roundRect(x, y, w, h, r); return; }
-            g.moveTo(x + r, y);
-            g.arcTo(x + w, y,     x + w, y + h, r);
-            g.arcTo(x + w, y + h, x,     y + h, r);
-            g.arcTo(x,     y + h, x,     y,     r);
-            g.arcTo(x,     y,     x + w, y,     r);
-            g.closePath();
-        }
-        function hatBlob(g, s, fill, path) {
-            g.fillStyle = fill;
-            g.beginPath();
-            path();
-            g.fill();
-            hatStroke(g, s);
-        }
-
-        const HAT_SHAPES = {
-            // A cone that flops backwards, a fur band across the brow and a
-            // pompom where the tip lands. The bird faces +x, so the tip goes
-            // the other way.
-            santa(g, s) {
-                const top = -s * 0.40, tipX = -s * 0.60, tipY = -s * 0.70;
-                hatBlob(g, s, '#E8323F', () => {          // the cap, flopping back
-                    g.moveTo(s * 0.36, top);
-                    g.quadraticCurveTo(s * 0.10, -s * 0.78, tipX, tipY);
-                    g.quadraticCurveTo(-s * 0.18, -s * 0.50, -s * 0.38, top);
-                    g.closePath();
-                });
-                hatBlob(g, s, '#FFFFFF', () => {          // fur band across the brow
-                    hatRect(g, -s * 0.44, top - s * 0.06, s * 0.86, s * 0.17, s * 0.085);
-                });
-                hatBlob(g, s, '#FFFFFF', () => {          // pompom, on the tip
-                    g.arc(tipX, tipY, s * 0.12, 0, Math.PI * 2);
-                });
-            },
-
-            // A band, two soft ears and a pair of antlers with one prong each.
-            reindeer(g, s) {
-                const top = -s * 0.42;
-                g.save();
-                g.strokeStyle = '#6B4423';
-                g.lineCap = 'round';
-                g.lineWidth = s * 0.075;
-                [-1, 1].forEach(d => {
-                    g.beginPath();
-                    g.moveTo(d * s * 0.20, top);
-                    g.quadraticCurveTo(d * s * 0.30, top - s * 0.28, d * s * 0.24, top - s * 0.48);
-                    g.stroke();
-                    g.beginPath();                                   // outward prong
-                    g.moveTo(d * s * 0.27, top - s * 0.24);
-                    g.lineTo(d * s * 0.46, top - s * 0.36);
-                    g.stroke();
-                    g.beginPath();                                   // inward prong
-                    g.moveTo(d * s * 0.26, top - s * 0.38);
-                    g.lineTo(d * s * 0.12, top - s * 0.50);
-                    g.stroke();
-                });
-                g.restore();
-                [-1, 1].forEach(d => hatBlob(g, s, '#8B5A2B', () => {
-                    g.ellipse(d * s * 0.34, top - s * 0.06, s * 0.10, s * 0.15, d * 0.4, 0, Math.PI * 2);
-                }));
-                hatBlob(g, s, '#5A3A1E', () => {
-                    hatRect(g, -s * 0.40, top - s * 0.04, s * 0.80, s * 0.11, s * 0.055);
-                });
-            },
-
-            // Wide brim, tall cone with a bend near the tip, and a band.
-            witch(g, s) {
-                const top = -s * 0.40;
-                hatBlob(g, s, '#1E0F2E', () => {
-                    g.ellipse(0, top, s * 0.62, s * 0.15, 0, 0, Math.PI * 2);
-                });
-                hatBlob(g, s, '#2E1A46', () => {
-                    g.moveTo(-s * 0.30, top);
-                    g.quadraticCurveTo(-s * 0.26, -s * 0.80, -s * 0.50, -s * 0.94);
-                    g.quadraticCurveTo(-s * 0.16, -s * 0.84, s * 0.30, top);
-                    g.closePath();
-                });
-                hatBlob(g, s, '#8B3FD6', () => {
-                    hatRect(g, -s * 0.32, top - s * 0.15, s * 0.63, s * 0.13, s * 0.05);
-                });
-            },
-
-            // A carved pumpkin worn over the head, so it is centred on the
-            // head rather than perched above it.
-            pumpkin(g, s) {
-                const cy = s * 0.04, r = s * 0.36;
-                hatBlob(g, s, '#2E7D32', () => {
-                    hatRect(g, -s * 0.05, cy - r - s * 0.16, s * 0.11, s * 0.20, s * 0.05);
-                });
-                hatBlob(g, s, '#F07F16', () => { g.ellipse(0, cy, r, r * 0.92, 0, 0, Math.PI * 2); });
-                g.save();                                    // ribs
-                g.strokeStyle = 'rgba(160,70,0,.45)';
-                g.lineWidth = s * 0.035;
-                [-0.46, 0.46].forEach(k => {
-                    g.beginPath();
-                    g.moveTo(r * k, cy - r * 0.82);
-                    g.quadraticCurveTo(r * k * 1.5, cy, r * k, cy + r * 0.82);
-                    g.stroke();
-                });
-                g.restore();
-                g.fillStyle = '#2A1200';                      // the carving
-                [-1, 1].forEach(d => {
-                    g.beginPath();
-                    g.moveTo(d * r * 0.18, cy - r * 0.05);
-                    g.lineTo(d * r * 0.62, cy - r * 0.20);
-                    g.lineTo(d * r * 0.56, cy + r * 0.20);
-                    g.closePath();
-                    g.fill();
-                });
-                g.beginPath();
-                g.moveTo(-r * 0.60, cy + r * 0.34);
-                g.lineTo(-r * 0.30, cy + r * 0.62);
-                g.lineTo(-r * 0.08, cy + r * 0.36);
-                g.lineTo(r * 0.16, cy + r * 0.64);
-                g.lineTo(r * 0.44, cy + r * 0.36);
-                g.lineTo(r * 0.60, cy + r * 0.52);
-                g.lineTo(r * 0.30, cy + r * 0.74);
-                g.lineTo(-r * 0.34, cy + r * 0.72);
-                g.closePath();
-                g.fill();
-            },
-
-            // A bone mask over the face: cranium, sockets, nose, teeth.
-            skull(g, s) {
-                const cy = -s * 0.04, r = s * 0.30;
-                hatBlob(g, s, '#F2EDE4', () => {
-                    g.ellipse(0, cy - r * 0.10, r, r * 0.95, 0, 0, Math.PI * 2);
-                });
-                hatBlob(g, s, '#F2EDE4', () => {                      // jaw
-                    hatRect(g, -r * 0.46, cy + r * 0.52, r * 0.92, r * 0.52, r * 0.18);
-                });
-                g.fillStyle = '#17110F';
-                [-1, 1].forEach(d => {
-                    g.beginPath();
-                    g.ellipse(d * r * 0.42, cy - r * 0.14, r * 0.26, r * 0.30, d * 0.2, 0, Math.PI * 2);
-                    g.fill();
-                });
-                g.beginPath();                                        // nose
-                g.moveTo(0, cy + r * 0.12);
-                g.lineTo(-r * 0.14, cy + r * 0.42);
-                g.lineTo(r * 0.14, cy + r * 0.42);
-                g.closePath();
-                g.fill();
-                g.save();                                             // teeth
-                g.strokeStyle = '#17110F';
-                g.lineWidth = s * 0.035;
-                for (let i = -2; i <= 2; i++) {
-                    g.beginPath();
-                    g.moveTo(i * r * 0.20, cy + r * 0.56);
-                    g.lineTo(i * r * 0.20, cy + r * 1.00);
-                    g.stroke();
-                }
-                g.restore();
-            },
-
-            // Two long ears on a band, each with a pink inner.
-            bunny(g, s) {
-                const top = -s * 0.42;
-                [-1, 1].forEach(d => {
-                    hatBlob(g, s, '#FFFFFF', () => {
-                        g.ellipse(d * s * 0.20, top - s * 0.32, s * 0.13, s * 0.36,
-                                  d * 0.26, 0, Math.PI * 2);
-                    });
-                    g.fillStyle = '#FF9EC4';
-                    g.beginPath();
-                    g.ellipse(d * s * 0.21, top - s * 0.31, s * 0.06, s * 0.24,
-                              d * 0.26, 0, Math.PI * 2);
-                    g.fill();
-                });
-                hatBlob(g, s, '#FFFFFF', () => {
-                    hatRect(g, -s * 0.38, top - s * 0.04, s * 0.76, s * 0.11, s * 0.055);
-                });
-            }
-        };
+        // The shapes, the image placement and the trail renderer all live in
+        // cosmetic-art.js, because the owner console draws the same cosmetics
+        // and a second copy would drift the first time one was nudged.
+        const { HAT_SHAPES, drawHatImage, drawTrail } = window.CrixArt;
 
         // One entry point for every place a worn head item is drawn, so a
         // drawn hat and an image hat cannot drift apart.
@@ -5684,17 +5467,9 @@
         // on the next frame, with nothing to change here.
         function drawHatItem(context, item, birdSize) {
             if (!item) return;
-            const f = hatFit(item.id);
-            const size = birdSize * (f.scale || 1);
-            context.save();
-            // Offsets are a fraction of the bird, so the same numbers hold at
-            // every size the bird is ever drawn at.
-            context.translate(f.x * birdSize, f.y * birdSize);
-            if (f.rot) context.rotate(f.rot * Math.PI / 180);
-            const img = cachedImage(item.image);
-            if (img) drawHat(context, img, size);
-            else if (item.draw && HAT_SHAPES[item.draw]) HAT_SHAPES[item.draw](context, size);
-            context.restore();
+            // The cache and the saved fit are the game's; the drawing is shared.
+            window.CrixArt.drawHatOn(context, item, birdSize,
+                                     cachedImage(item.image), hatFit(item.id));
         }
 
         // A pipe with a lit edge, a shaded edge and a rim, so it reads as a

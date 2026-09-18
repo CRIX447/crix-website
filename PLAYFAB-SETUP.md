@@ -47,11 +47,23 @@ or anywhere else the browser can reach.
 | Power-ups | `x2coins`, `shield`, `magnet` | consumable, `UsagePeriod` = the in-game duration |
 | Unlocks | `player_menu` | 100,000,000 CN |
 | Roles | `role_owner`, `role_dev`, `role_mod` | **no price at all** |
+| Seasonal | `hat_witch`, `hat_skull`, `hat_pumpkin`, `trail_ghost` | Halloween — **no price**, granted by the calendar |
+| | `hat_reindeer`, `hat_santa`, `trail_tinsel` | Christmas — same |
+| | `hat_bunny`, `trail_pastel` | Easter — same |
 
-Item IDs, prices, durations and trail colours are checked against the running
-game by `scratchpad/catalogcheck.js`; if you change a price in
-`flappycrix.html` you have to change it here too, or a PlayFab purchase will be
-charged at a different number than the shop showed.
+The nine seasonal items carry no `VirtualCurrencyPrices` at all, deliberately.
+They are awarded by the season's calendar, and a price would be a second way to
+get them that bypasses the thing they exist to reward. Their `CustomData`
+records which season, which calendar and which door, so the catalog says where
+each one comes from without anyone opening the game.
+
+Hats carry both `image` and `draw`. The drawing is what players see until the
+PNG is uploaded; once the file exists it takes over on its own.
+
+Item IDs, prices, durations, trail colours, hat artwork and every calendar
+prize are checked against the running game rather than transcribed. If you
+change a price in `flappycrix.html` you have to change it here too, or a
+PlayFab purchase will be charged at a different number than the shop showed.
 
 ## 3. Grant a staff role
 
