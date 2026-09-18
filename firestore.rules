@@ -228,6 +228,14 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // Where each cosmetic sits on the bird. Everyone reads it, including
+    // guests, or the hat would be in a different place for them than for
+    // everybody else. Owners write it.
+    match /config/cosmeticFit {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     // ---- PERSONAL SEASON PREVIEW ----
     // Each person's own document and nobody else's. A preview only changes what
     // that one account sees, so it needs no owner check — but it must not be

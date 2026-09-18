@@ -2294,6 +2294,27 @@
             background: color-mix(in srgb, var(--season-panel, #000) 70%, #000);
         }
 
+        /* ---- COSMETIC FITTING ROOM ---- */
+        .fit-stage { position: relative; margin-bottom: 10px; }
+        #fitCanvas {
+            width: 100%; height: auto; display: block; border-radius: 14px;
+            background: radial-gradient(130% 150% at 25% 15%, #23304D, #0C0C15);
+            border: 2px solid rgba(255,255,255,.10);
+        }
+        .fit-sizes {
+            position: absolute; right: 8px; bottom: 8px; text-align: center;
+            background: rgba(0,0,0,.55); border-radius: 10px; padding: 4px 6px 2px;
+        }
+        #fitSmall { width: 60px; height: 60px; display: block; }
+        .fit-sizes span { font-size: 7px; opacity: .75; letter-spacing: .5px; }
+        .fit-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+        .fit-row label { flex: 0 0 74px; font-size: 10px; color: #A0A0A0;
+                         text-transform: uppercase; letter-spacing: 1px; }
+        .fit-row input[type=range] { flex: 1; accent-color: var(--orange); min-width: 0; }
+        .fit-row output { flex: 0 0 46px; text-align: right; font-size: 11px;
+                          font-weight: 700; color: #FFD700; }
+        .cos-pair { display: block; text-align: center; }
+
         /* ---- SEASONAL CALENDAR ---- */
         .cal-grid {
             display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
@@ -2731,6 +2752,101 @@
     </style>
 </head>
 <body>
+<!-- ═══════════ INTRO ═══════════
+     Plays once per session when the game is opened, then lifts and leaves you
+     on the menu. It used to live on the front page and send you here, which
+     meant the site itself could not be reached; here it is in front of the
+     thing it is introducing and sends you nowhere.
+     Everything about it is defensive: the file may not be there, autoplay may
+     be refused, the codec may be unsupported, and someone may simply not want
+     to sit through it. Any of those and it gets out of the way. -->
+<div id="intro" hidden>
+    <video id="introVideo" playsinline muted preload="auto"></video>
+    <div id="introBar"><i id="introFill"></i></div>
+    <button id="introSkip" type="button">SKIP →</button>
+    <button id="introSound" type="button" title="Sound">🔇</button>
+</div>
+<style>
+    #intro { position: fixed; inset: 0; z-index: 99999; background: #000;
+             display: flex; align-items: center; justify-content: center; }
+    #intro[hidden] { display: none; }
+    #introVideo { width: 100%; height: 100%; object-fit: cover; }
+    #introSkip, #introSound {
+        position: fixed; bottom: 26px; padding: 11px 20px; border-radius: 24px;
+        border: 2px solid rgba(255,255,255,.35); background: rgba(0,0,0,.55);
+        color: #fff; font: inherit; font-size: 13px; font-weight: 700;
+        letter-spacing: 1px; cursor: pointer;
+    }
+    #introSkip { right: 22px; }
+    #introSound { left: 22px; padding: 11px 14px; font-size: 15px; }
+    #introBar { position: fixed; left: 0; right: 0; bottom: 0; height: 3px;
+                background: rgba(255,255,255,.14); }
+    #introBar > i { display: block; height: 100%; width: 0;
+                    background: linear-gradient(90deg, #FF4655, #FF6B35); }
+    @media (prefers-reduced-motion: reduce) { #intro { display: none !important; } }
+</style>
+<script>
+(function () {
+    'use strict';
+    var SOURCES = ['/img/intro.mp4', '/video.mp4', '/img/video.mp4'];
+    var srcIndex = 0;
+    var KEY = 'crix_intro_seen';
+
+    var wrap = document.getElementById('intro');
+    var vid  = document.getElementById('introVideo');
+    var fill = document.getElementById('introFill');
+    if (!wrap || !vid) return;
+
+    // Once per browser session, so opening the game again in the same sitting
+    // does not make you watch it twice.
+    var seen = false;
+    try { seen = sessionStorage.getItem(KEY) === '1'; } catch (e) {}
+    if (seen || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var done = false;
+    function finish() {
+        if (done) return;
+        done = true;
+        try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+        try { vid.pause(); } catch (e) {}
+        wrap.hidden = true;
+        // The game is already underneath; nothing to navigate to.
+    }
+
+    // Try the next name before giving up; only a black screen with nothing
+    // left to try ends the intro.
+    function nextSource() {
+        srcIndex++;
+        if (srcIndex >= SOURCES.length) { finish(); return; }
+        vid.src = SOURCES[srcIndex];
+        var a = vid.play();
+        if (a && a.catch) a.catch(function () { finish(); });
+    }
+    vid.addEventListener('error', nextSource);
+    vid.addEventListener('stalled', function () { setTimeout(function () {
+        if (!done && vid.readyState < 2) finish();
+    }, 4000); });
+    vid.addEventListener('timeupdate', function () {
+        if (vid.duration) fill.style.width = (vid.currentTime / vid.duration * 100) + '%';
+    });
+    vid.addEventListener('ended', finish);
+
+    document.getElementById('introSkip').addEventListener('click', finish);
+    document.getElementById('introSound').addEventListener('click', function (e) {
+        vid.muted = !vid.muted;
+        e.currentTarget.textContent = vid.muted ? '🔇' : '🔊';
+    });
+    // A hard stop, so a video that hangs can never trap anyone on a black screen.
+    setTimeout(function () { if (!done && vid.readyState < 2) finish(); }, 6000);
+
+    // Muted autoplay is the only kind browsers allow without a gesture; the
+    // speaker button is there for anyone who wants the audio.
+    vid.src = SOURCES[0];
+    wrap.hidden = false;
+    var attempt = vid.play();
+    if (attempt && attempt.catch) attempt.catch(function () { finish(); });
+})();
+</script>
     <!-- AUTH MODAL -->
     <div class="auth-modal" id="authModal">
         <div class="auth-container">
@@ -3456,6 +3572,45 @@
         </div>
     </div>
 
+    <!-- COSMETIC FITTING ROOM -->
+    <div class="mp-modal" id="fitModal" style="z-index:46300;">
+        <div class="mp-modal-content" style="max-width:430px;">
+            <div class="modal-header">
+                <div class="modal-title">🎯 FITTING ROOM</div>
+                <button class="modal-close" id="closeFitBtn">✕</button>
+            </div>
+            <div class="set-sub" style="margin-bottom:10px;line-height:1.6;">
+                Move a hat until it sits right on the bird. Saved to everyone,
+                so upload the artwork first and then fit it here — no code change.
+            </div>
+            <select class="mp-input" id="fitPick" style="margin-bottom:10px;"></select>
+            <div class="fit-stage">
+                <canvas id="fitCanvas" width="520" height="250"></canvas>
+                <div class="fit-sizes">
+                    <canvas id="fitSmall" width="120" height="120"></canvas>
+                    <span>actual size in game</span>
+                </div>
+            </div>
+            <div class="fit-row"><label>Across</label>
+                <input type="range" id="fitX" min="-50" max="50" step="1" value="0">
+                <output id="fitXOut">0</output></div>
+            <div class="fit-row"><label>Up / down</label>
+                <input type="range" id="fitY" min="-50" max="50" step="1" value="0">
+                <output id="fitYOut">0</output></div>
+            <div class="fit-row"><label>Size</label>
+                <input type="range" id="fitS" min="40" max="220" step="1" value="100">
+                <output id="fitSOut">100%</output></div>
+            <div class="fit-row"><label>Tilt</label>
+                <input type="range" id="fitR" min="-45" max="45" step="1" value="0">
+                <output id="fitROut">0°</output></div>
+            <div style="display:flex;gap:6px;margin-top:12px;">
+                <button class="mp-btn-primary" id="fitSave" style="flex:1;">SAVE FOR EVERYONE</button>
+                <button class="mp-btn-secondary" id="fitReset" style="flex:0 0 auto;">RESET</button>
+            </div>
+            <div class="set-sub" id="fitOut" style="margin-top:8px;min-height:14px;"></div>
+        </div>
+    </div>
+
     <!-- SEASONAL CALENDAR -->
     <div class="mp-modal" id="seasonCalModal" style="z-index:46200;">
         <div class="mp-modal-content" style="max-width:420px;">
@@ -3842,6 +3997,15 @@
                 <button class="owner-btn" data-mypart="cal">🗓️ Calendar</button>
             </div>
             <div class="set-sub" id="mySeasonStatus" style="margin-top:6px;min-height:14px;"></div>
+
+            <div class="mp-section-title" style="margin-top:16px;">🎯 COSMETICS</div>
+            <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
+                Artwork never lands sitting exactly where the code assumed. Move
+                a hat until it looks right and it is fixed for every player.
+            </div>
+            <div class="owner-grid">
+                <button class="owner-btn" data-act="fitroom">🎯 Fitting room</button>
+            </div>
 
             <!-- ECONOMY -->
             <div class="mp-section-title" style="margin-top:16px;">💰 ECONOMY</div>
@@ -4400,30 +4564,30 @@
                on the canvas. */
             { id: 'hat_witch',    name: 'WITCH HAT',     type: 'hat', price: null, exclusive: true,
               season: 'spooky',    desc: 'Trick or treat · door 7',
-              draw: 'witch',    owned: false, equipped: false },
+              image: '/img/witch-hat.png', draw: 'witch',    owned: false, equipped: false },
             { id: 'hat_skull',    name: 'SKELETON MASK', type: 'hat', price: null, exclusive: true,
               season: 'spooky',    desc: 'Trick or treat · door 14',
-              draw: 'skull',    owned: false, equipped: false },
+              image: '/img/skeleton-mask.png', draw: 'skull',    owned: false, equipped: false },
             { id: 'hat_pumpkin',  name: 'PUMPKIN HEAD',  type: 'hat', price: null, exclusive: true,
               season: 'spooky',    desc: 'Trick or treat · door 31',
-              draw: 'pumpkin',  owned: false, equipped: false },
+              image: '/img/pumpkin-head.png', draw: 'pumpkin',  owned: false, equipped: false },
             { id: 'trail_ghost',  name: 'GHOST TRAIL',   type: 'trail', price: null, exclusive: true,
               season: 'spooky',    desc: 'Trick or treat · door 21',
               colours: ['#FFFFFF','#D7C9FF','#7A5AA8'], owned: false, equipped: false },
 
             { id: 'hat_reindeer', name: 'REINDEER EARS', type: 'hat', price: null, exclusive: true,
               season: 'christmas', desc: 'Advent calendar · door 6',
-              draw: 'reindeer', owned: false, equipped: false },
+              image: '/img/reindeer-ears.png', draw: 'reindeer', owned: false, equipped: false },
             { id: 'hat_santa',    name: "SANTA'S HAT",   type: 'hat', price: null, exclusive: true,
               season: 'christmas', desc: 'Advent calendar · door 24',
-              draw: 'santa',    owned: false, equipped: false },
+              image: '/img/santa-hat.png', draw: 'santa',    owned: false, equipped: false },
             { id: 'trail_tinsel', name: 'TINSEL TRAIL',  type: 'trail', price: null, exclusive: true,
               season: 'christmas', desc: 'Advent calendar · door 12',
               colours: ['#FFF6C9','#FFD700','#2FA85B','#E8323F'], owned: false, equipped: false },
 
             { id: 'hat_bunny',    name: 'BUNNY EARS',    type: 'hat', price: null, exclusive: true,
               season: 'easter',    desc: 'Egg hunt · door 4',
-              draw: 'bunny',    owned: false, equipped: false },
+              image: '/img/bunny-ears.png', draw: 'bunny',    owned: false, equipped: false },
             { id: 'trail_pastel', name: 'PASTEL TRAIL',  type: 'trail', price: null, exclusive: true,
               season: 'easter',    desc: 'Egg hunt · door 7',
               colours: ['#FFD1E8','#FFF3B0','#B8F2C8','#B9D9FF'], owned: false, equipped: false }
@@ -4750,10 +4914,15 @@
         function cosmeticArt(c, h) {
             if (c.type === 'trail')
                 return `<canvas class="cos-swatch" data-trail="${c.id}" width="208" height="${h * 2}"></canvas>`;
-            // A drawn hat has no file to point an <img> at, so the card draws
-            // it with the same shape the bird wears.
+            // An item with a drawn shape carries both: the canvas stands in
+            // until the PNG exists, and the image hides the canvas once it
+            // loads. An item with no shape is just the image, as before.
             if (c.draw)
-                return `<canvas class="cos-swatch hat" data-hat="${c.id}" width="${h * 2}" height="${h * 2}"></canvas>`;
+                return `<span class="cos-pair">
+                    <canvas class="cos-swatch hat" data-hat="${c.id}" width="${h * 2}" height="${h * 2}"></canvas>
+                    ${c.image ? `<img src="${c.image}" onload="this.previousElementSibling.style.display='none'"
+                                      onerror="this.remove()">` : ''}
+                </span>`;
             return `<img src="${c.image}" onerror="this.style.display='none'">`;
         }
 
@@ -5466,16 +5635,66 @@
 
         // One entry point for every place a worn head item is drawn, so a
         // drawn hat and an image hat cannot drift apart.
+        /* ---- WHERE A COSMETIC SITS ----
+           Artwork never arrives sitting exactly where the code assumed, and
+           the person who drew it should not have to edit the file to move it.
+           Every head item carries an adjustment — offset, size and tilt — set
+           from the staff menu's fitting room and stored in Firestore so it
+           reaches every player rather than the one browser that nudged it.
+           The offsets are fractions of the bird's size, not pixels, so a fit
+           made against the big preview is the same fit on a 30px bird. */
+        const FIT_DEFAULT = { x: 0, y: 0, scale: 1, rot: 0 };
+        let cosmeticFit = {};
+        function hatFit(id) {
+            const f = cosmeticFit[id];
+            return f ? { ...FIT_DEFAULT, ...f } : FIT_DEFAULT;
+        }
+        function fitIsDefault(f) {
+            return !f || (!f.x && !f.y && (f.scale == null || f.scale === 1) && !f.rot);
+        }
+        const FIT_KEY = 'crix_cos_fit_v1';
+        function readFitLocal() {
+            try { cosmeticFit = JSON.parse(localStorage.getItem(FIT_KEY)) || {}; } catch (e) {}
+        }
+        function writeFitLocal() {
+            try { localStorage.setItem(FIT_KEY, JSON.stringify(cosmeticFit)); } catch (e) {}
+        }
+        readFitLocal();
+
+        function watchCosmeticFit() {
+            if (!db) return;
+            db.collection('config').doc('cosmeticFit').onSnapshot(d => {
+                cosmeticFit = (d.exists && d.data().items) || {};
+                writeFitLocal();
+                if (typeof updatePreview === 'function') updatePreview();
+                if (typeof fitRedraw === 'function') fitRedraw();
+            }, e => console.warn('[Fit]', e.message));
+        }
+        async function saveCosmeticFit() {
+            writeFitLocal();
+            if (!db || !currentUser) return false;
+            await db.collection('config').doc('cosmeticFit').set(
+                { items: cosmeticFit, at: Date.now(), by: currentUser.uid }, { merge: true });
+            return true;
+        }
+
+        // Artwork wins whenever there is any. cachedImage hands back null until
+        // the file has loaded and forever if it 404s, so an item with a drawn
+        // shape shows that shape until its PNG is uploaded and then swaps to it
+        // on the next frame, with nothing to change here.
         function drawHatItem(context, item, birdSize) {
             if (!item) return;
-            if (item.draw && HAT_SHAPES[item.draw]) {
-                context.save();
-                HAT_SHAPES[item.draw](context, birdSize);
-                context.restore();
-                return;
-            }
+            const f = hatFit(item.id);
+            const size = birdSize * (f.scale || 1);
+            context.save();
+            // Offsets are a fraction of the bird, so the same numbers hold at
+            // every size the bird is ever drawn at.
+            context.translate(f.x * birdSize, f.y * birdSize);
+            if (f.rot) context.rotate(f.rot * Math.PI / 180);
             const img = cachedImage(item.image);
-            if (img) drawHat(context, img, birdSize);
+            if (img) drawHat(context, img, size);
+            else if (item.draw && HAT_SHAPES[item.draw]) HAT_SHAPES[item.draw](context, size);
+            context.restore();
         }
 
         // A pipe with a lit edge, a shaded edge and a rim, so it reads as a
@@ -5939,6 +6158,111 @@
             updateSeasonCalendarDot();
             _calClaiming = false;
         }
+        /* ---- THE FITTING ROOM ----
+           A big preview and four sliders. The small canvas beside it draws the
+           same thing at the size the bird actually is in play, because a hat
+           can look perfect at 200px and be a smudge at 30. */
+        let fitCurrent = null;
+        function fitItems() {
+            return cosmetics.filter(c => c.type === 'hat');
+        }
+        function fitRedraw() {
+            const item = cosmetics.find(c => c.id === fitCurrent);
+            const big = document.getElementById('fitCanvas');
+            const small = document.getElementById('fitSmall');
+            if (!big || !item) return;
+            // The big one is a working view; the small one is the size the bird
+            // actually is in play, because a hat can look right at 150px and be
+            // a smudge at 30.
+            [[big, 150], [small, 30]].forEach(([cv, size]) => {
+                const g = cv.getContext('2d');
+                g.clearRect(0, 0, cv.width, cv.height);
+                g.save();
+                // The bird sits low in the big frame so a tall hat has headroom.
+                g.translate(cv.width / 2, cv.height / 2 + (cv === big ? cv.height * 0.14 : 0));
+                if (cv === big) {
+                    // A centre line, so "across" has something to be centred on
+                    g.strokeStyle = 'rgba(255,255,255,.12)';
+                    g.beginPath(); g.moveTo(0, -cv.height); g.lineTo(0, cv.height); g.stroke();
+                }
+                drawSprite(g, birdImage, 0, 0, size);
+                drawHatItem(g, item, size);
+                g.restore();
+            });
+        }
+        function fitLoadItem(id) {
+            fitCurrent = id;
+            const f = hatFit(id);
+            const set = (el, v) => { const e = document.getElementById(el); if (e) e.value = v; };
+            set('fitX', Math.round(f.x * 100));
+            set('fitY', Math.round(f.y * 100));
+            set('fitS', Math.round((f.scale || 1) * 100));
+            set('fitR', Math.round(f.rot || 0));
+            fitSync(false);
+        }
+        // Reads the sliders into the live fit and repaints. `commit` is false
+        // while dragging: the change is local and instant, and only the save
+        // button sends it to everyone.
+        function fitSync() {
+            const num = id => +document.getElementById(id).value;
+            const x = num('fitX'), y = num('fitY'), sc = num('fitS'), r = num('fitR');
+            document.getElementById('fitXOut').textContent = x;
+            document.getElementById('fitYOut').textContent = y;
+            document.getElementById('fitSOut').textContent = sc + '%';
+            document.getElementById('fitROut').textContent = r + '°';
+            const f = { x: x / 100, y: y / 100, scale: sc / 100, rot: r };
+            if (fitIsDefault(f)) delete cosmeticFit[fitCurrent];
+            else cosmeticFit[fitCurrent] = f;
+            writeFitLocal();
+            fitRedraw();
+            try { updatePreview(); } catch (e) {}
+        }
+        function openFitRoom() {
+            const pick = document.getElementById('fitPick');
+            const items = fitItems();
+            if (!pick || !items.length) return;
+            pick.innerHTML = items.map(c =>
+                `<option value="${c.id}">${c.name}${c.image && !cachedImage(c.image) ? ' · drawn' : ''}</option>`
+            ).join('');
+            fitLoadItem(items[0].id);
+            document.getElementById('fitOut').textContent = '';
+            document.getElementById('fitModal')?.classList.add('active');
+            playSfx('whoosh', .5);
+        }
+        document.addEventListener('input', e => {
+            if (e.target.closest('#fitModal') && e.target.type === 'range') fitSync();
+        });
+        document.addEventListener('change', e => {
+            if (e.target.id === 'fitPick') fitLoadItem(e.target.value);
+        });
+        document.addEventListener('click', async e => {
+            if (e.target.closest('#closeFitBtn') || e.target.id === 'fitModal') {
+                document.getElementById('fitModal')?.classList.remove('active');
+                return;
+            }
+            if (e.target.closest('#fitReset')) {
+                delete cosmeticFit[fitCurrent];
+                writeFitLocal();
+                fitLoadItem(fitCurrent);
+                document.getElementById('fitOut').textContent = 'Back to where the code puts it.';
+                return;
+            }
+            if (e.target.closest('#fitSave')) {
+                const out = document.getElementById('fitOut');
+                out.textContent = 'Saving…';
+                try {
+                    const shared = await saveCosmeticFit();
+                    out.textContent = shared
+                        ? 'Saved — every player sees it there now.'
+                        : 'Saved on this device only — sign in to share it.';
+                    playSfx('unlock', .5);
+                } catch (err) {
+                    out.textContent = /permission/i.test(err.message)
+                        ? 'Owners only.' : 'Could not save: ' + err.message;
+                }
+            }
+        });
+
         function updateSeasonCalendarDot() {
             const btn = document.getElementById('seasonCalBtn');
             if (!btn) return;
@@ -7496,6 +7820,7 @@
         // theme is never wrong while the page is waking up.
         applySeasonClass();
         setTimeout(watchSeason, 1500);
+        setTimeout(watchCosmeticFit, 1500);
 
 
         // ═══════════ SETTINGS TABS ═══════════
@@ -10694,6 +11019,10 @@
 
             try {
                 switch (act) {
+                    case 'fitroom':
+                        // Nothing to send anywhere; it opens a panel.
+                        openFitRoom();
+                        return;
                     case 'kick':
                         if (!mpCurrentRoom) { ownerLog('Not in a lobby', false); return; }
                         photonClient.raiseEvent(MP_EV.KICK, { targetActor: t.actorNr }, { receivers: RC.All });
