@@ -41,6 +41,11 @@
     <script>window.__BUILD__ = "2026.08.25-1900";</script>
     
 
+    <!-- Resolves the bare specifiers inside vr.js. The module itself is only
+         fetched when someone opens VR, so the 2D game never pays for it. -->
+    <script type="importmap">
+    {"imports":{"three":"/vendor/three/three.module.min.js","three/addons/":"/vendor/three/addons/"}}
+    </script>
     <script src="/filter.js?v=2026082519"></script>
     <script src="/ui.js?v=2026091101"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
@@ -854,6 +859,7 @@
         body.clean-mode .broadcast { display: none !important; }
 
         /* ---- CLEAN MODE (trailer capture) ---- */
+        body.in-lobby .hud-live, body.in-lobby .ingame-bar { display: none !important; }
         body.clean-mode .ingame-bar,
         body.clean-mode .hud-live,
         body.clean-mode .mp-hud,
@@ -2243,6 +2249,33 @@
         }
         .locker-empty { font-size: 12px; padding: 12px; opacity: .7; }
 
+        /* ---- LOBBY CONTROLS ---- */
+        .lobby-stick, .lobby-jump, .lobby-exit { display: none; position: fixed; z-index: 9000; }
+        .lobby-stick.on, .lobby-jump.on, .lobby-exit.on { display: flex; }
+        .lobby-stick {
+            left: 18px; bottom: 22px; width: 116px; height: 116px; border-radius: 50%;
+            background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.14);
+            align-items: center; justify-content: center; touch-action: none;
+        }
+        .lobby-stick > i {
+            width: 52px; height: 52px; border-radius: 50%; display: block;
+            background: linear-gradient(135deg, var(--red), var(--orange));
+            box-shadow: 0 2px 0 rgba(0,0,0,.35); transition: transform .05s;
+        }
+        .lobby-jump {
+            right: 20px; bottom: 34px; width: 92px; height: 92px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--red), var(--orange));
+            border: 2px solid rgba(255,255,255,.15); border-bottom-width: 5px;
+            color: #fff; font: inherit; font-weight: 700; font-size: 14px;
+            align-items: center; justify-content: center; touch-action: none;
+        }
+        .lobby-exit {
+            top: 46px; right: 12px; padding: 8px 14px; border-radius: 20px;
+            background: rgba(8,8,14,.7); border: 2px solid rgba(255,255,255,.14);
+            color: var(--txt); font: inherit; font-size: 11px; font-weight: 700;
+            align-items: center; cursor: pointer;
+        }
+
         /* ---- STORE SECTIONS ----
            The cosmetics tab used to be one flat grid with hats and trails
            jumbled together, which only got worse as items were added. */
@@ -2752,11 +2785,16 @@
             <button class="icon-btn staff" id="ownerBtn" title="Staff menu" style="display:none;"><span>🛡️</span><label>Staff</label></button>
         </div>
         <div class="mp-diagnostic-banner" id="mpDiagnosticBanner" style="display:none;"></div>
+        <!-- Walking the lobby on a phone. Hidden until the lobby is open. -->
+        <div id="lobbyStick" class="lobby-stick"><i id="lobbyKnob"></i></div>
+        <button id="lobbyJump" class="lobby-jump">JUMP</button>
+        <button id="lobbyExit" class="lobby-exit">✕ LEAVE LOBBY</button>
         
         
         
         <div class="game-controls">
             <button class="game-btn" id="startGameBtn">▶ START</button>
+            <button class="game-btn secondary" id="lobbyBtn">🪨 LOBBY</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
 
@@ -3846,6 +3884,13 @@
             <div class="set-row">
                 <span class="set-label">Reduced motion</span>
                 <div class="mp-toggle-switch" id="setMotionToggle"></div>
+            </div>
+            <div class="set-row">
+                <div style="min-width:0;">
+                    <span class="set-label">VR mode</span>
+                    <div class="set-sub" id="setVrSub">Flap your arms to fly</div>
+                </div>
+                <button class="set-mini-btn" id="setVrBtn">ENTER VR</button>
             </div>
 
             <div class="mp-section-title" style="margin-top:16px;">🔊 AUDIO</div>
@@ -5259,6 +5304,289 @@
             _lastTime = 0;   // avoids a huge delta spike on return
         });
 
+        /* ═══════════════════ THE LOBBY ═══════════════════
+           The same rock the VR build drops you onto, seen from the side. VR
+           players haul themselves around it with their arms; here you walk it
+           with a stick. Touch the green pad in either one and you are flying.
+
+           It runs on the game canvas with its own update and draw, so it does
+           not disturb a run in progress — starting the lobby stops the game
+           and vice versa. */
+
+        /* The lobby is authored in a fixed virtual space and scaled to whatever
+           canvas it lands on. Drawn in raw pixels it filled a phone's tall
+           canvas with sky and left the rock in a strip at the bottom. */
+        const LOBBY_W = 1400;                 // world units across; the view scrolls
+        const LOBBY_H = 470;                  // world units tall; scaled to fit
+        const lobby2d = {
+            on: false, x: 320, y: 0, vx: 0, vy: 0, onGround: false,
+            face: 1, walk: 0, cam: 0,
+            keys: Object.create(null), stick: { on: false, dx: 0, id: -1 }
+        };
+
+        // Blocks are laid out to echo the VR lobby: a flat rock with things to
+        // climb, and the launch pad in the middle.
+        /* A phone holds the canvas in portrait, and a uniform scale means only
+           about 330 world units are visible across. Blocks have to be narrow
+           enough that several are in shot at once. */
+        const LOBBY_BLOCKS = [
+            { x:  90, y:  70, w:  78, h: 22 },
+            { x: 226, y: 132, w:  70, h: 22 },
+            { x: 356, y:  84, w:  86, h: 22 },
+            { x: 506, y: 160, w:  74, h: 22 },
+            { x: 636, y:  96, w:  82, h: 22 },
+            { x: 790, y: 190, w:  70, h: 22 },
+            { x: 918, y: 120, w:  88, h: 22 },
+            { x: 1074, y: 64, w:  76, h: 22 }
+        ];
+        const LOBBY_PAD = { x: 452, w: 78, h: 14 };
+        const LOBBY_GROUND_H = 78;            // from the bottom of the canvas
+
+        function lobbyFloorAt(x, y, vy) {
+            // ground first, then any block whose top we are falling onto
+            let best = LOBBY_GROUND_H;
+            for (const b of LOBBY_BLOCKS) {
+                if (x + 16 < b.x || x - 16 > b.x + b.w) continue;
+                const top = b.y + b.h;
+                if (y >= top - 2 || vy > 0) continue;   // only land from above
+                best = Math.max(best, top);
+            }
+            return best;
+        }
+
+        function startLobby2D() {
+            if (gameRunning) { gameRunning = false; gameOver = false; }
+            lobby2d.on = true;
+            lobby2d.x = 320; lobby2d.y = LOBBY_GROUND_H; lobby2d.vx = 0; lobby2d.vy = 0;
+            lobby2d.cam = 0; lobby2d.face = 1; lobby2d.walk = 0;
+            document.body.classList.add('playing', 'in-lobby');
+            const touch = isTouch();
+            document.getElementById('lobbyStick')?.classList.toggle('on', touch);
+            document.getElementById('lobbyJump')?.classList.toggle('on', touch);
+            document.getElementById('lobbyExit')?.classList.add('on');
+            if (!animationId) animationId = requestAnimationFrame(gameLoop);
+        }
+
+        function stopLobby2D() {
+            lobby2d.on = false;
+            document.body.classList.remove('playing', 'in-lobby');
+            ['lobbyStick','lobbyJump','lobbyExit'].forEach(id =>
+                document.getElementById(id)?.classList.remove('on'));
+        }
+
+        function isTouch() {
+            return matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
+        }
+
+        function lobbyInput() {
+            const k = lobby2d.keys;
+            let dx = 0;
+            if (k['KeyA'] || k['ArrowLeft'])  dx -= 1;
+            if (k['KeyD'] || k['ArrowRight']) dx += 1;
+            if (lobby2d.stick.on) dx += lobby2d.stick.dx;
+            const jump = !!(k['KeyW'] || k['Space'] || k['ArrowUp'] || lobby2d.stick.jump);
+            return { dx: Math.max(-1, Math.min(1, dx)), jump };
+        }
+
+        function updateLobby2D(dt) {
+            const { dx, jump } = lobbyInput();
+            const ACC = 1800, MAXV = 330, FRICT = 0.82, GRAV = -2100, JUMP = 720;
+
+            lobby2d.vx += dx * ACC * dt;
+            if (!dx) lobby2d.vx *= Math.pow(FRICT, dt * 60);
+            lobby2d.vx = Math.max(-MAXV, Math.min(MAXV, lobby2d.vx));
+            if (dx) lobby2d.face = dx > 0 ? 1 : -1;
+
+            lobby2d.vy += GRAV * dt;
+            lobby2d.x += lobby2d.vx * dt;
+            lobby2d.y += lobby2d.vy * dt;
+            lobby2d.x = Math.max(24, Math.min(LOBBY_W - 24, lobby2d.x));
+
+            const floor = lobbyFloorAt(lobby2d.x, lobby2d.y, lobby2d.vy);
+            if (lobby2d.y <= floor) {
+                lobby2d.y = floor;
+                lobby2d.vy = 0;
+                lobby2d.onGround = true;
+            } else lobby2d.onGround = false;
+
+            if (jump && lobby2d.onGround) { lobby2d.vy = JUMP; lobby2d.onGround = false; playSound(jumpSound); }
+            lobby2d.walk += Math.abs(lobby2d.vx) * dt * 0.05;
+
+            // camera follows with the player a third in from the left
+            const view = canvas.width / lobbyScale();
+            const target = Math.max(0, Math.min(LOBBY_W - view, lobby2d.x - view * 0.38));
+            lobby2d.cam += (target - lobby2d.cam) * Math.min(1, dt * 7);
+
+            // the pad launches a run, the same as slapping it in VR
+            const padY = LOBBY_GROUND_H;
+            if (Math.abs(lobby2d.x - (LOBBY_PAD.x + LOBBY_PAD.w / 2)) < LOBBY_PAD.w / 2 + 14 &&
+                lobby2d.y < padY + 46) {
+                stopLobby2D();
+                startGame();
+            }
+        }
+
+        function lobbyScale() { return canvas.height / LOBBY_H; }
+
+        function drawLobby2D() {
+            const W = canvas.width, H = canvas.height;
+            drawBackdrop();
+            const S = lobbyScale();
+            ctx.save();
+            ctx.scale(S, S);
+            ctx.translate(-lobby2d.cam, 0);
+
+            const groundY = LOBBY_H - LOBBY_GROUND_H;
+
+            // the rock
+            ctx.fillStyle = '#1E4A2E';
+            ctx.fillRect(0, groundY, LOBBY_W, LOBBY_GROUND_H);
+            ctx.fillStyle = 'rgba(255,255,255,.07)';
+            ctx.fillRect(0, groundY, LOBBY_W, 4);
+
+            LOBBY_BLOCKS.forEach(b => {
+                const y = LOBBY_H - b.y - b.h;
+                ctx.fillStyle = '#4A5A46';
+                ctx.fillRect(b.x, y, b.w, b.h + b.y);
+                ctx.fillStyle = '#1E4A2E';
+                ctx.fillRect(b.x, y, b.w, b.h);
+                ctx.fillStyle = 'rgba(255,255,255,.10)';
+                ctx.fillRect(b.x, y, b.w, 3);
+            });
+
+            // launch pad
+            const px = LOBBY_PAD.x, py = LOBBY_H - LOBBY_GROUND_H - LOBBY_PAD.h;
+            ctx.fillStyle = pipeGradient(LOBBY_PAD.w);
+            ctx.save(); ctx.translate(px, 0);
+            ctx.fillRect(0, py, LOBBY_PAD.w, LOBBY_PAD.h);
+            ctx.restore();
+            ctx.fillStyle = '#4DE8A8';
+            ctx.fillRect(px, py, LOBBY_PAD.w, 3);
+            ctx.fillStyle = '#EDEDED';
+            ctx.font = 'bold 13px "Trebuchet MS", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('FLY', px + LOBBY_PAD.w / 2, py - 10);
+
+            // you
+            const bx = lobby2d.x, by = LOBBY_H - lobby2d.y - 30;
+            const bob = lobby2d.onGround ? Math.sin(lobby2d.walk) * 2 : 0;
+            ctx.save();
+            ctx.translate(bx, by + bob);
+            ctx.scale(lobby2d.face, 1);
+            drawSprite(ctx, birdImage, 0, 0, 34);
+            const hat = cosmetics.find(c => c.type === 'hat' && c.equipped && c.owned);
+            if (hat) { const hi = cachedImage(hat.image); if (hi) drawHat(ctx, hi, 34); }
+            ctx.restore();
+
+            ctx.restore();
+
+            // a line of help, and the way out
+            ctx.fillStyle = 'rgba(8,8,14,.6)';
+            ctx.fillRect(0, 0, W, 34);
+            ctx.fillStyle = '#EDEDED';
+            ctx.font = 'bold 13px "Trebuchet MS", sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText('LOBBY', 12, 22);
+            ctx.fillStyle = '#9A9AA6';
+            ctx.font = '12px "Trebuchet MS", sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillText(isTouch() ? 'stick to walk · reach the FLY pad'
+                                   : 'A / D to walk · W to jump · reach the FLY pad', W - 12, 22);
+        }
+
+        addEventListener('keydown', e => {
+            if (!lobby2d.on) return;
+            lobby2d.keys[e.code] = true;
+            if (['KeyA','KeyD','KeyW','Space','ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault();
+            if (e.code === 'Escape') { stopLobby2D(); }
+        });
+        addEventListener('keyup', e => { lobby2d.keys[e.code] = false; });
+
+        // ---- touch stick: drag the knob, read it as an axis ----
+        (function wireStick() {
+            const pad = document.getElementById('lobbyStick');
+            const knob = document.getElementById('lobbyKnob');
+            const jump = document.getElementById('lobbyJump');
+            if (!pad) return;
+            const R = 32;
+            const move = e => {
+                const t = [...e.touches].find(t => t.identifier === lobby2d.stick.id);
+                if (!t) return;
+                const r = pad.getBoundingClientRect();
+                const dx = Math.max(-R, Math.min(R, t.clientX - (r.left + r.width / 2)));
+                lobby2d.stick.dx = dx / R;
+                knob.style.transform = `translateX(${dx}px)`;
+            };
+            const end = e => {
+                if ([...e.touches].some(t => t.identifier === lobby2d.stick.id)) return;
+                lobby2d.stick.on = false; lobby2d.stick.dx = 0; lobby2d.stick.id = -1;
+                knob.style.transform = '';
+            };
+            pad.addEventListener('touchstart', e => {
+                e.preventDefault();
+                lobby2d.stick.on = true;
+                lobby2d.stick.id = e.changedTouches[0].identifier;
+                move(e);
+            }, { passive: false });
+            pad.addEventListener('touchmove', e => { e.preventDefault(); move(e); }, { passive: false });
+            pad.addEventListener('touchend', end);
+            pad.addEventListener('touchcancel', end);
+            jump?.addEventListener('touchstart', e => { e.preventDefault(); lobby2d.stick.jump = true; }, { passive: false });
+            jump?.addEventListener('touchend',   () => { lobby2d.stick.jump = false; });
+        })();
+
+        document.getElementById('lobbyBtn')?.addEventListener('click', () => { playSound(selectSound); startLobby2D(); });
+        document.getElementById('lobbyExit')?.addEventListener('click', () => { playSound(selectSound); stopLobby2D(); });
+
+        /* ═══════════════════ VR ═══════════════════
+           three.js and the models are about a megabyte, so the module is only
+           fetched when someone actually asks for VR. */
+
+        let _vrSession = null;
+
+        async function enterVR() {
+            const btn = document.getElementById('setVrBtn');
+            const sub = document.getElementById('setVrSub');
+            if (_vrSession) return;
+            if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
+            try {
+                const vr = await import('/vr.js?v=2026091801');
+                if (gameRunning) { gameRunning = false; }
+                stopLobby2D();
+                document.getElementById('settingsModal')?.classList.remove('active');
+                const trail = cosmetics.find(c => c.type === 'trail' && c.equipped && c.owned);
+                _vrSession = await vr.start({
+                    equipped: { hat: equippedId('hat'), trail: equippedId('trail'),
+                                trailColours: trail ? trail.colours : null },
+                    onScore: ({ coins }) => {
+                        // coins earned in VR are real coins
+                        if (coins > 0) { coinCount += coins; updateCoinDisplay(); autoSave(); }
+                    },
+                    onExit: () => { _vrSession = null; }
+                });
+            } catch (err) {
+                if (sub) sub.textContent = 'Could not start VR: ' + (err.message || err);
+                console.error('[VR]', err);
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'ENTER VR'; }
+            }
+        }
+
+        document.getElementById('setVrBtn')?.addEventListener('click', enterVR);
+
+        // Say up front whether this device can actually do it, rather than
+        // letting someone press a button that cannot work.
+        (async () => {
+            const sub = document.getElementById('setVrSub');
+            if (!sub) return;
+            if (!navigator.xr) { sub.textContent = 'No WebXR here — open Flappy Crix in a headset'; return; }
+            try {
+                const ok = await navigator.xr.isSessionSupported('immersive-vr');
+                sub.textContent = ok ? 'Headset found — flap your arms to fly'
+                                     : 'No headset on this device — you can still look around';
+            } catch (e) { sub.textContent = 'Flap your arms to fly'; }
+        })();
+
         function gameLoop(now){
             if (_pageHidden) { animationId = requestAnimationFrame(gameLoop); return; }
             now = now || performance.now();
@@ -5270,6 +5598,13 @@
             // FPS readout
             _fpsAccum += delta; _fpsFrames++;
             if (_fpsAccum >= 500) { _fps = Math.round(_fpsFrames * 1000 / _fpsAccum); _fpsAccum = 0; _fpsFrames = 0; }
+
+            if (lobby2d.on) {
+                updateLobby2D(Math.min(delta, 50) / 1000);
+                drawLobby2D();
+                animationId = requestAnimationFrame(gameLoop);
+                return;
+            }
 
             _accum += delta;
             let steps = 0;
