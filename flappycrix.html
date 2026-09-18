@@ -4076,7 +4076,10 @@
         let appConfig = {
             firebase: null,  // loaded from api.json
             photon: { appId: '', appVersion: '1.0', region: 'us' },
-            discord: { clientId: '', redirectUri: '' }
+            discord: { clientId: '', redirectUri: '' },
+            // iceServers may carry a TURN entry; STUN alone fails for anyone
+            // behind a symmetric NAT, which is most mobile networks.
+            voice: { enabled: true, iceServers: null }
         };
         let auth, db, currentUser = null;
 
@@ -4091,6 +4094,7 @@
                     if (json.photon) appConfig.photon = json.photon;
                     if (json.playfab) appConfig.playfab = json.playfab;
                     if (json.discord) appConfig.discord = json.discord;
+                    if (json.voice) appConfig.voice = json.voice;
                                     }
             } catch (e) {
                 console.error('[Config] Failed to fetch or parse api.json — using built-in fallback config (Photon will be disabled). Error:', e);
@@ -4116,6 +4120,14 @@
         // One clear summary at startup so a broken service names itself
         // instead of failing silently somewhere in the console noise.
         function reportConfigStatus(cfg) {
+            if (micPolicyBlocked()) {
+                console.error('[Config] The microphone is switched off for this whole site by a ' +
+                    'Permissions-Policy header. Voice chat cannot work until vercel.json says ' +
+                    'microphone=(self). No prompt will ever appear.');
+            }
+            if (cfg?.voice?.enabled === false) {
+                console.warn('[Config] voice.enabled is false in api.json, so voice chat is off.');
+            }
             const ph = cfg?.photon?.appId || '';
             const pf = cfg?.playfab?.titleId || '';
             const dc = cfg?.discord?.clientId || '';
@@ -7010,6 +7022,23 @@
            "Default" and nothing else. Asking is the only way to fill them, so
            there is a button that asks rather than a list that looks broken. */
 
+        /* A site can switch the microphone off for everyone with a
+           Permissions-Policy header, and when it does the browser refuses
+           without ever asking. That looks identical to "blocked" in the
+           padlock but is fixed somewhere completely different, so it is worth
+           telling apart. */
+        function micPolicyBlocked() {
+            try {
+                if (document.featurePolicy?.allowsFeature)
+                    return !document.featurePolicy.allowsFeature('microphone');
+            } catch (e) {}
+            try {
+                if (document.permissionsPolicy?.allowsFeature)
+                    return !document.permissionsPolicy.allowsFeature('microphone');
+            } catch (e) {}
+            return false;   // cannot tell; assume it is fine
+        }
+
         function setPermRow(btn, sub, state, desc) {
             if (!btn || !sub) return;
             if (state === 'granted') {
@@ -7032,6 +7061,11 @@
             if (!navigator.mediaDevices?.getUserMedia) {
                 setPermRow(mb, ms, 'denied', MIC_DESC);
                 if (ms) ms.textContent = 'This browser cannot open a microphone';
+            } else if (micPolicyBlocked()) {
+                setPermRow(mb, ms, 'denied', MIC_DESC);
+                if (ms) ms.textContent =
+                    'Blocked by this site\u2019s Permissions-Policy header, not by you — ' +
+                    'microphone=(self) in vercel.json fixes it.';
             } else {
                 // permissions.query does not know about 'microphone' on every
                 // browser, so a throw here means "we cannot tell", not "no".
@@ -7063,11 +7097,13 @@
                 s.getTracks().forEach(t => t.stop());   // release it straight away
                 playSfx('join', .4);
             } catch (e) {
-                problem = e.name === 'NotAllowedError'
-                    ? 'Denied — reset it with the padlock in the address bar'
-                    : e.name === 'NotFoundError'
-                        ? 'No microphone is plugged into this device'
-                        : 'Could not open a microphone: ' + e.message;
+                problem = micPolicyBlocked()
+                    ? 'Blocked by this site\u2019s Permissions-Policy header — microphone=(self) in vercel.json fixes it.'
+                    : e.name === 'NotAllowedError'
+                        ? 'Denied — reset it with the padlock in the address bar'
+                        : e.name === 'NotFoundError'
+                            ? 'No microphone is plugged into this device'
+                            : 'Could not open a microphone: ' + e.message;
             }
             await refreshPermissions();
             await refreshAudioDevices();    // labels exist now
@@ -7107,9 +7143,17 @@
         // player who might then leave.
 
         const VOICE_MAX_PEERS = 8;
-        const ICE_SERVERS = [
+        /* STUN is enough for most desktops and fails for a lot of phones: a
+           symmetric NAT will not hand back a reachable candidate, and the call
+           connects to nothing. A TURN server relays around that. Put one in
+           api.json under voice.iceServers and it is used automatically. */
+        const STUN_ONLY = [
             { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
         ];
+        function iceServers() {
+            const custom = appConfig?.voice?.iceServers;
+            return (Array.isArray(custom) && custom.length) ? custom : STUN_ONLY;
+        }
 
         const voice = {
             on: false,            // are we transmitting
@@ -7125,6 +7169,7 @@
         };
 
         function voiceSupported() {
+            if (appConfig?.voice && appConfig.voice.enabled === false) return false;
             return !!(navigator.mediaDevices?.getUserMedia && window.RTCPeerConnection);
         }
 
@@ -7201,7 +7246,7 @@
             if (peer) return peer;
             if (voice.peers.size >= VOICE_MAX_PEERS) return null;
 
-            const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+            const pc = new RTCPeerConnection({ iceServers: iceServers() });
             const audio = new Audio();
             audio.autoplay = true;
             peer = { pc, audio, stream: null, level: 0 };
