@@ -209,6 +209,14 @@ service cloud.firestore {
       allow write: if isOwner();
     }
 
+    // Seasonal theme override — everyone reads it, including guests and
+    // signed-out players, because the season has to look the same for all of
+    // them. The catch-all below would require a sign-in.
+    match /config/season {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
     match /config/bio {
       allow read: if true;
       allow write: if isOwner();

@@ -2259,6 +2259,51 @@
             color: #04301F; border-color: rgba(0,0,0,.25);
         }
 
+        /* The panels take the season's colour too, so it is not only the
+           canvas that changes. Light theme keeps its own look — tinting a
+           white interface this dark would make it unreadable. */
+        html.seasonal:not(.theme-light) body {
+            background: var(--season-panel, #0A0A0F);
+            background-image:
+                linear-gradient(var(--season-line, rgba(255,70,85,.05)) 1px, transparent 1px),
+                linear-gradient(90deg, var(--season-line, rgba(255,70,85,.05)) 1px, transparent 1px);
+        }
+        html.seasonal:not(.theme-light) .game-container {
+            background: color-mix(in srgb, var(--season-panel, #050508) 92%, #000);
+        }
+        html.seasonal:not(.theme-light) .modal-content,
+        html.seasonal:not(.theme-light) .mp-modal-content {
+            background: var(--season-panel2, #0F0F17);
+        }
+        html.seasonal:not(.theme-light) .canvas-wrapper {
+            background: color-mix(in srgb, var(--season-panel, #000) 70%, #000);
+        }
+
+        /* ---- SEASONAL CALENDAR ---- */
+        .cal-grid {
+            display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px;
+            margin-top: 12px; max-height: 320px; overflow-y: auto; padding: 2px;
+        }
+        .cal-door {
+            display: flex; flex-direction: column; align-items: center; gap: 1px;
+            padding: 8px 2px; border-radius: 12px; cursor: pointer; font: inherit;
+            background: rgba(0,0,0,.35); color: #EDEDED;
+            border: 1px solid rgba(255,255,255,.08);
+        }
+        .cal-num { font-size: 9px; color: #8C8C8C; font-weight: 700; }
+        .cal-ico { font-size: 15px; line-height: 1.1; }
+        .cal-door.ready {
+            border-color: var(--season-accent, #FFD700);
+            box-shadow: 0 0 0 2px rgba(255,215,0,.18);
+            animation: calPulse 1.6s ease-in-out infinite;
+        }
+        .cal-door.claimed { border-color: rgba(0,204,122,.4); background: rgba(0,204,122,.08); }
+        .cal-door.claimed .cal-num { color: #00CC7A; }
+        .cal-door.locked { opacity: .4; cursor: default; }
+        @keyframes calPulse { 50% { box-shadow: 0 0 0 4px rgba(255,215,0,.08); } }
+        body.reduced-motion .cal-door.ready { animation: none; }
+        @media (max-width: 380px) { .cal-grid { grid-template-columns: repeat(5, 1fr); } }
+
         /* ---- VOICE ---- */
         .mp-voice-bar { display: flex; gap: 8px; margin: 8px 0 10px; }
         .mp-voice-btn {
@@ -2793,6 +2838,7 @@
         <!-- Everything else collapses into one icon row -->
         <div class="icon-bar">
             <button class="icon-btn" id="dailyBtn"       title="Daily rewards"><span>🎁</span><label>Daily</label><span class="icon-dot" id="dailyDot" style="display:none;"></span></button>
+            <button class="icon-btn" id="seasonCalBtn"   title="Seasonal event" style="display:none;"><span id="seasonCalIcon">🎁</span><label id="seasonCalLabel">Event</label><span class="icon-dot" id="seasonCalDot" style="display:none;"></span></button>
             <button class="icon-btn" id="storeBtn"       title="Store"><span>🛒</span><label>Store</label></button>
             <button class="icon-btn" id="lockerBtn"      title="Locker"><span>🧢</span><label>Locker</label></button>
             <button class="icon-btn" id="notifBtn"       title="Notifications"><span>🔔</span><label>Alerts</label><i id="notifBadge" class="notif-badge" style="display:none;">0</i></button>
@@ -3369,6 +3415,24 @@
                 <p class="reward-note">
                     Come back each day for a bigger reward. Miss a day and the
                     streak restarts — nothing else is lost.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SEASONAL CALENDAR -->
+    <div class="mp-modal" id="seasonCalModal" style="z-index:46200;">
+        <div class="mp-modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title" id="seasonCalTitle">CALENDAR</div>
+                <button class="modal-close" id="closeSeasonCalBtn">✕</button>
+            </div>
+            <div style="text-align:center;">
+                <div class="streak-line"><span class="streak-sub" id="seasonCalSub"></span></div>
+                <div class="cal-grid" id="seasonCalGrid"></div>
+                <p class="reward-note">
+                    One door a day. Doors you missed stay open, so nothing is
+                    lost — but tomorrow's will not budge until tomorrow.
                 </p>
             </div>
         </div>
@@ -5094,6 +5158,11 @@
         const SEASONS = {
             spooky: {
                 name: 'Halloween', emoji: '🎃', accent: '#FF7A18', accent2: '#8B3FD6',
+                panel: '#1B0F2A', panel2: '#241539', line: 'rgba(255,122,24,.16)',
+                music: '/img/halloweenmusic.mp3',
+                flyer: { img: '/img/witch.png', sfx: '/img/witchl.mp3',
+                         w: 96, every: [14000, 26000], from: 'right', arc: 34, flip: false },
+                cal: { title: 'TRICK OR TREAT', doors: 31, month: 9, icon: '🍬', open: '🎃' },
                 skyTop: '#170A28', skyLow: '#3A1A4E',
                 city: 'rgba(58,28,78,.75)', bush: '#2A1B3D',
                 ground: '#241A2E', groundTop: '#1B1224', stripe: 'rgba(255,140,40,.07)',
@@ -5102,6 +5171,11 @@
             },
             christmas: {
                 name: 'Christmas', emoji: '🎄', accent: '#E8323F', accent2: '#2FA85B',
+                panel: '#0C1A26', panel2: '#122536', line: 'rgba(232,50,63,.16)',
+                music: '/img/christmasmusic.mp3',
+                flyer: { img: '/img/santasley.png', sfx: '/img/santahohoho.mp3',
+                         w: 132, every: [16000, 30000], from: 'left', arc: 22, flip: false },
+                cal: { title: 'ADVENT CALENDAR', doors: 24, month: 11, icon: '🎁', open: '🎄' },
                 skyTop: '#07121F', skyLow: '#123050',
                 city: 'rgba(30,60,100,.72)', bush: '#14402A',
                 ground: '#DCE6F2', groundTop: '#C2D2E6', stripe: 'rgba(255,255,255,.35)',
@@ -5110,6 +5184,10 @@
             },
             easter: {
                 name: 'Easter', emoji: '🐣', accent: '#FF8FB1', accent2: '#8ED9C0',
+                panel: '#1A2233', panel2: '#232D42', line: 'rgba(255,143,177,.16)',
+                music: '/img/eastermusic.mp3',
+                flyer: null,
+                cal: { title: 'EGG HUNT', doors: 7, month: null, icon: '🥚', open: '🐣' },
                 skyTop: '#243C63', skyLow: '#5B7FB0',
                 city: 'rgba(120,150,200,.6)', bush: '#3E7A4A',
                 ground: '#C9B98A', groundTop: '#B3A375', stripe: 'rgba(255,255,255,.16)',
@@ -5169,10 +5247,17 @@
             if (s) {
                 root.style.setProperty('--season-accent', s.accent);
                 root.style.setProperty('--season-accent2', s.accent2);
+                root.style.setProperty('--season-panel', s.panel);
+                root.style.setProperty('--season-panel2', s.panel2);
+                root.style.setProperty('--season-line', s.line);
             } else {
-                root.style.removeProperty('--season-accent');
-                root.style.removeProperty('--season-accent2');
+                ['--season-accent','--season-accent2','--season-panel','--season-panel2','--season-line']
+                    .forEach(v => root.style.removeProperty(v));
             }
+            applySeasonMusic();
+            _flyer = null;                 // a flyer from the old season must go
+            _nextFlyerAt = 0;
+            updateSeasonCalendarDot();
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
         }
@@ -5206,6 +5291,254 @@
                 { force: value, at: Date.now(), by: currentUser?.uid || null }, { merge: true });
             return true;
         }
+
+        /* ---- SEASON MUSIC ----
+           Each season may bring its own track. None of these files are
+           guaranteed to exist yet, so a missing one falls straight back to the
+           normal music instead of leaving the game silent. */
+        const BASE_MUSIC = '/img/music.mp3';
+        let _musicWanted = '';
+        function swapMusic(url, allowFallback) {
+            const el = document.getElementById('bgMusic');
+            if (!el) return;
+            const wasPlaying = !el.paused && !el.ended;
+            el.onerror = () => {
+                el.onerror = null;
+                console.warn('[Season] no music at ' + url + ' — keeping the usual track');
+                if (allowFallback && url !== BASE_MUSIC) swapMusic(BASE_MUSIC, false);
+            };
+            // A src attribute wins over the <source> child, so this is enough
+            // to repoint the element that the rest of the game already holds.
+            el.src = url;
+            el.load();
+            if (wasPlaying && !musicMuted) el.play().catch(() => {});
+        }
+        function applySeasonMusic() {
+            const s = season();
+            const want = (s && s.music) || BASE_MUSIC;
+            if (_musicWanted === want) return;
+            _musicWanted = want;
+            swapMusic(want, true);
+        }
+
+        /* ---- FLY-BYS ----
+           A witch on Halloween, Santa's sleigh at Christmas. They cross the sky
+           behind the pipes every so often, and they cost nothing at all when
+           the artwork has not been uploaded — the image simply never loads and
+           nothing is ever spawned. */
+        let _flyer = null, _nextFlyerAt = 0, _flyerLast = 0;
+        const _flyerArt = {};
+        function flyerArt(src) {
+            let rec = _flyerArt[src];
+            if (!rec) {
+                rec = _flyerArt[src] = { img: new Image(), ok: false, failed: false };
+                rec.img.onload  = () => { rec.ok = true; };
+                rec.img.onerror = () => { rec.failed = true; };
+                rec.img.src = src;
+            }
+            return rec;
+        }
+        const _flyerSfx = {};
+        function playFlyerSfx(src) {
+            // A fly-by is a sound effect, so it follows the effects switch
+            // rather than the music one.
+            if (!src) return;
+            if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
+            let a = _flyerSfx[src];
+            if (a === false) return;                 // already known to be missing
+            if (!a) {
+                a = _flyerSfx[src] = new Audio(src);
+                a.addEventListener('error', () => { _flyerSfx[src] = false; }, { once: true });
+            }
+            const vol = (typeof settings !== 'undefined' && settings.sfxVol != null) ? settings.sfxVol : 100;
+            a.volume = Math.min(1, vol / 100 * 0.7);
+            a.currentTime = 0;
+            a.play().catch(() => {});
+        }
+        function updateFlyer() {
+            const now = performance.now();
+            const dt = _flyerLast ? Math.min(100, now - _flyerLast) : 16;
+            _flyerLast = now;
+
+            const f = season()?.flyer;
+            if (!f) { _flyer = null; return; }
+            const rec = flyerArt(f.img);
+            if (rec.failed) return;                  // artwork not uploaded yet
+
+            if (_flyer) {
+                _flyer.t += dt;
+                _flyer.x += _flyer.dir * _flyer.speed * dt;
+                const gone = _flyer.dir > 0 ? _flyer.x > canvas.width + _flyer.w
+                                            : _flyer.x < -_flyer.w;
+                if (gone) {
+                    _flyer = null;
+                    _nextFlyerAt = now + f.every[0] + Math.random() * (f.every[1] - f.every[0]);
+                }
+                return;
+            }
+            if (!_nextFlyerAt) {                     // first one comes in soon, not instantly
+                _nextFlyerAt = now + 3000 + Math.random() * f.every[0];
+                return;
+            }
+            if (now < _nextFlyerAt || !rec.ok) return;
+
+            const ratio = rec.img.naturalHeight / (rec.img.naturalWidth || 1) || 0.6;
+            const dir = f.from === 'left' ? 1 : -1;
+            _flyer = {
+                dir, t: 0, w: f.w, h: f.w * ratio,
+                x: dir > 0 ? -f.w : canvas.width + f.w,
+                baseY: canvas.height * (0.10 + Math.random() * 0.16),
+                arc: f.arc,
+                speed: (canvas.width + f.w * 2) / 4600   // about four and a half seconds to cross
+            };
+            playFlyerSfx(f.sfx);
+        }
+        function drawFlyer() {
+            if (!_flyer) return;
+            const f = season()?.flyer;
+            const rec = f && _flyerArt[f.img];
+            if (!rec || !rec.ok) return;
+            const y = _flyer.baseY + Math.sin(_flyer.t * 0.0016) * _flyer.arc;
+            ctx.save();
+            ctx.globalAlpha = 0.95;
+            ctx.translate(_flyer.x, y);
+            if (f.flip) ctx.scale(-1, 1);
+            // A gentle tilt that follows the rise and fall, so it looks flown
+            // rather than slid across.
+            ctx.rotate(Math.cos(_flyer.t * 0.0016) * 0.07 * _flyer.dir);
+            ctx.drawImage(rec.img, -_flyer.w / 2, -_flyer.h / 2, _flyer.w, _flyer.h);
+            ctx.restore();
+        }
+
+        /* ---- THE SEASONAL CALENDAR ----
+           One door a day: trick or treat through October, an advent calendar
+           through December, an egg hunt over Easter week. Yesterday's doors
+           stay open so a day missed is not a day lost; tomorrow's do not, so
+           it cannot be run through in one sitting.
+           Claims are recorded before the coins are granted, for the same
+           reason the daily reward does it that way. */
+        function calKey(id) { return 'crix_cal_' + id + '_' + new Date().getFullYear(); }
+        function calClaimed(id) {
+            try { return JSON.parse(localStorage.getItem(calKey(id))) || []; }
+            catch (e) { return []; }
+        }
+        // Which door today is, 1-based. 0 means the season is on but the
+        // calendar has not started (or has finished).
+        function calToday(s) {
+            const c = s && s.cal;
+            if (!c) return 0;
+            const d = new Date();
+            if (c.month === null) {
+                // Seven doors ending on Easter Sunday
+                const e = easterSunday(d.getFullYear());
+                const today = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+                const n = Math.floor((today - (e.getTime() - (c.doors - 1) * 86400000)) / 86400000) + 1;
+                return (n >= 1 && n <= c.doors) ? n : 0;
+            }
+            if (d.getMonth() !== c.month) return 0;
+            return d.getDate() <= c.doors ? d.getDate() : 0;
+        }
+        function calReward(s, door) {
+            return door === s.cal.doors ? 750 : 60 + door * 12;
+        }
+        function renderSeasonCalendar() {
+            const s = season(), id = activeSeasonId();
+            const grid = document.getElementById('seasonCalGrid');
+            const title = document.getElementById('seasonCalTitle');
+            const sub = document.getElementById('seasonCalSub');
+            if (!grid || !s || !s.cal) return;
+            const c = s.cal, open = calToday(s), done = calClaimed(id);
+            if (title) title.textContent = c.icon + ' ' + c.title;
+            if (sub) sub.textContent = open
+                ? `Door ${open} of ${c.doors} is open · ${done.length} collected`
+                : `Opens ${c.month === null ? 'in Easter week' : 'on the 1st'} — ${done.length} collected`;
+
+            grid.innerHTML = Array.from({ length: c.doors }, (_, i) => {
+                const n = i + 1;
+                const claimed = done.includes(n);
+                const ready = !claimed && open && n <= open;
+                const cls = claimed ? 'claimed' : ready ? 'ready' : 'locked';
+                return `<button class="cal-door ${cls}" data-door="${n}" ${ready ? '' : 'disabled'}>
+                    <span class="cal-num">${n}</span>
+                    <span class="cal-ico">${claimed ? c.open : ready ? c.icon : '🔒'}</span>
+                </button>`;
+            }).join('');
+        }
+        let _calClaiming = false;
+        function claimCalendarDoor(n) {
+            if (_calClaiming) return;
+            const s = season(), id = activeSeasonId();
+            if (!s || !s.cal) return;
+            const open = calToday(s), done = calClaimed(id);
+            if (!open || n > open) {
+                toast({ kind: 'info', title: 'Not open yet',
+                        body: `Door ${n} opens on its own day.` });
+                return;
+            }
+            if (done.includes(n)) return;
+
+            _calClaiming = true;
+            let reward = calReward(s, n);
+            if (typeof eventCoinMult === 'function') reward = Math.round(reward * eventCoinMult());
+
+            // Record the claim before granting it — a throw past this point
+            // costs one reward, a throw before it would grant unlimited ones.
+            try {
+                localStorage.setItem(calKey(id), JSON.stringify(done.concat(n)));
+            } catch (e) {
+                _calClaiming = false;
+                toast({ kind: 'warn', title: 'Could not open the door',
+                        body: 'Your browser is blocking storage, so the claim cannot be tracked.' });
+                return;
+            }
+            coinCount += reward;
+            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
+            try { updateCoinDisplay(); } catch (e) {}
+            try { autoSave(); } catch (e) { console.warn('[Calendar] autoSave failed:', e); }
+
+            playSfx('purchase');
+            toast({ kind: 'success', title: `${s.cal.open} +${reward} coins`,
+                    body: `${s.cal.title} · door ${n} of ${s.cal.doors}` });
+            renderSeasonCalendar();
+            updateSeasonCalendarDot();
+            _calClaiming = false;
+        }
+        function updateSeasonCalendarDot() {
+            const btn = document.getElementById('seasonCalBtn');
+            if (!btn) return;
+            const s = season(), id = activeSeasonId();
+            if (!s || !s.cal) {
+                btn.style.display = 'none';
+                document.getElementById('seasonCalModal')?.classList.remove('active');
+                return;
+            }
+            btn.style.display = '';
+            const ico = document.getElementById('seasonCalIcon');
+            const lab = document.getElementById('seasonCalLabel');
+            if (ico) ico.textContent = s.cal.icon;
+            if (lab) lab.textContent = s.name;
+            btn.title = s.cal.title;
+            const open = calToday(s), done = calClaimed(id);
+            // The dot means there is something to collect right now, not
+            // merely that the season is on.
+            const waiting = open > 0 && [...Array(open)].some((_, i) => !done.includes(i + 1));
+            const dot = document.getElementById('seasonCalDot');
+            if (dot) dot.style.display = waiting ? '' : 'none';
+        }
+        document.addEventListener('click', e => {
+            if (e.target.closest('#seasonCalBtn')) {
+                renderSeasonCalendar();
+                document.getElementById('seasonCalModal')?.classList.add('active');
+                playSfx('whoosh', .5);
+                return;
+            }
+            if (e.target.closest('#closeSeasonCalBtn') || e.target.id === 'seasonCalModal') {
+                document.getElementById('seasonCalModal')?.classList.remove('active');
+                return;
+            }
+            const door = e.target.closest('.cal-door');
+            if (door && !door.disabled) claimCalendarDoor(+door.dataset.door);
+        });
 
         function pipeGradient(w) {
             if (_pipeGrad && _pipeGradW === w) return _pipeGrad;
@@ -5392,7 +5725,8 @@
             if (gameRunning && !gameOver && (frameCount % 6) === 0) updateLiveHud();
             if (autopilotOn) autopilotStep(); 
             ctx.clearRect(0,0,canvas.width,canvas.height);
-            drawBackdrop(); 
+            drawBackdrop();
+            updateFlyer(); drawFlyer();
             // Draw pipes
             // Shaded pipes. The hitbox is unchanged — this is purely how they
             // are painted, so the game plays exactly the same.

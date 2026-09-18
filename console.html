@@ -387,6 +387,28 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
       </div>
 
       <div class="panel">
+        <h2>Seasonal theme</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Halloween, Christmas and Easter turn themselves on by date. Force one
+          here to preview it or run it early — it reaches every player at once,
+          not only this browser. Each season brings its own colours, music,
+          fly-bys and calendar.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaForce">
+            <option value="">Follow the calendar</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">Off — no season at all</option>
+          </select>
+          <button class="btn sm" id="seaSave">Apply</button>
+        </div>
+        <div class="out" id="seaOut">—</div>
+      </div>
+
+      <div class="panel">
         <h2>Award event crown</h2>
         <p class="dt" style="margin-bottom:12px">
           Gives the Champion's Crown. It cannot be bought, so this is the only
@@ -706,6 +728,11 @@ let auth = null, me = null;
     $('whoName').textContent = user.displayName || user.email || 'Owner';
     renderMe();
     runSetupChecks();
+    // Fill the panels that show existing settings. These were defined but
+    // never called, so Events, Evidence and Bio always opened empty.
+    [evtLoad, evLoad, bioLoad, seaLoad].forEach(fn => {
+      try { fn(); } catch (e) { console.warn('[Console] panel load failed:', e); }
+    });
     console.log('[Console] signed in as', PlayFabManager.playFabId, '| roles', PlayFabManager.roles);
   });
 
@@ -1667,6 +1694,45 @@ bind('evtSave', async () => {
     });
     out.className = 'out ok';
     out.textContent = on ? 'Event is live. Players see it on their next load.' : 'Event switched off.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+
+/* ---- SEASONAL THEME ----
+   The same config/season doc the game watches, so a change here lands on
+   everyone's screen without a reload. '' follows the calendar, 'off' means no
+   season at all. */
+const SEASON_NAMES = { spooky: 'Halloween', christmas: 'Christmas', easter: 'Easter' };
+
+async function seaLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('season').get();
+    const v = d.exists ? d.data() : {};
+    $('seaForce').value = v.force || '';
+    $('seaOut').className = 'out';
+    $('seaOut').textContent = v.force === 'off' ? 'Seasons are switched off for everyone.'
+      : v.force ? `Forced: ${SEASON_NAMES[v.force] || v.force}.`
+      : 'Following the calendar.';
+  } catch (e) {
+    $('seaOut').className = 'out bad';
+    $('seaOut').textContent = e.message;
+  }
+}
+
+bind('seaSave', async () => {
+  const out = $('seaOut');
+  const val = $('seaForce').value;
+  out.className = 'out'; out.textContent = 'Saving\u2026';
+  try {
+    await firebase.firestore().collection('config').doc('season').set({
+      force: val, at: Date.now(), by: firebase.auth().currentUser?.uid || null
+    }, { merge: true });
+    out.className = 'out ok';
+    out.textContent = val === 'off' ? 'Seasons switched off for everyone.'
+      : val ? `${SEASON_NAMES[val] || val} is on for everyone.`
+      : 'Back to following the calendar.';
   } catch (e) {
     out.className = 'out bad';
     out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
