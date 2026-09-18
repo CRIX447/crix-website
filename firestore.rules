@@ -228,6 +228,14 @@ service cloud.firestore {
       allow write: if true;
     }
 
+    // ---- PERSONAL SEASON PREVIEW ----
+    // Each person's own document and nobody else's. A preview only changes what
+    // that one account sees, so it needs no owner check — but it must not be
+    // readable or writable across accounts.
+    match /seasonPreview/{uid} {
+      allow read, write: if signedIn() && uid == myUid();
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();

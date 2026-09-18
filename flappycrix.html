@@ -3784,6 +3784,29 @@
             </div>
             <div class="set-sub" id="seasonStatus" style="margin-top:6px;min-height:14px;"></div>
 
+            <div class="mp-section-title" style="margin-top:14px;">👤 JUST FOR ME</div>
+            <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
+                Try a season out on your own account without anyone else seeing it.
+                This beats whatever is set above, follows you to any device you
+                sign in on, and does not touch what other players get.
+            </div>
+            <div class="owner-grid">
+                <button class="owner-btn" data-myseason="">👥 Same as everyone</button>
+                <button class="owner-btn" data-myseason="auto">🗓️ Calendar, for me</button>
+                <button class="owner-btn" data-myseason="spooky">🎃 Halloween</button>
+                <button class="owner-btn" data-myseason="christmas">🎄 Christmas</button>
+                <button class="owner-btn" data-myseason="easter">🐣 Easter</button>
+                <button class="owner-btn warn" data-myseason="off">🚫 No theme</button>
+            </div>
+            <div class="set-sub" style="margin:8px 0 6px;">Which parts I see</div>
+            <div class="owner-grid">
+                <button class="owner-btn" data-mypart="colour">🎨 Colours</button>
+                <button class="owner-btn" data-mypart="music">🎵 Music</button>
+                <button class="owner-btn" data-mypart="flyer">🧹 Fly-by</button>
+                <button class="owner-btn" data-mypart="cal">🗓️ Calendar</button>
+            </div>
+            <div class="set-sub" id="mySeasonStatus" style="margin-top:6px;min-height:14px;"></div>
+
             <!-- ECONOMY -->
             <div class="mp-section-title" style="margin-top:16px;">💰 ECONOMY</div>
             <div class="owner-grid">
@@ -5232,18 +5255,84 @@
         // '' = follow the calendar, 'off' = plain, otherwise a season id
         let seasonForced = '';
         function activeSeasonId() {
-            if (seasonForced === 'off') return null;
-            if (seasonForced && SEASONS[seasonForced]) return seasonForced;
+            // My own preview wins over the one set for everyone, which in turn
+            // wins over the calendar. 'auto' is how a preview says "calendar",
+            // since '' has to mean "I have no preview set".
+            const pick = (typeof seasonPreview !== 'undefined' && seasonPreview) || seasonForced;
+            if (pick === 'off') return null;
+            if (pick && pick !== 'auto' && SEASONS[pick]) return pick;
             return autoSeason();
         }
         function season() { return SEASONS[activeSeasonId()] || null; }
 
+        /* ---- JUST FOR ME ----
+           A personal preview that sits on top of the global override, so a
+           season can be tried out — colours, music, fly-by, calendar, or any
+           combination of them — without anybody else seeing a thing. It lives
+           in the signed-in account rather than the browser, so it follows you
+           from the console on a desktop to the game on a phone, and it is
+           mirrored to local storage so it survives a reload before Firestore
+           has answered. */
+        const SEASON_PREVIEW_KEY = 'crix_season_preview_v1';
+        const SEASON_PART_DEFAULTS = { colour: true, music: true, flyer: true, cal: true };
+        let seasonPreview = '';                                    // '' = no personal override
+        let seasonParts = { ...SEASON_PART_DEFAULTS };
+        function seasonPart(p) { return seasonParts[p] !== false; }
+        // The season as far as one feature is concerned. A part switched off
+        // reports no season at all, which is exactly what every consumer
+        // already knows how to handle.
+        function seasonFor(part) { return seasonPart(part) ? season() : null; }
+
+        function readSeasonPreview() {
+            try {
+                const v = JSON.parse(localStorage.getItem(SEASON_PREVIEW_KEY) || '{}');
+                seasonPreview = v.force || '';
+                seasonParts = { ...SEASON_PART_DEFAULTS, ...(v.parts || {}) };
+            } catch (e) { /* storage blocked — the defaults are fine */ }
+        }
+        function writeSeasonPreview() {
+            try {
+                localStorage.setItem(SEASON_PREVIEW_KEY,
+                    JSON.stringify({ force: seasonPreview, parts: seasonParts }));
+            } catch (e) {}
+        }
+        readSeasonPreview();
+
+        async function setSeasonPreview(force, parts) {
+            if (force !== undefined) seasonPreview = force || '';
+            if (parts) seasonParts = { ...seasonParts, ...parts };
+            writeSeasonPreview();
+            applySeasonClass();
+            if (!db || !currentUser) return false;
+            await db.collection('seasonPreview').doc(currentUser.uid).set(
+                { force: seasonPreview, parts: seasonParts, at: Date.now() }, { merge: true });
+            return true;
+        }
+
+        /* Only staff ever get this listener. For everyone else the document
+           would never exist, and a listener per player is a listener wasted. */
+        let _seasonPreviewUnsub = null;
+        function watchSeasonPreview() {
+            if (!db || !currentUser || _seasonPreviewUnsub) return;
+            _seasonPreviewUnsub = db.collection('seasonPreview').doc(currentUser.uid).onSnapshot(d => {
+                const v = d.exists ? d.data() : {};
+                seasonPreview = v.force || '';
+                seasonParts = { ...SEASON_PART_DEFAULTS, ...(v.parts || {}) };
+                writeSeasonPreview();
+                applySeasonClass();
+                if (typeof renderSeasonButtons === 'function') renderSeasonButtons();
+            }, e => console.warn('[Season] preview:', e.message));
+        }
+        function stopSeasonPreviewWatch() {
+            if (_seasonPreviewUnsub) { _seasonPreviewUnsub(); _seasonPreviewUnsub = null; }
+        }
+
         function applySeasonClass() {
             const id = activeSeasonId();
             const root = document.documentElement;
-            Object.keys(SEASONS).forEach(k => root.classList.toggle('season-' + k, k === id));
-            root.classList.toggle('seasonal', !!id);
-            const s = season();
+            const s = seasonFor('colour');
+            Object.keys(SEASONS).forEach(k => root.classList.toggle('season-' + k, !!s && k === id));
+            root.classList.toggle('seasonal', !!s);
             if (s) {
                 root.style.setProperty('--season-accent', s.accent);
                 root.style.setProperty('--season-accent2', s.accent2);
@@ -5255,8 +5344,15 @@
                     .forEach(v => root.style.removeProperty(v));
             }
             applySeasonMusic();
-            _flyer = null;                 // a flyer from the old season must go
-            _nextFlyerAt = 0;
+            // Only clear a flyer when the season it belongs to has actually
+            // changed. This runs on every snapshot, and wiping it each time
+            // would stop a witch halfway across the screen.
+            const sig = id + '|' + JSON.stringify(seasonParts);
+            if (sig !== _seasonApplied) {
+                _seasonApplied = sig;
+                _flyer = null;
+                _nextFlyerAt = 0;
+            }
             updateSeasonCalendarDot();
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
@@ -5314,7 +5410,7 @@
             if (wasPlaying && !musicMuted) el.play().catch(() => {});
         }
         function applySeasonMusic() {
-            const s = season();
+            const s = seasonFor('music');
             const want = (s && s.music) || BASE_MUSIC;
             if (_musicWanted === want) return;
             _musicWanted = want;
@@ -5326,7 +5422,7 @@
            behind the pipes every so often, and they cost nothing at all when
            the artwork has not been uploaded — the image simply never loads and
            nothing is ever spawned. */
-        let _flyer = null, _nextFlyerAt = 0, _flyerLast = 0;
+        let _flyer = null, _nextFlyerAt = 0, _flyerLast = 0, _seasonApplied = null;
         const _flyerArt = {};
         function flyerArt(src) {
             let rec = _flyerArt[src];
@@ -5360,7 +5456,7 @@
             const dt = _flyerLast ? Math.min(100, now - _flyerLast) : 16;
             _flyerLast = now;
 
-            const f = season()?.flyer;
+            const f = seasonFor('flyer')?.flyer;
             if (!f) { _flyer = null; return; }
             const rec = flyerArt(f.img);
             if (rec.failed) return;                  // artwork not uploaded yet
@@ -5395,7 +5491,7 @@
         }
         function drawFlyer() {
             if (!_flyer) return;
-            const f = season()?.flyer;
+            const f = seasonFor('flyer')?.flyer;
             const rec = f && _flyerArt[f.img];
             if (!rec || !rec.ok) return;
             const y = _flyer.baseY + Math.sin(_flyer.t * 0.0016) * _flyer.arc;
@@ -5442,7 +5538,7 @@
             return door === s.cal.doors ? 750 : 60 + door * 12;
         }
         function renderSeasonCalendar() {
-            const s = season(), id = activeSeasonId();
+            const s = seasonFor('cal'), id = activeSeasonId();
             const grid = document.getElementById('seasonCalGrid');
             const title = document.getElementById('seasonCalTitle');
             const sub = document.getElementById('seasonCalSub');
@@ -5467,7 +5563,7 @@
         let _calClaiming = false;
         function claimCalendarDoor(n) {
             if (_calClaiming) return;
-            const s = season(), id = activeSeasonId();
+            const s = seasonFor('cal'), id = activeSeasonId();
             if (!s || !s.cal) return;
             const open = calToday(s), done = calClaimed(id);
             if (!open || n > open) {
@@ -5506,7 +5602,7 @@
         function updateSeasonCalendarDot() {
             const btn = document.getElementById('seasonCalBtn');
             if (!btn) return;
-            const s = season(), id = activeSeasonId();
+            const s = seasonFor('cal'), id = activeSeasonId();
             if (!s || !s.cal) {
                 btn.style.display = 'none';
                 document.getElementById('seasonCalModal')?.classList.remove('active');
@@ -5543,7 +5639,7 @@
         function pipeGradient(w) {
             if (_pipeGrad && _pipeGradW === w) return _pipeGrad;
             const g = ctx.createLinearGradient(0, 0, w, 0);
-            const sp = season();
+            const sp = seasonFor('colour');
             const c = sp ? sp.pipe : ['#0B8F56', '#00CC7A', '#4DE8A8', '#00CC7A', '#076B41'];
             g.addColorStop(0,    c[0]);
             g.addColorStop(0.18, c[1]);
@@ -5564,7 +5660,7 @@
             const groundH = Math.round(H * 0.11);
             const skyH = H - groundH;
 
-            const sp = season();
+            const sp = seasonFor('colour');
 
             // ---- sky ----
             const sky = ctx.createLinearGradient(0, 0, 0, skyH);
@@ -6827,6 +6923,12 @@
                     document.getElementById('logoutBtn').style.display = 'none';
                     if (typeof PlayFabManager !== 'undefined') PlayFabManager.logout();
                     myRoles = [];
+                    // The preview belongs to the account, not the machine.
+                    try {
+                        stopSeasonPreviewWatch();
+                        seasonPreview = ''; seasonParts = { ...SEASON_PART_DEFAULTS };
+                        writeSeasonPreview(); applySeasonClass();
+                    } catch (e) {}
                     refreshSettingsUI();
                     loadFromLocal();
                 }
@@ -8417,10 +8519,59 @@
             });
         });
 
+        document.querySelectorAll('#ownerModal .owner-btn[data-myseason]').forEach(b => {
+            b.addEventListener('click', async () => {
+                const st = document.getElementById('mySeasonStatus');
+                if (st) st.textContent = 'Saving\u2026';
+                try {
+                    const synced = await setSeasonPreview(b.dataset.myseason);
+                    playSfx('unlock', .5);
+                    renderSeasonButtons();
+                    if (st) st.textContent = mySeasonSummary() +
+                        (synced ? '' : ' (this browser only \u2014 sign in to carry it across devices)');
+                } catch (e) {
+                    // The local apply already happened, so say so rather than
+                    // implying nothing took effect.
+                    if (st) st.textContent = mySeasonSummary() + ' \u2014 not saved to your account: ' + e.message;
+                }
+            });
+        });
+        document.querySelectorAll('#ownerModal .owner-btn[data-mypart]').forEach(b => {
+            b.addEventListener('click', async () => {
+                const key = b.dataset.mypart;
+                const st = document.getElementById('mySeasonStatus');
+                try {
+                    await setSeasonPreview(undefined, { [key]: !seasonPart(key) });
+                    playSfx('unlock', .5);
+                } catch (e) { /* the local apply still stands */ }
+                renderSeasonButtons();
+                if (st) st.textContent = mySeasonSummary();
+            });
+        });
+
+        const SEASON_PART_NAMES = { colour: 'colours', music: 'music', flyer: 'fly-by', cal: 'calendar' };
+        function mySeasonSummary() {
+            const off = Object.keys(SEASON_PART_DEFAULTS)
+                .filter(k => !seasonPart(k)).map(k => SEASON_PART_NAMES[k] || k);
+            const which = !seasonPreview ? 'Following what everyone else sees'
+                : seasonPreview === 'off' ? 'No theme, just for you'
+                : seasonPreview === 'auto' ? 'Following the calendar, just for you'
+                : `${SEASONS[seasonPreview].name}, just for you`;
+            return which + (off.length ? ` \u00b7 ${off.join(', ')} off` : '');
+        }
+
         function renderSeasonButtons() {
             document.querySelectorAll('#ownerModal .owner-btn[data-season]').forEach(b => {
                 b.classList.toggle('on', b.dataset.season === seasonForced);
             });
+            document.querySelectorAll('#ownerModal .owner-btn[data-myseason]').forEach(b => {
+                b.classList.toggle('on', b.dataset.myseason === seasonPreview);
+            });
+            document.querySelectorAll('#ownerModal .owner-btn[data-mypart]').forEach(b => {
+                b.classList.toggle('on', seasonPart(b.dataset.mypart));
+            });
+            const my = document.getElementById('mySeasonStatus');
+            if (my && !my.textContent) my.textContent = mySeasonSummary();
             const st = document.getElementById('seasonStatus');
             if (st && !st.textContent) {
                 const id = activeSeasonId();
@@ -10115,6 +10266,9 @@
             if (!btn) return;
             const staff = myRoles.includes('OWNER') || myRoles.includes('DEV') || myRoles.includes('MOD');
             btn.style.display = staff ? '' : 'none';
+            // Nobody else has a personal preview, so nobody else needs to listen
+            // for one.
+            if (staff) { try { watchSeasonPreview(); } catch (e) {} }
             // The grid is pinned to a fixed column count, so the seventh
             // button wrapped onto a row of its own for staff. Tell the grid
             // how many buttons it is actually laying out.

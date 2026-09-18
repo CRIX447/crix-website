@@ -27,6 +27,28 @@ calendar still goes by the real date — forcing Christmas in July shows the
 advent calendar with every door shut. That is deliberate: a preview should not
 hand out coins out of season.
 
+## Turning one on just for yourself
+
+Both places also have a **Just for me** section. It beats the setting above and
+changes nothing for anybody else, so a season can be tried out on the live site
+in the middle of the year without a soul noticing.
+
+It is stored against your account rather than your browser, so setting it in the
+console on a desktop turns it on in the game on a phone — no copying links, no
+signing in twice. Signing out clears it.
+
+Four switches decide which parts of the season you get, so each piece can be
+checked on its own:
+
+| Switch | Off means |
+|---|---|
+| Colours | plain interface and plain playfield |
+| Music | the usual `music.mp3` |
+| Fly-by | no witch, no sleigh |
+| Calendar | the calendar button disappears |
+
+Useful for checking a newly uploaded witch without the music playing over it.
+
 ## Artwork and sound
 
 None of these files are required. Any that is missing is simply skipped — no
