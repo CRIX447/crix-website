@@ -79,3 +79,41 @@ sleigh 132px on a 400px-wide canvas, so about 400×200 is plenty.
 One door a day, 60 coins plus 12 per door, and 750 for the last one. Doors
 already missed stay open so a day away costs nothing; doors still to come do
 not open early. Claims are per browser, recorded before the coins are granted.
+
+Some doors also hold a cosmetic. Those are marked in the grid before they open,
+since knowing one is coming is the reason to come back on the day:
+
+| Season | Door | Prize |
+|---|---|---|
+| 🎃 Halloween | 7 | Witch hat |
+| | 14 | Skeleton mask |
+| | 21 | Ghost trail |
+| | 31 | Pumpkin head |
+| 🎄 Christmas | 6 | Reindeer ears |
+| | 12 | Tinsel trail |
+| | 24 | Santa's hat |
+| 🐣 Easter | 4 | Bunny ears |
+| | 7 | Pastel trail |
+
+They are event rewards: earned from the calendar, never sold, and they stay
+yours once the season ends. Opening a door you have already collected the prize
+from just pays the coins.
+
+## The seasonal hats are drawn, not loaded
+
+Unlike the bucket hat and the cap, the six seasonal head items have no PNG.
+They are drawn on the canvas from `HAT_SHAPES` in `flappycrix.html`, the same
+way trails are, which is why they worked the day they were written rather than
+waiting on artwork.
+
+Two things to know before moving any of those numbers. Each shape draws in the
+bird's own space: the origin is the middle of the sprite, `s` is the bird's
+size, and the art runs from `-s/2` to `+s/2`. And the sprite is a close-up of
+the character's face rather than a small bird with room above its head — the
+face runs from about `-0.22s` to `+0.5s` and the eyes sit near `y = -0.03s`. So
+a hat perches around `y = -0.40s` where the crown is, while a mask (the pumpkin,
+the skull) is centred near `y = 0`, over the face.
+
+Replacing one with real artwork later is a one-line change: swap `draw: 'santa'`
+for `image: '/img/santa-hat.png'` on that item and the existing image path takes
+over.
