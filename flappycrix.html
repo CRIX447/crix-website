@@ -379,6 +379,8 @@
             /* 6 across, so SETTINGS stops orphaning onto its own row */
             .icon-bar { grid-template-columns: repeat(6, 1fr) !important; }
             .icon-bar.has-staff { grid-template-columns: repeat(7, 1fr) !important; }
+            .icon-bar.has-season { grid-template-columns: repeat(7, 1fr) !important; }
+            .icon-bar.has-season.has-staff { grid-template-columns: repeat(8, 1fr) !important; }
 
             /* The mascot fills the gap the menu leaves, same as on a phone */
             .menu-bird {
@@ -1628,6 +1630,11 @@
             display:grid; grid-template-columns:repeat(auto-fit,minmax(64px,1fr));
             gap:6px; margin:8px 0 4px;
         }
+        .icon-bar.has-season { grid-template-columns:repeat(auto-fit,minmax(58px,1fr)); }
+        .icon-bar.has-season.has-staff { grid-template-columns:repeat(auto-fit,minmax(48px,1fr)); }
+        .icon-bar.has-season.has-staff .icon-btn { padding:9px 1px 7px; }
+        .icon-bar.has-season.has-staff .icon-btn span  { font-size:17px; }
+        .icon-bar.has-season.has-staff .icon-btn label { font-size:7px; letter-spacing:0; }
         .icon-btn {
             position:relative; background:rgba(10,10,20,.85);
             border:2px solid rgba(255,107,53,.35);
@@ -2254,9 +2261,17 @@
             color: #fff; background: linear-gradient(135deg, var(--season-accent, #FF6B35),
                                                      var(--season-accent2, #FF4655));
         }
-        .owner-btn[data-season].on {
+        .owner-btn[data-season].on,
+        .owner-btn[data-myseason].on,
+        .owner-btn[data-mypart].on {
             background: linear-gradient(135deg, var(--green), #2FE39B);
             color: #04301F; border-color: rgba(0,0,0,.25);
+        }
+        /* A part switch has to read as a switch, so the off state needs to look
+           switched off rather than merely not-green. */
+        .owner-btn[data-mypart]:not(.on) {
+            opacity: .5; text-decoration: line-through;
+            text-decoration-color: rgba(255,255,255,.35);
         }
 
         /* The panels take the season's colour too, so it is not only the
@@ -2521,10 +2536,15 @@
             .menu-footer  { bottom: calc(10px + env(safe-area-inset-bottom)); }
             .icon-bar     { bottom: calc(58px + env(safe-area-inset-bottom));
                             grid-template-columns: repeat(6, 1fr); gap: 5px; }
-            .icon-bar.has-staff { grid-template-columns: repeat(7, 1fr); gap: 4px; }
-            .icon-bar.has-staff .icon-btn { padding: 9px 1px 7px; }
-            .icon-bar.has-staff .icon-btn span  { font-size: 17px; }
-            .icon-bar.has-staff .icon-btn label { font-size: 6px; letter-spacing: 0; }
+            .icon-bar.has-staff,
+            .icon-bar.has-season { grid-template-columns: repeat(7, 1fr); gap: 4px; }
+            .icon-bar.has-season.has-staff { grid-template-columns: repeat(8, 1fr); gap: 3px; }
+            .icon-bar.has-staff .icon-btn,
+            .icon-bar.has-season .icon-btn { padding: 9px 1px 7px; }
+            .icon-bar.has-staff .icon-btn span,
+            .icon-bar.has-season .icon-btn span  { font-size: 17px; }
+            .icon-bar.has-staff .icon-btn label,
+            .icon-bar.has-season .icon-btn label { font-size: 6px; letter-spacing: 0; }
             .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
             .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
                             display: flex; gap: 10px; }
@@ -5605,13 +5625,18 @@
             const s = seasonFor('cal'), id = activeSeasonId();
             if (!s || !s.cal) {
                 btn.style.display = 'none';
+                document.querySelector('.icon-bar')?.classList.remove('has-season');
                 document.getElementById('seasonCalModal')?.classList.remove('active');
                 return;
             }
             btn.style.display = '';
+            document.querySelector('.icon-bar')?.classList.add('has-season');
             const ico = document.getElementById('seasonCalIcon');
             const lab = document.getElementById('seasonCalLabel');
-            if (ico) ico.textContent = s.cal.icon;
+            // The season's own emoji, not the calendar's door icon — Christmas
+            // doors are gifts, and a second 🎁 next to Daily's reads as a
+            // duplicate of it.
+            if (ico) ico.textContent = s.emoji;
             if (lab) lab.textContent = s.name;
             btn.title = s.cal.title;
             const open = calToday(s), done = calClaimed(id);

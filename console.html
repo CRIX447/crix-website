@@ -111,6 +111,7 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
     <button class="tab" data-t="logs">Logs</button>
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
+    <button class="tab" data-t="seasons">🎃 Seasons</button>
     <button class="tab" data-t="bio">Bio Page</button>
     <button class="tab" data-t="trailer">Trailer</button>
     <button class="tab" data-t="health">PlayFab</button>
@@ -281,6 +282,60 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
     </div>
 
     <!-- PLAYFAB HEALTH -->
+    <div class="view" id="v-seasons" style="display:none;">
+      <div class="panel">
+        <h2>Seasonal theme</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Halloween, Christmas and Easter turn themselves on by date. Force one
+          here to preview it or run it early — it reaches every player at once,
+          not only this browser. Each season brings its own colours, music,
+          fly-bys and calendar.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaForce">
+            <option value="">Follow the calendar</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">Off — no season at all</option>
+          </select>
+          <button class="btn sm" id="seaSave">Apply</button>
+        </div>
+        <div class="out" id="seaOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>👤 Just for me</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Try a season on your own account without anyone else seeing it. This
+          beats the setting above, and it follows you to the game on any device
+          you sign in on — set it here, open Flappy Crix, and it is already on.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaMine">
+            <option value="">Same as everyone</option>
+            <option value="auto">Follow the calendar, for me</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">No theme, for me</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Parts</label>
+          <label class="chk"><input type="checkbox" id="seaPartColour" checked> Colours</label>
+          <label class="chk"><input type="checkbox" id="seaPartMusic" checked> Music</label>
+          <label class="chk"><input type="checkbox" id="seaPartFlyer" checked> Fly-by</label>
+          <label class="chk"><input type="checkbox" id="seaPartCal" checked> Calendar</label>
+          <button class="btn sm" id="seaMineSave">Apply to me</button>
+        </div>
+        <div class="out" id="seaMineOut">—</div>
+      </div>
+
+    </div>
+
     <div class="view" id="v-bio" style="display:none;">
       <div class="panel">
         <h2>Bio page</h2>
@@ -389,55 +444,6 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
           <button class="btn sm ghost" id="evtChallenge">Preset: crown challenge</button>
         </div>
         <div class="out" id="evtOut">—</div>
-      </div>
-
-      <div class="panel">
-        <h2>Seasonal theme</h2>
-        <p class="dt" style="margin-bottom:12px">
-          Halloween, Christmas and Easter turn themselves on by date. Force one
-          here to preview it or run it early — it reaches every player at once,
-          not only this browser. Each season brings its own colours, music,
-          fly-bys and calendar.
-        </p>
-        <div class="row">
-          <label>Theme</label>
-          <select id="seaForce">
-            <option value="">Follow the calendar</option>
-            <option value="spooky">🎃 Halloween</option>
-            <option value="christmas">🎄 Christmas</option>
-            <option value="easter">🐣 Easter</option>
-            <option value="off">Off — no season at all</option>
-          </select>
-          <button class="btn sm" id="seaSave">Apply</button>
-        </div>
-        <div class="out" id="seaOut">—</div>
-
-        <h2 style="margin-top:18px">Just for me</h2>
-        <p class="dt" style="margin-bottom:12px">
-          Try a season on your own account without anyone else seeing it. This
-          beats the setting above, and it follows you to the game on any device
-          you sign in on — set it here, open Flappy Crix, and it is already on.
-        </p>
-        <div class="row">
-          <label>Theme</label>
-          <select id="seaMine">
-            <option value="">Same as everyone</option>
-            <option value="auto">Follow the calendar, for me</option>
-            <option value="spooky">🎃 Halloween</option>
-            <option value="christmas">🎄 Christmas</option>
-            <option value="easter">🐣 Easter</option>
-            <option value="off">No theme, for me</option>
-          </select>
-        </div>
-        <div class="row">
-          <label>Parts</label>
-          <label class="chk"><input type="checkbox" id="seaPartColour" checked> Colours</label>
-          <label class="chk"><input type="checkbox" id="seaPartMusic" checked> Music</label>
-          <label class="chk"><input type="checkbox" id="seaPartFlyer" checked> Fly-by</label>
-          <label class="chk"><input type="checkbox" id="seaPartCal" checked> Calendar</label>
-          <button class="btn sm" id="seaMineSave">Apply to me</button>
-        </div>
-        <div class="out" id="seaMineOut">—</div>
       </div>
 
       <div class="panel">

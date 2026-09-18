@@ -16,8 +16,8 @@ Easter is computed each year rather than listed, so it never needs updating.
 Two places, both writing the same `config/season` document, so a change lands
 on every player at once rather than only in the browser that pressed it:
 
-* **Owner console** → Setup tab → *Seasonal theme*
-* **In game** → Staff menu → *🗓️ Seasonal theme*
+* **Owner console** → the **🎃 Seasons** tab
+* **In game** → the 🛡️ **Staff** button in the icon row → scroll to *🗓️ Seasonal theme*
 
 `Follow the calendar` is the normal setting. `Off` suppresses seasons
 altogether, which is the one to reach for if a season ever causes trouble.
