@@ -2243,6 +2243,22 @@
         }
         .locker-empty { font-size: 12px; padding: 12px; opacity: .7; }
 
+        /* ---- SEASONS ----
+           A light touch on the interface; the heavy lifting is on the canvas.
+           Only the accent moves, so nothing has to be restyled per season. */
+        html.seasonal { --orange: var(--season-accent); --red: var(--season-accent2); }
+        .season-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            margin-left: 8px; padding: 3px 10px; border-radius: 20px;
+            font-size: 10px; font-weight: 700; letter-spacing: .5px;
+            color: #fff; background: linear-gradient(135deg, var(--season-accent, #FF6B35),
+                                                     var(--season-accent2, #FF4655));
+        }
+        .owner-btn[data-season].on {
+            background: linear-gradient(135deg, var(--green), #2FE39B);
+            color: #04301F; border-color: rgba(0,0,0,.25);
+        }
+
         /* ---- VOICE ---- */
         .mp-voice-bar { display: flex; gap: 8px; margin: 8px 0 10px; }
         .mp-voice-btn {
@@ -3688,6 +3704,22 @@
                 <button class="owner-btn danger" data-act="nuke">☢️ Nuke All Servers</button>
             </div>
 
+            <!-- SEASONS -->
+            <div class="mp-section-title" style="margin-top:16px;">🗓️ SEASONAL THEME</div>
+            <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
+                They switch on by date on their own — October, December and the week
+                around Easter. Forcing one here overrides that for <b>everyone</b> until
+                you set it back to Automatic.
+            </div>
+            <div class="owner-grid">
+                <button class="owner-btn" data-season="">🗓️ Automatic</button>
+                <button class="owner-btn" data-season="spooky">🎃 Halloween</button>
+                <button class="owner-btn" data-season="christmas">🎄 Christmas</button>
+                <button class="owner-btn" data-season="easter">🐣 Easter</button>
+                <button class="owner-btn warn" data-season="off">🚫 No theme</button>
+            </div>
+            <div class="set-sub" id="seasonStatus" style="margin-top:6px;min-height:14px;"></div>
+
             <!-- ECONOMY -->
             <div class="mp-section-title" style="margin-top:16px;">💰 ECONOMY</div>
             <div class="owner-grid">
@@ -5052,14 +5084,139 @@
         // A pipe with a lit edge, a shaded edge and a rim, so it reads as a
         // cylinder rather than a green rectangle.
         let _pipeGrad = null, _pipeGradW = 0;
+        /* ═══════════════════ SEASONS ═══════════════════
+           Halloween in October, Christmas in December, Easter around Easter
+           Sunday. They turn themselves on and off by date, and an owner can
+           force any of them from the staff menu — the override lives in
+           Firestore so it reaches everyone at once, not just the person who
+           pressed the button. */
+
+        const SEASONS = {
+            spooky: {
+                name: 'Halloween', emoji: '🎃', accent: '#FF7A18', accent2: '#8B3FD6',
+                skyTop: '#170A28', skyLow: '#3A1A4E',
+                city: 'rgba(58,28,78,.75)', bush: '#2A1B3D',
+                ground: '#241A2E', groundTop: '#1B1224', stripe: 'rgba(255,140,40,.07)',
+                pipe: ['#3A1F52', '#7B3FA8', '#B071E0', '#7B3FA8', '#2A1440'],
+                motif: 'bat', motifFill: 'rgba(20,8,32,.85)'
+            },
+            christmas: {
+                name: 'Christmas', emoji: '🎄', accent: '#E8323F', accent2: '#2FA85B',
+                skyTop: '#07121F', skyLow: '#123050',
+                city: 'rgba(30,60,100,.72)', bush: '#14402A',
+                ground: '#DCE6F2', groundTop: '#C2D2E6', stripe: 'rgba(255,255,255,.35)',
+                pipe: ['#5A0A16', '#C8102E', '#FF5566', '#C8102E', '#480810'],
+                motif: 'snow', motifFill: 'rgba(255,255,255,.9)'
+            },
+            easter: {
+                name: 'Easter', emoji: '🐣', accent: '#FF8FB1', accent2: '#8ED9C0',
+                skyTop: '#243C63', skyLow: '#5B7FB0',
+                city: 'rgba(120,150,200,.6)', bush: '#3E7A4A',
+                ground: '#C9B98A', groundTop: '#B3A375', stripe: 'rgba(255,255,255,.16)',
+                pipe: ['#3F6B2A', '#7FC24A', '#C4EE86', '#7FC24A', '#33571F'],
+                motif: 'egg', motifFill: null       // eggs pick their own colours
+            }
+        };
+        const EGG_COLOURS = ['#FF9EC4', '#9BE7FF', '#FFE58A', '#B8F2C8', '#D7B3FF'];
+
+        /* Easter moves every year, so it is computed rather than listed. This
+           is the anonymous Gregorian computus; it is exact for any year in the
+           Gregorian calendar. */
+        function easterSunday(year) {
+            const a = year % 19,
+                  b = Math.floor(year / 100), c = year % 100,
+                  d = Math.floor(b / 4), e = b % 4,
+                  f = Math.floor((b + 8) / 25),
+                  g = Math.floor((b - f + 1) / 3),
+                  h = (19 * a + b - d - g + 15) % 30,
+                  i = Math.floor(c / 4), k = c % 4,
+                  l = (32 + 2 * e + 2 * i - h - k) % 7,
+                  m = Math.floor((a + 11 * h + 22 * l) / 451),
+                  month = Math.floor((h + l - 7 * m + 114) / 31),   // 3 = March, 4 = April
+                  day = ((h + l - 7 * m + 114) % 31) + 1;
+            return new Date(Date.UTC(year, month - 1, day));
+        }
+
+        function autoSeason(now) {
+            const d = now || new Date();
+            const month = d.getMonth();                 // 0 = January
+            if (month === 9) return 'spooky';           // all of October
+            if (month === 11 && d.getDate() <= 26) return 'christmas';
+            // Palm Sunday through Easter Monday
+            const e = easterSunday(d.getFullYear());
+            const from = new Date(e); from.setUTCDate(e.getUTCDate() - 7);
+            const to   = new Date(e); to.setUTCDate(e.getUTCDate() + 1);
+            const today = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+            if (today >= from.getTime() && today <= to.getTime()) return 'easter';
+            return null;
+        }
+
+        // '' = follow the calendar, 'off' = plain, otherwise a season id
+        let seasonForced = '';
+        function activeSeasonId() {
+            if (seasonForced === 'off') return null;
+            if (seasonForced && SEASONS[seasonForced]) return seasonForced;
+            return autoSeason();
+        }
+        function season() { return SEASONS[activeSeasonId()] || null; }
+
+        function applySeasonClass() {
+            const id = activeSeasonId();
+            const root = document.documentElement;
+            Object.keys(SEASONS).forEach(k => root.classList.toggle('season-' + k, k === id));
+            root.classList.toggle('seasonal', !!id);
+            const s = season();
+            if (s) {
+                root.style.setProperty('--season-accent', s.accent);
+                root.style.setProperty('--season-accent2', s.accent2);
+            } else {
+                root.style.removeProperty('--season-accent');
+                root.style.removeProperty('--season-accent2');
+            }
+            _pipeGrad = null;           // the pipe gradient is cached by width
+            renderSeasonBadge();
+        }
+
+        function renderSeasonBadge() {
+            const s = season();
+            let el = document.getElementById('seasonBadge');
+            if (!s) { el?.remove(); return; }
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'seasonBadge';
+                el.className = 'season-badge';
+                document.querySelector('.game-header')?.appendChild(el);
+            }
+            el.textContent = `${s.emoji} ${s.name}`;
+        }
+
+        /* The override is a Firestore doc so it lands on every client at once.
+           Absent or empty means the calendar decides. */
+        function watchSeason() {
+            if (!db) { applySeasonClass(); return; }
+            db.collection('config').doc('season').onSnapshot(d => {
+                seasonForced = (d.exists && d.data().force) || '';
+                applySeasonClass();
+            }, e => { console.warn('[Season]', e.message); applySeasonClass(); });
+        }
+
+        async function setSeasonOverride(value) {
+            if (!db) { seasonForced = value; applySeasonClass(); return false; }
+            await db.collection('config').doc('season').set(
+                { force: value, at: Date.now(), by: currentUser?.uid || null }, { merge: true });
+            return true;
+        }
+
         function pipeGradient(w) {
             if (_pipeGrad && _pipeGradW === w) return _pipeGrad;
             const g = ctx.createLinearGradient(0, 0, w, 0);
-            g.addColorStop(0,    '#0B8F56');
-            g.addColorStop(0.18, '#00CC7A');
-            g.addColorStop(0.42, '#4DE8A8');   // highlight, slightly left of centre
-            g.addColorStop(0.72, '#00CC7A');
-            g.addColorStop(1,    '#076B41');
+            const sp = season();
+            const c = sp ? sp.pipe : ['#0B8F56', '#00CC7A', '#4DE8A8', '#00CC7A', '#076B41'];
+            g.addColorStop(0,    c[0]);
+            g.addColorStop(0.18, c[1]);
+            g.addColorStop(0.42, c[2]);   // highlight, slightly left of centre
+            g.addColorStop(0.72, c[3]);
+            g.addColorStop(1,    c[4]);
             _pipeGrad = g; _pipeGradW = w;
             return g;
         }
@@ -5074,44 +5231,95 @@
             const groundH = Math.round(H * 0.11);
             const skyH = H - groundH;
 
+            const sp = season();
+
             // ---- sky ----
             const sky = ctx.createLinearGradient(0, 0, 0, skyH);
-            if (light) { sky.addColorStop(0, '#4EC0CA'); sky.addColorStop(1, '#8FD9E0'); }
-            else       { sky.addColorStop(0, '#12203A'); sky.addColorStop(1, '#1B3352'); }
+            if (sp)         { sky.addColorStop(0, sp.skyTop); sky.addColorStop(1, sp.skyLow); }
+            else if (light) { sky.addColorStop(0, '#4EC0CA'); sky.addColorStop(1, '#8FD9E0'); }
+            else            { sky.addColorStop(0, '#12203A'); sky.addColorStop(1, '#1B3352'); }
             ctx.fillStyle = sky;
             ctx.fillRect(0, 0, W, skyH);
 
             if (gameRunning && !gameOver) _bgOffset += 0.4;
 
-            // ---- clouds ----
-            ctx.fillStyle = light ? 'rgba(255,255,255,.85)' : 'rgba(180,200,235,.10)';
-            for (let i = 0; i < 4; i++) {
-                const x = ((i * 150 - _bgOffset * 0.12) % (W + 180)) - 90;
-                const y = 26 + (i % 3) * 34;
-                blob(x, y, 30, 12);
-                blob(x + 22, y - 7, 22, 10);
-                blob(x + 42, y, 26, 11);
+            // A full moon behind everything, for the two seasons that want one.
+            if (sp && (sp.motif === 'bat' || sp.motif === 'snow')) {
+                ctx.fillStyle = sp.motif === 'bat' ? 'rgba(255,190,90,.9)' : 'rgba(226,238,255,.85)';
+                ctx.beginPath();
+                ctx.arc(W * 0.78, skyH * 0.22, Math.min(38, W * 0.09), 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // ---- what drifts across the sky ----
+            if (!sp) {
+                ctx.fillStyle = light ? 'rgba(255,255,255,.85)' : 'rgba(180,200,235,.10)';
+                for (let i = 0; i < 4; i++) {
+                    const x = ((i * 150 - _bgOffset * 0.12) % (W + 180)) - 90;
+                    const y = 26 + (i % 3) * 34;
+                    blob(x, y, 30, 12);
+                    blob(x + 22, y - 7, 22, 10);
+                    blob(x + 42, y, 26, 11);
+                }
+            } else if (sp.motif === 'bat') {
+                // Wings beat off the same offset that scrolls everything else,
+                // so they stay in step with the world for free.
+                ctx.fillStyle = sp.motifFill;
+                for (let i = 0; i < 7; i++) {
+                    const x = ((i * 96 - _bgOffset * 0.5) % (W + 120)) - 60;
+                    const y = 30 + (i % 4) * 30 + Math.sin(_bgOffset * 0.04 + i) * 8;
+                    const w = 11, flap = Math.sin(_bgOffset * 0.22 + i * 1.3) * 5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y);
+                    ctx.quadraticCurveTo(x - w, y - 7 - flap, x - w * 2, y + 1);
+                    ctx.quadraticCurveTo(x - w, y + 3, x, y + 6);
+                    ctx.quadraticCurveTo(x + w, y + 3, x + w * 2, y + 1);
+                    ctx.quadraticCurveTo(x + w, y - 7 - flap, x, y);
+                    ctx.fill();
+                }
+            } else if (sp.motif === 'snow') {
+                ctx.fillStyle = sp.motifFill;
+                for (let i = 0; i < 34; i++) {
+                    const sx = ((i * 71 + Math.sin(i) * 40 - _bgOffset * 0.25) % (W + 40)) - 20;
+                    const sy = ((i * 53 + _bgOffset * (0.5 + (i % 3) * 0.25)) % (skyH + 20)) - 10;
+                    const r = 1.2 + (i % 3) * 0.8;
+                    ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+                }
+            } else if (sp.motif === 'egg') {
+                for (let i = 0; i < 6; i++) {
+                    const x = ((i * 128 - _bgOffset * 0.16) % (W + 150)) - 75;
+                    const y = 34 + (i % 3) * 36 + Math.sin(_bgOffset * 0.03 + i) * 5;
+                    ctx.fillStyle = EGG_COLOURS[i % EGG_COLOURS.length];
+                    ctx.beginPath();
+                    ctx.ellipse(x, y, 9, 12, Math.sin(i) * 0.3, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'rgba(255,255,255,.55)';
+                    ctx.fillRect(x - 7, y - 1, 14, 2);
+                    ctx.fillRect(x - 6, y + 4, 12, 2);
+                }
             }
 
             // ---- skyline, well behind everything ----
             const cityY = skyH - Math.round(H * 0.13);
-            ctx.fillStyle = light ? 'rgba(120,200,205,.75)' : 'rgba(35,60,95,.7)';
+            const cityFill = sp ? sp.city : (light ? 'rgba(120,200,205,.75)' : 'rgba(35,60,95,.7)');
+            ctx.fillStyle = cityFill;
             for (let i = 0; i < 14; i++) {
                 const x = ((i * 62 - _bgOffset * 0.2) % (W + 140)) - 70;
                 const h = 26 + ((i * 37) % 46);
                 ctx.fillRect(x, cityY + (46 - h), 44, h);
                 // a suggestion of windows, not actual detail
-                ctx.fillStyle = light ? 'rgba(255,255,255,.22)' : 'rgba(120,160,220,.16)';
+                ctx.fillStyle = sp ? 'rgba(255,214,120,.22)'
+                                   : (light ? 'rgba(255,255,255,.22)' : 'rgba(120,160,220,.16)');
                 for (let wy = cityY + (46 - h) + 6; wy < cityY + 42; wy += 11) {
                     ctx.fillRect(x + 8, wy, 6, 5);
                     ctx.fillRect(x + 24, wy, 6, 5);
                 }
-                ctx.fillStyle = light ? 'rgba(120,200,205,.75)' : 'rgba(35,60,95,.7)';
+                ctx.fillStyle = cityFill;
             }
 
             // ---- bushes along the horizon ----
             const bushY = skyH - Math.round(H * 0.045);
-            ctx.fillStyle = light ? '#5BAF3E' : '#1E4A2E';
+            ctx.fillStyle = sp ? sp.bush : (light ? '#5BAF3E' : '#1E4A2E');
             for (let i = 0; i < 12; i++) {
                 const x = ((i * 74 - _bgOffset * 0.45) % (W + 160)) - 80;
                 blob(x, bushY, 34, 15);
@@ -5120,9 +5328,9 @@
             ctx.fillRect(0, bushY, W, skyH - bushY);
 
             // ---- ground ----
-            ctx.fillStyle = light ? '#DED895' : '#2A2A22';
+            ctx.fillStyle = sp ? sp.ground : (light ? '#DED895' : '#2A2A22');
             ctx.fillRect(0, skyH, W, groundH);
-            ctx.fillStyle = light ? '#C9C177' : '#22221C';
+            ctx.fillStyle = sp ? sp.groundTop : (light ? '#C9C177' : '#22221C');
             ctx.fillRect(0, skyH, W, 4);
 
             // Diagonal stripes, the detail that makes it feel like it moves
@@ -5130,7 +5338,7 @@
             ctx.beginPath();
             ctx.rect(0, skyH + 4, W, groundH - 4);
             ctx.clip();
-            ctx.fillStyle = light ? 'rgba(180,170,90,.5)' : 'rgba(255,255,255,.05)';
+            ctx.fillStyle = sp ? sp.stripe : (light ? 'rgba(180,170,90,.5)' : 'rgba(255,255,255,.05)');
             const stripeW = 14, span = groundH;
             for (let x = -span; x < W + span; x += stripeW * 2) {
                 const ox = x - (_bgOffset % (stripeW * 2));
@@ -6505,6 +6713,10 @@
         }
 
         setTimeout(watchBroadcasts, 1500);
+        // The calendar decides on its own even before Firestore answers, so the
+        // theme is never wrong while the page is waking up.
+        applySeasonClass();
+        setTimeout(watchSeason, 1500);
 
 
         // ═══════════ SETTINGS TABS ═══════════
@@ -7844,6 +8056,44 @@
         }
 
         document.getElementById('pairSignInBtn')?.addEventListener('click', openPairEntry);
+        document.querySelectorAll('#ownerModal .owner-btn[data-season]').forEach(b => {
+            b.addEventListener('click', async () => {
+                const want = b.dataset.season;
+                const st = document.getElementById('seasonStatus');
+                if (!myRoles.includes('OWNER') && !myRoles.includes('DEV')) {
+                    if (st) st.textContent = 'Owners and developers only.';
+                    return;
+                }
+                if (st) st.textContent = 'Saving…';
+                try {
+                    await setSeasonOverride(want);
+                    playSfx('unlock', .5);
+                    // The snapshot listener repaints for everyone including us,
+                    // but a local apply makes the button feel instant.
+                    seasonForced = want;
+                    applySeasonClass();
+                    renderSeasonButtons();
+                    if (st) st.textContent = want
+                        ? (want === 'off' ? 'Seasonal themes are off for everyone.'
+                                          : `${SEASONS[want].name} forced on for everyone.`)
+                        : 'Back to the calendar.';
+                } catch (e) {
+                    if (st) st.textContent = 'Could not save: ' + e.message;
+                }
+            });
+        });
+
+        function renderSeasonButtons() {
+            document.querySelectorAll('#ownerModal .owner-btn[data-season]').forEach(b => {
+                b.classList.toggle('on', b.dataset.season === seasonForced);
+            });
+            const st = document.getElementById('seasonStatus');
+            if (st && !st.textContent) {
+                const id = activeSeasonId();
+                st.textContent = id ? `Showing ${SEASONS[id].name}.` : 'No seasonal theme right now.';
+            }
+        }
+
         document.getElementById('discordSignInBtn')?.addEventListener('click', () => {
             playSfx('select', .5);
             startDiscordSignIn();
@@ -8863,6 +9113,7 @@
             if (typeof refreshOwnerTargets === 'function') refreshOwnerTargets();
             if (typeof buildDistanceJump === 'function') buildDistanceJump(myRoles.includes('OWNER'));
             document.getElementById('ownerModal')?.classList.add('active');
+            if (typeof renderSeasonButtons === 'function') renderSeasonButtons();
         });
         document.getElementById('ingameMenuBtn')?.addEventListener('click', () => {
             // In a match this should show the lobby, not dump you back to the
