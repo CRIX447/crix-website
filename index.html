@@ -528,6 +528,92 @@ body {
 </head>
 <body>
 
+<!-- ═══════════ INTRO ═══════════
+     Plays once per visit, then hands you to the game. Everything about it is
+     defensive: the file may not be there, autoplay may be refused, the codec
+     may be unsupported, and someone may simply not want to sit through it.
+     Any of those and the site is just the site. -->
+<div id="intro" hidden>
+    <video id="introVideo" playsinline muted preload="auto"></video>
+    <div id="introBar"><i id="introFill"></i></div>
+    <button id="introSkip" type="button">SKIP →</button>
+    <button id="introSound" type="button" title="Sound">🔇</button>
+</div>
+<style>
+    #intro { position: fixed; inset: 0; z-index: 99999; background: #000;
+             display: flex; align-items: center; justify-content: center; }
+    #intro[hidden] { display: none; }
+    #introVideo { width: 100%; height: 100%; object-fit: cover; }
+    #introSkip, #introSound {
+        position: fixed; bottom: 26px; border-radius: 26px; cursor: pointer;
+        font: 700 13px/1 'Trebuchet MS', system-ui, sans-serif; color: #fff;
+        background: rgba(0,0,0,.55); border: 2px solid rgba(255,255,255,.25);
+        padding: 11px 20px; backdrop-filter: blur(6px);
+    }
+    #introSkip { right: 22px; }
+    #introSound { left: 22px; padding: 11px 14px; font-size: 15px; }
+    #introBar { position: fixed; left: 0; right: 0; bottom: 0; height: 3px;
+                background: rgba(255,255,255,.14); }
+    #introBar > i { display: block; height: 100%; width: 0;
+                    background: linear-gradient(90deg, #FF4655, #FF6B35); }
+    @media (prefers-reduced-motion: reduce) { #intro { display: none !important; } }
+</style>
+<script>
+(function () {
+    'use strict';
+    var SRC  = '/video.mp4';
+    var DEST = '/flappycrix';
+    var KEY  = 'crix_intro_seen';
+
+    var wrap = document.getElementById('intro');
+    var vid  = document.getElementById('introVideo');
+    var fill = document.getElementById('introFill');
+    if (!wrap || !vid) return;
+
+    // Once per browser session. A visitor bouncing between pages should not
+    // sit through it again, and neither should anyone who has skipped it.
+    var seen = false;
+    try { seen = sessionStorage.getItem(KEY) === '1'; } catch (e) {}
+    if (seen || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var done = false;
+    function finish(go) {
+        if (done) return;
+        done = true;
+        try { sessionStorage.setItem(KEY, '1'); } catch (e) {}
+        try { vid.pause(); } catch (e) {}
+        wrap.hidden = true;
+        if (go) location.href = DEST;
+    }
+
+    // If the file is missing or will not play, do not sit on a black screen.
+    vid.addEventListener('error', function () { finish(false); });
+    vid.addEventListener('stalled', function () { setTimeout(function () {
+        if (!done && vid.readyState < 2) finish(false);
+    }, 4000); });
+    vid.addEventListener('timeupdate', function () {
+        if (vid.duration) fill.style.width = (vid.currentTime / vid.duration * 100) + '%';
+    });
+    vid.addEventListener('ended', function () { finish(true); });
+
+    document.getElementById('introSkip').addEventListener('click', function () { finish(true); });
+    document.getElementById('introSound').addEventListener('click', function (e) {
+        vid.muted = !vid.muted;
+        e.currentTarget.textContent = vid.muted ? '🔇' : '🔊';
+    });
+    // A hard stop, so a video that hangs can never trap someone on the page.
+    setTimeout(function () { if (!done && vid.readyState < 2) finish(false); }, 6000);
+
+    // Muted autoplay is the only kind browsers allow without a gesture; the
+    // speaker button is there for anyone who wants the audio.
+    vid.src = SRC;
+    wrap.hidden = false;
+    var attempt = vid.play();
+    if (attempt && attempt.catch) attempt.catch(function () { finish(false); });
+})();
+</script>
+
+
 <audio id="bgMusic" loop><source src="/img/music.mp3" type="audio/mpeg"></audio>
 <audio id="hoverSound" preload="auto"><source src="/img/hover.mp3" type="audio/mpeg"></audio>
 <audio id="clickSound" preload="auto"><source src="/img/click.mp3" type="audio/mpeg"></audio>
@@ -1233,7 +1319,6 @@ async function init() {
     setInterval(checkLiveStream, 120000);
     loadBibleVerse();
     loadFanmail();
-    setupEvidence();
 }
 
 // =====================================================

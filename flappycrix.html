@@ -41,11 +41,6 @@
     <script>window.__BUILD__ = "2026.08.25-1900";</script>
     
 
-    <!-- Resolves the bare specifiers inside vr.js. The module itself is only
-         fetched when someone opens VR, so the 2D game never pays for it. -->
-    <script type="importmap">
-    {"imports":{"three":"/vendor/three/three.module.min.js","three/addons/":"/vendor/three/addons/"}}
-    </script>
     <script src="/filter.js?v=2026082519"></script>
     <script src="/ui.js?v=2026091101"></script>
     <script src="/android-bridge.js?v=2026082519"></script>
@@ -859,7 +854,6 @@
         body.clean-mode .broadcast { display: none !important; }
 
         /* ---- CLEAN MODE (trailer capture) ---- */
-        body.in-lobby .hud-live, body.in-lobby .ingame-bar { display: none !important; }
         body.clean-mode .ingame-bar,
         body.clean-mode .hud-live,
         body.clean-mode .mp-hud,
@@ -2249,32 +2243,34 @@
         }
         .locker-empty { font-size: 12px; padding: 12px; opacity: .7; }
 
-        /* ---- LOBBY CONTROLS ---- */
-        .lobby-stick, .lobby-jump, .lobby-exit { display: none; position: fixed; z-index: 9000; }
-        .lobby-stick.on, .lobby-jump.on, .lobby-exit.on { display: flex; }
-        .lobby-stick {
-            left: 18px; bottom: 22px; width: 116px; height: 116px; border-radius: 50%;
-            background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.14);
-            align-items: center; justify-content: center; touch-action: none;
+        /* ---- VOICE ---- */
+        .mp-voice-bar { display: flex; gap: 8px; margin: 8px 0 10px; }
+        .mp-voice-btn {
+            flex: 1; padding: 9px 14px; border-radius: 22px; cursor: pointer;
+            font: inherit; font-size: 12px; font-weight: 700; color: var(--txt);
+            background: rgba(255,255,255,.08);
+            border: 2px solid rgba(255,255,255,.14); border-bottom-width: 4px;
         }
-        .lobby-stick > i {
-            width: 52px; height: 52px; border-radius: 50%; display: block;
-            background: linear-gradient(135deg, var(--red), var(--orange));
-            box-shadow: 0 2px 0 rgba(0,0,0,.35); transition: transform .05s;
+        .mp-voice-btn.small { flex: 0 0 auto; }
+        .mp-voice-btn.on {
+            background: linear-gradient(135deg, var(--green), #2FE39B);
+            color: #04301F; border-color: rgba(0,0,0,.2);
         }
-        .lobby-jump {
-            right: 20px; bottom: 34px; width: 92px; height: 92px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--red), var(--orange));
-            border: 2px solid rgba(255,255,255,.15); border-bottom-width: 5px;
-            color: #fff; font: inherit; font-weight: 700; font-size: 14px;
-            align-items: center; justify-content: center; touch-action: none;
+        .mp-voice-btn.small.on { background: linear-gradient(135deg, #B33, var(--red)); color: #fff; }
+        .mp-player-row.speaking {
+            box-shadow: 0 0 0 2px var(--green), 0 0 14px rgba(0,204,122,.4);
         }
-        .lobby-exit {
-            top: 46px; right: 12px; padding: 8px 14px; border-radius: 20px;
-            background: rgba(8,8,14,.7); border: 2px solid rgba(255,255,255,.14);
-            color: var(--txt); font: inherit; font-size: 11px; font-weight: 700;
-            align-items: center; cursor: pointer;
+        .mp-player-row.self-muted .mp-player-name { opacity: .55; }
+        .mp-player-report-btn.voice-mute { color: var(--green); }
+        /* The in-game mic, beside the existing in-game buttons. */
+        .ingame-mic {
+            display: none; align-items: center; justify-content: center;
+            width: 38px; height: 38px; border-radius: 50%; font-size: 17px;
+            background: rgba(0,204,122,.18); border: 2px solid rgba(0,204,122,.5);
+            color: var(--txt); cursor: pointer;
         }
+        .ingame-mic.muted { background: rgba(255,70,85,.18); border-color: rgba(255,70,85,.55); }
+
 
         /* ---- STORE SECTIONS ----
            The cosmetics tab used to be one flat grid with hats and trails
@@ -2714,6 +2710,7 @@
                     <button class="ig-btn" id="ingameMusicBtn" title="Music">🔊</button>
                     <button class="ig-btn sandbox" id="ingameSandboxBtn" title="Sandbox" style="display:none;">🎮</button>
                     <button class="ig-btn" id="ingameCreatorBtn" title="Creator Studio">🎬</button>
+                    <button class="ig-btn ingame-mic" id="ingameMicBtn" title="Mute yourself">🎙️</button>
                     <button class="ig-btn staff" id="ingameStaffBtn" title="Staff" style="display:none;">🛡️</button>
                 </div>
             </div>
@@ -2785,16 +2782,11 @@
             <button class="icon-btn staff" id="ownerBtn" title="Staff menu" style="display:none;"><span>🛡️</span><label>Staff</label></button>
         </div>
         <div class="mp-diagnostic-banner" id="mpDiagnosticBanner" style="display:none;"></div>
-        <!-- Walking the lobby on a phone. Hidden until the lobby is open. -->
-        <div id="lobbyStick" class="lobby-stick"><i id="lobbyKnob"></i></div>
-        <button id="lobbyJump" class="lobby-jump">JUMP</button>
-        <button id="lobbyExit" class="lobby-exit">✕ LEAVE LOBBY</button>
         
         
         
         <div class="game-controls">
             <button class="game-btn" id="startGameBtn">▶ START</button>
-            <button class="game-btn secondary" id="lobbyBtn">🪨 LOBBY</button>
             <button class="game-btn secondary" id="musicToggleBtn">🔊 MUSIC</button>
         </div>
 
@@ -3049,6 +3041,10 @@
                 <button class="mp-copy-code-btn" id="mpCopyCodeBtn">📋 COPY CODE</button>
 
                 <div class="mp-section-title" style="margin-top:14px;">PLAYERS (<span id="mpPlayerCount">1</span>/8)</div>
+                <div class="mp-voice-bar">
+                    <button class="mp-voice-btn" id="mpVoiceBtn">🎙️ JOIN VOICE</button>
+                    <button class="mp-voice-btn small" id="mpMuteBtn" style="display:none;">MUTE</button>
+                </div>
                 <div class="mp-player-list" id="mpPlayerList"></div>
 
                 <div class="mp-host-controls" id="mpHostControls" style="display:none;">
@@ -3884,13 +3880,6 @@
             <div class="set-row">
                 <span class="set-label">Reduced motion</span>
                 <div class="mp-toggle-switch" id="setMotionToggle"></div>
-            </div>
-            <div class="set-row">
-                <div style="min-width:0;">
-                    <span class="set-label">VR mode</span>
-                    <div class="set-sub" id="setVrSub">Flap your arms to fly</div>
-                </div>
-                <button class="set-mini-btn" id="setVrBtn">ENTER VR</button>
             </div>
 
             <div class="mp-section-title" style="margin-top:16px;">🔊 AUDIO</div>
@@ -5304,289 +5293,6 @@
             _lastTime = 0;   // avoids a huge delta spike on return
         });
 
-        /* ═══════════════════ THE LOBBY ═══════════════════
-           The same rock the VR build drops you onto, seen from the side. VR
-           players haul themselves around it with their arms; here you walk it
-           with a stick. Touch the green pad in either one and you are flying.
-
-           It runs on the game canvas with its own update and draw, so it does
-           not disturb a run in progress — starting the lobby stops the game
-           and vice versa. */
-
-        /* The lobby is authored in a fixed virtual space and scaled to whatever
-           canvas it lands on. Drawn in raw pixels it filled a phone's tall
-           canvas with sky and left the rock in a strip at the bottom. */
-        const LOBBY_W = 1400;                 // world units across; the view scrolls
-        const LOBBY_H = 470;                  // world units tall; scaled to fit
-        const lobby2d = {
-            on: false, x: 320, y: 0, vx: 0, vy: 0, onGround: false,
-            face: 1, walk: 0, cam: 0,
-            keys: Object.create(null), stick: { on: false, dx: 0, id: -1 }
-        };
-
-        // Blocks are laid out to echo the VR lobby: a flat rock with things to
-        // climb, and the launch pad in the middle.
-        /* A phone holds the canvas in portrait, and a uniform scale means only
-           about 330 world units are visible across. Blocks have to be narrow
-           enough that several are in shot at once. */
-        const LOBBY_BLOCKS = [
-            { x:  90, y:  70, w:  78, h: 22 },
-            { x: 226, y: 132, w:  70, h: 22 },
-            { x: 356, y:  84, w:  86, h: 22 },
-            { x: 506, y: 160, w:  74, h: 22 },
-            { x: 636, y:  96, w:  82, h: 22 },
-            { x: 790, y: 190, w:  70, h: 22 },
-            { x: 918, y: 120, w:  88, h: 22 },
-            { x: 1074, y: 64, w:  76, h: 22 }
-        ];
-        const LOBBY_PAD = { x: 452, w: 78, h: 14 };
-        const LOBBY_GROUND_H = 78;            // from the bottom of the canvas
-
-        function lobbyFloorAt(x, y, vy) {
-            // ground first, then any block whose top we are falling onto
-            let best = LOBBY_GROUND_H;
-            for (const b of LOBBY_BLOCKS) {
-                if (x + 16 < b.x || x - 16 > b.x + b.w) continue;
-                const top = b.y + b.h;
-                if (y >= top - 2 || vy > 0) continue;   // only land from above
-                best = Math.max(best, top);
-            }
-            return best;
-        }
-
-        function startLobby2D() {
-            if (gameRunning) { gameRunning = false; gameOver = false; }
-            lobby2d.on = true;
-            lobby2d.x = 320; lobby2d.y = LOBBY_GROUND_H; lobby2d.vx = 0; lobby2d.vy = 0;
-            lobby2d.cam = 0; lobby2d.face = 1; lobby2d.walk = 0;
-            document.body.classList.add('playing', 'in-lobby');
-            const touch = isTouch();
-            document.getElementById('lobbyStick')?.classList.toggle('on', touch);
-            document.getElementById('lobbyJump')?.classList.toggle('on', touch);
-            document.getElementById('lobbyExit')?.classList.add('on');
-            if (!animationId) animationId = requestAnimationFrame(gameLoop);
-        }
-
-        function stopLobby2D() {
-            lobby2d.on = false;
-            document.body.classList.remove('playing', 'in-lobby');
-            ['lobbyStick','lobbyJump','lobbyExit'].forEach(id =>
-                document.getElementById(id)?.classList.remove('on'));
-        }
-
-        function isTouch() {
-            return matchMedia('(pointer: coarse)').matches || navigator.maxTouchPoints > 0;
-        }
-
-        function lobbyInput() {
-            const k = lobby2d.keys;
-            let dx = 0;
-            if (k['KeyA'] || k['ArrowLeft'])  dx -= 1;
-            if (k['KeyD'] || k['ArrowRight']) dx += 1;
-            if (lobby2d.stick.on) dx += lobby2d.stick.dx;
-            const jump = !!(k['KeyW'] || k['Space'] || k['ArrowUp'] || lobby2d.stick.jump);
-            return { dx: Math.max(-1, Math.min(1, dx)), jump };
-        }
-
-        function updateLobby2D(dt) {
-            const { dx, jump } = lobbyInput();
-            const ACC = 1800, MAXV = 330, FRICT = 0.82, GRAV = -2100, JUMP = 720;
-
-            lobby2d.vx += dx * ACC * dt;
-            if (!dx) lobby2d.vx *= Math.pow(FRICT, dt * 60);
-            lobby2d.vx = Math.max(-MAXV, Math.min(MAXV, lobby2d.vx));
-            if (dx) lobby2d.face = dx > 0 ? 1 : -1;
-
-            lobby2d.vy += GRAV * dt;
-            lobby2d.x += lobby2d.vx * dt;
-            lobby2d.y += lobby2d.vy * dt;
-            lobby2d.x = Math.max(24, Math.min(LOBBY_W - 24, lobby2d.x));
-
-            const floor = lobbyFloorAt(lobby2d.x, lobby2d.y, lobby2d.vy);
-            if (lobby2d.y <= floor) {
-                lobby2d.y = floor;
-                lobby2d.vy = 0;
-                lobby2d.onGround = true;
-            } else lobby2d.onGround = false;
-
-            if (jump && lobby2d.onGround) { lobby2d.vy = JUMP; lobby2d.onGround = false; playSound(jumpSound); }
-            lobby2d.walk += Math.abs(lobby2d.vx) * dt * 0.05;
-
-            // camera follows with the player a third in from the left
-            const view = canvas.width / lobbyScale();
-            const target = Math.max(0, Math.min(LOBBY_W - view, lobby2d.x - view * 0.38));
-            lobby2d.cam += (target - lobby2d.cam) * Math.min(1, dt * 7);
-
-            // the pad launches a run, the same as slapping it in VR
-            const padY = LOBBY_GROUND_H;
-            if (Math.abs(lobby2d.x - (LOBBY_PAD.x + LOBBY_PAD.w / 2)) < LOBBY_PAD.w / 2 + 14 &&
-                lobby2d.y < padY + 46) {
-                stopLobby2D();
-                startGame();
-            }
-        }
-
-        function lobbyScale() { return canvas.height / LOBBY_H; }
-
-        function drawLobby2D() {
-            const W = canvas.width, H = canvas.height;
-            drawBackdrop();
-            const S = lobbyScale();
-            ctx.save();
-            ctx.scale(S, S);
-            ctx.translate(-lobby2d.cam, 0);
-
-            const groundY = LOBBY_H - LOBBY_GROUND_H;
-
-            // the rock
-            ctx.fillStyle = '#1E4A2E';
-            ctx.fillRect(0, groundY, LOBBY_W, LOBBY_GROUND_H);
-            ctx.fillStyle = 'rgba(255,255,255,.07)';
-            ctx.fillRect(0, groundY, LOBBY_W, 4);
-
-            LOBBY_BLOCKS.forEach(b => {
-                const y = LOBBY_H - b.y - b.h;
-                ctx.fillStyle = '#4A5A46';
-                ctx.fillRect(b.x, y, b.w, b.h + b.y);
-                ctx.fillStyle = '#1E4A2E';
-                ctx.fillRect(b.x, y, b.w, b.h);
-                ctx.fillStyle = 'rgba(255,255,255,.10)';
-                ctx.fillRect(b.x, y, b.w, 3);
-            });
-
-            // launch pad
-            const px = LOBBY_PAD.x, py = LOBBY_H - LOBBY_GROUND_H - LOBBY_PAD.h;
-            ctx.fillStyle = pipeGradient(LOBBY_PAD.w);
-            ctx.save(); ctx.translate(px, 0);
-            ctx.fillRect(0, py, LOBBY_PAD.w, LOBBY_PAD.h);
-            ctx.restore();
-            ctx.fillStyle = '#4DE8A8';
-            ctx.fillRect(px, py, LOBBY_PAD.w, 3);
-            ctx.fillStyle = '#EDEDED';
-            ctx.font = 'bold 13px "Trebuchet MS", sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('FLY', px + LOBBY_PAD.w / 2, py - 10);
-
-            // you
-            const bx = lobby2d.x, by = LOBBY_H - lobby2d.y - 30;
-            const bob = lobby2d.onGround ? Math.sin(lobby2d.walk) * 2 : 0;
-            ctx.save();
-            ctx.translate(bx, by + bob);
-            ctx.scale(lobby2d.face, 1);
-            drawSprite(ctx, birdImage, 0, 0, 34);
-            const hat = cosmetics.find(c => c.type === 'hat' && c.equipped && c.owned);
-            if (hat) { const hi = cachedImage(hat.image); if (hi) drawHat(ctx, hi, 34); }
-            ctx.restore();
-
-            ctx.restore();
-
-            // a line of help, and the way out
-            ctx.fillStyle = 'rgba(8,8,14,.6)';
-            ctx.fillRect(0, 0, W, 34);
-            ctx.fillStyle = '#EDEDED';
-            ctx.font = 'bold 13px "Trebuchet MS", sans-serif';
-            ctx.textAlign = 'left';
-            ctx.fillText('LOBBY', 12, 22);
-            ctx.fillStyle = '#9A9AA6';
-            ctx.font = '12px "Trebuchet MS", sans-serif';
-            ctx.textAlign = 'right';
-            ctx.fillText(isTouch() ? 'stick to walk · reach the FLY pad'
-                                   : 'A / D to walk · W to jump · reach the FLY pad', W - 12, 22);
-        }
-
-        addEventListener('keydown', e => {
-            if (!lobby2d.on) return;
-            lobby2d.keys[e.code] = true;
-            if (['KeyA','KeyD','KeyW','Space','ArrowLeft','ArrowRight','ArrowUp'].includes(e.code)) e.preventDefault();
-            if (e.code === 'Escape') { stopLobby2D(); }
-        });
-        addEventListener('keyup', e => { lobby2d.keys[e.code] = false; });
-
-        // ---- touch stick: drag the knob, read it as an axis ----
-        (function wireStick() {
-            const pad = document.getElementById('lobbyStick');
-            const knob = document.getElementById('lobbyKnob');
-            const jump = document.getElementById('lobbyJump');
-            if (!pad) return;
-            const R = 32;
-            const move = e => {
-                const t = [...e.touches].find(t => t.identifier === lobby2d.stick.id);
-                if (!t) return;
-                const r = pad.getBoundingClientRect();
-                const dx = Math.max(-R, Math.min(R, t.clientX - (r.left + r.width / 2)));
-                lobby2d.stick.dx = dx / R;
-                knob.style.transform = `translateX(${dx}px)`;
-            };
-            const end = e => {
-                if ([...e.touches].some(t => t.identifier === lobby2d.stick.id)) return;
-                lobby2d.stick.on = false; lobby2d.stick.dx = 0; lobby2d.stick.id = -1;
-                knob.style.transform = '';
-            };
-            pad.addEventListener('touchstart', e => {
-                e.preventDefault();
-                lobby2d.stick.on = true;
-                lobby2d.stick.id = e.changedTouches[0].identifier;
-                move(e);
-            }, { passive: false });
-            pad.addEventListener('touchmove', e => { e.preventDefault(); move(e); }, { passive: false });
-            pad.addEventListener('touchend', end);
-            pad.addEventListener('touchcancel', end);
-            jump?.addEventListener('touchstart', e => { e.preventDefault(); lobby2d.stick.jump = true; }, { passive: false });
-            jump?.addEventListener('touchend',   () => { lobby2d.stick.jump = false; });
-        })();
-
-        document.getElementById('lobbyBtn')?.addEventListener('click', () => { playSound(selectSound); startLobby2D(); });
-        document.getElementById('lobbyExit')?.addEventListener('click', () => { playSound(selectSound); stopLobby2D(); });
-
-        /* ═══════════════════ VR ═══════════════════
-           three.js and the models are about a megabyte, so the module is only
-           fetched when someone actually asks for VR. */
-
-        let _vrSession = null;
-
-        async function enterVR() {
-            const btn = document.getElementById('setVrBtn');
-            const sub = document.getElementById('setVrSub');
-            if (_vrSession) return;
-            if (btn) { btn.disabled = true; btn.textContent = 'LOADING…'; }
-            try {
-                const vr = await import('/vr.js?v=2026091801');
-                if (gameRunning) { gameRunning = false; }
-                stopLobby2D();
-                document.getElementById('settingsModal')?.classList.remove('active');
-                const trail = cosmetics.find(c => c.type === 'trail' && c.equipped && c.owned);
-                _vrSession = await vr.start({
-                    equipped: { hat: equippedId('hat'), trail: equippedId('trail'),
-                                trailColours: trail ? trail.colours : null },
-                    onScore: ({ coins }) => {
-                        // coins earned in VR are real coins
-                        if (coins > 0) { coinCount += coins; updateCoinDisplay(); autoSave(); }
-                    },
-                    onExit: () => { _vrSession = null; }
-                });
-            } catch (err) {
-                if (sub) sub.textContent = 'Could not start VR: ' + (err.message || err);
-                console.error('[VR]', err);
-            } finally {
-                if (btn) { btn.disabled = false; btn.textContent = 'ENTER VR'; }
-            }
-        }
-
-        document.getElementById('setVrBtn')?.addEventListener('click', enterVR);
-
-        // Say up front whether this device can actually do it, rather than
-        // letting someone press a button that cannot work.
-        (async () => {
-            const sub = document.getElementById('setVrSub');
-            if (!sub) return;
-            if (!navigator.xr) { sub.textContent = 'No WebXR here — open Flappy Crix in a headset'; return; }
-            try {
-                const ok = await navigator.xr.isSessionSupported('immersive-vr');
-                sub.textContent = ok ? 'Headset found — flap your arms to fly'
-                                     : 'No headset on this device — you can still look around';
-            } catch (e) { sub.textContent = 'Flap your arms to fly'; }
-        })();
-
         function gameLoop(now){
             if (_pageHidden) { animationId = requestAnimationFrame(gameLoop); return; }
             now = now || performance.now();
@@ -5598,13 +5304,6 @@
             // FPS readout
             _fpsAccum += delta; _fpsFrames++;
             if (_fpsAccum >= 500) { _fps = Math.round(_fpsFrames * 1000 / _fpsAccum); _fpsAccum = 0; _fpsFrames = 0; }
-
-            if (lobby2d.on) {
-                updateLobby2D(Math.min(delta, 50) / 1000);
-                drawLobby2D();
-                animationId = requestAnimationFrame(gameLoop);
-                return;
-            }
 
             _accum += delta;
             let steps = 0;
@@ -7246,10 +6945,33 @@
             document.querySelectorAll('audio').forEach(a => {
                 a.setSinkId(id || '').catch(() => {});
             });
+            // Voice peers are Audio objects that never touch the DOM, so the
+            // query above cannot see them.
+            if (typeof voice !== 'undefined') {
+                voice.peers.forEach(peer => { try { peer.audio.setSinkId(id || ''); } catch (e) {} });
+            }
+        }
+
+        // Changing the microphone mid-call should not mean dropping out of it.
+        async function voiceSwitchMic() {
+            if (typeof voice === 'undefined' || !voice.on) return;
+            let fresh;
+            try { fresh = await navigator.mediaDevices.getUserMedia(CrixAudio.micConstraints()); }
+            catch (e) { return; }
+            const track = fresh.getAudioTracks()[0];
+            if (!track) return;
+            track.enabled = !voice.muted;
+            voice.peers.forEach(peer => {
+                const sender = peer.pc.getSenders().find(x => x.track && x.track.kind === 'audio');
+                if (sender) sender.replaceTrack(track).catch(() => {});
+            });
+            if (voice.stream) voice.stream.getTracks().forEach(t => t.stop());
+            voice.stream = fresh;
+            voiceMeterStart();
         }
 
         document.getElementById('setMicDevice')?.addEventListener('change', e => {
-            audioDevices.mic = e.target.value; saveAudioDevices();
+            audioDevices.mic = e.target.value; saveAudioDevices(); voiceSwitchMic();
         });
         document.getElementById('setSpkDevice')?.addEventListener('change', e => {
             audioDevices.speaker = e.target.value; saveAudioDevices(); applySpeakerChoice();
@@ -7268,6 +6990,302 @@
                     : { audio: true };
             }
         };
+
+        // ═══════════ VOICE CHAT ═══════════
+        // Peer-to-peer WebRTC audio. Photon carries nothing but the handshake
+        // — offers, answers and ICE candidates ride the room's own event
+        // channel, so there is no second service to stand up and no extra SDK
+        // to load. Audio never passes through Photon.
+        //
+        // A mesh, which is the right shape for a lobby of eight: every pair
+        // gets one connection, so nobody's voice is relayed through a third
+        // player who might then leave.
+
+        const VOICE_MAX_PEERS = 8;
+        const ICE_SERVERS = [
+            { urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }
+        ];
+
+        const voice = {
+            on: false,            // are we transmitting
+            joining: false,
+            muted: false,
+            stream: null,         // our microphone
+            peers: new Map(),     // actorNr -> { pc, audio, stream, level }
+            muteOf: new Set(),    // actors we have muted locally
+            speaking: new Set(),  // actors currently making noise
+            _meter: null
+        };
+
+        function voiceSupported() {
+            return !!(navigator.mediaDevices?.getUserMedia && window.RTCPeerConnection);
+        }
+
+        async function voiceStart() {
+            if (voice.on || voice.joining) return;
+            if (!voiceSupported()) {
+                toast({ kind: 'warn', title: 'No voice here',
+                        body: 'This browser cannot open a microphone.' });
+                return;
+            }
+            if (!mpCurrentRoom) return;
+            voice.joining = true;
+            voiceRenderButton();
+            try {
+                voice.stream = await navigator.mediaDevices.getUserMedia(
+                    window.CrixAudio ? CrixAudio.micConstraints() : { audio: true });
+            } catch (e) {
+                voice.joining = false;
+                voiceRenderButton();
+                toast({ kind: 'warn', title: 'Microphone blocked',
+                        body: 'Allow mic access in your browser to talk.' });
+                return;
+            }
+            voice.on = true;
+            voice.joining = false;
+            voiceMeterStart();
+            // Device labels only appear once permission is granted, so this is
+            // the moment the picker in Settings becomes useful.
+            if (window.CrixAudio) CrixAudio.refresh();
+
+            // Tell the room we are listening. Whoever hears it decides who
+            // calls whom, so both sides never offer at once.
+            mpRaiseEvent(MP_EV.VOICE_HELLO, { on: true });
+            voiceRenderButton();
+            voiceRenderList();
+        }
+
+        function voiceStop() {
+            voice.on = false;
+            voice.joining = false;
+            voiceMeterStop();
+            voice.peers.forEach((_, nr) => voiceDropPeer(nr));
+            voice.peers.clear();
+            voice.speaking.clear();
+            if (voice.stream) {
+                voice.stream.getTracks().forEach(t => t.stop());
+                voice.stream = null;
+            }
+            mpRaiseEvent(MP_EV.VOICE_HELLO, { on: false });
+            voiceRenderButton();
+            voiceRenderList();
+        }
+
+        function voiceToggle() { voice.on ? voiceStop() : voiceStart(); }
+
+        function voiceSetMuted(m) {
+            voice.muted = m;
+            if (voice.stream) voice.stream.getAudioTracks().forEach(t => { t.enabled = !m; });
+            mpRaiseEvent(MP_EV.VOICE_STATE, { muted: m });
+            voiceRenderButton();
+        }
+
+        /* One side has to make the offer or both do and neither connects. The
+           lower actor number always calls — an ordering both ends agree on
+           without another round trip. */
+        function voiceShouldCall(nr) { return mpLocalActor < nr; }
+
+        function voicePeer(nr) {
+            let peer = voice.peers.get(nr);
+            if (peer) return peer;
+            if (voice.peers.size >= VOICE_MAX_PEERS) return null;
+
+            const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+            const audio = new Audio();
+            audio.autoplay = true;
+            peer = { pc, audio, stream: null, level: 0 };
+            voice.peers.set(nr, peer);
+
+            if (voice.stream) voice.stream.getTracks().forEach(t => pc.addTrack(t, voice.stream));
+
+            pc.onicecandidate = e => {
+                if (e.candidate) mpRaiseEvent(MP_EV.VOICE_ICE, { to: nr, c: JSON.stringify(e.candidate) });
+            };
+            pc.ontrack = e => {
+                peer.stream = e.streams[0];
+                audio.srcObject = peer.stream;
+                audio.muted = voice.muteOf.has(nr);
+                // honour the speaker chosen in Settings
+                const sink = window.CrixAudio && CrixAudio.speakerId;
+                if (sink && 'setSinkId' in audio) audio.setSinkId(sink).catch(() => {});
+                audio.play().catch(() => {});
+                voiceRenderList();
+            };
+            pc.onconnectionstatechange = () => {
+                if (['failed', 'closed'].includes(pc.connectionState)) voiceDropPeer(nr);
+                voiceRenderList();
+            };
+            return peer;
+        }
+
+        async function voiceCall(nr) {
+            const peer = voicePeer(nr);
+            if (!peer) return;
+            try {
+                const offer = await peer.pc.createOffer({ offerToReceiveAudio: true });
+                await peer.pc.setLocalDescription(offer);
+                mpRaiseEvent(MP_EV.VOICE_OFFER, { to: nr, sdp: offer.sdp });
+            } catch (e) { console.warn('[voice] offer failed', e.message); }
+        }
+
+        async function voiceOnOffer(nr, sdp) {
+            const peer = voicePeer(nr);
+            if (!peer) return;
+            try {
+                await peer.pc.setRemoteDescription({ type: 'offer', sdp });
+                const answer = await peer.pc.createAnswer();
+                await peer.pc.setLocalDescription(answer);
+                mpRaiseEvent(MP_EV.VOICE_ANSWER, { to: nr, sdp: answer.sdp });
+            } catch (e) { console.warn('[voice] answer failed', e.message); }
+        }
+
+        async function voiceOnAnswer(nr, sdp) {
+            const peer = voice.peers.get(nr);
+            if (!peer) return;
+            try { await peer.pc.setRemoteDescription({ type: 'answer', sdp }); }
+            catch (e) { console.warn('[voice] remote answer failed', e.message); }
+        }
+
+        async function voiceOnIce(nr, candidate) {
+            const peer = voice.peers.get(nr);
+            if (!peer) return;
+            try { await peer.pc.addIceCandidate(JSON.parse(candidate)); }
+            catch (e) { /* a candidate arriving before the description is normal */ }
+        }
+
+        function voiceDropPeer(nr) {
+            const peer = voice.peers.get(nr);
+            if (!peer) return;
+            try { peer.pc.close(); } catch (e) {}
+            try { peer.audio.pause(); peer.audio.srcObject = null; } catch (e) {}
+            voice.peers.delete(nr);
+            voice.speaking.delete(nr);
+        }
+
+        function voiceMuteActor(nr, m) {
+            if (m) voice.muteOf.add(nr); else voice.muteOf.delete(nr);
+            const peer = voice.peers.get(nr);
+            if (peer) peer.audio.muted = m;
+            voiceRenderList();
+        }
+
+        /* Who is talking. Locally that is an analyser on our own stream; for
+           everyone else the receiver reports an audio level per packet, which
+           costs nothing and needs no second analyser per peer. */
+        function voiceMeterStart() {
+            voiceMeterStop();
+            let ctx = null, analyser = null, data = null;
+            try {
+                ctx = audioCtx();
+                if (ctx && voice.stream) {
+                    analyser = ctx.createAnalyser();
+                    analyser.fftSize = 512;
+                    ctx.createMediaStreamSource(voice.stream).connect(analyser);
+                    data = new Uint8Array(analyser.frequencyBinCount);
+                }
+            } catch (e) {}
+
+            voice._meter = setInterval(() => {
+                let changed = false;
+                if (analyser) {
+                    analyser.getByteTimeDomainData(data);
+                    let peak = 0;
+                    for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i] - 128));
+                    const loud = !voice.muted && peak > 8;
+                    if (loud !== voice.speaking.has(mpLocalActor)) {
+                        loud ? voice.speaking.add(mpLocalActor) : voice.speaking.delete(mpLocalActor);
+                        changed = true;
+                    }
+                }
+                voice.peers.forEach((peer, nr) => {
+                    let level = 0;
+                    try {
+                        const rx = peer.pc.getReceivers().find(r => r.track && r.track.kind === 'audio');
+                        const src = rx && rx.getSynchronizationSources && rx.getSynchronizationSources()[0];
+                        if (src && typeof src.audioLevel === 'number') level = src.audioLevel;
+                    } catch (e) {}
+                    const loud = level > 0.02 && !voice.muteOf.has(nr);
+                    if (loud !== voice.speaking.has(nr)) {
+                        loud ? voice.speaking.add(nr) : voice.speaking.delete(nr);
+                        changed = true;
+                    }
+                });
+                if (changed) voiceRenderList();
+            }, 220);
+        }
+
+        function voiceMeterStop() {
+            if (voice._meter) { clearInterval(voice._meter); voice._meter = null; }
+        }
+
+        function voiceRenderButton() {
+            const b = document.getElementById('mpVoiceBtn');
+            if (b) {
+                b.classList.toggle('on', voice.on);
+                b.textContent = voice.joining ? '⏳ CONNECTING'
+                              : voice.on ? (voice.muted ? '🔇 MUTED' : '🎙️ TALKING')
+                              : '🎙️ JOIN VOICE';
+            }
+            const m = document.getElementById('mpMuteBtn');
+            if (m) {
+                m.style.display = voice.on ? 'inline-flex' : 'none';
+                m.classList.toggle('on', voice.muted);
+                m.textContent = voice.muted ? 'UNMUTE' : 'MUTE';
+            }
+            const g = document.getElementById('ingameMicBtn');
+            if (g) {
+                g.style.display = voice.on ? 'flex' : 'none';
+                g.classList.toggle('muted', voice.muted);
+                g.textContent = voice.muted ? '🔇' : '🎙️';
+            }
+        }
+
+        function voiceRenderList() {
+            // the player rows carry the speaking ring and the per-player mute
+            if (typeof mpRenderLobby === 'function' && mpCurrentRoom) mpRenderLobby();
+        }
+
+        function voiceHandleEvent(code, content, actorNr) {
+            if (actorNr === mpLocalActor) return;
+            // everything but HELLO is addressed to one actor
+            if (code !== MP_EV.VOICE_HELLO && content && content.to !== mpLocalActor) return;
+            switch (code) {
+                case MP_EV.VOICE_HELLO:
+                    if (!voice.on) return;
+                    if (content && content.on === false) { voiceDropPeer(actorNr); voiceRenderList(); return; }
+                    // Both sides announce; only the lower actor number calls.
+                    if (voiceShouldCall(actorNr)) voiceCall(actorNr);
+                    else mpRaiseEvent(MP_EV.VOICE_HELLO, { on: true });
+                    return;
+                case MP_EV.VOICE_OFFER:  if (voice.on) voiceOnOffer(actorNr, content.sdp); return;
+                case MP_EV.VOICE_ANSWER: voiceOnAnswer(actorNr, content.sdp); return;
+                case MP_EV.VOICE_ICE:    voiceOnIce(actorNr, content.c); return;
+                case MP_EV.VOICE_STATE: {
+                    const p = mpPlayers[actorNr];
+                    if (p) p.voiceMuted = !!content.muted;
+                    voiceRenderList();
+                    return;
+                }
+            }
+        }
+
+        document.getElementById('mpVoiceBtn')?.addEventListener('click', () => { playSound(selectSound); voiceToggle(); });
+        document.getElementById('mpMuteBtn')?.addEventListener('click', () => voiceSetMuted(!voice.muted));
+        document.getElementById('ingameMicBtn')?.addEventListener('click', () => voiceSetMuted(!voice.muted));
+
+        // A held key is the shape people expect for push-to-talk, and V is
+        // free. Tapping it toggles; holding it talks while down.
+        let _vHeldAt = 0;
+        addEventListener('keydown', e => {
+            if (e.code !== 'KeyV' || e.repeat || !voice.on) return;
+            if (document.activeElement && /input|textarea/i.test(document.activeElement.tagName)) return;
+            _vHeldAt = Date.now();
+            if (voice.muted) voiceSetMuted(false);
+        });
+        addEventListener('keyup', e => {
+            if (e.code !== 'KeyV' || !voice.on) return;
+            if (Date.now() - _vHeldAt > 350) voiceSetMuted(true);   // was a hold
+        });
 
         // ═══════════ OWNER SPECTACLE ═══════════
         // Boosts ride the event system above rather than a parallel set of
@@ -8212,6 +8230,8 @@
             VOTE_KICK: 15, VOTE_RESULT: 16, HOST_END_GAME: 17, GRANT_PERM: 18,
             OWNER_EFFECT: 21, VOTE_CAST: 22, HOST_CHANGED: 23, RESPAWN: 24,
             COIN_TAKE: 25, PING: 26,
+            // Voice is peer-to-peer WebRTC; Photon only carries the handshake.
+            VOICE_HELLO: 27, VOICE_OFFER: 28, VOICE_ANSWER: 29, VOICE_ICE: 30, VOICE_STATE: 31,
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -11245,6 +11265,8 @@
         }
 
         function mpHandleActorLeave(actor) {
+            voiceDropPeer(actor.actorNr);
+            voiceRenderList();
             // Photon promotes a new master client automatically; re-read it so
             // host-only controls follow the new host rather than vanishing.
             setTimeout(() => {
@@ -11367,6 +11389,21 @@
                 // Declared before first use — reading a const early throws and
                 // aborted the entire player loop, leaving the lobby empty.
                 const targetProtected = mpIsProtected(parseInt(nr));
+
+                // Voice: a ring while they are talking, and a mute of your own
+                // that only affects what YOU hear.
+                const actor = parseInt(nr);
+                if (voice.speaking.has(actor)) row.classList.add('speaking');
+                if (p.voiceMuted) row.classList.add('self-muted');
+                if (voice.on && !isMe && voice.peers.has(actor)) {
+                    const vb = document.createElement('button');
+                    vb.className = 'mp-player-report-btn voice-mute';
+                    const m = voice.muteOf.has(actor);
+                    vb.textContent = m ? '🔇' : '🔊';
+                    vb.title = m ? 'Unmute for you' : 'Mute for you';
+                    vb.onclick = () => voiceMuteActor(actor, !voice.muteOf.has(actor));
+                    row.appendChild(vb);
+                }
 
                 // Host-only: hand the lobby over to someone else
                 if (mpIsHost && !isMe) {
@@ -11680,6 +11717,7 @@
             mpIntentionalDisconnect = true;
             setTimeout(() => { mpIntentionalDisconnect = false; }, 3000);
             document.body.classList.remove('playing');
+            if (voice.on) voiceStop();
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpStopPing();
@@ -12459,6 +12497,8 @@
 
         // ----- EVENT HANDLING -----
         function mpHandleEvent(code, content, actorNr) {
+            if (code >= MP_EV.VOICE_HELLO && code <= MP_EV.VOICE_STATE)
+                return voiceHandleEvent(code, content, actorNr);
             const p = mpPlayers[actorNr];
             switch(code) {
                 case MP_EV.POSITION:
