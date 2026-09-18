@@ -180,5 +180,11 @@
       "destination": "/download",
       "permanent": false
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/dm-worker",
+      "schedule": "*/10 * * * *"
+    }
   ]
 }
