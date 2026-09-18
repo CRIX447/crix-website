@@ -227,15 +227,37 @@ button,input,textarea{font-family:inherit}
 
 <!-- CALL -->
 <div id="call">
+  <!-- The remote picture fills the screen once there is one; until then the
+       avatar stands in, so an audio call looks the same as it always did. -->
+  <video id="remoteVideo" autoplay playsinline style="display:none"></video>
+  <video id="localVideo" autoplay playsinline muted style="display:none"></video>
   <div class="av" id="callAv"></div>
   <div class="cname" id="callName"></div>
   <div class="cstat" id="callStat">Calling…</div>
   <div class="crow">
-    <button class="cbtn mute" id="muteBtn">🎤</button>
-    <button class="cbtn end" id="endBtn">📵</button>
+    <button class="cbtn mute" id="muteBtn" title="Mute yourself">🎤</button>
+    <button class="cbtn" id="camBtn" title="Camera">📹</button>
+    <button class="cbtn" id="shareBtn" title="Share your screen">🖥️</button>
+    <button class="cbtn" id="deafBtn" title="Mute them">🔊</button>
+    <button class="cbtn end" id="endBtn" title="Hang up">📵</button>
   </div>
   <audio id="remoteAudio" autoplay></audio>
 </div>
+
+<style>
+  #remoteVideo { position:absolute; inset:0; width:100%; height:100%;
+                 object-fit:contain; background:#000; z-index:0; }
+  #localVideo  { position:absolute; right:14px; top:14px; width:112px;
+                 border-radius:12px; border:2px solid rgba(255,255,255,.25);
+                 background:#000; z-index:2; transform:scaleX(-1); }
+  /* Sharing a screen is not a mirror, so do not flip it. */
+  #localVideo.sharing { transform:none; }
+  #call.video #callAv, #call.video #callName { position:relative; z-index:1; opacity:.0; }
+  #call .crow { position:relative; z-index:3; }
+  #call .cstat { position:relative; z-index:3; }
+  .cbtn.active { background:var(--accent, #FF6B35) !important; }
+  .cbtn.off    { background:var(--red) !important; }
+</style>
 
 <div id="ring">
   <div class="av" id="ringAv"></div>
@@ -883,8 +905,12 @@ async function startCall(id, name, photo) {
 
   pc = new RTCPeerConnection(ICE);
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; applySpeaker();
-                      $('callStat').textContent = 'Connected'; };
+  // Negotiated now, empty. Turning a camera or a share on later is then a
+  // track swap instead of a second offer/answer round through Firestore.
+  try { const t = pc.addTransceiver('video', { direction: 'sendrecv' }); t.__video = true; } catch (e) {}
+  camOn = sharing = theyAreMuted = false;
+  callButtons();
+  pc.ontrack = e => { attachRemote(e.streams[0]); $('callStat').textContent = 'Connected'; };
 
   callDoc = db.collection('calls').doc();
   const offerCands = callDoc.collection('offerCandidates');
@@ -988,8 +1014,12 @@ async function answer(ref, v) {
   callDoc = ref;
   pc = new RTCPeerConnection(ICE);
   localStream.getTracks().forEach(t => pc.addTrack(t, localStream));
-  pc.ontrack = e => { $('remoteAudio').srcObject = e.streams[0]; applySpeaker();
-                      $('callStat').textContent = 'Connected'; };
+  // Negotiated now, empty. Turning a camera or a share on later is then a
+  // track swap instead of a second offer/answer round through Firestore.
+  try { const t = pc.addTransceiver('video', { direction: 'sendrecv' }); t.__video = true; } catch (e) {}
+  camOn = sharing = theyAreMuted = false;
+  callButtons();
+  pc.ontrack = e => { attachRemote(e.streams[0]); $('callStat').textContent = 'Connected'; };
   pc.onicecandidate = e => e.candidate && ref.collection('answerCandidates').add(e.candidate.toJSON());
 
   await pc.setRemoteDescription(new RTCSessionDescription(v.offer));
@@ -1003,6 +1033,131 @@ async function answer(ref, v) {
   callTimer = ref.onSnapshot(s => { if (!s.exists || s.data()?.status === 'ended') endCall(); });
 }
 
+/* ---------- CALL MEDIA ----------
+   The call starts as audio and grows. A video transceiver is negotiated up
+   front whether or not a camera is on, so turning one on later is a track
+   swap rather than a renegotiation — renegotiating mid-call means a second
+   offer/answer round through Firestore and a visible stall. */
+
+let camOn = false, sharing = false, camStream = null, shareStream = null, theyAreMuted = false;
+
+function videoSender() {
+  return pc && pc.getSenders().find(s => s.track && s.track.kind === 'video')
+      || (pc && pc.getTransceivers().map(t => t.sender)
+              .find(s => s.track === null || (s.track && s.track.kind === 'video')));
+}
+
+async function setOutgoingVideo(track) {
+  if (!pc) return false;
+  // Prefer a transceiver that is already negotiated for video.
+  const tr = pc.getTransceivers().find(t =>
+      (t.sender && t.sender.track && t.sender.track.kind === 'video') ||
+      (t.receiver && t.receiver.track && t.receiver.track.kind === 'video') ||
+      t.__video);
+  if (tr && tr.sender) {
+    await tr.sender.replaceTrack(track).catch(() => {});
+    if (track) tr.direction = 'sendrecv';
+    return true;
+  }
+  if (track) { pc.addTrack(track, camStream || shareStream); return true; }
+  return false;
+}
+
+function paintLocal(stream, isShare) {
+  const v = $('localVideo');
+  if (!v) return;
+  v.srcObject = stream || null;
+  v.style.display = stream ? 'block' : 'none';
+  v.classList.toggle('sharing', !!isShare);
+}
+
+function callButtons() {
+  const set = (id, on, onGlyph, offGlyph, cls) => {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.textContent = on ? onGlyph : offGlyph;
+    b.classList.toggle(cls || 'active', !!on);
+  };
+  set('camBtn', camOn, '📹', '📷');
+  set('shareBtn', sharing, '🛑', '🖥️');
+  const d = document.getElementById('deafBtn');
+  if (d) { d.textContent = theyAreMuted ? '🔇' : '🔊'; d.classList.toggle('off', theyAreMuted); }
+}
+
+async function toggleCam() {
+  if (!pc) return;
+  if (camOn) {
+    await setOutgoingVideo(null);
+    if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+    camOn = false;
+    if (!sharing) paintLocal(null);
+  } else {
+    try { camStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } }); }
+    catch (e) {
+      toastChat(e.name === 'NotAllowedError'
+        ? 'Camera blocked. Allow it with the padlock in the address bar.'
+        : 'No camera available: ' + e.message);
+      return;
+    }
+    // A screen share already owns the outgoing video; keep it and just show
+    // the camera locally rather than fighting over the one track.
+    if (!sharing) await setOutgoingVideo(camStream.getVideoTracks()[0]);
+    camOn = true;
+    paintLocal(camStream, false);
+  }
+  callButtons();
+}
+
+async function toggleShare() {
+  if (!pc) return;
+  if (sharing) {
+    if (shareStream) { shareStream.getTracks().forEach(t => t.stop()); shareStream = null; }
+    sharing = false;
+    // hand the outgoing video back to the camera if it is still on
+    await setOutgoingVideo(camOn && camStream ? camStream.getVideoTracks()[0] : null);
+    paintLocal(camOn ? camStream : null, false);
+  } else {
+    try {
+      shareStream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 30 }, audio: false });
+    } catch (e) {
+      if (e.name !== 'NotAllowedError')   // cancelling the picker is not an error
+        toastChat('Could not share the screen: ' + e.message);
+      return;
+    }
+    const track = shareStream.getVideoTracks()[0];
+    // Ending it from the browser's own "stop sharing" bar has to come back here.
+    track.onended = () => { if (sharing) toggleShare(); };
+    await setOutgoingVideo(track);
+    sharing = true;
+    paintLocal(shareStream, true);
+  }
+  callButtons();
+}
+
+/* Muting them is local only: it silences what you hear and tells them nothing,
+   which is the behaviour people expect from a mute button next to a face. */
+function toggleTheirAudio() {
+  theyAreMuted = !theyAreMuted;
+  const a = $('remoteAudio'), v = $('remoteVideo');
+  if (a) a.muted = theyAreMuted;
+  if (v) v.muted = theyAreMuted;
+  callButtons();
+}
+
+function attachRemote(stream) {
+  const hasVideo = stream.getVideoTracks().length > 0;
+  const v = $('remoteVideo');
+  $('remoteAudio').srcObject = stream;
+  applySpeaker();
+  if (v) {
+    v.srcObject = stream;
+    v.muted = true;                 // audio comes out of remoteAudio, not here
+    v.style.display = hasVideo ? 'block' : 'none';
+  }
+  $('call').classList.toggle('video', hasVideo);
+}
+
 function showCall(o, status) {
   $('callAv').outerHTML = avatar(o, 110).replace('class="av "','class="av" id="callAv"');
   $('callName').textContent = o.name;
@@ -1011,6 +1166,14 @@ function showCall(o, status) {
 }
 
 function endCall() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+  if (shareStream) { shareStream.getTracks().forEach(t => t.stop()); shareStream = null; }
+  camOn = sharing = theyAreMuted = false;
+  paintLocal(null);
+  const rv = $('remoteVideo');
+  if (rv) { rv.srcObject = null; rv.style.display = 'none'; }
+  $('call').classList.remove('video');
+  callButtons();
   if (ringTone) { try { ringTone.pause(); } catch {} ringTone = null; }
   if (callTimer) { callTimer(); callTimer = null; }
   if (pc) { try { pc.close(); } catch {} pc = null; }
@@ -1020,6 +1183,9 @@ function endCall() {
   $('remoteAudio').srcObject = null;
 }
 on('endBtn', 'click', endCall);
+on('camBtn', 'click', toggleCam);
+on('shareBtn', 'click', toggleShare);
+on('deafBtn', 'click', toggleTheirAudio);
 $('muteBtn').onclick = function () {
   if (!localStream) return;
   const track = localStream.getAudioTracks()[0];
