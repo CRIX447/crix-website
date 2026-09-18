@@ -60,6 +60,11 @@ input,select,textarea{background:#0c0c14;border:1px solid var(--line);color:#EDE
   border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;flex:1;min-width:140px}
 input:focus,select:focus{outline:none;border-color:var(--orange)}
 label{font-size:11px;color:#A0A0A0;min-width:90px}
+/* A checkbox and its wording travel together, and the flex rule above would
+   otherwise stretch the box itself across the row. */
+label.chk{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 0 auto;
+  cursor:pointer;color:#EDEDED;white-space:nowrap}
+label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accent-color:var(--orange)}
 
 /* ---- LOG ---- */
 #logBody{background:#07070b;border:1px solid var(--line);border-radius:10px;padding:12px;
@@ -106,6 +111,7 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     <button class="tab" data-t="logs">Logs</button>
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
+    <button class="tab" data-t="seasons">🎃 Seasons</button>
     <button class="tab" data-t="bio">Bio Page</button>
     <button class="tab" data-t="trailer">Trailer</button>
     <button class="tab" data-t="health">PlayFab</button>
@@ -276,6 +282,60 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     </div>
 
     <!-- PLAYFAB HEALTH -->
+    <div class="view" id="v-seasons" style="display:none;">
+      <div class="panel">
+        <h2>Seasonal theme</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Halloween, Christmas and Easter turn themselves on by date. Force one
+          here to preview it or run it early — it reaches every player at once,
+          not only this browser. Each season brings its own colours, music,
+          fly-bys and calendar.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaForce">
+            <option value="">Follow the calendar</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">Off — no season at all</option>
+          </select>
+          <button class="btn sm" id="seaSave">Apply</button>
+        </div>
+        <div class="out" id="seaOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>👤 Just for me</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Try a season on your own account without anyone else seeing it. This
+          beats the setting above, and it follows you to the game on any device
+          you sign in on — set it here, open Flappy Crix, and it is already on.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaMine">
+            <option value="">Same as everyone</option>
+            <option value="auto">Follow the calendar, for me</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">No theme, for me</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Parts</label>
+          <label class="chk"><input type="checkbox" id="seaPartColour" checked> Colours</label>
+          <label class="chk"><input type="checkbox" id="seaPartMusic" checked> Music</label>
+          <label class="chk"><input type="checkbox" id="seaPartFlyer" checked> Fly-by</label>
+          <label class="chk"><input type="checkbox" id="seaPartCal" checked> Calendar</label>
+          <button class="btn sm" id="seaMineSave">Apply to me</button>
+        </div>
+        <div class="out" id="seaMineOut">—</div>
+      </div>
+
+    </div>
+
     <div class="view" id="v-bio" style="display:none;">
       <div class="panel">
         <h2>Bio page</h2>
@@ -706,6 +766,11 @@ let auth = null, me = null;
     $('whoName').textContent = user.displayName || user.email || 'Owner';
     renderMe();
     runSetupChecks();
+    // Fill the panels that show existing settings. These were defined but
+    // never called, so Events, Evidence and Bio always opened empty.
+    [evtLoad, evLoad, bioLoad, seaLoad, seaMineLoad].forEach(fn => {
+      try { fn(); } catch (e) { console.warn('[Console] panel load failed:', e); }
+    });
     console.log('[Console] signed in as', PlayFabManager.playFabId, '| roles', PlayFabManager.roles);
   });
 
@@ -1670,6 +1735,99 @@ bind('evtSave', async () => {
   } catch (e) {
     out.className = 'out bad';
     out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+
+/* ---- SEASONAL THEME ----
+   The same config/season doc the game watches, so a change here lands on
+   everyone's screen without a reload. '' follows the calendar, 'off' means no
+   season at all. */
+const SEASON_NAMES = { spooky: 'Halloween', christmas: 'Christmas', easter: 'Easter' };
+
+async function seaLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('season').get();
+    const v = d.exists ? d.data() : {};
+    $('seaForce').value = v.force || '';
+    $('seaOut').className = 'out';
+    $('seaOut').textContent = v.force === 'off' ? 'Seasons are switched off for everyone.'
+      : v.force ? `Forced: ${SEASON_NAMES[v.force] || v.force}.`
+      : 'Following the calendar.';
+  } catch (e) {
+    $('seaOut').className = 'out bad';
+    $('seaOut').textContent = e.message;
+  }
+}
+
+bind('seaSave', async () => {
+  const out = $('seaOut');
+  const val = $('seaForce').value;
+  out.className = 'out'; out.textContent = 'Saving\u2026';
+  try {
+    await firebase.firestore().collection('config').doc('season').set({
+      force: val, at: Date.now(), by: firebase.auth().currentUser?.uid || null
+    }, { merge: true });
+    out.className = 'out ok';
+    out.textContent = val === 'off' ? 'Seasons switched off for everyone.'
+      : val ? `${SEASON_NAMES[val] || val} is on for everyone.`
+      : 'Back to following the calendar.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+
+/* ---- SEASONAL THEME, JUST FOR ME ----
+   Written to the signed-in owner's own seasonPreview document, which the game
+   watches, so it reaches Flappy Crix on any device without touching what other
+   players see. */
+const SEA_PARTS = { colour: 'seaPartColour', music: 'seaPartMusic',
+                    flyer: 'seaPartFlyer', cal: 'seaPartCal' };
+const SEA_PART_NAMES = { colour: 'colours', music: 'music', flyer: 'fly-by', cal: 'calendar' };
+
+function seaMineSummary(force, parts) {
+  const off = Object.keys(SEA_PARTS).filter(k => parts[k] === false).map(k => SEA_PART_NAMES[k]);
+  const which = !force ? 'Following what everyone else sees'
+    : force === 'off' ? 'No theme, just for you'
+    : force === 'auto' ? 'Following the calendar, just for you'
+    : `${SEASON_NAMES[force] || force}, just for you`;
+  return which + (off.length ? ` \u00b7 ${off.join(', ')} off` : '');
+}
+
+async function seaMineLoad() {
+  const uid = firebase.auth().currentUser?.uid;
+  if (!uid) { $('seaMineOut').textContent = 'Sign in first.'; return; }
+  try {
+    const d = await firebase.firestore().collection('seasonPreview').doc(uid).get();
+    const v = d.exists ? d.data() : {};
+    const parts = v.parts || {};
+    $('seaMine').value = v.force || '';
+    for (const [k, id] of Object.entries(SEA_PARTS)) $(id).checked = parts[k] !== false;
+    $('seaMineOut').className = 'out';
+    $('seaMineOut').textContent = seaMineSummary(v.force || '', parts);
+  } catch (e) {
+    $('seaMineOut').className = 'out bad';
+    $('seaMineOut').textContent = e.message;
+  }
+}
+
+bind('seaMineSave', async () => {
+  const out = $('seaMineOut');
+  const uid = firebase.auth().currentUser?.uid;
+  if (!uid) { out.className = 'out bad'; out.textContent = 'Sign in first.'; return; }
+  const force = $('seaMine').value;
+  const parts = {};
+  for (const [k, id] of Object.entries(SEA_PARTS)) parts[k] = $(id).checked;
+  out.className = 'out'; out.textContent = 'Saving\u2026';
+  try {
+    await firebase.firestore().collection('seasonPreview').doc(uid).set(
+      { force, parts, at: Date.now() }, { merge: true });
+    out.className = 'out ok';
+    out.textContent = seaMineSummary(force, parts) + ' \u2014 live in the game already.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked \u2014 check firestore.rules is published.' : e.message;
   }
 });
 
