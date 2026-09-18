@@ -325,6 +325,12 @@ def palette():
         'grass':     material("crix_grass",     (0.18, 0.55, 0.24), 0.90),
         'bush':      material("crix_bush",      (0.12, 0.42, 0.20), 0.90),
         'sky':       vertex_colour_material("crix_sky", "Col", (0.13, 0.20, 0.42)),
+        # The CRIX character is a Gorilla Tag monkey, not a bird — grey fur,
+        # a red bandana and a paler muzzle.
+        'fur':       material("crix_fur",       (0.42, 0.42, 0.45), 0.92),
+        'fur_dark':  material("crix_fur_dark",  (0.16, 0.16, 0.18), 0.95),
+        'muzzle':    material("crix_muzzle",    (0.62, 0.62, 0.64), 0.90),
+        'bandana':   material("crix_bandana",   (0.72, 0.09, 0.12), 0.85),
     }
 
 
@@ -576,6 +582,120 @@ def build_sky_dome(P):
     return [obj]
 
 
+def build_monkey(P):
+    """The CRIX avatar, in the shape Gorilla Tag uses: a body, a head and
+    nothing in between. Arms are deliberately absent — floating hands read
+    better in VR than arms that cannot match where yours really are.
+
+    `head` stays a separate named child so the renderer can point it wherever
+    the headset is looking while the body lags behind.
+    """
+    R = 0.34                          # body radius, roughly a seated torso
+
+    body = ico(3, R)
+    body.scale = (1.0, 0.92, 1.12)
+    apply_transform(body, rotation=False)
+    body.name = "body"
+    body.data.name = "body"
+    paint(body, P['fur'])
+    smooth(body, 40)
+    unwrap(body)
+    origin_to_bottom(body)
+
+    # --- head, built around its own origin so it can be turned ---
+    skull = ico(3, R * 0.76)
+    skull.scale = (1.0, 0.94, 1.0)
+    apply_transform(skull, rotation=False)
+    paint(skull, P['fur'])
+
+    muzzle = ico(2, R * 0.34, location=(R * 0.42, 0, -R * 0.16))
+    muzzle.scale = (1.15, 0.85, 0.78)
+    apply_transform(muzzle, rotation=False)
+    paint(muzzle, P['muzzle'])
+
+    brow = ico(2, R * 0.30, location=(R * 0.30, 0, R * 0.14))
+    brow.scale = (0.62, 1.32, 0.42)
+    apply_transform(brow, rotation=False)
+    paint(brow, P['fur_dark'])
+
+    ears = []
+    for side in (1, -1):
+        e = ico(2, R * 0.17, location=(-R * 0.04, side * R * 0.60, R * 0.10))
+        e.scale = (0.55, 1.0, 1.0)
+        apply_transform(e, rotation=False)
+        paint(e, P['fur'])
+        ears.append(e)
+
+    # The bandana is a cap over the top of the skull, not a band around it —
+    # a band reads as a headache at this size.
+    cap = ico(3, R * 0.80)
+    cap.scale = (1.0, 0.96, 0.92)
+    apply_transform(cap, rotation=False)
+    bm = bmesh.new()
+    bm.from_mesh(cap.data)
+    bmesh.ops.bisect_plane(bm, geom=list(bm.verts) + list(bm.edges) + list(bm.faces),
+                           plane_co=(0, 0, R * 0.04), plane_no=(0, 0, 1), clear_inner=True)
+    bm.to_mesh(cap.data)
+    bm.free()
+    cap.data.update()
+    paint(cap, P['bandana'])
+
+    # the tail of the bandana, hanging down the back
+    tail = cone(6, R * 0.20, R * 0.05, R * 0.46,
+                location=(-R * 0.52, 0, -R * 0.12))
+    tail.rotation_euler = (0, math.radians(-24), 0)
+    apply_transform(tail, location=True)
+    paint(tail, P['bandana'])
+
+    head = join([skull, muzzle, brow, cap, tail] + ears, "head")
+    smooth(head, 38)
+    unwrap(head)
+    body_top = max(v.co.z for v in body.data.vertices)
+    head.location = (0, 0, body_top + R * 0.02)
+    head.parent = body
+    head.matrix_parent_inverse = body.matrix_world.inverted()
+
+    return [body, head]
+
+
+def build_hand_paw(P):
+    """One hand, in the mitten shape Gorilla Tag uses. Origin at the wrist, so
+    the controller's own pose drives it with no offset to tune.
+
+    Built for the left hand; the renderer mirrors it on Z for the right.
+    """
+    S = 0.055                         # palm half-size; a whole paw is ~0.20 m
+
+    # Flattened, because a hand is a slab and a rounder shape reads as an egg
+    # held out in front of your face rather than as a paw.
+    mitten = ico(3, S)
+    mitten.scale = (1.05, 0.52, 1.75)
+    apply_transform(mitten, rotation=False)
+    paint(mitten, P['fur'])
+
+    # Deep overlap, so the join hides the intersection inside the mitten
+    # rather than showing it as a notch on the silhouette. Pushed further out
+    # than looks right on paper, or it disappears into the palm.
+    thumb = ico(2, S * 0.62, location=(S * 0.78, 0, -S * 0.30))
+    thumb.scale = (1.30, 0.62, 0.95)
+    apply_transform(thumb, rotation=False)
+    paint(thumb, P['fur'])
+
+    # A darker pad so the palm side is tellable from the back of the hand
+    pad = ico(2, S * 0.74, location=(0, -S * 0.34, S * 0.30))
+    pad.scale = (0.86, 0.30, 1.05)
+    apply_transform(pad, rotation=False)
+    paint(pad, P['muzzle'])
+
+    obj = join([mitten, thumb, pad], "hand_paw")
+    smooth(obj, 42)
+    unwrap(obj)
+    # wrist end at the origin, hand reaching out along +Z
+    zs = [v.co.z for v in obj.data.vertices]
+    shift_mesh(obj, dz=-min(zs))
+    return [obj]
+
+
 ASSETS = {
     'pipe_body':   build_pipe_body,
     'pipe_cap':    build_pipe_cap,
@@ -588,6 +708,8 @@ ASSETS = {
     'ground_tile': build_ground_tile,
     'bush_tile':   build_bush_tile,
     'sky_dome':    build_sky_dome,
+    'monkey':      build_monkey,
+    'hand_paw':    build_hand_paw,
 }
 
 

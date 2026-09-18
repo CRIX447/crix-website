@@ -58,7 +58,7 @@
 
 <div id="ui">
     <h1>FLAPPY CRIX VR</h1>
-    <p class="sub">Flap your arms to fly. You are the bird.</p>
+    <p class="sub">Pull yourself around the rock, slap the pad, then flap your arms to fly.</p>
     <div id="bar"><i id="barfill"></i></div>
     <div id="note">Loading models…</div>
     <div id="enter">
@@ -67,9 +67,11 @@
         <label id="comfortWrap"><input type="checkbox" id="comfort" checked> Comfort vignette</label>
     </div>
     <ul class="how">
+        <li><b>In the lobby</b> — push off the rock with your hands to move, like Gorilla Tag</li>
+        <li><b>Slap the green pad</b> to take off</li>
         <li><b>Both arms down</b> together to flap — harder swing, bigger climb</li>
-        <li><b>Grip or trigger</b> to recentre if you drift</li>
-        <li>On screen: <b>space</b> or <b>click</b> to flap</li>
+        <li><b>Turn your left palm to your face</b> for the menu, press it with your right</li>
+        <li>On screen: <b>space</b> or <b>click</b></li>
     </ul>
 </div>
 
@@ -99,19 +101,53 @@ import { VRButton }   from 'three/addons/webxr/VRButton.js';
    objects to, not motion, so the one thing that must never change while
    you are flying is how fast you are going. */
 
-const SPEED        = 9.0;    // m/s forward, never varies
-const GRAVITY      = -11.0;  // m/s²
-const FLAP_MIN_V   = 3.4;    // m/s up from the gentlest flap that counts
-const FLAP_MAX_V   = 7.0;    // m/s up from a hard one
+const SPEED        = 8.0;    // m/s forward, never varies
+const GRAVITY      = -9.5;   // m/s², a touch floatier than a stone
+const TERMINAL     = -14.0;  // you stop accelerating downward, so a long drop
+                             // stays recoverable instead of unwinnable
+const FLAP_MIN_V   = 4.0;    // m/s up from the gentlest flap that counts
+const FLAP_MAX_V   = 8.0;    // m/s up from a hard one
 const HAND_MIN     = 0.85;   // m/s of downward hand speed to register at all
 const HAND_MAX     = 3.20;   // m/s that earns the full impulse
 const FLAP_COOLDOWN = 240;   // ms, so one swing is not counted twice
 const EYE_Y        = 1.6;    // where the head sits above the rig origin
 
-const FLOOR = 1.2, CEIL = 30.0, START_Y = 10.0;
-const PIPE_SPACING = 26.0, PIPE_GAP = 4.6, PIPE_R = 1.5, CAP_H = 0.6, BODY_H = 2.0;
+/* The world is sized to the 2D game so the two are the same level, which is
+   what a shared match will need. At 2.5 px/frame and 60fps the 2D game runs at
+   150 px/s; against 8 m/s here that is 18.75 px per metre. Its 170 px gap is
+   therefore 9.1 m and its 300 px pipe spacing is 16 m — the VR build was using
+   4.6 m and 26 m, which made it twice as hard as the game it is a port of. */
+const PX_PER_M = 18.75;
+const FLOOR = 1.2, CEIL = 36.0, START_Y = 14.0;
+const PIPE_SPACING = 16.0, PIPE_GAP = 9.1, PIPE_R = 1.5, CAP_H = 0.6, BODY_H = 2.0;
 const BODY_R = 0.55;         // how fat you are, for hitting things
-const PIPE_POOL = 7, BUSH_POOL = 16, BUSH_STEP = 8.0;
+const PIPE_POOL = 9, BUSH_POOL = 16, BUSH_STEP = 8.0;
+
+/* Lobby: you are not flying here, you are hauling yourself around a rock the
+   way Gorilla Tag does. */
+const LOBBY_R      = 9.0;    // the island
+const HAND_GRIP    = 1.0;    // how much of your arm's movement becomes yours
+const LOBBY_GRAV   = -14.0;
+const LOBBY_DRAG   = 0.92;   // per-frame speed kept while airborne
+const LOBBY_FRICT  = 0.80;   // and while a hand is planted
+const LOBBY_MAX_V  = 9.0;
+const HAND_R       = 0.10;   // how close a paw has to be to grip
+
+/* The palette is lifted straight from the 2D game so the two builds look like
+   the same product. These are the exact stops drawPipe and drawBackdrop use. */
+const C = {
+    pipeDark:  0x076B41,
+    pipeMid:   0x00CC7A,
+    pipeLight: 0x4DE8A8,
+    pipeEdge:  0x0B8F56,
+    skyTop:    0x12203A,
+    skyLow:    0x1B3352,
+    city:      0x233C5F,
+    bush:      0x1E4A2E,
+    ground:    0x2A2A22,
+    groundLo:  0x22221C,
+    cloud:     0xB4C8EB
+};
 
 /* ───────────────────────── flap detection ─────────────────────────
    A flap is both hands travelling downward at once. One hand is a wave, and
@@ -166,7 +202,8 @@ export class FlapDetector {
 /* ───────────────────────── state ───────────────────────── */
 
 const state = {
-    running: false, dead: false,
+    running: false, dead: false, inLobby: true,
+    vel: new THREE.Vector3(),        // lobby only; flight is y/z below
     y: START_Y, vy: 0, z: 0,
     score: 0, coins: 0, best: 0,
     nextPipeZ: -PIPE_SPACING * 2,
@@ -208,7 +245,8 @@ scene.add(sun);
 
 /* ───────────────────────── models ───────────────────────── */
 
-const NEEDED = ['pipe_body', 'pipe_cap', 'coin', 'wing_fp', 'ground_tile', 'bush_tile', 'sky_dome'];
+const NEEDED = ['pipe_body', 'pipe_cap', 'coin', 'hand_paw', 'monkey',
+                'bush_tile', 'sky_dome'];
 const M = {};
 
 function loadAll(onProgress) {
@@ -227,10 +265,114 @@ function loadAll(onProgress) {
 
 const clone = name => M[name].clone(true);
 
+/* The 2D game is flat colour with hard steps, not a lit 3D scene. A three-band
+   toon ramp is what makes the VR build read as the same game rather than a
+   different one that happens to share a palette. */
+let TOON_RAMP = null;
+function toonRamp() {
+    if (TOON_RAMP) return TOON_RAMP;
+    const c = document.createElement('canvas');
+    c.width = 4; c.height = 1;
+    const g = c.getContext('2d');
+    const px = g.createImageData(4, 1);
+    [[88,88,92],[150,150,156],[214,214,220],[255,255,255]].forEach((v, i) => {
+        px.data[i*4] = v[0]; px.data[i*4+1] = v[1]; px.data[i*4+2] = v[2]; px.data[i*4+3] = 255;
+    });
+    g.putImageData(px, 0, 0);
+    TOON_RAMP = new THREE.CanvasTexture(c);
+    TOON_RAMP.colorSpace = THREE.SRGBColorSpace;
+    TOON_RAMP.minFilter = TOON_RAMP.magFilter = THREE.NearestFilter;
+    TOON_RAMP.generateMipmaps = false;
+    return TOON_RAMP;
+}
+
+function toon(colour) {
+    return new THREE.MeshToonMaterial({ color: colour, gradientMap: toonRamp() });
+}
+
+/* Repaint a loaded model by material name, because the .glb ships placeholder
+   colours and the real palette lives in the 2D game. */
+function repaint(root, byName) {
+    root.traverse(o => {
+        if (!o.isMesh) return;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        o.material = mats.map(m => byName[m && m.name] || byName['*'] || m);
+        if (o.material.length === 1) o.material = o.material[0];
+    });
+    return root;
+}
+
+const PIPE_MATS = {
+    'crix_pipe':      null,   // filled in once THREE is live
+    'crix_pipe_dark': null
+};
+
+/* ───────────────────────── sound ─────────────────────────
+   The 2D game already ships every clip under /img, so the VR build uses the
+   same files rather than a second set that could drift out of sync. Each one
+   is pooled: a single Audio element cannot overlap with itself, and coins in
+   a row is exactly the case where that shows. */
+
+const SFX_SRC = {
+    flap:   '/img/jump.mp3',
+    coin:   '/img/coin.mp3',
+    point:  '/img/select.mp3',
+    die:    '/img/death.mp3',
+    click:  '/img/click.mp3',
+    grab:   '/img/pop.mp3',
+    start:  '/img/levelup.mp3'
+};
+const SFX = {};
+let soundOn = true;
+try { soundOn = localStorage.getItem('crix_vr_sound') !== '0'; } catch (e) {}
+
+function loadSfx() {
+    Object.entries(SFX_SRC).forEach(([k, src]) => {
+        SFX[k] = Array.from({ length: 3 }, () => {
+            const a = new Audio(src);
+            a.preload = 'auto';
+            a.volume = 0.55;
+            return a;
+        });
+        SFX[k]._i = 0;
+    });
+}
+
+function play(name, volume) {
+    if (!soundOn) return;
+    const pool = SFX[name];
+    if (!pool) return;
+    const a = pool[pool._i = (pool._i + 1) % pool.length];
+    try { a.currentTime = 0; a.volume = volume === undefined ? 0.55 : volume; a.play().catch(() => {}); }
+    catch (e) {}
+}
+
 /* ───────────────────────── world ───────────────────────── */
 
 const pipes = [], bushes = [], coins = [];
-let sky, ground;
+let sky, ground, lobby, startPad, ownBody;
+let MAT = null;
+
+function buildMaterials() {
+    MAT = {
+        pipe:     toon(C.pipeMid),
+        pipeRim:  toon(C.pipeLight),
+        pipeDark: toon(C.pipeDark),
+        coin:     new THREE.MeshToonMaterial({ color: 0xFFD24A, gradientMap: toonRamp() }),
+        ground:   toon(C.ground),
+        bush:     toon(C.bush),
+        city:     toon(C.city),
+        fur:      toon(0x7C7C86),
+        furDark:  toon(0x33333A),
+        muzzle:   toon(0xBFBFC6),
+        bandana:  toon(0xC9252B),
+        rock:     toon(0x5A6B55)
+    };
+}
+
+const PIPE_SKIN = () => ({ 'crix_pipe': MAT.pipe, 'crix_pipe_dark': MAT.pipeDark });
+const FUR_SKIN  = () => ({ 'crix_fur': MAT.fur, 'crix_fur_dark': MAT.furDark,
+                           'crix_muzzle': MAT.muzzle, 'crix_bandana': MAT.bandana });
 
 function buildHalfPipe(height) {
     /* The body tiles at BODY_H and the cap is CAP_H, so a pipe of any height
@@ -238,10 +380,10 @@ function buildHalfPipe(height) {
        — the tiling only starts to matter once there is a texture on it. */
     const g = new THREE.Group();
     const wall = Math.max(0.05, height - CAP_H);
-    const body = clone('pipe_body');
+    const body = repaint(clone('pipe_body'), PIPE_SKIN());
     body.scale.y = wall / BODY_H;
     g.add(body);
-    const cap = clone('pipe_cap');
+    const cap = repaint(clone('pipe_cap'), PIPE_SKIN());
     cap.position.y = wall;
     g.add(cap);
     return g;
@@ -288,9 +430,8 @@ function placePipe(p, z, gapCentre) {
 }
 
 function makeCoin() {
-    const c = clone('coin');
+    const c = repaint(clone('coin'), { '*': MAT.coin });
     c.rotation.x = Math.PI / 2;      // face the player
-    c.visible = false;
     const holder = new THREE.Group();
     holder.add(c);
     holder.visible = false;
@@ -300,36 +441,138 @@ function makeCoin() {
     return holder;
 }
 
+/* The 2D backdrop is a striped ground, a bush line and a skyline. All three
+   are rebuilt here so the horizon reads the same from inside it. */
+function groundTexture() {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const g = c.getContext('2d');
+    g.fillStyle = '#2A2A22'; g.fillRect(0, 0, 128, 128);
+    g.fillStyle = 'rgba(255,255,255,.05)';
+    for (let x = -128; x < 256; x += 32) {
+        g.beginPath();
+        g.moveTo(x, 128); g.lineTo(x + 128, 0); g.lineTo(x + 144, 0); g.lineTo(x + 16, 128);
+        g.closePath(); g.fill();
+    }
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    t.repeat.set(26, 26);
+    return t;
+}
+
 function buildWorld() {
     sky = clone('sky_dome');
+    // The dome ships a generic blue. Recolour its vertices to the 2D game's
+    // own sky stops so the horizon matches what a 2D player is looking at.
+    const top = new THREE.Color(C.skyTop), low = new THREE.Color(C.skyLow), tmp = new THREE.Color();
     sky.traverse(o => {
         if (!o.isMesh) return;
+        const g = o.geometry, pos = g.attributes.position;
+        const col = new Float32Array(pos.count * 3);
+        for (let i = 0; i < pos.count; i++) {
+            const t = Math.min(1, Math.max(0, pos.getY(i) / 100));
+            tmp.copy(low).lerp(top, Math.pow(t, 0.7));
+            col[i*3] = tmp.r; col[i*3+1] = tmp.g; col[i*3+2] = tmp.b;
+        }
+        g.setAttribute('color', new THREE.BufferAttribute(col, 3));
         o.material = new THREE.MeshBasicMaterial({
             vertexColors: true, side: THREE.FrontSide, fog: false, depthWrite: false });
         o.renderOrder = -1;
     });
     scene.add(sky);
 
-    // One scaled plane rather than a recycled grid: it is 32 triangles and
-    // perfectly flat, so scaling costs nothing until it carries a texture.
-    ground = clone('ground_tile');
-    ground.scale.set(30, 1, 30);
+    ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(260, 260),
+        new THREE.MeshToonMaterial({ color: 0xFFFFFF, map: groundTexture(),
+                                     gradientMap: toonRamp() }));
+    ground.rotation.x = -Math.PI / 2;
     scene.add(ground);
 
+    // a skyline ring, well beyond the fog, exactly as the 2D game layers it
+    const city = new THREE.Group();
+    for (let i = 0; i < 46; i++) {
+        const a = (i / 46) * Math.PI * 2;
+        const h = 8 + ((i * 37) % 22);
+        const box = new THREE.Mesh(new THREE.BoxGeometry(7, h, 7), MAT.city);
+        box.position.set(Math.cos(a) * 118, h / 2, Math.sin(a) * 118);
+        city.add(box);
+    }
+    scene.add(city);
+    sky.userData.city = city;
+
     for (let i = 0; i < BUSH_POOL; i++) {
-        const b = clone('bush_tile');
+        const b = repaint(clone('bush_tile'), { '*': MAT.bush });
         b.position.x = (i % 2 === 0) ? -13 : 13;
         scene.add(b);
         bushes.push(b);
     }
     for (let i = 0; i < PIPE_POOL; i++) makePipe();
     for (let i = 0; i < PIPE_POOL; i++) makeCoin();
+
+    buildLobby();
+}
+
+/* ───────────────────────── the lobby ─────────────────────────
+   A rock you pull yourself around before you fly. Nothing here moves you for
+   you — every metre comes from your own arms. */
+
+const lobbyBlocks = [];
+
+function buildLobby() {
+    lobby = new THREE.Group();
+
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(LOBBY_R, LOBBY_R * 0.82, 1.6, 24), MAT.rock);
+    disc.position.y = -0.8;
+    lobby.add(disc);
+
+    const top = new THREE.Mesh(new THREE.CylinderGeometry(LOBBY_R, LOBBY_R, 0.08, 24), MAT.bush);
+    top.position.y = 0.02;
+    lobby.add(top);
+
+    // Things to climb. Each one is a box you can stand on and shove off.
+    const spec = [[-4.2, 0.9, -3.0, 2.2, 1.8, 2.2], [3.6, 0.6, -4.4, 2.6, 1.2, 2.0],
+                  [4.6, 1.5, 1.2, 2.0, 3.0, 2.0], [-3.0, 1.2, 3.8, 3.0, 2.4, 1.8],
+                  [0.0, 2.1, -6.0, 2.4, 4.2, 2.4]];
+    spec.forEach(([x, y, z, w, h, d]) => {
+        const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), MAT.rock);
+        b.position.set(x, y - h / 2 + h / 2, z);
+        b.position.y = h / 2;
+        lobby.add(b);
+        lobbyBlocks.push({ x, z, hw: w / 2, hd: d / 2, top: h });
+    });
+
+    // A slap pad to launch. Hitting a button with your hand is the gesture
+    // this kind of game is built on.
+    startPad = new THREE.Group();
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.13, 1.1, 10), MAT.rock);
+    post.position.y = 0.55;
+    const face = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.12, 20), MAT.pipe);
+    face.rotation.x = Math.PI / 2;
+    face.position.y = 1.22;
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.44, 0.05, 8, 24), MAT.pipeRim);
+    rim.position.y = 1.22;
+    startPad.add(post, face, rim);
+    startPad.position.set(0, 0, -2.6);
+    startPad.userData.hit = new THREE.Vector3(0, 1.22, -2.6);
+    lobby.add(startPad);
+
+    lobby.visible = false;
+    scene.add(lobby);
+}
+
+function lobbyHeightAt(x, z) {
+    for (const b of lobbyBlocks) {
+        if (Math.abs(x - b.x) < b.hw + 0.12 && Math.abs(z - b.z) < b.hd + 0.12) return b.top;
+    }
+    return (x * x + z * z <= LOBBY_R * LOBBY_R) ? 0 : -1e9;
 }
 
 /* ───────────────────────── player-attached bits ───────────────────────── */
 
 const VIGNETTE_D = 0.35;
 let hudCanvas, hudCtx, hudTex, vignette;
+let menu, menuCanvas, menuCtx, menuTex, menuButtons = [], menuOpen = false;
 
 /* For a symmetric frustum m[0] = 1/tan(fovX/2) and m[5] = 1/tan(fovY/2), so
    the visible half-extent at distance d is d/m. Fitting the plane to that
@@ -340,32 +583,49 @@ function fitVignette(cam) {
     if (!m[0] || !m[5]) return;
     vignette.scale.set(2.05 * VIGNETTE_D / m[0], 2.05 * VIGNETTE_D / m[5], 1);
 }
+
 const hands = [];
 
 function buildRig() {
-    // Wings on the controllers. In XR these track your hands; off-headset
-    // they sit where a resting pair of hands would be, so the shot matches.
+    // Paws on the hands. Gorilla Tag hands, because that is what the CRIX
+    // character is — the wings were from when I thought it was a bird.
+    //
+    // The paws hang off groups of our own rather than off the controller
+    // objects directly. three.js sets matrixAutoUpdate = false on an XR
+    // controller so the headset pose can write its matrix, which means
+    // anything we set on .position is kept as a number and never reaches the
+    // transform. Off-headset that left every paw, and the wrist menu with
+    // them, stuck at the rig origin down by the feet.
     for (let i = 0; i < 2; i++) {
-        const c = renderer.xr.getController(i);
-        const w = clone('wing_fp');
-        w.rotation.z = (i === 0) ? 0.25 : -0.25;
-        if (i === 1) w.scale.z = -1;         // mirror for the other hand
-        c.add(w);
-        // Only a pose from the headset should move these; without one they sat
-        // at the rig origin, down by the feet and out of shot.
-        c.position.set(i === 0 ? -0.34 : 0.34, EYE_Y - 0.45, -0.28);
-        rig.add(c);
-        hands.push(c);
+        const src = renderer.xr.getController(i);
+        const h = new THREE.Group();
+        const paw = repaint(clone('hand_paw'), FUR_SKIN());
+        // The paw is modelled reaching along Blender's +Z, and the exporter
+        // turns Z-up into Y-up, so in the file it reaches straight UP. A -90°
+        // turn about X sends that forward along -Z, the way a controller
+        // points; the extra 0.25 is a relaxed wrist rather than a salute.
+        paw.rotation.set(-Math.PI / 2 + 0.25, 0, 0);
+        if (i === 1) paw.scale.x = -1;          // mirror for the other hand
+        h.add(paw);
+        h.position.set(i === 0 ? -0.30 : 0.30, EYE_Y - 0.42, -0.30);
+        h.userData.paw = paw;
+        h.userData.src = src;
+        h.userData.prev = new THREE.Vector3().copy(h.position);
+        h.userData.gripping = false;
+        rig.add(h);
+        hands.push(h);
+        // still parented so three.js keeps updating the source's pose
+        rig.add(src);
+        src.visible = false;
     }
 
-    // A static reference frame. Something that never moves relative to your
-    // body is the cheapest nausea mitigation there is.
-    const hoop = new THREE.Mesh(
-        new THREE.TorusGeometry(0.62, 0.035, 8, 32),
-        new THREE.MeshStandardMaterial({ color: 0x2A2A38, roughness: 0.8 }));
-    hoop.rotation.x = Math.PI / 2;
-    hoop.position.y = EYE_Y - 0.95;
-    rig.add(hoop);
+    // Your own body, seen when you look down. Presence costs 1160 triangles.
+    ownBody = repaint(clone('monkey'), FUR_SKIN());
+    const headNode = ownBody.getObjectByName('head');
+    if (headNode) headNode.visible = false;     // your head is the camera
+    ownBody.position.y = EYE_Y - 1.32;
+    ownBody.scale.setScalar(1.0);
+    rig.add(ownBody);
 
     // HUD on a panel below the eye line rather than pinned to the screen —
     // screen-locked text in a headset is unreadable and uncomfortable.
@@ -373,6 +633,7 @@ function buildRig() {
     hudCanvas.width = 512; hudCanvas.height = 128;
     hudCtx = hudCanvas.getContext('2d');
     hudTex = new THREE.CanvasTexture(hudCanvas);
+    hudTex.colorSpace = THREE.SRGBColorSpace;
     const panel = new THREE.Mesh(
         new THREE.PlaneGeometry(0.82, 0.205),
         new THREE.MeshBasicMaterial({ map: hudTex, transparent: true, depthWrite: false }));
@@ -380,6 +641,8 @@ function buildRig() {
     panel.rotation.x = -0.42;
     rig.add(panel);
     drawHud();
+
+    buildMenu();
 
     // Vignette: tightens the field of view a little so the periphery, which is
     // where motion sickness is triggered, sees less of the world going past.
@@ -391,13 +654,128 @@ function buildRig() {
     rad.addColorStop(0.82, 'rgba(0,0,0,0)');
     rad.addColorStop(1.00, 'rgba(0,0,0,0.40)');
     g.fillStyle = rad; g.fillRect(0, 0, 256, 256);
+    const vTex = new THREE.CanvasTexture(vc);
+    vTex.colorSpace = THREE.SRGBColorSpace;
     vignette = new THREE.Mesh(
         new THREE.PlaneGeometry(1, 1),
-        new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(vc), transparent: true,
+        new THREE.MeshBasicMaterial({ map: vTex, transparent: true,
                                       depthTest: false, depthWrite: false }));
     vignette.position.z = -VIGNETTE_D;
     vignette.renderOrder = 999;
     camera.add(vignette);
+}
+
+/* ───────────────────────── the in-game menu ─────────────────────────
+   On your left wrist, the way a watch is. It appears when you turn that hand
+   toward your face and you press it with the other paw. A menu you have to
+   find with a controller ray is a menu nobody opens mid-game. */
+
+const MENU_W = 0.32, MENU_H = 0.25;
+
+function buildMenu() {
+    menuCanvas = document.createElement('canvas');
+    menuCanvas.width = 320; menuCanvas.height = 246;
+    menuCtx = menuCanvas.getContext('2d');
+    menuTex = new THREE.CanvasTexture(menuCanvas);
+    menuTex.colorSpace = THREE.SRGBColorSpace;
+
+    menu = new THREE.Mesh(
+        new THREE.PlaneGeometry(MENU_W, MENU_H),
+        new THREE.MeshBasicMaterial({ map: menuTex, transparent: true, depthWrite: false }));
+    menu.position.set(0, 0.07, -0.01);   // above the wrist, clear of the paw
+    menu.rotation.set(-Math.PI / 2, 0, 0);
+    menu.visible = false;
+    if (hands[0]) hands[0].add(menu);
+    refreshMenu();
+}
+
+function menuItems() {
+    return [
+        { id: 'resume',  label: state.running ? 'RESUME' : (state.inLobby ? 'FLY' : 'RESTART') },
+        { id: 'restart', label: 'RESTART' },
+        { id: 'lobby',   label: 'LOBBY' },
+        { id: 'sound',   label: 'SOUND  ' + (soundOn ? 'ON' : 'OFF') },
+        { id: 'comfort', label: 'COMFORT  ' + (comfortOn() ? 'ON' : 'OFF') }
+    ];
+}
+
+function refreshMenu() {
+    if (!menuCtx) return;
+    const g = menuCtx, W = 320, H = 246;
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = 'rgba(10,10,16,.88)';
+    g.beginPath(); g.roundRect(0, 0, W, H, 18); g.fill();
+    g.strokeStyle = '#FF6B35'; g.lineWidth = 3;
+    g.beginPath(); g.roundRect(1.5, 1.5, W - 3, H - 3, 18); g.stroke();
+
+    const items = menuItems();
+    menuButtons = [];
+    const pad = 10, bh = (H - pad * 2 - (items.length - 1) * 6) / items.length;
+    items.forEach((it, i) => {
+        const y = pad + i * (bh + 6);
+        g.fillStyle = i === 0 ? '#FF4655' : 'rgba(255,255,255,.10)';
+        g.beginPath(); g.roundRect(pad, y, W - pad * 2, bh, 12); g.fill();
+        g.fillStyle = '#EDEDED';
+        g.font = 'bold 22px Trebuchet MS, sans-serif';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(it.label, W / 2, y + bh / 2);
+        menuButtons.push({ id: it.id, u0: pad / W, u1: (W - pad) / W,
+                           v0: y / H, v1: (y + bh) / H });
+    });
+    menuTex.needsUpdate = true;
+}
+
+/* Hoisted: this runs every frame in both eyes, and allocating six vectors a
+   frame is exactly the kind of churn that shows up as stutter on a Quest. */
+const _mLocal = new THREE.Vector3(), _mWorld = new THREE.Vector3(), _toCam = new THREE.Vector3(),
+      _camPos = new THREE.Vector3(), _face = new THREE.Vector3(), _tip = new THREE.Vector3(),
+      _q = new THREE.Quaternion();
+let lastPress = 0;
+
+function updateMenu(now) {
+    if (!menu || hands.length < 2) return;
+
+    // Open it when the left palm is turned toward your face. A plane's visible
+    // side faces +Z — testing -Z asks whether its BACK is toward you, which is
+    // never true while you are looking at it.
+    menu.getWorldPosition(_mWorld);
+    camera.getWorldPosition(_camPos);
+    _toCam.copy(_camPos).sub(_mWorld).normalize();
+    _face.set(0, 0, 1).applyQuaternion(menu.getWorldQuaternion(_q));
+    const want = _face.dot(_toCam) > 0.55 && _mWorld.distanceTo(_camPos) < 0.9;
+    if (want !== menuOpen) { menuOpen = want; menu.visible = want; if (want) refreshMenu(); }
+    if (!menuOpen) return;
+
+    // Press with the other paw: convert its tip into the panel's own plane.
+    hands[1].getWorldPosition(_tip);
+    menu.worldToLocal(_mLocal.copy(_tip));
+    if (Math.abs(_mLocal.z) > 0.045) return;
+    const u = _mLocal.x / MENU_W + 0.5;
+    const v = 0.5 - _mLocal.y / MENU_H;
+    if (u < 0 || u > 1 || v < 0 || v > 1) return;
+    if (now - lastPress < 420) return;
+
+    const hit = menuButtons.find(b => u >= b.u0 && u <= b.u1 && v >= b.v0 && v <= b.v1);
+    if (!hit) return;
+    lastPress = now;
+    play('click', 0.5);
+    menuAction(hit.id);
+    refreshMenu();
+}
+
+function menuAction(id) {
+    if (id === 'resume')  { state.inLobby ? beginFlight() : (state.dead ? reset() : (state.running = true)); }
+    if (id === 'restart') reset();
+    if (id === 'lobby')   enterLobby();
+    if (id === 'sound')   { soundOn = !soundOn;
+                            try { localStorage.setItem('crix_vr_sound', soundOn ? '1' : '0'); } catch (e) {} }
+    if (id === 'comfort') { const b = document.getElementById('comfort');
+                            b.checked = !b.checked; applyComfort(); }
+}
+
+function comfortOn() {
+    const b = document.getElementById('comfort');
+    return !b || b.checked;
 }
 
 function drawHud() {
@@ -410,20 +788,50 @@ function drawHud() {
     g.fillStyle = '#EDEDED';
     g.font = 'bold 62px Trebuchet MS, sans-serif';
     g.textAlign = 'left';
-    g.fillText(String(state.score), 30, 66);
+    g.fillText(state.inLobby ? 'LOBBY' : String(state.score), 30, 66);
     g.font = 'bold 34px Trebuchet MS, sans-serif';
     g.fillStyle = '#FFD24A';
     g.textAlign = 'right';
     g.fillText('🪙 ' + state.coins, 482, 44);
     g.fillStyle = '#9A9AA6';
     g.font = '24px Trebuchet MS, sans-serif';
-    g.fillText('best ' + state.best, 482, 92);
+    g.fillText(state.inLobby ? 'slap the pad to fly' : 'best ' + state.best, 482, 92);
     hudTex.needsUpdate = true;
 }
 
 /* ───────────────────────── run ───────────────────────── */
 
+function showWorld(flying) {
+    if (lobby)  lobby.visible  = !flying;
+    // The ground stays on in the lobby too — without it the island ends in a
+    // black band where the world simply stops.
+    if (ground) { ground.visible = true; ground.position.y = flying ? 0 : -1.55; }
+    bushes.forEach(b => b.visible = flying);
+    pipes.forEach(p => { if (!flying) p.visible = false; });
+    coins.forEach(c => { if (!flying) c.visible = false; });
+}
+
+function enterLobby() {
+    state.inLobby = true;
+    state.running = false;
+    state.dead = false;
+    state.vel.set(0, 0, 0);
+    rig.position.set(0, 0, 3.2);
+    rig.rotation.y = 0;
+    hands.forEach(h => { h.userData.gripping = false; h.userData.prev.copy(h.position); });
+    showWorld(false);
+    drawHud();
+    document.getElementById('crash').classList.remove('on');
+}
+
+function beginFlight() {
+    state.inLobby = false;
+    play('start', 0.6);
+    reset();
+}
+
 function reset() {
+    state.inLobby = false;
     state.dead = false;
     state.y = START_Y; state.vy = 0; state.z = 0;
     state.score = 0; state.coins = 0;
@@ -431,11 +839,13 @@ function reset() {
     state.nextPipeZ = -PIPE_SPACING * 2;
     detector.reset();
 
+    showWorld(true);
     pipes.forEach(p => { p.visible = false; p.userData.z = undefined; });
     coins.forEach(c => { c.visible = false; });
     bushes.forEach((b, i) => { b.position.z = -Math.floor(i / 2) * BUSH_STEP; });
 
     rig.position.set(0, state.y, 0);
+    rig.rotation.y = 0;
     for (let i = 0; i < PIPE_POOL; i++) spawnNext();
     drawHud();
     state.running = true;
@@ -445,7 +855,7 @@ function reset() {
 function spawnNext() {
     const p = pipes.find(x => !x.visible) ||
               pipes.reduce((a, b) => (a.userData.z > b.userData.z ? a : b));
-    const gap = 6 + Math.random() * (CEIL - 12);
+    const gap = (PIPE_GAP / 2 + 2) + Math.random() * (CEIL - PIPE_GAP - 4);
     placePipe(p, state.nextPipeZ, gap);
 
     const c = coins.find(x => !x.visible);
@@ -459,9 +869,13 @@ function spawnNext() {
 
 function flap(impulse) {
     if (!state.running || state.dead) return;
-    state.vy = impulse;
+    // Replacing the velocity outright meant a second flap while already rising
+    // did nothing, which is what made climbing feel like it was fighting you.
+    state.vy = state.vy <= 0 ? impulse
+                             : Math.min(state.vy + impulse * 0.55, impulse * 1.3);
     state.flaps++;
     state.lastImpulse = impulse;
+    play('flap', 0.35);
 }
 
 function die(reason) {
@@ -469,15 +883,87 @@ function die(reason) {
     state.dead = true;
     state.running = false;
     state.best = Math.max(state.best, state.score);
+    play('die', 0.6);
     document.getElementById('crashScore').textContent = state.score;
     document.getElementById('crashLine').textContent = reason;
     document.getElementById('crash').classList.add('on');
     drawHud();
 }
 
+/* ───────────────────────── lobby locomotion ─────────────────────────
+   Gorilla Tag's rule, and the only one that matters: nothing moves you except
+   your own arms. A hand touching a surface is planted in the world, so when
+   your arm moves relative to your body, your body moves the other way. */
+
+const _hw = new THREE.Vector3(), _delta = new THREE.Vector3(), _yaw = new THREE.Euler();
+
+function stepLobby(dt) {
+    if (dt <= 0) return;
+    let planted = false;
+
+    for (const h of hands) {
+        // The paw's position in the rig's own space IS your arm's position
+        // relative to your body, which is exactly the quantity we need.
+        _yaw.set(0, rig.rotation.y, 0);
+        _hw.copy(h.position).applyEuler(_yaw).add(rig.position);
+        const surface = lobbyHeightAt(_hw.x, _hw.z);
+        const touching = _hw.y <= surface + HAND_R;
+
+        if (touching) {
+            if (h.userData.gripping) {
+                _delta.copy(h.position).sub(h.userData.prev);
+                // your arm goes back, you go forward
+                state.vel.x -= (_delta.x * Math.cos(rig.rotation.y) - _delta.z * Math.sin(rig.rotation.y)) / dt * HAND_GRIP;
+                state.vel.y -= _delta.y / dt * HAND_GRIP;
+                state.vel.z -= (_delta.x * Math.sin(rig.rotation.y) + _delta.z * Math.cos(rig.rotation.y)) / dt * HAND_GRIP;
+            } else {
+                play('grab', 0.22);
+            }
+            h.userData.gripping = true;
+            planted = true;
+        } else {
+            h.userData.gripping = false;
+        }
+        h.userData.prev.copy(h.position);
+    }
+
+    if (sky) { sky.position.set(rig.position.x, 0, rig.position.z);
+               if (sky.userData.city) sky.userData.city.position.set(rig.position.x, 0, rig.position.z); }
+    if (ground) ground.position.set(rig.position.x, -1.55, rig.position.z);
+
+    state.vel.y += LOBBY_GRAV * dt;
+    const damp = planted ? LOBBY_FRICT : LOBBY_DRAG;
+    state.vel.x *= Math.pow(damp, dt * 60);
+    state.vel.z *= Math.pow(damp, dt * 60);
+    if (state.vel.length() > LOBBY_MAX_V) state.vel.setLength(LOBBY_MAX_V);
+
+    rig.position.addScaledVector(state.vel, dt);
+
+    // land on whatever is under you
+    const floorY = lobbyHeightAt(rig.position.x, rig.position.z);
+    if (rig.position.y <= floorY) {
+        rig.position.y = floorY;
+        if (state.vel.y < 0) state.vel.y = 0;
+    }
+    // fell off the rock
+    if (rig.position.y < -14) enterLobby();
+
+    // slap the pad to fly
+    if (startPad) {
+        for (const h of hands) {
+            _yaw.set(0, rig.rotation.y, 0);
+            _hw.copy(h.position).applyEuler(_yaw).add(rig.position);
+            if (_hw.distanceTo(startPad.userData.hit) < 0.5) { beginFlight(); return; }
+        }
+    }
+}
+
 function step(dt, now) {
-    if (!state.running || state.dead) return;
     dt = Math.min(dt, 0.05);         // a dropped frame must not teleport you
+
+    if (state.inLobby) { stepLobby(dt); updateMenu(now); return; }
+    updateMenu(now);
+    if (!state.running || state.dead) return;
 
     // flap input from the hands
     const ly = hands[0] ? hands[0].position.y : null;
@@ -486,6 +972,7 @@ function step(dt, now) {
     if (impulse > 0) flap(impulse);
 
     state.vy += GRAVITY * dt;
+    if (state.vy < TERMINAL) state.vy = TERMINAL;
     state.y  += state.vy * dt;
     state.z  -= SPEED * dt;           // constant, always
 
@@ -495,8 +982,11 @@ function step(dt, now) {
     rig.position.set(0, state.y, state.z);
 
     // the sky and the ground travel with you so they never run out
-    if (sky)    sky.position.z = state.z;
-    if (ground) ground.position.z = state.z;
+    if (sky) {
+        sky.position.z = state.z;
+        if (sky.userData.city) sky.userData.city.position.z = state.z;
+    }
+    if (ground) { ground.position.y = 0; ground.position.z = state.z; }
     bushes.forEach(b => {
         if (b.position.z > state.z + BUSH_STEP * 1.5) b.position.z -= BUSH_POOL / 2 * BUSH_STEP;
     });
@@ -508,6 +998,7 @@ function step(dt, now) {
         if (!p.userData.scored && dz < -(PIPE_R + BODY_R)) {
             p.userData.scored = true;
             state.score++;
+            play('point', 0.32);
             drawHud();
         }
         if (Math.abs(dz) < PIPE_R + BODY_R) {
@@ -524,6 +1015,7 @@ function step(dt, now) {
         if (Math.abs(state.z - c.position.z) < 1.0 && Math.abs(state.y - c.position.y) < 1.2) {
             c.visible = false;
             state.coins++;
+            play('coin', 0.5);
             drawHud();
         } else if (c.position.z > state.z + 8) {
             c.visible = false;
@@ -533,16 +1025,25 @@ function step(dt, now) {
 
 /* ───────────────────────── input off-headset ───────────────────────── */
 
-function screenFlap() { flap((FLAP_MIN_V + FLAP_MAX_V) / 2); }
+function screenFlap() {
+    if (state.inLobby) return beginFlight();   // no paws on a screen to slap with
+    if (state.dead) return reset();
+    flap((FLAP_MIN_V + FLAP_MAX_V) / 2);
+}
 addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); screenFlap(); } });
 renderer.domElement.addEventListener('pointerdown', screenFlap);
 
 // Either controller button recentres, because drifting off the play space is
 // the single most common thing that goes wrong in a standing VR session.
 function wireControllerButtons() {
-    hands.forEach(c => {
-        c.addEventListener('selectstart', recentre);
-        c.addEventListener('squeezestart', recentre);
+    // The controller objects, not our paw groups — they are what emits these.
+    hands.forEach(h => {
+        const src = h.userData.src;
+        if (!src) return;
+        src.addEventListener('selectstart', recentre);
+        src.addEventListener('squeezestart', recentre);
+        src.addEventListener('connected', () => { src.visible = true; });
+        src.addEventListener('disconnected', () => { src.visible = false; });
     });
 }
 function recentre() {
@@ -557,11 +1058,24 @@ function recentre() {
 
 /* ───────────────────────── loop ───────────────────────── */
 
+/* In a session the headset owns the hand poses; off-headset the fallback pose
+   we placed them at stands, so the page still looks right in a window. */
+function syncHands() {
+    if (!renderer.xr.isPresenting) return;
+    for (const h of hands) {
+        const src = h.userData.src;
+        if (!src || !src.visible) continue;
+        h.position.copy(src.position);
+        h.quaternion.copy(src.quaternion);
+    }
+}
+
 let last = 0;
 renderer.setAnimationLoop((time) => {
     const now = time || performance.now();
     const dt = last ? (now - last) / 1000 : 0;
     last = now;
+    syncHands();
     step(dt, now);
     fitVignette(renderer.xr.isPresenting ? renderer.xr.getCamera().cameras[0] || camera : camera);
     renderer.render(scene, camera);
@@ -589,14 +1103,18 @@ function start(flat) {
     applyComfort();
     ui.classList.add('gone');
     document.getElementById('hud2d').classList.toggle('on', !!flat);
-    reset();
+    // You arrive in the lobby, not mid-flight. Somewhere to stand and get your
+    // bearings before the ground starts moving is worth a lot in VR.
+    enterLobby();
 }
 
 loadAll(p => { barfill.style.width = Math.round(p * 100) + '%'; })
     .then(async () => {
+        buildMaterials();       // the palette has to exist before anything is skinned
         buildWorld();
         buildRig();
         wireControllerButtons();
+        loadSfx();
 
         const supported = navigator.xr && await navigator.xr.isSessionSupported('immersive-vr').catch(() => false);
         if (supported) {
@@ -616,14 +1134,20 @@ loadAll(p => { barfill.style.width = Math.round(p * 100) + '%'; })
         window.__vr = { THREE, state, detector, FlapDetector, step, reset, flap, pipes, coins, rig, scene,
                         consts: { SPEED, GRAVITY, FLAP_MIN_V, FLAP_MAX_V, HAND_MIN, HAND_MAX,
                                   FLAP_COOLDOWN, PIPE_GAP, PIPE_SPACING, CEIL, FLOOR, START_Y },
-                        hands, applyComfort, vignetteOf: () => vignette, ready: true };
+                        hands, applyComfort, vignetteOf: () => vignette,
+                        enterLobby, beginFlight, stepLobby, lobbyHeightAt, lobbyBlocks,
+                        updateMenu, menuAction, menuButtons: () => menuButtons,
+                        refreshMenu, isMenuOpen: () => menuOpen, menuOf: () => menu,
+                        sfx: SFX, soundOn: () => soundOn, matsOf: () => MAT,
+                        startPadOf: () => startPad, ownBodyOf: () => ownBody,
+                        lobbyOf: () => lobby, skyOf: () => sky, ready: true };
     })
     .catch(err => {
         note.innerHTML = 'Could not load the models: ' + err.message;
         window.__vr = { ready: false, error: err.message };
     });
 
-document.getElementById('again').addEventListener('click', () => reset());
+document.getElementById('again').addEventListener('click', () => { play('click', .5); reset(); });
 </script>
 </body>
 </html>
