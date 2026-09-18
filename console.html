@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/playfab-manager.js?v=2026081611"></script>
+<script src="/cosmetic-art.js?v=2026091801"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -65,6 +66,18 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
 label.chk{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 0 auto;
   cursor:pointer;color:#EDEDED;white-space:nowrap}
 label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accent-color:var(--orange)}
+/* ---- COSMETIC FITTING ---- */
+.cf-stage{position:relative;margin:4px 0 12px}
+#cfBig{width:100%;height:auto;display:block;border-radius:12px;
+  background:radial-gradient(130% 150% at 25% 15%,#23304D,#0C0C15);
+  border:1px solid var(--line)}
+.cf-small{position:absolute;right:10px;bottom:10px;text-align:center;
+  background:rgba(0,0,0,.55);border-radius:10px;padding:5px 7px 3px}
+#cfSmall{width:60px;height:60px;display:block}
+.cf-small span{font-size:8px;color:#A0A0A0;letter-spacing:.5px}
+.row.cf-slider{margin-bottom:6px}
+.row.cf-slider input[type=range]{flex:1;accent-color:var(--orange);min-width:0;padding:0}
+.row.cf-slider output{flex:0 0 52px;text-align:right;font-size:12px;font-weight:700;color:#FFD700}
 
 /* ---- LOG ---- */
 #logBody{background:#07070b;border:1px solid var(--line);border-radius:10px;padding:12px;
@@ -112,6 +125,7 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
     <button class="tab" data-t="seasons">🎃 Seasons</button>
+    <button class="tab" data-t="cosmetics">🎯 Cosmetics</button>
     <button class="tab" data-t="bio">Bio Page</button>
     <button class="tab" data-t="trailer">Trailer</button>
     <button class="tab" data-t="health">PlayFab</button>
@@ -334,6 +348,47 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
         <div class="out" id="seaMineOut">—</div>
       </div>
 
+    </div>
+
+    <div class="view" id="v-cosmetics" style="display:none;">
+      <div class="panel">
+        <h2>🎯 Fit a cosmetic</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Artwork never lands sitting exactly where the code assumed. Pick an item,
+          move it until it looks right, and save — it lands for every player, and
+          the game picks it up without a deploy. The small preview is the size the
+          bird actually is in play.
+        </p>
+        <div class="row">
+          <label>Cosmetic</label>
+          <select id="cfPick"></select>
+          <button class="btn sm ghost" id="cfReload">Reload list</button>
+        </div>
+        <div class="cf-stage">
+          <canvas id="cfBig" width="560" height="300"></canvas>
+          <div class="cf-small">
+            <canvas id="cfSmall" width="120" height="120"></canvas>
+            <span>actual size in game</span>
+          </div>
+        </div>
+        <div class="row cf-slider"><label>Across</label>
+          <input type="range" id="cfX" min="-50" max="50" step="1" value="0">
+          <output id="cfXOut">0</output></div>
+        <div class="row cf-slider"><label>Up / down</label>
+          <input type="range" id="cfY" min="-50" max="50" step="1" value="0">
+          <output id="cfYOut">0</output></div>
+        <div class="row cf-slider"><label>Size</label>
+          <input type="range" id="cfS" min="40" max="220" step="1" value="100">
+          <output id="cfSOut">100%</output></div>
+        <div class="row cf-slider"><label>Rotation</label>
+          <input type="range" id="cfR" min="-180" max="180" step="1" value="0">
+          <output id="cfROut">0°</output></div>
+        <div class="row">
+          <button class="btn sm" id="cfSave">Save for everyone</button>
+          <button class="btn sm ghost" id="cfReset">Reset this one</button>
+        </div>
+        <div class="out" id="cfOut">—</div>
+      </div>
     </div>
 
     <div class="view" id="v-bio" style="display:none;">
@@ -822,6 +877,9 @@ $('signOutBtn').onclick = () => auth.signOut().then(() => location.reload());
 
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  // The fitting panel fetches the catalog, so it fills on first open rather
+  // than on every sign-in.
+  if (t.dataset.t === 'cosmetics') setTimeout(() => cfInit(false), 0);
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
@@ -1830,6 +1888,140 @@ bind('seaMineSave', async () => {
       ? 'Blocked \u2014 check firestore.rules is published.' : e.message;
   }
 });
+
+
+/* ---- COSMETIC FITTING ----
+   The same drawing code the game runs (cosmetic-art.js) against the same
+   Firestore document the game watches (config/cosmeticFit), so what you line
+   up here is exactly what players get. The item list comes from
+   playfab-catalog.json rather than a second list kept in this file. */
+const CF = { items: [], fit: {}, current: null, bird: null, loaded: false };
+
+function cfBirdReady(fn) {
+  if (!CF.bird) {
+    CF.bird = new Image();
+    CF.bird.onload = fn;
+    CF.bird.src = '/img/bird.png';
+    return;
+  }
+  if (CF.bird.complete) fn();
+  else CF.bird.onload = fn;
+}
+
+// Hats only: a trail has no position on the bird to adjust.
+async function cfLoadItems() {
+  const res = await fetch('/playfab-catalog.json', { cache: 'no-store' });
+  const cat = (await res.json()).Catalog || [];
+  CF.items = cat.filter(i => i.ItemClass === 'cosmetic_hat').map(i => {
+    let cd = {};
+    try { cd = JSON.parse(i.CustomData || '{}'); } catch (e) {}
+    return { id: i.ItemId, name: i.DisplayName, image: cd.image || null, draw: cd.draw || null };
+  });
+}
+
+async function cfLoadFit() {
+  const d = await firebase.firestore().collection('config').doc('cosmeticFit').get();
+  CF.fit = (d.exists && d.data().items) || {};
+}
+
+function cfArt(item) {
+  // Mirrors the game: artwork wins when it has loaded, the drawing stands in
+  // until then, and a 404 leaves the drawing in place for good.
+  if (!item.image) return null;
+  const c = cfArt.cache || (cfArt.cache = {});
+  let img = c[item.image];
+  if (!img) { img = new Image(); img.src = item.image; c[item.image] = img; }
+  return (img.complete && img.naturalWidth > 0) ? img : null;
+}
+
+function cfDraw() {
+  const item = CF.items.find(i => i.id === CF.current);
+  if (!item || !CF.bird || !CF.bird.complete) return;
+  const fit = CF.fit[CF.current];
+  [['cfBig', 170, true], ['cfSmall', 30, false]].forEach(([id, size, isBig]) => {
+    const cv = $(id); if (!cv) return;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.save();
+    g.translate(cv.width / 2, cv.height / 2 + (isBig ? cv.height * 0.14 : 0));
+    if (isBig) {
+      g.strokeStyle = 'rgba(255,255,255,.12)';
+      g.beginPath(); g.moveTo(0, -cv.height); g.lineTo(0, cv.height); g.stroke();
+    }
+    CrixArt.drawSprite(g, CF.bird, 0, 0, size);
+    CrixArt.drawHatOn(g, item, size, cfArt(item), fit);
+    g.restore();
+  });
+}
+
+function cfSyncFromSliders() {
+  const n = id => +$(id).value;
+  const x = n('cfX'), y = n('cfY'), s = n('cfS'), r = n('cfR');
+  $('cfXOut').textContent = x;
+  $('cfYOut').textContent = y;
+  $('cfSOut').textContent = s + '%';
+  $('cfROut').textContent = r + '°';
+  const f = { x: x / 100, y: y / 100, scale: s / 100, rot: r };
+  if (!x && !y && s === 100 && !r) delete CF.fit[CF.current];
+  else CF.fit[CF.current] = f;
+  cfDraw();
+}
+
+function cfShow(id) {
+  CF.current = id;
+  const f = CF.fit[id] || {};
+  $('cfX').value = Math.round((f.x || 0) * 100);
+  $('cfY').value = Math.round((f.y || 0) * 100);
+  $('cfS').value = Math.round((f.scale == null ? 1 : f.scale) * 100);
+  $('cfR').value = Math.round(f.rot || 0);
+  cfSyncFromSliders();
+}
+
+async function cfInit(force) {
+  if (CF.loaded && !force) return;
+  const out = $('cfOut');
+  try {
+    await cfLoadItems();
+    await cfLoadFit();
+    CF.loaded = true;
+    $('cfPick').innerHTML = CF.items.map(i =>
+      `<option value="${esc(i.id)}">${esc(i.name)}${i.image && !cfArt(i) ? ' · drawn' : ''}</option>`
+    ).join('');
+    cfBirdReady(() => { cfShow(CF.items[0] && CF.items[0].id); });
+    out.className = 'out';
+    out.textContent = `${CF.items.length} hats · ${Object.keys(CF.fit).length} already adjusted.`;
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = e.message;
+  }
+}
+
+bind('cfReload', () => cfInit(true));
+bind('cfReset', () => {
+  delete CF.fit[CF.current];
+  cfShow(CF.current);
+  $('cfOut').className = 'out';
+  $('cfOut').textContent = 'Back to where the code puts it. Save to make that stick.';
+});
+bind('cfSave', async () => {
+  const out = $('cfOut');
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    await firebase.firestore().collection('config').doc('cosmeticFit').set(
+      { items: CF.fit, at: Date.now(), by: firebase.auth().currentUser?.uid || null },
+      { merge: true });
+    out.className = 'out ok';
+    out.textContent = 'Saved — every player sees it there now.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target && e.target.closest && e.target.closest('#v-cosmetics') && e.target.type === 'range')
+    cfSyncFromSliders();
+});
+document.addEventListener('change', e => { if (e.target.id === 'cfPick') cfShow(e.target.value); });
 
 bind('crownGive', () => {
   const id = $('crownId').value.trim();

@@ -101,6 +101,117 @@
     },
 
     {
+      "ItemId": "hat_witch",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Witch Hat",
+      "Description": "Halloween. Earned from the trick or treat, door 7 of 31. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "spooky"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"spooky\",\"calendar\":\"TRICK OR TREAT\",\"door\":7,\"image\":\"/img/witch-hat.png\",\"draw\":\"witch\"}"
+    },
+    {
+      "ItemId": "hat_skull",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Skeleton Mask",
+      "Description": "Halloween. Earned from the trick or treat, door 14 of 31. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "spooky"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"spooky\",\"calendar\":\"TRICK OR TREAT\",\"door\":14,\"image\":\"/img/skeleton-mask.png\",\"draw\":\"skull\"}"
+    },
+    {
+      "ItemId": "hat_pumpkin",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Pumpkin Head",
+      "Description": "Halloween. Earned from the trick or treat, door 31 of 31. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "spooky"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"spooky\",\"calendar\":\"TRICK OR TREAT\",\"door\":31,\"image\":\"/img/pumpkin-head.png\",\"draw\":\"pumpkin\"}"
+    },
+    {
+      "ItemId": "trail_ghost",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Ghost Trail",
+      "Description": "Halloween. Earned from the trick or treat, door 21 of 31. Cannot be bought.",
+      "Tags": ["cosmetic", "trail", "exclusive", "seasonal", "spooky"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"trail\",\"exclusive\":true,\"season\":\"spooky\",\"calendar\":\"TRICK OR TREAT\",\"door\":21,\"colours\":[\"#FFFFFF\",\"#D7C9FF\",\"#7A5AA8\"]}"
+    },
+
+    {
+      "ItemId": "hat_reindeer",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Reindeer Ears",
+      "Description": "Christmas. Earned from the advent calendar, door 6 of 24. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "christmas"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"christmas\",\"calendar\":\"ADVENT CALENDAR\",\"door\":6,\"image\":\"/img/reindeer-ears.png\",\"draw\":\"reindeer\"}"
+    },
+    {
+      "ItemId": "hat_santa",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Santa's Hat",
+      "Description": "Christmas. Earned from the advent calendar, door 24 of 24. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "christmas"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"christmas\",\"calendar\":\"ADVENT CALENDAR\",\"door\":24,\"image\":\"/img/santa-hat.png\",\"draw\":\"santa\"}"
+    },
+    {
+      "ItemId": "trail_tinsel",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Tinsel Trail",
+      "Description": "Christmas. Earned from the advent calendar, door 12 of 24. Cannot be bought.",
+      "Tags": ["cosmetic", "trail", "exclusive", "seasonal", "christmas"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"trail\",\"exclusive\":true,\"season\":\"christmas\",\"calendar\":\"ADVENT CALENDAR\",\"door\":12,\"colours\":[\"#FFF6C9\",\"#FFD700\",\"#2FA85B\",\"#E8323F\"]}"
+    },
+
+    {
+      "ItemId": "hat_bunny",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Bunny Ears",
+      "Description": "Easter. Earned from the egg hunt, door 4 of 7. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "easter"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"easter\",\"calendar\":\"EGG HUNT\",\"door\":4,\"image\":\"/img/bunny-ears.png\",\"draw\":\"bunny\"}"
+    },
+    {
+      "ItemId": "trail_pastel",
+      "ItemClass": "cosmetic_trail",
+      "CatalogVersion": "Main",
+      "DisplayName": "Pastel Trail",
+      "Description": "Easter. Earned from the egg hunt, door 7 of 7. Cannot be bought.",
+      "Tags": ["cosmetic", "trail", "exclusive", "seasonal", "easter"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"trail\",\"exclusive\":true,\"season\":\"easter\",\"calendar\":\"EGG HUNT\",\"door\":7,\"colours\":[\"#FFD1E8\",\"#FFF3B0\",\"#B8F2C8\",\"#B9D9FF\"]}"
+    },
+
+    {
       "ItemId": "x2coins",
       "ItemClass": "powerup",
       "CatalogVersion": "Main",
