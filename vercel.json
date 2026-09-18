@@ -184,7 +184,7 @@
   "crons": [
     {
       "path": "/api/dm-worker",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 3 * * *"
     }
   ]
 }

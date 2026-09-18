@@ -6,6 +6,19 @@
  * message. Nothing read it. The queue simply filled up and no DM was ever
  * delivered, which is why the bot appeared to do nothing.
  *
+ * ABOUT THE SCHEDULE. This ran every ten minutes to begin with, and that broke
+ * every deployment of the whole site — Vercel validates `crons` against the
+ * plan before it builds anything, and the Hobby plan allows a cron job at most
+ * once a day, so the entry was rejected and the static site went down with it.
+ * It is daily now, which every plan accepts. On a Pro plan a ten-minute
+ * schedule in vercel.json is fine and worth putting back, because a DM that
+ * waits up to a day for the next run is not much of a notification.
+ * (Careful writing that schedule into a block comment like this one — the
+ * star-slash in it closes the comment and breaks the file.)
+ *
+ * Until then, the curl below drains the queue on demand and is the thing to
+ * reach for when someone says their DM never arrived.
+ *
  * Runs on a schedule from vercel.json, and can be poked by hand:
  *
  *     curl -X POST https://crixgamingvr.com/api/dm-worker \
