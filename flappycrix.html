@@ -4006,6 +4006,12 @@
             </div>
             <div class="owner-grid">
                 <button class="owner-btn" data-act="fitroom">🎯 Fitting room</button>
+                <button class="owner-btn good" data-act="grantSeasonal">🎁 Give me the seasonal set</button>
+                <button class="owner-btn warn" data-act="revokeSeasonal">🔒 Take them back</button>
+            </div>
+            <div class="set-sub" style="margin-top:6px;line-height:1.6;">
+                Your account only — it grants nothing to anybody else. The point is
+                to be able to wear and fit a cosmetic without waiting for its door.
             </div>
 
             <!-- ECONOMY -->
@@ -4960,20 +4966,27 @@
                     ${cosmeticArt(c, 46)}
                     <div class="store-card-name">${c.name}</div>
                     ${c.desc ? `<div class="store-card-desc">${c.desc}</div>` : ''}
-                    <div class="store-card-price${ex ? ' exclusive' : ''}">${ex ? '👑 EVENT REWARD' : priceTag(c.price)}</div>
-                    <button class="store-buy" onclick="buyCosmetic('${c.id}')" ${c.owned || ex ? 'disabled' : ''}>${c.owned ? 'OWNED' : 'BUY'}</button>
+                    <div class="store-card-price${ex ? ' exclusive' : ''}">${
+                        c.season && SEASONS[c.season] ? `${SEASONS[c.season].emoji} ${SEASONS[c.season].name.toUpperCase()}`
+                        : ex ? '👑 EVENT REWARD' : priceTag(c.price)}</div>
+                    <button class="store-buy" onclick="buyCosmetic('${c.id}')" ${c.owned || ex ? 'disabled' : ''}>${
+                        c.owned ? 'OWNED' : ex ? '🔒 LOCKED' : 'BUY'}</button>
                 </div>`;
             };
 
-            // Exclusives are hidden until owned — showing something
-            // permanently unbuyable is just a tease — and then they get their
-            // own shelf rather than sitting among things you can buy.
+            /* A one-off like the crown stays hidden until it is won — showing
+               something permanently unbuyable is just a tease. A seasonal
+               reward is the opposite: it comes round every year, so it is a
+               goal, and hiding it meant a player had no idea any of it existed
+               until they had already earned it. */
             const buyable = t => cosmetics.filter(c => c.type === t && !isExclusive(c));
-            const trophies = cosmetics.filter(c => isExclusive(c) && c.owned);
+            const seasonal = cosmetics.filter(c => c.season);
+            const trophies = cosmetics.filter(c => isExclusive(c) && !c.season && c.owned);
 
             document.getElementById('cosmeticsStoreGrid').innerHTML =
                 storeSection('🧢 HATS',   'Worn on the head',              buyable('hat'),   card) +
                 storeSection('✨ TRAILS', 'Streams out behind you in flight', buyable('trail'), card) +
+                storeSection('🗓️ SEASONAL', 'Earned from the season calendars', seasonal, card) +
                 storeSection('👑 EVENT REWARDS', 'Awarded, never sold',    trophies,         card);
 
             paintAllSwatches();
@@ -5560,7 +5573,7 @@
         }
 
         // '' = follow the calendar, 'off' = plain, otherwise a season id
-        let seasonForced = '';
+        let seasonForced = '', seasonForcedAt_ = 0;
         function activeSeasonId() {
             // My own preview wins over the one set for everyone, which in turn
             // wins over the calendar. 'auto' is how a preview says "calendar",
@@ -5582,7 +5595,7 @@
            has answered. */
         const SEASON_PREVIEW_KEY = 'crix_season_preview_v1';
         const SEASON_PART_DEFAULTS = { colour: true, music: true, flyer: true, cal: true };
-        let seasonPreview = '';                                    // '' = no personal override
+        let seasonPreview = '', seasonPreviewAt = 0;               // '' = no personal override
         let seasonParts = { ...SEASON_PART_DEFAULTS };
         function seasonPart(p) { return seasonParts[p] !== false; }
         // The season as far as one feature is concerned. A part switched off
@@ -5594,25 +5607,29 @@
             try {
                 const v = JSON.parse(localStorage.getItem(SEASON_PREVIEW_KEY) || '{}');
                 seasonPreview = v.force || '';
+                seasonPreviewAt = v.at || 0;
                 seasonParts = { ...SEASON_PART_DEFAULTS, ...(v.parts || {}) };
             } catch (e) { /* storage blocked — the defaults are fine */ }
         }
         function writeSeasonPreview() {
             try {
                 localStorage.setItem(SEASON_PREVIEW_KEY,
-                    JSON.stringify({ force: seasonPreview, parts: seasonParts }));
+                    JSON.stringify({ force: seasonPreview, parts: seasonParts, at: seasonPreviewAt }));
             } catch (e) {}
         }
         readSeasonPreview();
 
         async function setSeasonPreview(force, parts) {
+            // A new season starts its calendar today; changing only the parts
+            // leaves the clock where it was.
+            if (force !== undefined && (force || '') !== seasonPreview) seasonPreviewAt = Date.now();
             if (force !== undefined) seasonPreview = force || '';
             if (parts) seasonParts = { ...seasonParts, ...parts };
             writeSeasonPreview();
             applySeasonClass();
             if (!db || !currentUser) return false;
             await db.collection('seasonPreview').doc(currentUser.uid).set(
-                { force: seasonPreview, parts: seasonParts, at: Date.now() }, { merge: true });
+                { force: seasonPreview, parts: seasonParts, at: seasonPreviewAt }, { merge: true });
             return true;
         }
 
@@ -5624,6 +5641,7 @@
             _seasonPreviewUnsub = db.collection('seasonPreview').doc(currentUser.uid).onSnapshot(d => {
                 const v = d.exists ? d.data() : {};
                 seasonPreview = v.force || '';
+                seasonPreviewAt = v.at || 0;
                 seasonParts = { ...SEASON_PART_DEFAULTS, ...(v.parts || {}) };
                 writeSeasonPreview();
                 applySeasonClass();
@@ -5684,6 +5702,7 @@
             if (!db) { applySeasonClass(); return; }
             db.collection('config').doc('season').onSnapshot(d => {
                 seasonForced = (d.exists && d.data().force) || '';
+                seasonForcedAt_ = (d.exists && d.data().at) || 0;
                 applySeasonClass();
             }, e => { console.warn('[Season]', e.message); applySeasonClass(); });
         }
@@ -5827,9 +5846,30 @@
         }
         // Which door today is, 1-based. 0 means the season is on but the
         // calendar has not started (or has finished).
+        // When was a specific season forced on — personally or for everyone?
+        // 0 when the calendar is deciding.
+        function seasonForcedAt() {
+            const real = id => id && id !== 'off' && id !== 'auto' && SEASONS[id];
+            if (real(seasonPreview)) return seasonPreviewAt || Date.now();
+            if (real(seasonForced))  return seasonForcedAt_ || Date.now();
+            return 0;
+        }
+
         function calToday(s) {
             const c = s && s.cal;
             if (!c) return 0;
+
+            /* A forced season runs its calendar from the day it was forced.
+               Without this, forcing Halloween in September showed all 31 doors
+               shut and there was no way to reach a single prize — the whole
+               point of forcing it. Following the calendar still means following
+               the real date. */
+            const forced = seasonForcedAt();
+            if (forced) {
+                const days = Math.floor((Date.now() - forced) / 86400000) + 1;
+                return Math.max(1, Math.min(c.doors, days));
+            }
+
             const d = new Date();
             if (c.month === null) {
                 // Seven doors ending on Easter Sunday
@@ -10798,6 +10838,28 @@
                         // Nothing to send anywhere; it opens a panel.
                         openFitRoom();
                         return;
+                    case 'grantSeasonal':
+                    case 'revokeSeasonal': {
+                        // Local to this account. Seasonal items are normally
+                        // earned a door at a time, which means a brand new one
+                        // cannot be looked at or fitted until its day comes
+                        // round — no use at all when the artwork lands in
+                        // September.
+                        const give = act === 'grantSeasonal';
+                        const seasonal = cosmetics.filter(c => c.season);
+                        seasonal.forEach(c => {
+                            c.owned = give;
+                            if (!give) c.equipped = false;
+                        });
+                        try { autoSave(); } catch (e) {}
+                        try { updateStoreDisplay(); updateLockerDisplay(); updatePreview(); } catch (e) {}
+                        ownerLog(`${give ? 'Granted' : 'Removed'} ${seasonal.length} seasonal cosmetics (you only)`);
+                        toast({ kind: 'success',
+                                title: give ? '🎁 Seasonal set unlocked' : '🔒 Seasonal set removed',
+                                body: give ? 'Equip them in the locker, fit them in the fitting room.'
+                                           : 'Back to earning them from the calendars.' });
+                        return;
+                    }
                     case 'kick':
                         if (!mpCurrentRoom) { ownerLog('Not in a lobby', false); return; }
                         photonClient.raiseEvent(MP_EV.KICK, { targetActor: t.actorNr }, { receivers: RC.All });
