@@ -184,6 +184,12 @@
         }
         .auth-btn:hover { transform: translateY(-2px); box-shadow: 2px 4px 0 rgba(0,0,0,0.4); }
         .auth-btn:active { transform: translateY(2px); border-bottom-width: 2px; box-shadow: none; }
+        .auth-recover {
+            display: block; text-align: center; margin-top: 10px;
+            font-size: 10px; color: #7d7f97; text-decoration: none;
+            letter-spacing: .3px;
+        }
+        .auth-recover:hover { color: #A5AEFF; text-decoration: underline; }
         .auth-switch {
             color: var(--green);
             cursor: pointer;
@@ -278,6 +284,12 @@
             cursor: pointer;
             transition: all 0.1s;
             box-shadow: 2px 2px 0 rgba(0,0,0,0.3);
+        }
+        /* 30px tall is under any touch guideline, and this is the button a
+           new player has to hit first. Give it a finger's worth wherever the
+           pointer is a finger. */
+        @media (pointer: coarse) {
+            .login-btn, .logout-btn { min-height: 40px; padding: 8px 18px; }
         }
         .login-btn:hover, .logout-btn:hover { transform: translateY(-1px); box-shadow: 2px 3px 0 rgba(0,0,0,0.3); }
         .login-btn:active, .logout-btn:active { transform: translateY(1px); border-bottom-width: 2px; box-shadow: none; }
@@ -407,7 +419,7 @@
                 position: static !important; display: flex !important;
                 margin: 12px 0 !important;
             }
-            .game-header, .game-controls, .icon-bar, .mp-banner-btn, .menu-footer {
+            .game-header, .game-controls, .icon-bar, .banner-row, .menu-footer {
                 position: static !important; inset: auto !important;
                 width: auto !important; margin-left: 0 !important; margin-right: 0 !important;
             }
@@ -434,7 +446,7 @@
         body.playing .game-header,  body.dead .game-header,
         body.playing .stats-grid,   body.dead .stats-grid,
         body.playing .game-controls,body.dead .game-controls,
-        body.playing .mp-banner-btn,body.dead .mp-banner-btn,
+        body.playing .banner-row,   body.dead .banner-row,
         body.playing .icon-bar,     body.dead .icon-bar,
         body.playing .menu-footer,  body.dead .menu-footer,
         body.playing .user-section, body.dead .user-section,
@@ -997,10 +1009,29 @@
             font-family: inherit; font-size: 11px; padding: 9px 14px;
             border-radius: 20px; cursor: pointer; white-space: nowrap;
         }
+        .set-tab .st-ico { font-style: normal; margin-right: 4px; }
         .set-tab.active { background: rgba(255,107,53,.16); border-color: var(--orange);
             color: var(--orange); }
         .set-tab:hover { color: #fff; }
         @media (pointer: coarse) { .set-tab { min-height: 40px; padding: 10px 16px; } }
+        /* On a phone the last two tabs — Social and About — sat past the right
+           edge. The strip does scroll, but its scrollbar is hidden, so there
+           was nothing on screen to suggest they were there and nobody would
+           ever have found them. Make all five share the width instead. */
+        @media (max-width: 460px) {
+            .set-tabs { gap: 4px; }
+            .set-tab {
+                /* Shrink to fit, but size to the word: forcing five equal
+                   columns truncated "Account" while the shorter four had
+                   room going spare. */
+                flex: 0 1 auto; min-width: 0; min-height: 40px;
+                padding: 10px 7px; font-size: 9.5px; letter-spacing: -.1px;
+                overflow: hidden; text-overflow: ellipsis;
+            }
+            /* An emoji is about as wide as three letters and says less than
+               the word does. Below this the words are what survives. */
+            .set-tab .st-ico { display: none; }
+        }
 
         /* Only the chosen group is shown */
         .settings-body[data-showing] .set-group { display: none; }
@@ -1137,6 +1168,152 @@
         .cheat-badge.coinlord { border: 2px solid gold; color: gold; background: #2a2400; }
         .cheat-badge.slowmo { border: 2px solid var(--green); color: #7affc7; }
         .cheat-badge.bigbird { border: 2px solid var(--orange); color: #FFB347; }
+
+
+        /* ---- PARTY ----
+           The pill is fixed to the viewport rather than joining the menu deck:
+           the deck is a stack of hard-coded offsets with no room left in it,
+           and the party has to stay reachable in a match as well, where the
+           deck is not on screen at all. */
+        .party-pill {
+            position: fixed; z-index: 44;
+            top: calc(60px + env(safe-area-inset-top)); right: 12px;
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(8,6,18,.82); color: #cfd2e6;
+            border: 1px solid rgba(255,255,255,.18); border-radius: 30px;
+            padding: 7px 12px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
+            cursor: pointer; min-height: 34px;
+        }
+        .party-pill.active { border-color: rgba(0,204,122,.7); color: #7CF0B8; }
+        .party-pill.talking { border-color: #00CC7A; box-shadow: 0 0 0 2px rgba(0,204,122,.28); }
+        .party-pill .pp-ico { font-size: 14px; }
+        .party-pill .pp-dot {
+            font-style: normal; font-size: 9px; background: #FF4655; color: #fff;
+            border-radius: 20px; padding: 1px 5px; margin-left: 2px;
+        }
+        .party-note { font-size: 11px; color: #8d90a6; margin-bottom: 10px; text-align: center; }
+        .party-members { display: flex; flex-direction: column; gap: 6px; max-height: 190px; overflow-y: auto; }
+        .party-row {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,.04); border: 1px solid transparent;
+            border-radius: 12px; padding: 7px 10px;
+        }
+        .party-row.talking { border-color: rgba(0,204,122,.55); background: rgba(0,204,122,.07); }
+        .party-av, .party-av-wrap > div {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: #fff; background: #FF4655;
+            object-fit: cover;
+        }
+        .party-who { flex: 1; min-width: 0; }
+        .party-name { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .party-name em { font-style: normal; color: #7d7f97; font-size: 10px; }
+        .party-crown { font-style: normal; margin-left: 4px; font-size: 10px; }
+        .party-state { font-size: 9px; color: #8d90a6; margin-top: 1px; }
+        .party-kick {
+            background: none; border: none; color: #FF4655; font-size: 13px;
+            cursor: pointer; padding: 4px 6px; min-height: 30px; min-width: 30px;
+        }
+        .party-empty { font-size: 11px; color: #71748c; text-align: center; padding: 14px 6px; }
+        .party-voice-row { display: flex; gap: 8px; margin: 12px 0; }
+        .party-btn {
+            flex: 1; background: rgba(255,255,255,.06); color: #dfe1f0;
+            border: 1px solid rgba(255,255,255,.16); border-radius: 12px;
+            padding: 10px 8px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
+            cursor: pointer; min-height: 40px;
+        }
+        .party-btn.primary { background: rgba(0,204,122,.14); border-color: rgba(0,204,122,.5); color: #7CF0B8; }
+        .party-btn.primary.on { background: rgba(0,204,122,.28); }
+        .party-btn.danger { background: rgba(255,70,85,.12); border-color: rgba(255,70,85,.45); color: #FF8A94; }
+        .party-chat-title {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: 9px; letter-spacing: 1px; color: #8d90a6; margin-bottom: 5px;
+        }
+        .party-chat-title span { font-size: 8px; color: #61637a; letter-spacing: 0; }
+        .party-chat-log {
+            height: 110px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px;
+            background: rgba(0,0,0,.28); border-radius: 12px; padding: 8px 10px; margin-bottom: 7px;
+        }
+        .party-msg { font-size: 11px; color: #d6d8e6; line-height: 1.45; word-break: break-word; }
+        .party-msg b { color: #FFB347; margin-right: 4px; }
+        .party-msg.mine b { color: #7CF0B8; }
+        .party-chat-row { display: flex; gap: 6px; margin-bottom: 10px; }
+        .party-chat-input {
+            flex: 1; min-width: 0; background: rgba(255,255,255,.05); color: #fff;
+            border: 1px solid rgba(255,255,255,.16); border-radius: 12px;
+            padding: 10px 12px; font-size: 12px; min-height: 40px;
+        }
+        .party-chat-row .party-btn { flex: 0 0 auto; padding: 10px 14px; }
+        .party-actions { display: flex; gap: 8px; }
+        /* In a match the pill drops to a corner, out of the score's way */
+        body.playing .party-pill, body.dead .party-pill {
+            top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
+            right: 12px; padding: 6px 10px; min-height: 30px; font-size: 10px;
+        }
+        @media (max-width: 480px) {
+            .party-pill { top: calc(52px + env(safe-area-inset-top)); right: 10px; padding: 6px 10px; }
+            .party-chat-log { height: 92px; }
+        }
+        /* ---- LIMITED SEASONAL MODES ----
+           The phone menu is an absolutely-positioned deck with a hard-coded
+           offset per row, so a season cannot be allowed to add a row: it would
+           have to shift every offset above it at three breakpoints, and the
+           bottom one has no room to give. The seasonal mode shares the
+           multiplayer banner's row instead, and the row is what the deck
+           positions. With no season on, the one button fills it as before. */
+        .banner-row { display: flex; gap: 8px; width: 100%; margin: 12px 0 6px; }
+        .banner-row .mp-banner-btn { flex: 1; min-width: 0; margin: 0; }
+        .season-mode-btn {
+            background: linear-gradient(135deg, var(--accent, #FF7A18), var(--accent2, #8B3FD6));
+            border: 2px solid rgba(255,255,255,.28);
+            border-bottom-color: rgba(0,0,0,.45);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            overflow: hidden;
+        }
+        .season-mode-btn .sm-name { white-space: nowrap; }
+        @media (max-width: 560px) {
+            .banner-row { gap: 6px; }
+            .season-mode-btn { font-size: 12px; gap: 5px; padding: 9px 6px; }
+        }
+        .sm-hud {
+            display: none;
+            position: absolute; top: calc(14px + env(safe-area-inset-top));
+            left: 50%; transform: translateX(-50%);
+            align-items: center; gap: 12px; z-index: 36;
+            background: rgba(6,4,14,.72); border: 1px solid rgba(255,255,255,.16);
+            border-radius: 30px; padding: 7px 16px; pointer-events: none;
+            white-space: nowrap;
+        }
+        body.playing .sm-hud.on { display: flex; }
+        /* The pipe count and the coin purse mean nothing in a mode scored on
+           what you picked up, and two readouts in one slot is just a mess. */
+        body.playing .hud-live.sm-off { display: none !important; }
+        .sm-hud-time { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; }
+        .sm-hud-score { display: flex; align-items: baseline; gap: 5px; }
+        .sm-hud-score b { font-size: 19px; color: var(--accent, #FF7A18); }
+        .sm-hud-score i { font-style: normal; font-size: 9px; letter-spacing: .7px; color: #aaa; }
+        .sm-hud-carry { font-size: 12px; color: #fff; }
+        .smr-why { font-size: 11px; letter-spacing: 1px; color: #999; margin-bottom: 4px; }
+        .smr-big { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-bottom: 6px; }
+        .smr-big b { font-size: 48px; line-height: 1; color: var(--accent, #FF7A18); }
+        .smr-big i { font-style: normal; font-size: 11px; letter-spacing: 1px; color: #aaa; }
+        .smr-newbest { font-size: 11px; letter-spacing: 1px; color: #FFD700; margin-bottom: 6px; }
+        .smr-target { font-size: 11px; margin-bottom: 12px; }
+        .smr-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .smr-rows > div {
+            display: flex; justify-content: space-between; font-size: 12px;
+            background: rgba(255,255,255,.04); border-radius: 10px; padding: 8px 12px;
+        }
+        .smr-rows span { color: #999; }
+        .smr-actions { display: flex; gap: 8px; }
+        .smr-actions .game-btn { flex: 1; }
+        @media (max-width: 480px) {
+            .sm-hud { gap: 9px; padding: 5px 12px; }
+            .sm-hud-time { font-size: 15px; }
+            .sm-hud-score b { font-size: 17px; }
+            .smr-big b { font-size: 40px; }
+        }
         .powerup-badge { border: 2px solid gold; color: #FFE484; background: #2a2500; }
         
         /* ---- BUTTONS ---- */
@@ -2565,7 +2742,7 @@
 
             /* ---- BOTTOM CONTROL DECK ---- */
             .game-controls,
-            .mp-banner-btn,
+            .banner-row,
             .icon-bar,
             .menu-footer {
                 position: absolute; z-index: 30; left: 14px; right: 14px;
@@ -2583,7 +2760,7 @@
             .icon-bar.has-season .icon-btn span  { font-size: 17px; }
             .icon-bar.has-staff .icon-btn label,
             .icon-bar.has-season .icon-btn label { font-size: 6px; letter-spacing: 0; }
-            .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
+            .banner-row   { bottom: calc(132px + env(safe-area-inset-bottom)); }
             .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
                             display: flex; gap: 10px; }
 
@@ -2598,7 +2775,7 @@
             body.playing .game-header,
             body.playing .stats-grid,
             body.playing .game-controls,
-            body.playing .mp-banner-btn,
+            body.playing .banner-row,
             body.playing .icon-bar,
             body.playing .menu-footer { display: none !important; }
 
@@ -2679,7 +2856,8 @@
             .stat-value { font-size: 13px; margin-top: 1px; }
 
             .game-controls { bottom: calc(140px + env(safe-area-inset-bottom)); }
-            .mp-banner-btn { bottom: calc(94px  + env(safe-area-inset-bottom)); min-height: 40px; font-size: 13px; }
+            .banner-row    { bottom: calc(94px  + env(safe-area-inset-bottom)); }
+            .mp-banner-btn { min-height: 40px; font-size: 13px; }
             .icon-bar      { bottom: calc(44px  + env(safe-area-inset-bottom)); }
             .menu-footer   { bottom: calc(6px   + env(safe-area-inset-bottom)); }
 
@@ -2690,7 +2868,7 @@
 
             /* A landscape screen is wide — stretching the deck edge to edge
                puts the buttons an inch and a half apart. */
-            .game-controls, .mp-banner-btn, .icon-bar, .menu-footer {
+            .game-controls, .banner-row, .icon-bar, .menu-footer {
                 left: 50%; right: auto; transform: translateX(-50%);
                 width: min(560px, calc(100% - 28px));
             }
@@ -2745,7 +2923,7 @@
            Give the deck the extra row back. */
         @media (max-width: 380px) {
             .icon-bar      { bottom: calc(86px  + env(safe-area-inset-bottom)); }
-            .mp-banner-btn { bottom: calc(160px + env(safe-area-inset-bottom)); }
+            .banner-row    { bottom: calc(160px + env(safe-area-inset-bottom)); }
             .game-controls { bottom: calc(224px + env(safe-area-inset-bottom)); }
             .foot-btn      { font-size: 8px; padding: 9px 3px; }
         }
@@ -2857,9 +3035,6 @@
                 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0ZGQzEwNyIgZD0iTTQzLjYxMSwyMC4wODNINDJWMjBIMjR2OGgxMS4zMDNjLTEuNjQ5LDQuNjU3LTYuMDgsOC0xMS4zMDMsOGMtNi42MjcsMC0xMi01LjM3My0xMi0xMmMwLTYuNjI3LDUuMzczLTEyLDEyLTEyYzMuMDU5LDAsNS44NDIsMS4xNTQsNy45NjEsMy4wMzlsNS42NTctNS42NTdDMzQuMDQ2LDYuMDUzLDI5LjI2OCw0LDI0LDRDMTIuOTU1LDQsNCwxMi45NTUsNCwyNGMwLDExLjA0NSw4Ljk1NSwyMCwyMCwyMGMxMS4wNDUsMCwyMC04Ljk1NSwyMC0yMEM0NCwyMi42NTksNDMuODYyLDIxLjM1LDQzLjYxMSwyMC4wODN6Ii8+PHBhdGggZmlsbD0iI0ZGM0QwMCIgZD0iTTYuMzA2LDE0LjY5MWw2LjU3MSw0LjgxOUMxNC42NTUsMTUuMTA4LDE4Ljk2MSwxMiwyNCwxMmMzLjA1OSwwLDUuODQyLDEuMTU0LDcuOTYxLDMuMDM5bDUuNjU3LTUuNjU3QzMzLjA0Niw1LjA1MywyOC42NjgsMywyNCwzQzE2LjMxOCwzLDkuNjU2LDcuMzM3LDYuMzA2LDEyLjY5MXoiLz48cGF0aCBmaWxsPSIjNENBRjUwIiBkPSJNMjQsNDRjNS4xNjYsMCw5Ljg2LTEuOTc3LDEzLjQwOS01LjE5MmwtNi4xOS01LjIzOEMyOS4yMTEsMzQuOTEsMjYuNzE1LDM2LDI0LDM2Yy01LjIwMiwwLTkuNjE5LTMuMzE3LTExLjI4My03Ljk0NmwtNi41MjIsNS4wMjVDOS41MDUsMzkuNTU2LDE2LjIyNyw0NCwyNCw0NHoiLz48cGF0aCBmaWxsPSIjMTk3NkQyIiBkPSJNNDMuNjExLDIwLjA4M0w0My41OTUsMjBINDJ2MEgyNHY4aDExLjMwM2MtMC43OTIsMi4yMzctMi4yMzEsNC4xNjYtNC4wODcsNS41NzFsMC4wMDMtMC4wMDJsNi4xOSw1LjIzOEMzNi45NzEsMzkuMjA1LDQwLDM0LjMyLDQwLDI0QzQwLDIyLjY1OSw0My44NjIsMjEuMzUsNDMuNjExLDIwLjA4M3oiLz48L3N2Zz4K" class="google-icon" alt="">
                 CONTINUE WITH GOOGLE
             </button>
-                <button class="auth-btn" id="discordSignInBtn" style="background:rgba(88,101,242,.16);border-color:rgba(88,101,242,.6);color:#A5AEFF;">
-                    CONTINUE WITH DISCORD
-                </button>
                 <button class="auth-btn" id="pairSignInBtn" style="background:rgba(39,169,245,.12);border-color:rgba(39,169,245,.5);color:#27A9F5;">
                     🔑 SIGN IN WITH A PAIRING CODE
                 </button>
@@ -2876,6 +3051,10 @@
                 <button class="auth-btn" id="authSubmitBtn">SIGN IN</button>
             </div>
             <div id="authSwitch" class="auth-switch">Need an account? SIGN UP</div>
+            <!-- Discord is not a way to sign in. It was once, and the accounts
+                 it made then still exist, so this is the one door back into
+                 them; it can never create a new one. -->
+            <a href="#" id="discordRecoverBtn" class="auth-recover">Signed up with Discord before? Recover that account</a>
             <div id="authError" class="auth-error"></div>
         </div>
     </div>
@@ -2892,6 +3071,9 @@
             <button class="logout-btn" id="logoutBtn" style="display:none;">🚪 SIGN OUT</button>
         </div>
         
+        <!-- The party follows you everywhere, so its handle does too -->
+        <button class="party-pill" id="partyPill" style="display:none;"></button>
+
         <div class="game-header" id="gameHeader">
             <div class="game-title">FLAPPY CRIX</div>
             <div class="game-sub">tap · collect · drip</div>
@@ -2958,6 +3140,12 @@
                 <span class="hud-coins" id="hudCoins">🪙 0</span>
                 <span class="hud-rush" id="hudRush" style="display:none;">⏱ <b id="hudRushTime">5:00</b></span>
             </div>
+
+            <div class="sm-hud" id="smHud">
+                <div class="sm-hud-time" id="smHudTime">1:30</div>
+                <div class="sm-hud-score"><b id="smHudScore">0</b><i id="smHudUnit">CANDY</i></div>
+                <div class="sm-hud-carry" id="smHudCarry" style="display:none;"></div>
+            </div>
             <button class="mp-hud-btn" id="mpHudBtn" title="Standings">
                 🏁<span class="badge" id="mpHudCount">0</span>
             </button>
@@ -2983,10 +3171,13 @@
         <div class="cheat-indicators" id="cheatIndicators"></div>
         <div class="active-powerups" id="activePowerups"></div>
         <!-- Primary action -->
-        <button class="mp-banner-btn" id="multiplayerBtn">
-            🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
-            <span id="onlineCount" class="online-count" style="display:none;"></span>
-        </button>
+        <div class="banner-row">
+            <button class="mp-banner-btn" id="multiplayerBtn">
+                🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
+                <span id="onlineCount" class="online-count" style="display:none;"></span>
+            </button>
+            <button class="mp-banner-btn season-mode-btn" id="seasonModeBtn" style="display:none;"></button>
+        </div>
 
         <!-- Everything else collapses into one icon row -->
         <div class="icon-bar">
@@ -3613,6 +3804,57 @@
     </div>
 
     <!-- SEASONAL CALENDAR -->
+    <!-- PARTY -->
+    <div class="mp-modal" id="partyModal" style="z-index:46400;">
+        <div class="mp-modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">🎧 PARTY</div>
+                <button class="modal-close" id="partyCloseBtn">✕</button>
+            </div>
+            <div class="party-note" id="partyLeaderNote"></div>
+            <div class="party-members" id="partyMembers"></div>
+            <div class="party-voice-row">
+                <button class="party-btn primary" id="partyMicBtn">🎧 JOIN VOICE</button>
+                <button class="party-btn" id="partyMuteBtn" style="display:none;">MUTE</button>
+            </div>
+            <div class="party-chat-title">PARTY CHAT<span>no mic? type here</span></div>
+            <div class="party-chat-log" id="partyChatLog"></div>
+            <div class="party-chat-row">
+                <input class="party-chat-input" id="partyChatInput" maxlength="500"
+                       placeholder="Message the party…" autocomplete="off">
+                <button class="party-btn" id="partyChatSend">SEND</button>
+            </div>
+            <div class="party-actions">
+                <button class="party-btn" id="partyInviteBtn">➕ INVITE</button>
+                <button class="party-btn danger" id="partyLeaveBtn">LEAVE PARTY</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- What a seasonal run paid out -->
+    <div class="mp-modal" id="smResultModal" style="z-index:46300;">
+        <div class="mp-modal-content" style="max-width:380px;">
+            <div class="modal-header">
+                <div class="modal-title" id="smrTitle">RESULT</div>
+                <button class="modal-close" id="closeSmResultBtn">✕</button>
+            </div>
+            <div style="text-align:center;">
+                <div class="smr-why" id="smrWhy">Time!</div>
+                <div class="smr-big"><b id="smrScore">0</b><i id="smrUnit">CANDY</i></div>
+                <div class="smr-newbest" id="smrNewBest" style="display:none;">★ NEW BEST</div>
+                <div class="smr-target" id="smrTarget"></div>
+                <div class="smr-rows">
+                    <div><span>Coins earned</span><b id="smrCoins">+0</b></div>
+                    <div><span>Your best</span><b id="smrBest">0</b></div>
+                </div>
+                <div class="smr-actions">
+                    <button class="game-btn" id="smrAgainBtn">↻ PLAY AGAIN</button>
+                    <button class="game-btn secondary" id="smrMenuBtn">MENU</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mp-modal" id="seasonCalModal" style="z-index:46200;">
         <div class="mp-modal-content" style="max-width:420px;">
             <div class="modal-header">
@@ -4065,11 +4307,11 @@
                 <button class="modal-close" id="closeSettingsBtn">✕</button>
             </div>
             <div class="set-tabs">
-                <button class="set-tab active" data-st="account">👤 Account</button>
-                <button class="set-tab" data-st="game">🎮 Game</button>
-                <button class="set-tab" data-st="audio">🔊 Audio</button>
-                <button class="set-tab" data-st="social">👥 Social</button>
-                <button class="set-tab" data-st="about">ℹ️ About</button>
+                <button class="set-tab active" data-st="account"><i class="st-ico">👤</i>Account</button>
+                <button class="set-tab" data-st="game"><i class="st-ico">🎮</i>Game</button>
+                <button class="set-tab" data-st="audio"><i class="st-ico">🔊</i>Audio</button>
+                <button class="set-tab" data-st="social"><i class="st-ico">👥</i>Social</button>
+                <button class="set-tab" data-st="about"><i class="st-ico">ℹ️</i>About</button>
             </div>
             <div class="settings-body">
 
@@ -4499,8 +4741,33 @@
         // GAME STATE
         let gameRunning = false, animationId = null, highScore = 0, coinCount = 0, coinMultiplier = 1, musicMuted = false, gamesPlayed = 0, hasTriggered67 = false, hasTriggered1000 = false;
         let cheats = { godmode: false, coinlord: false, slowmo: false, bigbird: false };
-        let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: 0.25, jump: -6.5 };
+        /* ---- FLIGHT ---- *
+         * The arc is Flappy Bird's, scaled to this taller canvas: 600/512 of
+         * the original's world, so gravity and the flap scale by the same
+         * 1.17 and the bird still reaches the top of its hop in about 0.28s,
+         * which is the bit that actually reads as "Flappy Bird".
+         *
+         * What is deliberately NOT the original: the gap is wider, there is
+         * no ceiling to die on, the fall speed is capped so a long drop is
+         * always recoverable, and the hitbox is a circle inside the sprite
+         * rather than its bounding square. The original killed you on all
+         * four, and that is what "people die easy" was.
+         */
+        const PHYS = {
+            gravity:   0.52,   // per tick, at the 60Hz fixed step
+            flap:     -8.8,    // impulse, one tap
+            maxFall:   14,     // terminal velocity: a long drop stays flyable
+            slowGrav:  0.32,   // the slowmo cheat, same arc shape, slower
+            slowFlap: -7.0,
+            lowGrav:   0.22,   // the owner's low-gravity toggle
+            hitScale:  0.38,   // hit radius as a fraction of the drawn size:
+                               // the face inside the sprite, not its corners
+            graceTicks: 24     // half a second of amnesty after a respawn
+        };
+        let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, jump: PHYS.flap };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
+        let _graceLeft = 0;        // ticks of post-spawn amnesty still to run
+        let _lastPipeTop = 0;      // so one pipe cannot sit a screen from the last
         // How far a run can go. A signed 32-bit int is the ceiling every
         // scoreboard this talks to is built on, so the run ends there rather
         // than letting the number drift past what they can store.
@@ -5089,8 +5356,12 @@
         }
         function resetGame() {
             // All players start at x=100 — same world, same physics
-            bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: cheats.slowmo ? 0.15 : 0.25, jump: cheats.slowmo ? -5 : -6.5 };
+            bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0,
+                     gravity: window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity),
+                     jump: cheats.slowmo ? PHYS.slowFlap : PHYS.flap };
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
+            _graceLeft = PHYS.graceTicks;
+            _lastPipeTop = 0;
             _coinSeq = 0;
             _localTrail = [];
             // Respawning mid-match continues the same world, so the taken
@@ -5099,6 +5370,32 @@
             mpRngState = mpCurrentRoom ? (window.mpSharedSeed >>> 0 || 12345) : 12345;
         }
         
+        // The drawn size and the hit radius come from one place, so a bird
+        // the player sees as big is big to the pipes as well.
+        function birdDrawSize() { return cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30); }
+        function birdRadius()   { return birdDrawSize() * PHYS.hitScale; }
+
+        // Circle against the pipe's two rectangles. A square hitbox on a round
+        // sprite kills on the empty corners, which is the death players call
+        // unfair because, looking at it, it is.
+        function hitsRect(cx, cy, r, rx, ry, rw, rh) {
+            const nx = Math.max(rx, Math.min(cx, rx + rw));
+            const ny = Math.max(ry, Math.min(cy, ry + rh));
+            const dx = cx - nx, dy = cy - ny;
+            return dx * dx + dy * dy < r * r;
+        }
+
+        // Solo opens the lane right up for the first dozen pipes and then
+        // settles. It never closes past 175 — wider than the flat 170 this
+        // replaced — because the brief was that people die too easily, so
+        // no score should be harder to reach than it used to be.
+        // Multiplayer holds one gap for everybody: the lane has to be the
+        // same lane, or the race is not the same race.
+        function currentGap() {
+            if (mpCurrentRoom) return pipeGap;
+            return Math.max(175, 205 - score * 1.2);
+        }
+
         function updateGame() { 
             if (gameOver || !gameRunning) return;
             if (window.__crixFrozen) return;   // owner freeze
@@ -5111,23 +5408,42 @@
                 _localTrail.length = 0;
             }
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
-            const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode; 
-            bird.velocity += bird.gravity; 
-            bird.y += bird.velocity; 
-            if (!shieldActive) { 
-                if (bird.y < 10 || bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); handleDeath();
+            if (_graceLeft > 0) _graceLeft--;
+            const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode
+                                 || _graceLeft > 0;
+            bird.velocity += bird.gravity;
+            // Terminal velocity. Without it a long drop builds a speed no flap
+            // can answer, and the run is over several frames before it looks it.
+            if (bird.velocity > PHYS.maxFall) bird.velocity = PHYS.maxFall;
+            bird.y += bird.velocity;
+            // No ceiling to die on — the original never had one either. You
+            // bonk the top and slide along it; only the ground ends a run.
+            const _ceil = birdRadius();
+            if (bird.y < _ceil) { bird.y = _ceil; if (bird.velocity < 0) bird.velocity = 0; }
+            if (!shieldActive) {
+                if (bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); handleDeath();
                 if(bgMusic && !musicMuted) bgMusic.pause(); updateHighScore(); if (typeof mpReportDeath === 'function') mpReportDeath(); return; } 
             } else { 
-                if (bird.y < 10) { bird.y=10; bird.velocity=Math.abs(bird.velocity)*0.5; } 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
             }
             if(frameCount % (cheats.slowmo?180:120) ===0){
                 const rnd = mpCurrentRoom ? mpRng() : Math.random();
-                let top = rnd*(canvas.height-pipeGap-150)+70;
-                pipes.push({x:canvas.width, top:top, bottom:top+pipeGap, scored:false});
+                const gap = currentGap();
+                let top = rnd*(canvas.height-gap-150)+70;
+                // Two pipes in a row at opposite ends of the screen cannot be
+                // flown, only guessed at. Keep the step between them flyable.
+                if (_lastPipeTop) {
+                    const step = 150;
+                    top = Math.max(_lastPipeTop - step, Math.min(_lastPipeTop + step, top));
+                    top = Math.max(70, Math.min(canvas.height - gap - 80, top));
+                }
+                _lastPipeTop = top;
+                pipes.push({x:canvas.width, top:top, bottom:top+gap, scored:false});
             }
             const coinrushRate = (mpMatchActive && mpMatchMode === 'coinrush') ? 18 : (cheats.coinlord?25:50);
-            if(frameCount % coinrushRate===0){
+            // A seasonal mode fills the lane with its own thing to collect;
+            // ordinary coins on top of it just make both harder to see.
+            if(!smMode && frameCount % coinrushRate===0){
                 // Spawn coin in safe gap area (not in pipes)
                 const lastPipe = pipes.length > 0 ? pipes[pipes.length-1] : null;
                 let coinY;
@@ -5146,8 +5462,12 @@
             }
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
-                if(!shieldActive && bird.x+15>pipes[i].x && bird.x-15<pipes[i].x+pipeWidth && (bird.y-15<pipes[i].top || bird.y+15>pipes[i].bottom)){ 
-                    gameOver=true; playSound(deathSound); handleDeath(); return; 
+                if(!shieldActive){
+                    const r = birdRadius(), px = pipes[i].x;
+                    if (hitsRect(bird.x, bird.y, r, px, -1000, pipeWidth, pipes[i].top + 1000) ||
+                        hitsRect(bird.x, bird.y, r, px, pipes[i].bottom, pipeWidth, canvas.height - pipes[i].bottom + 20)) {
+                        gameOver=true; playSound(deathSound); handleDeath(); return;
+                    }
                 } 
                 if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){
                     pipes[i].scored=true;
@@ -5207,7 +5527,8 @@
                 } 
                 if(coinsArr[i].x+20<0) coinsArr.splice(i--,1); 
             } 
-            frameCount++; 
+            frameCount++;
+            if (smMode) smUpdate(); 
             if (typeof mpSyncPosition === 'function') mpSyncPosition();
         }
         
@@ -5415,15 +5736,9 @@
            in the bird's own space: the origin is the middle of the sprite and
            `s` is the bird's size, so the art runs from -s/2 to +s/2 on both
            axes.
-           Worth knowing before moving any of these numbers: the sprite is a
-           close-up of the character's face, not a small bird with room above
-           its head. Measured off the pixels, the hood reaches the very top of
-           the box, the face runs from about -0.22s to +0.5s, and the eyes are
-           at roughly y = -0.03s. So a hat perches around y = -0.40s, where the
-           crown is, and a mask is centred near y = 0 — over the face — rather
-           than up where a hat goes.
-           Everything is flat fill with a dark outline, to match the pipes and
-           the rest of the canvas. */
+           The measured geometry, and the rule that a hat's brim rests at the
+           crown while its body goes ABOVE the sprite, are written down at the
+           top of cosmetic-art.js. Read that before moving any of it. */
         // The shapes, the image placement and the trail renderer all live in
         // cosmetic-art.js, because the owner console draws the same cosmetics
         // and a second copy would drift the first time one was nudged.
@@ -5478,11 +5793,38 @@
         // the file has loaded and forever if it 404s, so an item with a drawn
         // shape shows that shape until its PNG is uploaded and then swaps to it
         // on the next frame, with nothing to change here.
-        function drawHatItem(context, item, birdSize) {
+        /* ---- HOW A HAT MOVES ----
+           A cap's tip, a pair of ears and a witch's cone hang off the bird
+           rather than being welded to it, so they lag behind what it does:
+           stream upward on a fall, whip over on a flap, then settle. One
+           damped spring per wearer, driven by that wearer's vertical speed.
+           It is only ever cosmetic. Nothing reads the angle back, and it is
+           never sent over the network — every client runs the same spring off
+           the velocity it already has for that player, so it stays in step
+           without costing a single extra byte. */
+        const _wobbles = new Map();          // wearer key -> spring state
+        function wobbleFor(key) {
+            let w = _wobbles.get(key);
+            if (!w) {
+                // A room churns through actor numbers, so this would otherwise
+                // grow for as long as the tab is open. A spring that gets
+                // dropped just starts at rest again, which nobody can see.
+                if (_wobbles.size > 64) _wobbles.clear();
+                w = window.CrixArt.makeWobble();
+                _wobbles.set(key, w);
+            }
+            return w;
+        }
+        function stepWobble(key, velocity, ticks) {
+            return window.CrixArt.stepWobble(wobbleFor(key), velocity, ticks);
+        }
+
+        function drawHatItem(context, item, birdSize, swing) {
             if (!item) return;
             // The cache and the saved fit are the game's; the drawing is shared.
             window.CrixArt.drawHatOn(context, item, birdSize,
-                                     cachedImage(item.image), hatFit(item.id));
+                                     cachedImage(item.image), hatFit(item.id),
+                                     swing || 0);
         }
 
         // A pipe with a lit edge, a shaded edge and a rim, so it reads as a
@@ -5500,7 +5842,8 @@
                 name: 'Halloween', emoji: '🎃', accent: '#FF7A18', accent2: '#8B3FD6',
                 panel: '#1B0F2A', panel2: '#241539', line: 'rgba(255,122,24,.16)',
                 music: '/img/halloweenmusic.mp3',
-                flyer: { img: '/img/witch.png', sfx: '/img/witchl.mp3',
+                flyer: { img: '/img/witch.png', sfx: '/img/witch1.mp3',
+                         sfxAlt: '/img/witchl.mp3',
                          w: 96, every: [14000, 26000], from: 'right', arc: 34, flip: false },
                 cal: { title: 'TRICK OR TREAT', doors: 31, month: 9, icon: '🍬', open: '🎃',
                        prizes: { 7: 'hat_witch', 14: 'hat_skull', 21: 'trail_ghost', 31: 'hat_pumpkin' } },
@@ -5603,6 +5946,377 @@
         // already knows how to handle.
         function seasonFor(part) { return seasonPart(part) ? season() : null; }
 
+        /* ═══════════ LIMITED SEASONAL MODES ═══════════
+         *
+         * One extra way to play per season, and only while that season is on.
+         * They share a single engine — a timed run through the ordinary lane
+         * with the season's own thing to collect — because three bespoke
+         * minigames would be three things to keep working, and the difference
+         * players actually feel is in the collecting, not the plumbing.
+         *
+         * Solo only, and deliberately so: they hand out coins on a curve that
+         * has nothing to do with the pipe ladder, so they stay out of the
+         * leaderboard and out of rooms.
+         */
+        const SEASON_MODES = {
+            spooky: {
+                id: 'candyhunt', name: 'CANDY HUNT', short: 'CANDY HUNT', emoji: '🍬', unit: 'CANDY',
+                blurb: 'Ninety seconds of sweets in the lane. Take every one you can reach — and leave the sour ones well alone.',
+                seconds: 90, target: 40, coinsPer: 3, every: 38, carry: 0
+            },
+            christmas: {
+                id: 'presents', name: 'DELIVER THE PRESENTS', short: 'PRESENTS', emoji: '🎁', unit: 'DELIVERED',
+                blurb: 'Collect presents from the lane, then drop them down the chimneys riding the pipes. You can carry three at a time.',
+                seconds: 90, target: 30, coinsPer: 4, every: 46, carry: 3
+            },
+            easter: {
+                id: 'egghunt', name: 'FIND THE EGGS', short: 'EGG HUNT', emoji: '🥚', unit: 'EGGS',
+                blurb: 'The eggs stay hidden in the grass until you are nearly on top of them. The golden ones are worth five.',
+                seconds: 90, target: 70, coinsPer: 2, every: 40, carry: 0
+            }
+        };
+        const SM_BEST_KEY = 'crix_sm_best_v1';
+        // How far the chimney stack rises off the pipe it stands on. It has to
+        // clear the bird's hit radius by enough that posting a present is a
+        // choice about flying low, not a choice about dying.
+        const SM_CHIMNEY_H = 30;
+
+        let smMode = null, smSeasonId = null;
+        let smTicks = 0, smScore = 0, smCarry = 0, smItems = [], smEnding = false;
+        let smFlash = null;          // { text, colour, ticks } — floats off the bird
+
+        // A mode is playable when its own season is the one running, whether
+        // that is the calendar's doing or the owner's.
+        function smAvailable() {
+            const id = activeSeasonId();
+            if (!id) return null;
+            const mode = SEASON_MODES[id];
+            if (!mode || !SEASONS[id]) return null;
+            return { id: id, mode: mode, season: SEASONS[id] };
+        }
+
+        function smBests() {
+            try { return JSON.parse(localStorage.getItem(SM_BEST_KEY) || '{}') || {}; }
+            catch (e) { return {}; }
+        }
+        function smBest(modeId) { return smBests()[modeId] || 0; }
+        function smRecordBest(modeId, value) {
+            try {
+                const all = smBests();
+                if (value <= (all[modeId] || 0)) return false;
+                all[modeId] = value;
+                localStorage.setItem(SM_BEST_KEY, JSON.stringify(all));
+                return true;
+            } catch (e) { return false; }
+        }
+
+        function smClear() {
+            smMode = null; smSeasonId = null;
+            smTicks = 0; smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
+            document.getElementById('smHud')?.classList.remove('on');
+            document.getElementById('hudLive')?.classList.remove('sm-off');
+        }
+
+        function smStartRun() {
+            const a = smAvailable();
+            if (!a) {
+                toast({ kind: 'info', title: 'Nothing running',
+                        body: 'Seasonal modes only open while their season is on.' });
+                return;
+            }
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            smSeasonId = a.id; smMode = a.mode;
+            smTicks = a.mode.seconds * 60;
+            smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
+            startGame();                       // resetGame runs inside here
+            smTicks = a.mode.seconds * 60;     // and must not have cleared the clock
+            document.getElementById('smHud')?.classList.add('on');
+            document.getElementById('hudLive')?.classList.add('sm-off');
+            smSyncHud(true);
+        }
+
+        /* ---- what is in the lane ---- */
+        function smSafeY() {
+            // Somewhere a player could actually reach: near the gap of the
+            // pipe that has most recently been laid down.
+            const last = pipes.length ? pipes[pipes.length - 1] : null;
+            if (!last) return 120 + Math.random() * (canvas.height - 240);
+            const mid = (last.top + last.bottom) / 2;
+            const spread = (last.bottom - last.top) * 0.34;
+            return Math.max(60, Math.min(canvas.height - 70,
+                                         mid + (Math.random() - 0.5) * spread * 2));
+        }
+
+        function smSpawn() {
+            if (!smMode) return;
+            if (smMode.id === 'candyhunt') {
+                // Roughly one in five is sour. It costs you rather than kills
+                // you — the mode is about greed, not about dying twice over.
+                const sour = Math.random() < 0.18;
+                smItems.push({ kind: sour ? 'sour' : 'candy', x: canvas.width + 20, y: smSafeY(),
+                               hue: Math.floor(Math.random() * 5), spin: Math.random() * 6.28 });
+            } else if (smMode.id === 'presents') {
+                // Alternate: something to carry, then somewhere to put it.
+                const last = pipes.length ? pipes[pipes.length - 1] : null;
+                if (last && smItems.filter(i => i.kind === 'chimney').length < 3 && Math.random() < 0.34) {
+                    smItems.push({ kind: 'chimney', pipe: last, x: last.x, y: last.bottom,
+                                   hitY: last.bottom - SM_CHIMNEY_H });
+                } else {
+                    smItems.push({ kind: 'present', x: canvas.width + 20, y: smSafeY(),
+                                   hue: Math.floor(Math.random() * 5) });
+                }
+            } else if (smMode.id === 'egghunt') {
+                const golden = Math.random() < 0.125;
+                smItems.push({ kind: 'egg', golden: golden, seen: false,
+                               x: canvas.width + 20, y: smSafeY(),
+                               hue: Math.floor(Math.random() * EGG_COLOURS.length) });
+            }
+        }
+
+        function smFlashText(text, colour) { smFlash = { text: text, colour: colour, ticks: 48 }; }
+
+        function smCollect(it) {
+            if (it.kind === 'chimney') {
+                if (!smCarry) return;                 // nothing to post
+                smScore += smCarry * 2;
+                smFlashText('+' + (smCarry * 2), '#2FA85B');
+                smCarry = 0;
+                it.lit = 34;                          // a puff of smoke, briefly
+                playSound(coinSound);
+                return;
+            }
+            it.taken = true;
+            if (it.kind === 'sour') {
+                smScore = Math.max(0, smScore - 2);
+                smFlashText('-2', '#7ED957');
+                playSfx('error', .5);
+                return;
+            }
+            if (it.kind === 'present') {
+                if (smCarry >= smMode.carry) { it.taken = false; return; }   // hands full
+                smCarry++;
+                playSfx('pop', .45);
+                return;
+            }
+            const worth = (it.kind === 'egg' && it.golden) ? 5 : 1;
+            smScore += worth;
+            smFlashText('+' + worth, it.golden ? '#FFD700' : '#FFFFFF');
+            playSound(coinSound);
+        }
+
+        function smUpdate() {
+            if (!smMode || smEnding) return;
+            if (smFlash && --smFlash.ticks <= 0) smFlash = null;
+            smTicks--;
+            if (smTicks <= 0) { smFinish('time'); return; }
+            if (frameCount % smMode.every === 0) smSpawn();
+
+            const reach = birdRadius() + 9;
+            for (let i = 0; i < smItems.length; i++) {
+                const it = smItems[i];
+                if (it.kind === 'chimney') {
+                    // Chimneys ride the pipe they were laid on, so they move
+                    // with the lane rather than drifting out of it.
+                    if (!it.pipe || pipes.indexOf(it.pipe) === -1) { smItems.splice(i--, 1); continue; }
+                    it.x = it.pipe.x + pipeWidth / 2;
+                    it.y = it.pipe.bottom;
+                    it.hitY = it.y - SM_CHIMNEY_H;   // the opening, up in the gap
+                    if (it.lit) it.lit--;
+                } else {
+                    it.x -= gameSpeed;
+                }
+                if (it.x < -40) { smItems.splice(i--, 1); continue; }
+                if (it.taken) continue;
+                const dx = bird.x - it.x, dy = bird.y - (it.hitY != null ? it.hitY : it.y);
+                const d2 = dx * dx + dy * dy;
+                // An egg is only visible once you are nearly on it — that is
+                // the hunt, and it is why the mode is not just Candy Hunt again
+                if (it.kind === 'egg' && !it.seen && d2 < 125 * 125) it.seen = true;
+                const near = it.kind === 'chimney' ? (reach + 19) : reach;
+                if (d2 < near * near) smCollect(it);
+            }
+            smSyncHud(false);
+        }
+
+        /* ---- drawing ---- */
+        function smDrawItem(g, it) {
+            const s = 18;
+            g.save();
+            g.translate(it.x, it.y);
+            if (it.kind === 'candy' || it.kind === 'sour') {
+                const body = it.kind === 'sour' ? '#7ED957'
+                           : ['#FF4F6D', '#FFC93C', '#4FC3F7', '#C77DFF', '#FF8A3D'][it.hue % 5];
+                g.rotate(it.spin + frameCount * 0.03);
+                g.fillStyle = body;
+                g.beginPath();
+                g.ellipse(0, 0, s * 0.42, s * 0.34, 0, 0, Math.PI * 2);
+                g.fill();
+                g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6; g.stroke();
+                g.fillStyle = body;                                 // twisted ends
+                [-1, 1].forEach(d => {
+                    g.beginPath();
+                    g.moveTo(d * s * 0.40, 0);
+                    g.lineTo(d * s * 0.72, -s * 0.26);
+                    g.lineTo(d * s * 0.72, s * 0.26);
+                    g.closePath(); g.fill(); g.stroke();
+                });
+                if (it.kind === 'sour') {                           // a warning stripe
+                    g.strokeStyle = 'rgba(20,60,20,.85)'; g.lineWidth = 2;
+                    g.beginPath(); g.moveTo(-s * 0.22, -s * 0.2); g.lineTo(s * 0.22, s * 0.2); g.stroke();
+                }
+            } else if (it.kind === 'present') {
+                const body = ['#E8323F', '#2FA85B', '#3B82F6', '#C77DFF', '#F59E0B'][it.hue % 5];
+                g.fillStyle = body;
+                g.fillRect(-s * 0.46, -s * 0.46, s * 0.92, s * 0.92);
+                g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6;
+                g.strokeRect(-s * 0.46, -s * 0.46, s * 0.92, s * 0.92);
+                g.fillStyle = '#FFD700';                            // ribbon
+                g.fillRect(-s * 0.09, -s * 0.46, s * 0.18, s * 0.92);
+                g.fillRect(-s * 0.46, -s * 0.09, s * 0.92, s * 0.18);
+            } else if (it.kind === 'chimney') {
+                // Anchored on the pipe's top edge and drawn upward, so the
+                // opening is SM_CHIMNEY_H clear of it — which is the point
+                // the delivery is measured against.
+                const H = SM_CHIMNEY_H, W = 20;
+                g.fillStyle = '#8B3A2E';
+                g.fillRect(-W / 2, -H, W, H);
+                g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6;
+                g.strokeRect(-W / 2, -H, W, H);
+                g.fillStyle = 'rgba(255,255,255,.14)';              // brick courses
+                for (let k = 1; k < 4; k++) g.fillRect(-W / 2, -H + k * (H / 4), W, 1.5);
+                g.fillStyle = '#D9DEE6';                            // snow on the rim
+                g.fillRect(-W / 2 - 3, -H - 5, W + 6, 6);
+                g.fillStyle = '#1A1220';                            // the opening
+                g.fillRect(-W / 2 + 4, -H - 3, W - 8, 5);
+                if (it.lit) {                                       // smoke on a delivery
+                    g.globalAlpha = it.lit / 34;
+                    g.fillStyle = 'rgba(230,230,240,.9)';
+                    for (let k = 0; k < 3; k++) {
+                        g.beginPath();
+                        g.arc(k * 3 - 3, -H - 10 - k * 7 - (34 - it.lit) * 0.5, 3 + k, 0, Math.PI * 2);
+                        g.fill();
+                    }
+                    g.globalAlpha = 1;
+                }
+            } else if (it.kind === 'egg') {
+                if (!it.seen) {                                     // a tuft, until you are close
+                    g.strokeStyle = 'rgba(80,150,90,.75)'; g.lineWidth = 2; g.lineCap = 'round';
+                    for (let k = -1; k <= 1; k++) {
+                        g.beginPath();
+                        g.moveTo(k * 5, s * 0.4);
+                        g.quadraticCurveTo(k * 8, 0, k * 10, -s * 0.34);
+                        g.stroke();
+                    }
+                } else {
+                    g.fillStyle = it.golden ? '#FFD700' : EGG_COLOURS[it.hue % EGG_COLOURS.length];
+                    g.beginPath();
+                    g.ellipse(0, 0, s * 0.36, s * 0.48, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6; g.stroke();
+                    g.strokeStyle = it.golden ? 'rgba(255,255,255,.8)' : 'rgba(255,255,255,.55)';
+                    g.lineWidth = 2;
+                    g.beginPath(); g.moveTo(-s * 0.3, -s * 0.05); g.lineTo(s * 0.3, -s * 0.05); g.stroke();
+                    g.beginPath(); g.moveTo(-s * 0.28, s * 0.18); g.lineTo(s * 0.28, s * 0.18); g.stroke();
+                }
+            }
+            g.restore();
+        }
+
+        function smDraw(g) {
+            if (!smMode) return;
+            for (const it of smItems) if (!it.taken) smDrawItem(g, it);
+            if (smFlash) {
+                g.save();
+                g.globalAlpha = Math.min(1, smFlash.ticks / 24);
+                g.fillStyle = smFlash.colour;
+                g.font = 'bold 19px system-ui, sans-serif';
+                g.textAlign = 'center';
+                g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 3;
+                const y = bird.y - 28 - (48 - smFlash.ticks) * 0.5;
+                g.strokeText(smFlash.text, bird.x, y);
+                g.fillText(smFlash.text, bird.x, y);
+                g.restore();
+            }
+        }
+
+        /* ---- the readout ---- */
+        let _smHudLast = {};
+        function smSyncHud(force) {
+            if (!smMode) return;
+            const secs = Math.max(0, Math.ceil(smTicks / 60));
+            if (!force && secs === _smHudLast.secs && smScore === _smHudLast.score
+                && smCarry === _smHudLast.carry) return;
+            _smHudLast = { secs: secs, score: smScore, carry: smCarry };
+            const t = document.getElementById('smHudTime');
+            const v = document.getElementById('smHudScore');
+            const u = document.getElementById('smHudUnit');
+            const c = document.getElementById('smHudCarry');
+            if (t) {
+                t.textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+                t.style.color = secs <= 10 ? '#FF4655' : '';
+            }
+            if (v) v.textContent = smScore;
+            if (u) u.textContent = smMode.unit;
+            if (c) {
+                c.style.display = smMode.carry ? 'block' : 'none';
+                if (smMode.carry) c.textContent = '🎁 ' + smCarry + '/' + smMode.carry;
+            }
+        }
+
+        function smFinish(why) {
+            if (!smMode || smEnding) return;
+            smEnding = true;
+            const mode = smMode, pts = smScore;
+            gameRunning = false; gameOver = true;
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+            if (bgMusic && !musicMuted) bgMusic.pause();
+
+            let coins = pts * mode.coinsPer;
+            const hitTarget = pts >= mode.target;
+            if (hitTarget) coins += 250;
+            if (typeof eventCoinMult === 'function') coins = Math.round(coins * eventCoinMult());
+            coinCount += coins;
+            if (typeof grantXp === 'function') grantXp(Math.max(1, Math.round(pts / 2)), 'season-mode');
+            const isBest = smRecordBest(mode.id, pts);
+
+            try { updateCoinDisplay(); } catch (e) {}
+            try { autoSave(); } catch (e) {}
+            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
+
+            const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+            set('smrTitle', mode.emoji + ' ' + mode.name);
+            set('smrScore', pts);
+            set('smrUnit', mode.unit);
+            set('smrCoins', '+' + (typeof formatCoins === 'function' ? formatCoins(coins) : coins));
+            set('smrBest', smBest(mode.id));
+            set('smrWhy', why === 'time' ? 'Time!' : 'You went down.');
+            const tg = document.getElementById('smrTarget');
+            if (tg) {
+                tg.textContent = hitTarget
+                    ? '🏆 Target beaten — 250 bonus coins'
+                    : 'Target ' + mode.target + ' · ' + Math.max(0, mode.target - pts) + ' short of the bonus';
+                tg.style.color = hitTarget ? 'var(--green,#00CC7A)' : '#aaa';
+            }
+            const nb = document.getElementById('smrNewBest');
+            if (nb) nb.style.display = isBest ? '' : 'none';
+            document.getElementById('smHud')?.classList.remove('on');
+            document.getElementById('hudLive')?.classList.remove('sm-off');
+            setScreen('menu');
+            document.getElementById('smResultModal')?.classList.add('active');
+            playSfx(hitTarget ? 'rank' : 'pop', .6);
+        }
+
+        // Shown on the menu only while a season is on.
+        function smSyncBanner() {
+            const btn = document.getElementById('seasonModeBtn');
+            if (!btn) return;
+            const a = smAvailable();
+            if (!a) { btn.style.display = 'none'; return; }
+            btn.style.display = '';
+            btn.innerHTML = '<span class="sm-name">' + a.mode.emoji + ' ' + a.mode.short + '</span>';
+            btn.title = a.mode.name + ' — limited to ' + a.season.name;
+        }
+
         function readSeasonPreview() {
             try {
                 const v = JSON.parse(localStorage.getItem(SEASON_PREVIEW_KEY) || '{}');
@@ -5679,6 +6393,7 @@
                 _nextFlyerAt = 0;
             }
             updateSeasonCalendarDot();
+            smSyncBanner();             // the limited mode comes and goes with it
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
         }
@@ -5761,10 +6476,14 @@
             return rec;
         }
         const _flyerSfx = {};
-        function playFlyerSfx(src) {
+        function playFlyerSfx(src, alt) {
             // A fly-by is a sound effect, so it follows the effects switch
             // rather than the music one.
             if (!src) return;
+            // The witch's sound has been spelled both witch1 and witchl, and
+            // only ever one of them is the file that was actually uploaded.
+            // Take whichever is there rather than making the spelling matter.
+            if (alt && _flyerSfx[src] === false) { playFlyerSfx(alt); return; }
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
             let a = _flyerSfx[src];
             if (a === false) return;                 // already known to be missing
@@ -5813,7 +6532,7 @@
                 arc: f.arc,
                 speed: (canvas.width + f.w * 2) / 4600   // about four and a half seconds to cross
             };
-            playFlyerSfx(f.sfx);
+            playFlyerSfx(f.sfx, f.sfxAlt);
         }
         function drawFlyer() {
             if (!_flyer) return;
@@ -6313,7 +7032,8 @@
             for (const p of pipes) {
                 drawPipe(p.x, 0, pipeWidth, p.top, true);
                 drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
-            } 
+            }
+            if (smMode) smDraw(ctx); 
             // Draw coins
             // Coins spin and bob. The spin is a horizontal squash on a sine
             // wave, which reads as rotation without needing sprite frames.
@@ -6354,9 +7074,13 @@
             // Draw bird
             ctx.save(); 
             ctx.translate(bird.x,bird.y); 
-            let rot=Math.min(Math.max(bird.velocity*0.1,-0.5),0.5); 
+            // Flappy Bird's tilt: a modest nose-up on the flap, then it rolls
+            // steadily further nose-down the longer you fall. The old scale
+            // saturated in one tick at the new velocities, so it read as a
+            // snap between two poses rather than a rotation.
+            let rot=Math.min(Math.max(bird.velocity*0.062,-0.42),1.15); 
             ctx.rotate(rot); 
-            let birdSize = cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30);
+            let birdSize = birdDrawSize();
 
             // Soft shadow so the bird sits in the scene rather than on top of it
             ctx.save();
@@ -6370,7 +7094,7 @@
             drawSprite(ctx, birdImage, 0, 0, birdSize); 
             // Hat: sits on top of the head, above the bird's outline
             let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned);
-            if (hat) drawHatItem(ctx, hat, birdSize);
+            if (hat) drawHatItem(ctx, hat, birdSize, stepWobble('me', bird.velocity, 1));
             
             ctx.restore(); 
             const mpGodmodeActiveDraw = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
@@ -6549,7 +7273,21 @@
         let uiHidden = false;
         document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') /* hide UI removed */; } });
 
-        document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+        document.getElementById('startGameBtn')?.addEventListener('click', () => {
+            smClear();          // an ordinary run, whatever was played last
+            startGame();
+        });
+        document.getElementById('seasonModeBtn')?.addEventListener('click', smStartRun);
+        document.getElementById('smrAgainBtn')?.addEventListener('click', () => {
+            document.getElementById('smResultModal')?.classList.remove('active');
+            smStartRun();
+        });
+        ['closeSmResultBtn', 'smrMenuBtn'].forEach(id =>
+            document.getElementById(id)?.addEventListener('click', () => {
+                document.getElementById('smResultModal')?.classList.remove('active');
+                smClear();
+                setScreen('menu');
+            }));
         document.getElementById('canvasWrapper')?.addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
         // Gamepad support
         let gamepadJumped = false;
@@ -7292,7 +8030,9 @@
                     loadPlayFabFriends().catch(() => {});
                     pollNotifications(false);              // seed without toasting
                     startFriendWatcher();                  // instant updates
+                    startInviteWatcher();                  // and invites, which never arrived live
                     startRequestPolling();
+                    partyRestore().catch(() => {});        // back into the party we were in
                     PlayFabManager.setPresence(myPresence).catch(() => {});
                 }
                 refreshSettingsUI();
@@ -7381,6 +8121,10 @@
                 } else {
                     myDiscord = null;
                     clearInterval(pairPoll);
+                    // Signing out leaves the party — the account is what was in it
+                    try { partyLeave(true); } catch(e) {}
+                    try { stopInviteWatcher(); } catch(e) {}
+                    try { partyRenderPill(); } catch(e) {}
                     try { refreshDiscordRow(); } catch(e) {}
                     try { hideVerifyBanner(); } catch(e) {}
                 }
@@ -7687,6 +8431,9 @@
 
         document.querySelectorAll('.set-tab').forEach(tab => {
             tab.addEventListener('click', () => {
+                // If the strip is still scrolling at this width, do not leave
+                // the tab they just tapped half off the edge.
+                try { tab.scrollIntoView({ block:'nearest', inline:'nearest' }); } catch (e) {}
                 if (tab.dataset.st === 'about') fillAboutPanel();
                 if (tab.dataset.st === 'audio' && typeof refreshAudioDevices === 'function') {
                     refreshAudioDevices();
@@ -9062,9 +9809,10 @@
             }
         }
 
-        document.getElementById('discordSignInBtn')?.addEventListener('click', () => {
+        document.getElementById('discordRecoverBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
             playSfx('select', .5);
-            startDiscordSignIn();
+            startDiscordLink('recover');
         });
         document.getElementById('pairBtn')?.addEventListener('click', () => showPairCode(false));
         document.getElementById('pairNew')?.addEventListener('click', () => showPairCode(true));
@@ -9415,9 +10163,11 @@
                 let mode = 'link';
                 try { mode = sessionStorage.getItem('discord_mode') || 'link'; } catch(e) {}
                 try { sessionStorage.removeItem('discord_mode'); } catch(e) {}
-                // Signing in has no account to attach to yet, so it asks the
-                // endpoint to mint a token instead of linking.
-                const signingIn = (mode === 'signin') || !currentUser;
+                // Recovery has no account to attach to yet, so it asks the
+                // endpoint for a token. The endpoint only hands one back for
+                // a Discord identity that already has an account; it will not
+                // make a new one, which is what stops this being a sign-in.
+                const signingIn = (mode === 'recover') || !currentUser;
 
                 const res = await fetch('/api/discord-auth', {
                     method: 'POST',
@@ -9428,15 +10178,19 @@
                 });
                 if (res.status === 404) throw new Error('/api/discord-auth is not deployed.');
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data.detail || data.error || `Server returned ${res.status}`);
+                if (!res.ok) throw new Error(data.error === 'no_discord_account'
+                    ? 'no_discord_account'
+                    : (data.detail || data.error || `Server returned ${res.status}`));
 
                 const p = data.profile || {};
                 if (signingIn) {
-                    if (!data.customToken) throw new Error(data.detail || 'Discord sign-in returned no token');
-                    await auth.signInWithCustomToken(data.customToken);
+                    const tok = data.token || data.customToken;
+                    if (!tok) throw new Error(data.detail || 'Discord did not return a token');
+                    await auth.signInWithCustomToken(tok);
                     document.getElementById('authModal')?.classList.remove('active');
                     playSfx('unlock');
-                    toast({ kind:'invite', title:'✅ Signed in with Discord', body:'Your progress is loading.' });
+                    toast({ kind:'invite', title:'✅ Account recovered',
+                            body:'Your progress is loading. Consider adding an email or Google sign-in.' });
                 }
                 const uid = currentUser?.uid || auth.currentUser?.uid;
                 if (db && uid) {
@@ -9479,7 +10233,12 @@
                 playSfx('unlock');
             } catch (e) {
                 console.error('[Discord] link failed:', e);
-                toast({ kind:'warn', title:'Could not link', body: mpEsc(e.message) });
+                if (/no_discord_account/.test(e.message)) {
+                    toast({ kind:'warn', title:'No account for that Discord',
+                            body:'Discord links to an account rather than making one. Sign in with Google, email or as a guest, then link it in Settings.' });
+                } else {
+                    toast({ kind:'warn', title:'Could not link', body: mpEsc(e.message) });
+                }
             }
         }
 
@@ -9531,10 +10290,11 @@
 
         // Discord was link-only here while CRIX Chat offered it as a way in.
         // Same OAuth trip either way; the mode decides what happens on return.
-        async function startDiscordSignIn() { return startDiscordLink('signin'); }
-
         async function startDiscordLink(mode) {
-            mode = mode === 'signin' ? 'signin' : 'link';
+            // 'link' attaches Discord to the account you are signed into.
+            // 'recover' is the one-way door back into an account Discord made
+            // back when it could make them; it never creates a new one.
+            mode = mode === 'recover' ? 'recover' : 'link';
             if (mode === 'link' && !currentUser) {
                 toast({ kind:'warn', title:'Sign in first', body:'You need an account to link Discord.' });
                 return;
@@ -10001,6 +10761,9 @@
         // Every death route funnels through here — there are three (ceiling,
         // floor and pipes) and previously only one showed the overlay.
         function handleDeath() {
+            // A seasonal run is scored on what you collected, so it ends on
+            // its own screen with its own payout rather than the pipe count.
+            if (smMode) { updateHighScore(); setTimeout(() => smFinish('died'), 400); return; }
             // Every death path goes through here, so the overlay is
             // guaranteed rather than only firing on ceiling hits.
             if (!mpMatchActive) { setTimeout(showDeathScreen, 250); return; }
@@ -10036,6 +10799,7 @@
         }
 
         function backToMenu() {
+            smClear();
             // Belt and braces: whatever route got us here, the spectate bar
             // does not belong on the main menu.
             const _sb = document.getElementById('spectateBar');
@@ -10649,7 +11413,7 @@
                     break;
                 case 'lowgrav':
                     window.__pmLowGrav = !window.__pmLowGrav;
-                    if (bird) bird.gravity = window.__pmLowGrav ? 0.12 : (cheats.slowmo ? 0.15 : 0.25);
+                    if (bird) bird.gravity = window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity);
                     pmLog('Low gravity ' + (window.__pmLowGrav ? 'ON' : 'OFF'));
                     break;
                 case 'clearAll':
@@ -11164,14 +11928,136 @@
             }
         }
 
+
+        /* ═══════════ INVITES ═══════════
+         *
+         * Invites were being written and never read live: pollNotifications
+         * only ran at sign-in and when the notification panel was opened, and
+         * both of those pass announce=false. So an invite sat in Firestore
+         * until the person happened to open a panel, which is not an invite.
+         * This watches for them, so one arrives while you are looking at
+         * whatever you are looking at.
+         *
+         * The same document carries both kinds: a lobby invite has a roomCode,
+         * a party invite has a partyId. One listener, one toast, two verbs.
+         */
+        let _inviteWatcher = null;
+        const _inviteSeen = new Set();
+
+        function startInviteWatcher() {
+            stopInviteWatcher();
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
+            if (!PlayFabManager.playFabId || !db) return;
+            try {
+                _inviteWatcher = db.collection('invites')
+                    .where('toPlayFabId', '==', PlayFabManager.playFabId)
+                    .onSnapshot(snap => {
+                        const live = [];
+                        snap.docChanges().forEach(ch => {
+                            if (ch.type === 'removed') return;
+                            const v = ch.doc.data();
+                            // Ten minutes is long enough to answer an invite and
+                            // short enough that a stale one is not offered.
+                            if (Date.now() - (v.at || 0) > 600000) {
+                                ch.doc.ref.delete().catch(() => {});
+                                return;
+                            }
+                            if (_inviteSeen.has(ch.doc.id)) return;
+                            _inviteSeen.add(ch.doc.id);
+                            showInviteToast({ id: ch.doc.id, from: v.fromPlayFabId, name: v.name || 'A player',
+                                              roomCode: v.roomCode || null, partyId: v.partyId || null,
+                                              mode: v.mode || 'freemode', at: v.at });
+                        });
+                        pendingInvites = snap.docs
+                            .map(d => Object.assign({ id: d.id }, d.data()))
+                            .filter(v => Date.now() - (v.at || 0) <= 600000);
+                        updateNotifBadge();
+                        renderNotifList();
+                    }, err => {
+                        console.warn('[Invites] listener failed, polling instead:', err.message);
+                        _inviteWatcher = null;
+                        if (!window._invitePoll) window._invitePoll = setInterval(() => pollNotifications(true), 30000);
+                    });
+                console.log('[Invites] live listener attached');
+            } catch (e) {
+                console.warn('[Invites]', e.message);
+            }
+        }
+
+        function stopInviteWatcher() {
+            if (_inviteWatcher) { try { _inviteWatcher(); } catch (e) {} _inviteWatcher = null; }
+            if (window._invitePoll) { clearInterval(window._invitePoll); window._invitePoll = null; }
+            _inviteSeen.clear();
+        }
+
+        function showInviteToast(inv) {
+            const isParty = !!inv.partyId;
+            toast({
+                kind: 'invite',
+                title: isParty ? '🎧 Party invite' : '🎮 Lobby invite',
+                body: isParty
+                    ? `${mpEsc(inv.name)} wants you in their party.`
+                    : `${mpEsc(inv.name)} invited you to a ${mpEsc(inv.mode)} match.`,
+                timeout: 0,
+                actions: [
+                    { label: isParty ? 'Join' : 'Join', style: 'yes',
+                      onClick: () => acceptInvite(inv) },
+                    { label: 'Dismiss', style: 'no', onClick: () => dismissInvite(inv) }
+                ]
+            });
+            playSfx('pop', .5);
+        }
+
+        function dismissInvite(inv) {
+            if (!inv?.id || !db) return;
+            db.collection('invites').doc(inv.id).delete().catch(() => {});
+        }
+
+        // Invite a friend to whichever of the two we are in. A party beats a
+        // lobby: bring them to the group and the group takes them to the game.
+        async function inviteFriendTo(playFabId, name, kind) {
+            const u = currentUser;
+            if (!u || !db || !PlayFabManager?.playFabId) {
+                toast({ kind:'warn', title:'Sign in first', body:'' });
+                return;
+            }
+            if (kind === 'party' && !party.id) {
+                const made = await partyCreate(true);
+                if (!made) return;
+            }
+            if (kind === 'lobby' && !mpCurrentRoom) {
+                toast({ kind:'warn', title:'Not in a lobby', body:'Create or join one first.' });
+                return;
+            }
+            const payload = {
+                toPlayFabId: playFabId,
+                fromPlayFabId: PlayFabManager.playFabId,
+                fromUid: u.uid,
+                name: partyMyName(),
+                mode: kind === 'party' ? 'party' : (mpCurrentRoom?.mode || 'freemode'),
+                at: Date.now()
+            };
+            if (kind === 'party') payload.partyId = party.id;
+            else payload.roomCode = mpCurrentRoom.code;
+            try {
+                await db.collection('invites')
+                        .doc(`${playFabId}_${PlayFabManager.playFabId}`).set(payload);
+                toast({ kind:'invite', title:'Invite sent',
+                        body:`${mpEsc(name || 'They')} ${kind === 'party' ? 'was invited to your party.' : 'has been invited.'}` });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not invite', body: mpEsc(e.message) });
+            }
+        }
+
         function acceptInvite(inv) {
+            dismissInvite(inv);
+            if (inv.partyId) { partyJoin(inv.partyId).then(ok => { if (ok) partyOpen(); }); return; }
             if (mpCurrentRoom) { mpLeaveLobby(); }
             const input = document.getElementById('mpJoinCodeInput');
             if (input) input.value = inv.roomCode;
             document.getElementById('mpModal')?.classList.add('active');
             mpShowView('mpViewJoinCode');
             setTimeout(() => mpJoinByCode(), 250);
-            PlayFabManager.clearInvites?.().catch(() => {});
         }
 
         // The notification centre is rendered by renderNotifCentre(); this
@@ -11670,6 +12556,7 @@
                         `<button class="friend-btn fav"  data-act="fav"    title="Favourite">${f.favourite ? '★' : '☆'}</button>` +
                         (joinable ? `<button class="friend-btn join" data-act="joinlobby" title="Join their lobby">▶</button>` : '') +
                         (mpCurrentRoom ? `<button class="friend-btn join" data-act="invite" title="Invite to your lobby">✉</button>` : '') +
+                        `<button class="friend-btn join" data-act="party" title="Invite to your party">🎧</button>` +
                         `<button class="friend-btn"      data-act="block"  title="Block" style="color:#FFB347">⊘</button>` +
                         `<button class="friend-btn rm"   data-act="remove" title="Remove">✕</button>`;
                 } else if (friendTab === 'incoming') {
@@ -11763,10 +12650,11 @@
                         return;
                     }
                     case 'invite':
-                        if (!mpCurrentRoom) { toast({kind:'warn',title:'Not in a lobby',body:'Create or join one first.'}); return; }
-                        await PlayFabManager.sendInvite(id, mpCurrentRoom.code, mpCurrentRoom.mode);
-                        toast({ kind:'invite', title:'Invite sent', body:`${mpEsc(f.displayName)} has been invited.` });
+                        await inviteFriendTo(id, f.displayName, 'lobby');
                         return;   // no reload needed
+                    case 'party':
+                        await inviteFriendTo(id, f.displayName, 'party');
+                        return;
                 }
                 await loadPlayFabFriends();
             } catch (e) {
@@ -12623,6 +13511,8 @@
                 };
             }
             mpMatchMode = mpCurrentRoom.mode;
+            // Leading a party means the lobby you are in is where the party is
+            if (party.id && partyIsLeader()) partySetRoom(mpCurrentRoom);
 
             // Seed players using correct API: myRoomActorsArray()
             mpPlayers = {};
@@ -12782,6 +13672,698 @@
             // that reappears every time the view is shown.
             voiceAutoStart();
         }
+
+
+        /* ═══════════════ PARTY ═══════════════
+         *
+         * An Xbox-style party: a group that persists across games, with voice
+         * for whoever has a microphone and text for whoever does not. You stay
+         * in it through the menu, through a match, and through going back to
+         * the menu again.
+         *
+         * WHY IT DOES NOT RIDE ON PHOTON. In-game voice is signalled through
+         * the Photon room, which works because everyone in that voice mesh is
+         * in that room. A party outlives rooms — half of it can be in a match
+         * while the rest is on the menu — and a Photon client can only be in
+         * one room at a time. So the party lives in Firestore: the members and
+         * the chat in a document, and the WebRTC handshake in a subcollection.
+         * That also means party voice survives joining and leaving lobbies,
+         * which is the entire point of a party.
+         *
+         *   parties/{id}            leader, memberIds[], members{}, room
+         *   parties/{id}/chat/{id}  uid, name, text, at
+         *   parties/{id}/signal/{id} from, to, type, data      (WebRTC only)
+         */
+        const PARTY_MAX = 8;
+        const PARTY_CHAT_KEEP = 60;          // messages held in the log
+        const PARTY_KEY = 'crix_party_v1';   // so a refresh rejoins
+
+        const party = {
+            id: null,
+            doc: null,          // the last snapshot of the party document
+            unsub: null,        // members
+            unsubChat: null,
+            unsubSignal: null,
+            chat: [],
+            unread: 0,
+            // voice, its own mesh with its own signalling
+            micOn: false,
+            micBusy: false,
+            muted: false,
+            stream: null,
+            peers: new Map(),   // uid -> { pc, audio, level }
+            speaking: new Set(),
+            meter: null
+        };
+
+        function partyMe() { return currentUser?.uid || null; }
+        function partyIsLeader() { return !!(party.doc && party.doc.leader === partyMe()); }
+        function partyMembers() {
+            if (!party.doc) return [];
+            return (party.doc.memberIds || [])
+                .map(uid => Object.assign({ uid: uid }, party.doc.members?.[uid] || {}))
+                .filter(m => m.name);
+        }
+        function partyMyName() {
+            return currentUser?.displayName || (typeof mpGetDisplayName === 'function' ? mpGetDisplayName() : 'Player');
+        }
+        function partyMyAvatar() {
+            return currentUser?.photoURL || null;
+        }
+
+        /* ---- joining and leaving ---- */
+
+        async function partyCreate(quiet) {
+            if (!db || !partyMe()) {
+                toast({ kind:'warn', title:'Sign in first', body:'A party needs an account.' });
+                return null;
+            }
+            if (party.id) return party.id;
+            const me = partyMe();
+            const ref = db.collection('parties').doc();
+            const member = { name: partyMyName(), avatar: partyMyAvatar(),
+                             playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                             mic: false, at: Date.now() };
+            try {
+                await ref.set({
+                    leader: me,
+                    leaderName: member.name,
+                    memberIds: [me],
+                    members: { [me]: member },
+                    room: null,
+                    at: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not start a party', body: mpEsc(e.message) });
+                return null;
+            }
+            partyAttach(ref.id);
+            if (!quiet) toast({ kind:'invite', title:'🎧 Party started',
+                                body:'Invite friends from the friends list.' });
+            return ref.id;
+        }
+
+        async function partyJoin(id) {
+            if (!db || !partyMe() || !id) return false;
+            if (party.id === id) return true;
+            if (party.id) await partyLeave(true);
+            const me = partyMe();
+            const ref = db.collection('parties').doc(id);
+            try {
+                const snap = await ref.get();
+                if (!snap.exists) {
+                    toast({ kind:'warn', title:'Party is gone', body:'That party has closed.' });
+                    return false;
+                }
+                const d = snap.data();
+                if ((d.memberIds || []).length >= PARTY_MAX && !(d.memberIds || []).includes(me)) {
+                    toast({ kind:'warn', title:'Party is full',
+                            body:`A party holds ${PARTY_MAX}.` });
+                    return false;
+                }
+                await ref.update({
+                    memberIds: firebase.firestore.FieldValue.arrayUnion(me),
+                    ['members.' + me]: { name: partyMyName(), avatar: partyMyAvatar(),
+                                         playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                                         mic: false, at: Date.now() }
+                });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not join', body: mpEsc(e.message) });
+                return false;
+            }
+            partyAttach(id);
+            playSfx('unlock', .5);
+            return true;
+        }
+
+        function partyAttach(id) {
+            party.id = id;
+            try { localStorage.setItem(PARTY_KEY, id); } catch (e) {}
+            partyWatch();
+            partyWatchChat();
+            partyWatchSignal();
+            partyRender();
+        }
+
+        async function partyLeave(quiet) {
+            const id = party.id, me = partyMe();
+            partyVoiceStop();
+            partyDetach();
+            if (!id || !me || !db) { partyRender(); return; }
+            const ref = db.collection('parties').doc(id);
+            try {
+                const snap = await ref.get();
+                if (!snap.exists) return;
+                const d = snap.data();
+                const left = (d.memberIds || []).filter(u => u !== me);
+                if (!left.length) {
+                    // Last one out closes the party rather than leaving an
+                    // empty document for an invite to point at.
+                    await partyWipe(ref);
+                } else {
+                    const patch = {
+                        memberIds: firebase.firestore.FieldValue.arrayRemove(me),
+                        ['members.' + me]: firebase.firestore.FieldValue.delete()
+                    };
+                    // The leader leaving hands it to whoever has been in longest
+                    if (d.leader === me) {
+                        patch.leader = left[0];
+                        patch.leaderName = d.members?.[left[0]]?.name || 'Player';
+                    }
+                    await ref.update(patch);
+                }
+            } catch (e) { console.warn('[Party] leave:', e.message); }
+            if (!quiet) toast({ kind:'info', title:'Left the party', body:'' });
+            partyRender();
+        }
+
+        async function partyWipe(ref) {
+            // Subcollections do not go with the parent, so clear them first or
+            // the chat and half-finished handshakes outlive the party.
+            for (const sub of ['chat', 'signal']) {
+                try {
+                    const s = await ref.collection(sub).get();
+                    await Promise.all(s.docs.map(d => d.ref.delete().catch(() => {})));
+                } catch (e) {}
+            }
+            await ref.delete().catch(() => {});
+        }
+
+        function partyDetach() {
+            [party.unsub, party.unsubChat, party.unsubSignal].forEach(fn => {
+                if (fn) { try { fn(); } catch (e) {} }
+            });
+            party.unsub = party.unsubChat = party.unsubSignal = null;
+            party.id = null; party.doc = null; party.chat = []; party.unread = 0;
+            try { localStorage.removeItem(PARTY_KEY); } catch (e) {}
+        }
+
+        async function partyKick(uid) {
+            if (!partyIsLeader() || !party.id || uid === partyMe()) return;
+            const name = party.doc?.members?.[uid]?.name || 'They';
+            try {
+                await db.collection('parties').doc(party.id).update({
+                    memberIds: firebase.firestore.FieldValue.arrayRemove(uid),
+                    ['members.' + uid]: firebase.firestore.FieldValue.delete()
+                });
+                toast({ kind:'info', title:'Removed from party', body: mpEsc(name) });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not remove', body: mpEsc(e.message) });
+            }
+        }
+
+        /* ---- watching ---- */
+
+        function partyWatch() {
+            if (party.unsub) { try { party.unsub(); } catch (e) {} }
+            if (!db || !party.id) return;
+            party.unsub = db.collection('parties').doc(party.id).onSnapshot(snap => {
+                if (!snap.exists) {
+                    // Closed, or we were removed from it
+                    partyVoiceStop();
+                    partyDetach();
+                    partyRender();
+                    toast({ kind:'info', title:'Party closed', body:'' });
+                    return;
+                }
+                const d = snap.data();
+                const me = partyMe();
+                if (me && !(d.memberIds || []).includes(me)) {
+                    partyVoiceStop();
+                    partyDetach();
+                    partyRender();
+                    toast({ kind:'warn', title:'Removed from the party', body:'' });
+                    return;
+                }
+                const hadRoom = party.doc?.room?.code || null;
+                party.doc = d;
+                partyRender();
+                partyVoiceSync();
+                // The leader taking the party into a lobby brings everyone
+                if (d.room?.code && d.room.code !== hadRoom && d.leader !== me) {
+                    partyFollowToRoom(d.room);
+                }
+            }, err => console.warn('[Party] watch:', err.message));
+        }
+
+        function partyWatchChat() {
+            if (party.unsubChat) { try { party.unsubChat(); } catch (e) {} }
+            if (!db || !party.id) return;
+            party.unsubChat = db.collection('parties').doc(party.id)
+                .collection('chat').orderBy('at', 'desc').limit(PARTY_CHAT_KEEP)
+                .onSnapshot(snap => {
+                    const wasOpen = partyPanelOpen();
+                    const before = party.chat.length;
+                    party.chat = snap.docs.map(d => d.data()).reverse();
+                    if (!wasOpen && party.chat.length > before) party.unread++;
+                    partyRenderChat();
+                    partyRenderPill();
+                }, err => console.warn('[Party] chat:', err.message));
+        }
+
+        async function partySay(text) {
+            text = (text || '').trim().slice(0, 500);
+            if (!text || !party.id || !db) return;
+            try {
+                await db.collection('parties').doc(party.id).collection('chat').add({
+                    uid: partyMe(), name: partyMyName(), text: text, at: Date.now()
+                });
+            } catch (e) {
+                toast({ kind:'warn', title:'Message not sent', body: mpEsc(e.message) });
+            }
+        }
+
+        /* ---- taking the party into a game ---- */
+
+        // The leader broadcasts where the party is playing; everyone else's
+        // watcher sees the room change and follows.
+        async function partySetRoom(room) {
+            if (!party.id || !partyIsLeader() || !db) return;
+            try {
+                await db.collection('parties').doc(party.id)
+                        .update({ room: room ? { code: room.code, mode: room.mode || 'freemode' } : null });
+            } catch (e) { console.warn('[Party] room:', e.message); }
+        }
+
+        function partyFollowToRoom(room) {
+            if (!room?.code) return;
+            if (mpCurrentRoom && mpCurrentRoom.code === room.code) return;
+            toast({ kind:'invite', title:'🎧 Party is playing',
+                    body:'Taking you to the lobby…' });
+            if (mpCurrentRoom && typeof mpLeaveLobby === 'function') mpLeaveLobby();
+            const input = document.getElementById('mpJoinCodeInput');
+            if (input) input.value = room.code;
+            document.getElementById('mpModal')?.classList.add('active');
+            if (typeof mpShowView === 'function') mpShowView('mpViewJoinCode');
+            setTimeout(() => { if (typeof mpJoinByCode === 'function') mpJoinByCode(); }, 350);
+        }
+
+        /* ---- PARTY VOICE ----
+         * The same WebRTC mesh as the in-game one, signalled through Firestore
+         * instead of Photon so it can outlive any room. One side has to make
+         * the offer or both do and neither connects: the lower uid calls, an
+         * ordering both ends agree on without another round trip — the same
+         * rule as the room mesh, with uids in place of actor numbers.
+         */
+        function partyShouldCall(uid) { return (partyMe() || '') < uid; }
+
+        async function partySignal(to, type, data) {
+            if (!party.id || !db) return;
+            try {
+                await db.collection('parties').doc(party.id).collection('signal').add({
+                    from: partyMe(), to: to, type: type, data: data, at: Date.now()
+                });
+            } catch (e) { console.warn('[Party voice] signal:', e.message); }
+        }
+
+        function partyWatchSignal() {
+            if (party.unsubSignal) { try { party.unsubSignal(); } catch (e) {} }
+            if (!db || !party.id || !partyMe()) return;
+            party.unsubSignal = db.collection('parties').doc(party.id)
+                .collection('signal').where('to', '==', partyMe())
+                .onSnapshot(snap => {
+                    snap.docChanges().forEach(async ch => {
+                        if (ch.type !== 'added') return;
+                        const v = ch.doc.data();
+                        // Each message is for one handshake step and is no use
+                        // twice, so it is deleted as it is consumed.
+                        ch.doc.ref.delete().catch(() => {});
+                        if (Date.now() - (v.at || 0) > 60000) return;   // stale
+                        try { await partyOnSignal(v); }
+                        catch (e) { console.warn('[Party voice]', e.message); }
+                    });
+                }, err => console.warn('[Party voice] watch:', err.message));
+        }
+
+        async function partyOnSignal(v) {
+            if (!party.micOn && v.type !== 'bye') return;
+            if (v.type === 'offer')  return partyOnOffer(v.from, v.data);
+            if (v.type === 'answer') {
+                const p = party.peers.get(v.from);
+                if (p) await p.pc.setRemoteDescription({ type:'answer', sdp: v.data });
+                return;
+            }
+            if (v.type === 'ice') {
+                const p = party.peers.get(v.from);
+                if (p && p.pc.remoteDescription) {
+                    await p.pc.addIceCandidate(JSON.parse(v.data)).catch(() => {});
+                }
+                return;
+            }
+            if (v.type === 'bye') partyDropPeer(v.from);
+        }
+
+        function partyPeer(uid) {
+            let peer = party.peers.get(uid);
+            if (peer) return peer;
+            if (party.peers.size >= VOICE_MAX_PEERS) return null;
+            const pc = new RTCPeerConnection({ iceServers: iceServers() });
+            const audio = new Audio();
+            audio.autoplay = true;
+            peer = { pc: pc, audio: audio, stream: null, level: 0 };
+            party.peers.set(uid, peer);
+            if (party.stream) party.stream.getTracks().forEach(t => pc.addTrack(t, party.stream));
+            pc.onicecandidate = e => {
+                if (e.candidate) partySignal(uid, 'ice', JSON.stringify(e.candidate));
+            };
+            pc.ontrack = e => {
+                peer.stream = e.streams[0];
+                audio.srcObject = peer.stream;
+                const sink = window.CrixAudio && CrixAudio.speakerId;
+                if (sink && 'setSinkId' in audio) audio.setSinkId(sink).catch(() => {});
+                audio.play().catch(() => {});
+                partyRender();
+            };
+            pc.onconnectionstatechange = () => {
+                if (['failed', 'closed'].includes(pc.connectionState)) partyDropPeer(uid);
+                partyRender();
+            };
+            return peer;
+        }
+
+        async function partyCall(uid) {
+            const peer = partyPeer(uid);
+            if (!peer) return;
+            try {
+                const offer = await peer.pc.createOffer({ offerToReceiveAudio: true });
+                await peer.pc.setLocalDescription(offer);
+                partySignal(uid, 'offer', offer.sdp);
+            } catch (e) { console.warn('[Party voice] call:', e.message); }
+        }
+
+        async function partyOnOffer(uid, sdp) {
+            const peer = partyPeer(uid);
+            if (!peer) return;
+            await peer.pc.setRemoteDescription({ type:'offer', sdp: sdp });
+            const answer = await peer.pc.createAnswer();
+            await peer.pc.setLocalDescription(answer);
+            partySignal(uid, 'answer', answer.sdp);
+        }
+
+        function partyDropPeer(uid) {
+            const p = party.peers.get(uid);
+            if (!p) return;
+            try { p.pc.close(); } catch (e) {}
+            try { p.audio.srcObject = null; } catch (e) {}
+            party.peers.delete(uid);
+            party.speaking.delete(uid);
+        }
+
+        async function partyVoiceStart() {
+            if (party.micOn || party.micBusy || !party.id) return;
+            if (!voiceSupported()) {
+                toast({ kind:'warn', title:'No voice here',
+                        body:'This browser cannot open a microphone. You can still type in party chat.' });
+                return;
+            }
+            party.micBusy = true;
+            partyRender();
+            try {
+                party.stream = await navigator.mediaDevices.getUserMedia(
+                    window.CrixAudio ? CrixAudio.micConstraints() : { audio: true });
+            } catch (e) {
+                party.micBusy = false;
+                partyRender();
+                toast({ kind:'warn', title:'Microphone blocked',
+                        body: e.name === 'NotAllowedError'
+                            ? 'Allow the mic to talk — or type in party chat instead.'
+                            : 'No microphone found. Party chat still works.' });
+                return;
+            }
+            party.micOn = true;
+            party.micBusy = false;
+            if (window.CrixAudio) CrixAudio.refresh();
+            partyMeterStart();
+            await partySetMic(true);
+            partyVoiceSync();
+            partyRender();
+        }
+
+        function partyVoiceStop() {
+            if (!party.micOn && !party.stream) return;
+            party.micOn = false;
+            party.micBusy = false;
+            partyMeterStop();
+            party.peers.forEach((_, uid) => { partySignal(uid, 'bye', ''); partyDropPeer(uid); });
+            party.peers.clear();
+            party.speaking.clear();
+            if (party.stream) {
+                party.stream.getTracks().forEach(t => t.stop());
+                party.stream = null;
+            }
+            partySetMic(false);
+            partyRender();
+        }
+
+        function partyVoiceToggle() { party.micOn ? partyVoiceStop() : partyVoiceStart(); }
+
+        function partySetMuted(m) {
+            party.muted = m;
+            if (party.stream) party.stream.getAudioTracks().forEach(t => { t.enabled = !m; });
+            partyRender();
+        }
+
+        async function partySetMic(on) {
+            if (!party.id || !db || !partyMe()) return;
+            try {
+                await db.collection('parties').doc(party.id)
+                        .update({ ['members.' + partyMe() + '.mic']: !!on });
+            } catch (e) {}
+        }
+
+        // Connect to everyone in the party who also has their mic on, and drop
+        // anyone who has left or switched theirs off.
+        function partyVoiceSync() {
+            if (!party.micOn || !party.doc) {
+                if (!party.micOn && party.peers.size) {
+                    party.peers.forEach((_, uid) => partyDropPeer(uid));
+                }
+                return;
+            }
+            const me = partyMe();
+            const want = new Set(
+                (party.doc.memberIds || []).filter(u => u !== me && party.doc.members?.[u]?.mic));
+            party.peers.forEach((_, uid) => { if (!want.has(uid)) partyDropPeer(uid); });
+            want.forEach(uid => {
+                if (party.peers.has(uid)) return;
+                // Only one side opens the connection; the other waits for it.
+                if (partyShouldCall(uid)) partyCall(uid);
+            });
+        }
+
+        /* Who is talking. Nothing here is sent anywhere — each client measures
+           the streams it already has, so the ring round an avatar costs no
+           traffic at all. */
+        function partyMeterStart() {
+            partyMeterStop();
+            let ctx;
+            try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (e) { return; }
+            const nodes = new Map();
+            const attach = (key, stream) => {
+                if (!stream || nodes.has(key)) return;
+                try {
+                    const src = ctx.createMediaStreamSource(stream);
+                    const an = ctx.createAnalyser();
+                    an.fftSize = 512;
+                    src.connect(an);
+                    nodes.set(key, { an: an, buf: new Uint8Array(an.frequencyBinCount) });
+                } catch (e) {}
+            };
+            party.meter = setInterval(() => {
+                if (party.stream) attach('me', party.stream);
+                party.peers.forEach((p, uid) => attach(uid, p.stream));
+                let changed = false;
+                nodes.forEach((n, key) => {
+                    n.an.getByteFrequencyData(n.buf);
+                    let sum = 0;
+                    for (let i = 0; i < n.buf.length; i++) sum += n.buf[i];
+                    const loud = (sum / n.buf.length) > 12;
+                    const uid = key === 'me' ? partyMe() : key;
+                    const was = party.speaking.has(uid);
+                    if (loud && !was) { party.speaking.add(uid); changed = true; }
+                    else if (!loud && was) { party.speaking.delete(uid); changed = true; }
+                });
+                if (changed) partyRenderMembers();
+            }, 180);
+            party._meterCtx = ctx;
+        }
+
+        function partyMeterStop() {
+            if (party.meter) { clearInterval(party.meter); party.meter = null; }
+            if (party._meterCtx) { try { party._meterCtx.close(); } catch (e) {} party._meterCtx = null; }
+            party.speaking.clear();
+        }
+
+        /* ---- THE PANEL ---- */
+
+        function partyPanelOpen() {
+            return !!document.getElementById('partyModal')?.classList.contains('active');
+        }
+
+        function partyOpen() {
+            if (!party.id) { partyCreate(); }
+            party.unread = 0;
+            document.getElementById('partyModal')?.classList.add('active');
+            partyRender();
+            partyRenderChat(true);
+            playSfx('whoosh', .45);
+        }
+        function partyClose() {
+            document.getElementById('partyModal')?.classList.remove('active');
+            partyRenderPill();
+        }
+
+        function partyRender() {
+            partyRenderPill();
+            partyRenderMembers();
+            const mic = document.getElementById('partyMicBtn');
+            if (mic) {
+                mic.classList.toggle('on', party.micOn && !party.muted);
+                mic.classList.toggle('busy', party.micBusy);
+                mic.innerHTML = party.micBusy ? '⏳ ASKING…'
+                              : party.micOn ? (party.muted ? '🔇 MUTED' : '🎙️ TALKING')
+                              : '🎧 JOIN VOICE';
+            }
+            const mute = document.getElementById('partyMuteBtn');
+            if (mute) {
+                mute.style.display = party.micOn ? '' : 'none';
+                mute.textContent = party.muted ? 'UNMUTE' : 'MUTE';
+            }
+            const lead = document.getElementById('partyLeaderNote');
+            if (lead) {
+                lead.textContent = party.doc
+                    ? (partyIsLeader() ? 'You lead this party — the lobby you join takes everyone with you.'
+                                       : mpEsc(party.doc.leaderName || 'The leader') + ' leads this party.')
+                    : '';
+            }
+            const inv = document.getElementById('partyInviteBtn');
+            if (inv) inv.style.display = party.id ? '' : 'none';
+            const lv = document.getElementById('partyLeaveBtn');
+            if (lv) lv.style.display = party.id ? '' : 'none';
+        }
+
+        function partyRenderPill() {
+            const pill = document.getElementById('partyPill');
+            if (!pill) return;
+            // Signed out there is nothing to be in, so the pill stays away.
+            if (!partyMe()) { pill.style.display = 'none'; return; }
+            pill.style.display = '';
+            const n = partyMembers().length;
+            const talking = party.speaking.size > 0;
+            pill.classList.toggle('active', !!party.id);
+            pill.classList.toggle('talking', talking);
+            pill.innerHTML = party.id
+                ? `<span class="pp-ico">🎧</span><span class="pp-n">${n}</span>` +
+                  (party.unread ? `<i class="pp-dot">${party.unread > 9 ? '9+' : party.unread}</i>` : '')
+                : `<span class="pp-ico">🎧</span><span class="pp-lbl">PARTY</span>`;
+            pill.title = party.id ? `Party · ${n} member${n === 1 ? '' : 's'}` : 'Start a party';
+        }
+
+        function partyRenderMembers() {
+            const list = document.getElementById('partyMembers');
+            if (!list) return;
+            const rows = partyMembers();
+            if (!rows.length) {
+                list.innerHTML = '<div class="party-empty">No party yet. Start one, then invite friends.</div>';
+                return;
+            }
+            const me = partyMe();
+            list.innerHTML = rows.map(m => {
+                const initial = mpEsc((m.name || '?').charAt(0).toUpperCase());
+                const av = m.avatar
+                    ? `<img class="party-av" src="${mpEsc(m.avatar)}" alt="" data-fallback="${initial}">`
+                    : `<div class="party-av">${initial}</div>`;
+                const talking = party.speaking.has(m.uid);
+                // Someone with no microphone is not broken — they type instead,
+                // and the row says so rather than showing a dead mic icon.
+                const state = m.mic ? (talking ? '🔊 talking' : '🎙️ voice') : '⌨️ typing only';
+                const crown = party.doc?.leader === m.uid ? '<i class="party-crown" title="Party leader">👑</i>' : '';
+                const kick = (partyIsLeader() && m.uid !== me)
+                    ? `<button class="party-kick" data-kick="${mpEsc(m.uid)}" title="Remove">✕</button>` : '';
+                return `<div class="party-row${talking ? ' talking' : ''}">
+                    <div class="party-av-wrap">${av}</div>
+                    <div class="party-who">
+                        <div class="party-name">${mpEsc(m.name)}${crown}${m.uid === me ? ' <em>(you)</em>' : ''}</div>
+                        <div class="party-state">${state}</div>
+                    </div>${kick}
+                </div>`;
+            }).join('');
+            if (typeof attachAvatarFallbacks === 'function') attachAvatarFallbacks(list);
+        }
+
+        function partyRenderChat(scroll) {
+            const log = document.getElementById('partyChatLog');
+            if (!log) return;
+            if (!party.chat.length) {
+                log.innerHTML = '<div class="party-empty">Nothing said yet. No microphone? Type here.</div>';
+                return;
+            }
+            const me = partyMe();
+            log.innerHTML = party.chat.map(m =>
+                `<div class="party-msg${m.uid === me ? ' mine' : ''}">` +
+                `<b>${mpEsc(m.name || 'Player')}</b> ${mpEsc(m.text || '')}</div>`).join('');
+            if (scroll !== false) log.scrollTop = log.scrollHeight;
+        }
+
+        /* ---- wiring ---- */
+        function partyBindUi() {
+            document.getElementById('partyPill')?.addEventListener('click', partyOpen);
+            document.getElementById('partyCloseBtn')?.addEventListener('click', partyClose);
+            document.getElementById('partyModal')?.addEventListener('click', e => {
+                if (e.target.id === 'partyModal') partyClose();
+            });
+            document.getElementById('partyMicBtn')?.addEventListener('click', partyVoiceToggle);
+            document.getElementById('partyMuteBtn')?.addEventListener('click', () => partySetMuted(!party.muted));
+            document.getElementById('partyLeaveBtn')?.addEventListener('click', () => partyLeave());
+            // Straight to the friends list, which is the FRIENDS tab inside
+            // the multiplayer panel — that is where the invite buttons are.
+            document.getElementById('partyInviteBtn')?.addEventListener('click', () => {
+                partyClose();
+                document.getElementById('mpModal')?.classList.add('active');
+                if (typeof mpShowView === 'function') mpShowView('mpViewHome');
+                document.querySelector('.queue-tab[data-queue="friends"]')?.click();
+                toast({ kind:'invite', title:'Invite to party',
+                        body:'Tap 🎧 next to a friend.' });
+            });
+            document.getElementById('partyMembers')?.addEventListener('click', e => {
+                const b = e.target.closest('[data-kick]');
+                if (b) partyKick(b.dataset.kick);
+            });
+            const send = () => {
+                const i = document.getElementById('partyChatInput');
+                if (!i || !i.value.trim()) return;
+                partySay(i.value);
+                i.value = '';
+            };
+            document.getElementById('partyChatSend')?.addEventListener('click', send);
+            document.getElementById('partyChatInput')?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); send(); }
+            });
+        }
+
+        // Rejoin whatever party we were in before the refresh, if it is still
+        // there. A party that has closed just quietly drops the stored id.
+        async function partyRestore() {
+            if (!db || !partyMe() || party.id) return;
+            let saved = null;
+            try { saved = localStorage.getItem(PARTY_KEY); } catch (e) {}
+            if (!saved) return;
+            try {
+                const snap = await db.collection('parties').doc(saved).get();
+                if (!snap.exists) { try { localStorage.removeItem(PARTY_KEY); } catch (e) {} return; }
+                if ((snap.data().memberIds || []).includes(partyMe())) partyAttach(saved);
+                else await partyJoin(saved);
+            } catch (e) {
+                try { localStorage.removeItem(PARTY_KEY); } catch (e2) {}
+            }
+        }
+
+        // Leaving the tab open in a party and closing it should not leave a
+        // ghost in the member list for everyone else.
+        window.addEventListener('pagehide', () => {
+            if (party.id) { try { partyLeave(true); } catch (e) {} }
+        });
 
         function voiceAutoStart() {
             if (voice.on || voice.joining || voice.autoTried) return;
@@ -13175,6 +14757,10 @@
             voice.autoTried = false;
             voice.blocked = false;
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
+            // ...and leaving it means the party is not there any more either.
+            // Party VOICE is untouched: it is signalled through Firestore
+            // precisely so it survives coming and going from rooms.
+            if (party.id && partyIsLeader()) partySetRoom(null);
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpStopPing();
             if (typeof sendHeartbeat === 'function') sendHeartbeat();
@@ -13602,13 +15188,16 @@
             });
         }
 
-        function mpDrawWornCosmetics(context, p, size) {
+        function mpDrawWornCosmetics(context, p, size, key) {
             // Trails are drawn in world space by the caller, so the only worn
             // item left here is the hat. It goes through the same entry point
             // as our own, so a drawn hat reaches other players too.
             if (!p.hat) return;
             const item = cosmetics.find(c => c.id === p.hat);
-            if (item) drawHatItem(context, item, size);
+            // Their own velocity drives their own spring, so their hat moves
+            // with what their bird is doing rather than with ours.
+            if (item) drawHatItem(context, item, size,
+                                  stepWobble('p' + key, p.vel || 0, 1));
         }
 
         function mpDrawOtherPlayers(context) {
@@ -13655,7 +15244,7 @@
                 context.translate(p.rx, p.ry);
 
                 // Rotate slightly based on velocity for natural arc
-                const rot = Math.min(Math.max((p.vel || 0) * 0.08, -0.45), 0.45);
+                const rot = Math.min(Math.max((p.vel || 0) * 0.062, -0.42), 1.15);
                 context.rotate(rot);
 
                 // Colour ring behind bird
@@ -13671,7 +15260,7 @@
                     drawSprite(context, birdImage, 0, 0, birdSize);
                     // Their equipped cosmetics. Previously these were only ever
                     // drawn on your own bird, so nobody could see anyone's drip.
-                    mpDrawWornCosmetics(context, p, birdSize);
+                    mpDrawWornCosmetics(context, p, birdSize, actorNr);
                 } else {
                     // Fallback circle if image not loaded
                     context.beginPath();
@@ -15003,6 +16592,8 @@
             if (gameRunning) e.preventDefault();
         }, { passive: false });
         setupSettings();
+        partyBindUi();
+        partyRenderPill();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
         loadAppConfig();

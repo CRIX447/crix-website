@@ -190,7 +190,15 @@ module.exports = async (req, res) => {
             });
         }
 
-        // 3. Mint a Firebase token with a STABLE uid derived from the Discord id
+        /* 3. RECOVERY ONLY — Discord is not a way to sign up any more.
+         *
+         * Discord used to mint an account of its own, so some people have a
+         * `discord:<id>` uid and all their progress under it. Refusing every
+         * token here would lock those accounts shut, so this still hands one
+         * back for an identity that ALREADY has an account, and refuses to
+         * create a new one. Nobody new arrives through Discord; nobody who
+         * arrived through it before loses what they had.
+         */
         const uid = `discord:${u.id}`;
         const displayName = u.global_name || u.username || `User_${u.id}`;
         const photoURL = u.avatar
@@ -199,14 +207,22 @@ module.exports = async (req, res) => {
 
         const fb = getAdmin();
 
-        // Keep the Auth user record in step with their Discord profile
         try {
-            await fb.auth().updateUser(uid, { displayName, photoURL });
+            await fb.auth().getUser(uid);
         } catch (e) {
             if (e.code === 'auth/user-not-found') {
-                await fb.auth().createUser({ uid, displayName, photoURL });
+                return res.status(409).json({
+                    error: 'no_discord_account',
+                    detail: 'Discord links to an account, it does not create one. ' +
+                            'Sign in with Google, email or as a guest, then link Discord in Settings.',
+                    profile: { id: u.id, username: u.username, displayName, photoURL }
+                });
             }
+            throw e;
         }
+
+        // Keep the existing record in step with their Discord profile
+        try { await fb.auth().updateUser(uid, { displayName, photoURL }); } catch (e) {}
 
         const customToken = await fb.auth().createCustomToken(uid, {
             provider: 'discord',
@@ -215,6 +231,7 @@ module.exports = async (req, res) => {
 
         return res.status(200).json({
             token: customToken,
+            recovered: true,
             profile: { id: u.id, username: u.username, displayName, photoURL },
             joinedGuild
         });
