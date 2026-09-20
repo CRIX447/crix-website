@@ -4760,14 +4760,52 @@
             slowGrav:  0.32,   // the slowmo cheat, same arc shape, slower
             slowFlap: -7.0,
             lowGrav:   0.22,   // the owner's low-gravity toggle
-            hitScale:  0.38,   // hit radius as a fraction of the drawn size:
-                               // the face inside the sprite, not its corners
-            graceTicks: 24     // half a second of amnesty after a respawn
+            // The hitbox is an ELLIPSE, sized to the art rather than to a
+            // guess. The sprite is opaque to the top and bottom edges of its
+            // box but only about 0.85 of it wide, so a single radius either
+            // lies vertically or is mean horizontally. A round 0.38 of the
+            // size let the drawn bird sink 3.5px into a solid pipe before the
+            // hit registered, which is exactly what "clipping through" looks
+            // like. These two numbers put that at 1px — invisible — while
+            // still sparing the empty corners a square hitbox used to kill on.
+            hitRX:     0.40,   // 12px at the usual 30px bird
+            hitRY:     0.467,  // 14px — the art runs to 15
+            graceTicks: 24     // a beat of amnesty after a spawn or respawn
         };
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, jump: PHYS.flap };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
         let _graceLeft = 0;        // ticks of post-spawn amnesty still to run
         let _lastPipeTop = 0;      // so one pipe cannot sit a screen from the last
+
+        /* ---- SMOOTH MOTION BETWEEN TICKS ----
+         * The world steps at a fixed 60Hz, but phones draw at 90, 120 or 144.
+         * Drawing the raw state on every one of those frames means the bird
+         * sits still for a frame and then jumps twice as far: measured, half
+         * of all frames on a 120Hz screen did not move it at all. Doubling
+         * gravity to get the Flappy Bird arc doubled the size of each jump,
+         * which is what turned a long-standing wobble into "the movement is
+         * bugged".
+         *
+         * So each frame draws the world where it actually is *now*: a fraction
+         * of a tick past the last one, that fraction being how much time has
+         * piled up since. It changes nothing about the simulation — the
+         * physics, the collisions and the network all still run on whole
+         * ticks — only where those ticks are painted.
+         */
+        let _alpha = 0;            // 0..1 through the tick currently being drawn
+        let _worldPrevShift = 0;   // how far the lane moved on the last tick
+
+        // Where the bird should be PAINTED, as opposed to where it is.
+        function birdRenderY() {
+            if (bird.prevY == null || !gameRunning || gameOver) return bird.y;
+            return bird.prevY + (bird.y - bird.prevY) * _alpha;
+        }
+        // Everything in the lane moves at one speed, so one shift covers pipes,
+        // coins and whatever a seasonal mode has put out there.
+        function worldRenderShift() {
+            if (!gameRunning || gameOver) return 0;
+            return _worldPrevShift * (1 - _alpha);
+        }
         // How far a run can go. A signed 32-bit int is the ceiling every
         // scoreboard this talks to is built on, so the run ends there rather
         // than letting the number drift past what they can store.
@@ -5362,6 +5400,9 @@
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             _graceLeft = PHYS.graceTicks;
             _lastPipeTop = 0;
+            bird.prevY = bird.y;
+            _alpha = 0;
+            _worldPrevShift = gameSpeed;
             _coinSeq = 0;
             _localTrail = [];
             // Respawning mid-match continues the same world, so the taken
@@ -5373,33 +5414,48 @@
         // The drawn size and the hit radius come from one place, so a bird
         // the player sees as big is big to the pipes as well.
         function birdDrawSize() { return cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30); }
-        function birdRadius()   { return birdDrawSize() * PHYS.hitScale; }
+        function birdRX()       { return birdDrawSize() * PHYS.hitRX; }
+        function birdRY()       { return birdDrawSize() * PHYS.hitRY; }
+        // Kept for anything that just wants one number for reach
+        function birdRadius()   { return birdRY(); }
 
-        // Circle against the pipe's two rectangles. A square hitbox on a round
-        // sprite kills on the empty corners, which is the death players call
-        // unfair because, looking at it, it is.
+        /* The bird's ellipse against one of the pipe's rectangles. Squash the
+           world so the ellipse becomes a unit circle and the usual
+           closest-point test works unchanged. A square hitbox on a round
+           sprite kills on the empty corners, which is the death players call
+           unfair because, looking at it, it is. */
         function hitsRect(cx, cy, r, rx, ry, rw, rh) {
-            const nx = Math.max(rx, Math.min(cx, rx + rw));
-            const ny = Math.max(ry, Math.min(cy, ry + rh));
-            const dx = cx - nx, dy = cy - ny;
-            return dx * dx + dy * dy < r * r;
+            return hitsRectE(cx, cy, r, r, rx, ry, rw, rh);
+        }
+        function hitsRectE(cx, cy, erx, ery, rx, ry, rw, rh) {
+            const sx = 1 / erx, sy = 1 / ery;
+            const nx = Math.max(rx * sx, Math.min(cx * sx, (rx + rw) * sx));
+            const ny = Math.max(ry * sy, Math.min(cy * sy, (ry + rh) * sy));
+            const dx = cx * sx - nx, dy = cy * sy - ny;
+            return dx * dx + dy * dy < 1;
         }
 
-        // Solo opens the lane right up for the first dozen pipes and then
-        // settles. It never closes past 175 — wider than the flat 170 this
-        // replaced — because the brief was that people die too easily, so
-        // no score should be harder to reach than it used to be.
+        // Solo opens the lane right up for the first two dozen pipes and then
+        // settles. It never closes past 182 — wider than the flat 170 this
+        // replaced — because the brief was that people die too easily, so no
+        // score should be harder to reach than it used to be.
+        //
+        // The gap now carries the forgiveness the hitbox used to carry in
+        // secret. A hitbox smaller than the art is slack the player cannot
+        // see, and what they see instead is the bird clipping through a solid
+        // pipe. A wider gap is slack they can see.
+        //
         // Multiplayer holds one gap for everybody: the lane has to be the
         // same lane, or the race is not the same race.
         function currentGap() {
             if (mpCurrentRoom) return pipeGap;
-            return Math.max(175, 205 - score * 1.2);
+            return Math.max(182, 215 - score * 1.2);
         }
 
         function updateGame() { 
             if (gameOver || !gameRunning) return;
             if (window.__crixFrozen) return;   // owner freeze
-            if (mpRespawning) { /* brief grace period after respawning */ } 
+
             travelled += gameSpeed;
             if (equippedTrail()) {
                 advanceTrail(_localTrail, gameSpeed);
@@ -5408,6 +5464,10 @@
                 _localTrail.length = 0;
             }
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
+            // Where everything was at the start of this tick, so the frames
+            // drawn between ticks have something to interpolate from.
+            bird.prevY = bird.y;
+            _worldPrevShift = gameSpeed;
             if (_graceLeft > 0) _graceLeft--;
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode
                                  || _graceLeft > 0;
@@ -5418,7 +5478,10 @@
             bird.y += bird.velocity;
             // No ceiling to die on — the original never had one either. You
             // bonk the top and slide along it; only the ground ends a run.
-            const _ceil = birdRadius();
+            // Stop at the DRAWN edge, not the hitbox: clamping to the hit
+            // radius left the top of the bird cut off by the screen, which
+            // reads as the bird having got stuck in something.
+            const _ceil = birdDrawSize() / 2;
             if (bird.y < _ceil) { bird.y = _ceil; if (bird.velocity < 0) bird.velocity = 0; }
             if (!shieldActive) {
                 if (bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); handleDeath();
@@ -5463,9 +5526,9 @@
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
                 if(!shieldActive){
-                    const r = birdRadius(), px = pipes[i].x;
-                    if (hitsRect(bird.x, bird.y, r, px, -1000, pipeWidth, pipes[i].top + 1000) ||
-                        hitsRect(bird.x, bird.y, r, px, pipes[i].bottom, pipeWidth, canvas.height - pipes[i].bottom + 20)) {
+                    const ex = birdRX(), ey = birdRY(), px = pipes[i].x;
+                    if (hitsRectE(bird.x, bird.y, ex, ey, px, -1000, pipeWidth, pipes[i].top + 1000) ||
+                        hitsRectE(bird.x, bird.y, ex, ey, px, pipes[i].bottom, pipeWidth, canvas.height - pipes[i].bottom + 20)) {
                         gameOver=true; playSound(deathSound); handleDeath(); return;
                     }
                 } 
@@ -7026,7 +7089,11 @@
             ctx.clearRect(0,0,canvas.width,canvas.height);
             drawBackdrop();
             updateFlyer(); drawFlyer();
-            // Draw pipes
+            // Everything in the lane scrolls at one speed, so one shifted
+            // layer keeps pipes, coins and a mode's props lined up with each
+            // other while they are painted between ticks.
+            ctx.save();
+            ctx.translate(worldRenderShift(), 0);
             // Shaded pipes. The hitbox is unchanged — this is purely how they
             // are painted, so the game plays exactly the same.
             for (const p of pipes) {
@@ -7063,6 +7130,7 @@
                 ctx.fill();
                 ctx.restore();
             } 
+            ctx.restore();          // end of the shifted lane layer
             // Draw other multiplayer players (host's pipes are authoritative, so guests see the same layout)
             if (typeof mpDrawOtherPlayers === 'function') mpDrawOtherPlayers(ctx);
             if (typeof mpDrawOffscreenArrows === 'function') mpDrawOffscreenArrows(ctx);
@@ -7072,8 +7140,9 @@
             if (_mt) drawTrail(ctx, _localTrail, _mt.colours, cheats.bigbird ? 45 : 30);
 
             // Draw bird
+            const _by = birdRenderY();
             ctx.save(); 
-            ctx.translate(bird.x,bird.y); 
+            ctx.translate(bird.x,_by); 
             // Flappy Bird's tilt: a modest nose-up on the flap, then it rolls
             // steadily further nose-down the longer you fall. The old scale
             // saturated in one tick at the new velocities, so it read as a
@@ -7186,6 +7255,8 @@
                 if (gameRunning) updateGame();
                 _accum -= TICK_MS; steps++;
             }
+            // Whatever is left of a tick is how far past the last one we are
+            _alpha = Math.max(0, Math.min(1, _accum / TICK_MS));
             drawGame();
             if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
             if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
@@ -15312,7 +15383,13 @@
             gameOver = false;
             bird.y = canvas.height / 2;
             bird.velocity = 0;
+            bird.prevY = bird.y;
             gameRunning = true;
+            // You come back in the middle of the screen, which may well be
+            // inside a pipe. The empty `if (mpRespawning)` in updateGame
+            // promised this and never delivered it, so a respawn could kill
+            // you on the frame it happened.
+            _graceLeft = PHYS.graceTicks;
             mpRespawning = true;
             setTimeout(() => { mpRespawning = false; }, 1500);   // brief safety
             if (!animationId) animationId = requestAnimationFrame(gameLoop);
