@@ -153,9 +153,61 @@ They share one engine (`SEASON_MODES` and the `sm*` functions in
 thing to collect. Beating the target pays 250 bonus coins on top of the
 per-pickup rate. Dying ends the run early and you keep what you collected.
 
-Solo only, deliberately: the payouts have nothing to do with the pipe ladder,
-so they stay out of the leaderboard and out of rooms. Personal bests are kept
-per mode in `localStorage` under `crix_sm_best_v1`.
+Personal bests are kept per mode in `localStorage` under `crix_sm_best_v1`.
+
+### In multiplayer
+
+Each one is also a room mode. While its season is on it appears as a fifth
+card in the create form's GAME MODE grid, marked LIMITED; the rest of the year
+the card is not there. If the season turns over while the form is open the
+card un-selects itself and hands the selection back to Freemode, so a lobby
+cannot be created on a mode that no longer exists.
+
+A seasonal match is a race for the *same* lane rather than a solo score
+attack:
+
+* every pickup comes off the room's shared seed, so the sweets are in the
+  same places on everyone's screen;
+* every pickup has an id, and taking one tells the room, so it leaves
+  everybody else's lane — one sweet, not one each. A chimney is scenery, so
+  everyone can keep posting into it;
+* going down respawns you, the way Race and Coin Rush do. The clock decides
+  the match, not your last mistake.
+
+The solo payout (coins, the target bonus, personal best) applies only to solo
+runs. A room match is scored by the standings like any other mode.
 
 Forcing a season from the owner panel turns its mode on too, which is how to
 try one out of season.
+
+## Halloween dressing
+
+Two things appear during Halloween and nowhere else.
+
+**Cobwebs** are strung across all four corners of the screen. They are pinned
+to the viewport rather than scrolling with the lane, because they are on the
+window you are looking through rather than in the world — so they draw last
+and nothing passes in front of them.
+
+**Pumpkins** sit in the lane, on the line you were already flying. Fly into
+one and it bursts into eight pieces, plays `/img/smash.mp3` and kicks the
+screen. It is deliberately not an obstacle — no damage, no slowdown, no score.
+A cost would make people avoid the one thing that is meant to be fun to hit.
+
+In a room they come off the shared generator like everything else, so they sit
+in the same place for everyone; whether one has been smashed stays local, so
+each player gets to hit their own.
+
+`smash.mp3` is the only file these need. Without it the burst and the shake
+still happen — the sound fails once, is noted as missing, and is never asked
+for again.
+
+### If you want to move them
+
+`PUMPKIN_EVERY` in `flappycrix.html` is the gap between them, in ticks at
+60Hz — `[520, 900]` is roughly nine to fifteen seconds. `drawWholePumpkin`
+draws one, and every part of it is measured from `r`, the same radius the
+collision uses, centred on the origin. Keep it that way: the first version
+borrowed the pumpkin *hat's* drawing, which is built to sit over a face, and
+it came out as a tall egg whose visual centre sat 12px above the point being
+collided against.
