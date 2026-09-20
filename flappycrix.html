@@ -5493,6 +5493,7 @@
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             _graceLeft = PHYS.graceTicks;
             _lastPipeTop = 0;
+            resetPumpkins();
             bird.prevY = bird.y;
             _alpha = 0;
             _worldPrevShift = gameSpeed;
@@ -5684,6 +5685,7 @@
                 if(coinsArr[i].x+20<0) coinsArr.splice(i--,1); 
             } 
             frameCount++;
+            updatePumpkins();
             if (smMode) smUpdate(); 
             if (typeof mpSyncPosition === 'function') mpSyncPosition();
         }
@@ -6764,6 +6766,291 @@
             a.currentTime = 0;
             a.play().catch(() => {});
         }
+
+        /* ═══════════ HALLOWEEN PROPS ═══════════
+         *
+         * Two bits of dressing that only exist while Halloween is on: cobwebs
+         * strung across the corners of the screen, and pumpkins that sit in
+         * the lane and burst when you fly into one.
+         *
+         * The pumpkin is deliberately NOT an obstacle. It blocks the view,
+         * you go through it, it explodes, and that is the whole of it — no
+         * damage, no slowdown, no score. Adding a cost would make people
+         * avoid the one thing that is meant to be fun to hit.
+         */
+        const PUMPKIN_EVERY = [520, 900];    // ticks between them, randomised
+        let _pumpkins = [];
+        let _nextPumpkinAt = 0;
+        let _smashSfx = undefined;           // undefined = not tried, false = missing
+
+        function halloweenOn() {
+            const s = seasonFor('colour');
+            return !!(s && s.motif === 'bat');
+        }
+
+        function playSmash() {
+            if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
+            if (_smashSfx === false) return;
+            if (_smashSfx === undefined) {
+                _smashSfx = new Audio('/img/smash.mp3');
+                // No file yet? Note it once and never ask again.
+                _smashSfx.addEventListener('error', () => { _smashSfx = false; }, { once: true });
+            }
+            const vol = (typeof settings !== 'undefined' && settings.sfxVol != null) ? settings.sfxVol : 100;
+            _smashSfx.volume = Math.min(1, vol / 100 * 0.8);
+            _smashSfx.currentTime = 0;
+            _smashSfx.play().catch(() => {});
+        }
+
+        function resetPumpkins() { _pumpkins = []; _nextPumpkinAt = 0; }
+
+        /* A short kick on impact. It shakes the canvas ELEMENT with a CSS
+           transform rather than the drawing, so it cannot disturb the canvas
+           state the rest of the frame depends on, and it costs nothing on a
+           frame where nothing is being hit. */
+        let _shakeTimer = null;
+        function shakeScreen(px, ms) {
+            const cv = document.getElementById('gameCanvas');
+            if (!cv) return;
+            if (typeof settings !== 'undefined' && settings.reduceMotion) return;
+            const end = performance.now() + (ms || 140);
+            clearInterval(_shakeTimer);
+            _shakeTimer = setInterval(() => {
+                const left = end - performance.now();
+                if (left <= 0) {
+                    clearInterval(_shakeTimer); _shakeTimer = null;
+                    cv.style.transform = '';
+                    return;
+                }
+                const k = (left / (ms || 140)) * (px || 5);
+                cv.style.transform = `translate(${(Math.random()-.5)*2*k}px, ${(Math.random()-.5)*2*k}px)`;
+            }, 16);
+        }
+
+        function updatePumpkins() {
+            if (!halloweenOn()) { if (_pumpkins.length) _pumpkins = []; return; }
+
+            // In a room the lane is shared, so these come off the shared
+            // generator like everything else and sit in the same place for
+            // everybody. Whether one has been smashed stays local — it costs
+            // nothing and affects nothing, so there is no reason to send it.
+            if (!_nextPumpkinAt) {
+                _nextPumpkinAt = frameCount + PUMPKIN_EVERY[0] +
+                                 Math.floor(smRnd() * (PUMPKIN_EVERY[1] - PUMPKIN_EVERY[0]));
+            }
+            if (frameCount >= _nextPumpkinAt) {
+                _nextPumpkinAt = frameCount + PUMPKIN_EVERY[0] +
+                                 Math.floor(smRnd() * (PUMPKIN_EVERY[1] - PUMPKIN_EVERY[0]));
+                // Right in the way: the middle of the gap of the pipe that was
+                // laid down most recently, which is the line you were flying.
+                const last = pipes.length ? pipes[pipes.length - 1] : null;
+                const y = last ? (last.top + last.bottom) / 2
+                              : 140 + smRnd() * (canvas.height - 280);
+                _pumpkins.push({ x: canvas.width + 30, y: y, r: 21,
+                                 smashed: 0, chunks: null, spin: (smRnd() - 0.5) * 0.4 });
+            }
+
+            for (let i = 0; i < _pumpkins.length; i++) {
+                const p = _pumpkins[i];
+                // Each pumpkin's own footprint plus the bird's, rather than a
+                // fixed number that would be wrong the moment either changed.
+                const rx = birdRX() + p.r, ry = birdRY() + p.r * 0.86;
+                p.x -= gameSpeed;
+                if (p.smashed) {
+                    p.smashed--;
+                    p.chunks.forEach(c => {
+                        c.x += c.vx - gameSpeed; c.y += c.vy; c.vy += 0.42; c.rot += c.spin;
+                    });
+                    if (p.smashed <= 0) { _pumpkins.splice(i--, 1); continue; }
+                } else {
+                    const dx = bird.x - p.x, dy = bird.y - p.y;
+                    if (dx * dx / (rx * rx) + dy * dy / (ry * ry) < 1) smashPumpkin(p);
+                }
+                if (p.x < -70) { _pumpkins.splice(i--, 1); }
+            }
+        }
+
+        function smashPumpkin(p) {
+            p.smashed = 46;
+            p.chunks = [];
+            // Eight pieces thrown out along the direction of travel, so the
+            // burst reads as the bird having gone through it rather than the
+            // pumpkin having merely vanished.
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+                p.chunks.push({
+                    x: p.x, y: p.y,
+                    vx: Math.cos(a) * (1.6 + Math.random() * 2.4) + 1.2,
+                    vy: Math.sin(a) * (1.6 + Math.random() * 2.4) - 1.4,
+                    r: 4 + Math.random() * 6,
+                    rot: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.35
+                });
+            }
+            playSmash();
+            if (typeof shakeScreen === 'function') shakeScreen(5, 140);
+        }
+
+        /* The lane pumpkin gets its own drawing rather than borrowing the
+           pumpkin HAT's. The hat is built to sit over a face: it is offset to
+           the head's position and its stem reaches up out of its own
+           footprint. Reused here that came out as a tall egg whose visual
+           centre sat 12px above the point being collided against. They are
+           different objects at different scales, so they get different
+           drawings — and tweaking the hat later cannot silently move an
+           obstacle.
+
+           Everything here is measured from `r`, the radius the collision uses,
+           and centred on the origin, so what is drawn is what is hit. */
+        function drawWholePumpkin(g, r) {
+            const ry = r * 0.86;                       // wider than tall, as they are
+            g.fillStyle = '#3F7A2E';                   // stalk, inside the footprint
+            g.beginPath();
+            g.moveTo(-r * 0.10, -ry * 0.86);
+            g.quadraticCurveTo(-r * 0.04, -ry * 1.18, r * 0.14, -ry * 1.22);
+            g.quadraticCurveTo(r * 0.02, -ry * 1.02, r * 0.11, -ry * 0.84);
+            g.closePath();
+            g.fill();
+
+            const body = g.createLinearGradient(-r, -ry, r, ry);
+            body.addColorStop(0, '#FFAE3D');
+            body.addColorStop(0.5, '#F0761A');
+            body.addColorStop(1, '#B8490A');
+            g.fillStyle = body;
+            g.beginPath();
+            g.ellipse(0, 0, r, ry, 0, 0, Math.PI * 2);
+            g.fill();
+            g.strokeStyle = 'rgba(12,6,20,.7)';
+            g.lineWidth = Math.max(1, r * 0.07);
+            g.stroke();
+
+            g.save();                                  // ribs
+            g.strokeStyle = 'rgba(150,62,0,.42)';
+            g.lineWidth = Math.max(1, r * 0.07);
+            [-0.52, 0, 0.52].forEach(k => {
+                g.beginPath();
+                g.moveTo(r * k * 0.9, -ry * 0.88);
+                g.quadraticCurveTo(r * k * 1.5, 0, r * k * 0.9, ry * 0.88);
+                g.stroke();
+            });
+            g.restore();
+
+            g.save();                                  // the carving, lit from inside
+            g.fillStyle = '#FFE08A';
+            g.shadowColor = 'rgba(255,170,40,.95)';
+            g.shadowBlur = r * 0.3;
+            [-1, 1].forEach(d => {
+                g.beginPath();
+                g.moveTo(d * r * 0.16, -ry * 0.04);
+                g.lineTo(d * r * 0.58, -ry * 0.28);
+                g.lineTo(d * r * 0.54, ry * 0.16);
+                g.closePath();
+                g.fill();
+            });
+            g.beginPath();
+            g.moveTo(-r * 0.54, ry * 0.40);
+            g.lineTo(-r * 0.28, ry * 0.62);
+            g.lineTo(-r * 0.08, ry * 0.42);
+            g.lineTo(r * 0.14, ry * 0.64);
+            g.lineTo(r * 0.38, ry * 0.42);
+            g.lineTo(r * 0.56, ry * 0.54);
+            g.lineTo(r * 0.26, ry * 0.74);
+            g.lineTo(-r * 0.30, ry * 0.72);
+            g.closePath();
+            g.fill();
+            g.restore();
+        }
+
+        function drawPumpkins(g) {
+            if (!_pumpkins.length) return;
+            for (const p of _pumpkins) {
+                if (p.smashed) {
+                    const fade = Math.min(1, p.smashed / 26);
+                    g.save();
+                    g.globalAlpha = fade;
+                    for (const c of p.chunks) {
+                        g.save();
+                        g.translate(c.x, c.y);
+                        g.rotate(c.rot);
+                        g.fillStyle = '#E8761A';
+                        g.beginPath();
+                        g.moveTo(-c.r, -c.r * 0.6);
+                        g.lineTo(c.r * 0.8, -c.r);
+                        g.lineTo(c.r, c.r * 0.7);
+                        g.lineTo(-c.r * 0.5, c.r);
+                        g.closePath();
+                        g.fill();
+                        g.fillStyle = 'rgba(255,225,150,.5)';   // lit inner face
+                        g.fillRect(-c.r * 0.4, -c.r * 0.3, c.r * 0.8, c.r * 0.5);
+                        g.restore();
+                    }
+                    g.restore();
+                    continue;
+                }
+                g.save();
+                g.translate(p.x, p.y);
+                g.rotate(p.spin);
+                drawWholePumpkin(g, p.r);
+                g.restore();
+            }
+        }
+
+        /* ---- COBWEBS ----
+         * Pinned to the corners of the screen rather than scrolling with the
+         * lane: they are on the window you are looking through, not in the
+         * world. Drawn once into an offscreen canvas per size, because the
+         * radials and arcs are the same every frame and there is no sense
+         * paying for them sixty times a second.
+         */
+        let _webCv = null, _webKey = '';
+        function webCanvas(size) {
+            const key = size + 'x' + canvas.width;
+            if (_webCv && _webKey === key) return _webCv;
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const g = c.getContext('2d');
+            g.strokeStyle = 'rgba(226,230,245,.34)';
+            g.lineWidth = 1.1;
+            g.lineCap = 'round';
+            const RINGS = 5, SPOKES = 7;
+            for (let i = 0; i <= SPOKES; i++) {           // spokes, from the corner
+                const a = (i / SPOKES) * (Math.PI / 2);
+                g.beginPath();
+                g.moveTo(0, 0);
+                g.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+                g.stroke();
+            }
+            for (let r = 1; r <= RINGS; r++) {            // the sagging threads between
+                const rad = (r / RINGS) * size * 0.95;
+                g.beginPath();
+                for (let i = 0; i <= SPOKES; i++) {
+                    const a = (i / SPOKES) * (Math.PI / 2);
+                    const x = Math.cos(a) * rad, y = Math.sin(a) * rad;
+                    if (i === 0) { g.moveTo(x, y); continue; }
+                    const pa = ((i - 1) / SPOKES) * (Math.PI / 2);
+                    const mid = (a + pa) / 2, sag = rad * 0.86;   // pulled inward
+                    g.quadraticCurveTo(Math.cos(mid) * sag, Math.sin(mid) * sag, x, y);
+                }
+                g.stroke();
+            }
+            _webCv = c; _webKey = key;
+            return c;
+        }
+
+        function drawCobwebs(g) {
+            if (!halloweenOn()) return;
+            const W = canvas.width, H = canvas.height;
+            const size = Math.round(Math.min(W, H) * 0.30);
+            const web = webCanvas(size);
+            g.save();
+            g.globalAlpha = 0.85;
+            // top-left as drawn, then flipped into the other three corners
+            g.drawImage(web, 0, 0);
+            g.save(); g.translate(W, 0);     g.scale(-1, 1);  g.drawImage(web, 0, 0); g.restore();
+            g.save(); g.translate(0, H);     g.scale(1, -1);  g.drawImage(web, 0, 0); g.restore();
+            g.save(); g.translate(W, H);     g.scale(-1, -1); g.drawImage(web, 0, 0); g.restore();
+            g.restore();
+        }
+
         function updateFlyer() {
             const now = performance.now();
             const dt = _flyerLast ? Math.min(100, now - _flyerLast) : 16;
@@ -7305,6 +7592,7 @@
                 drawPipe(p.x, 0, pipeWidth, p.top, true);
                 drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
             }
+            drawPumpkins(ctx);
             if (smMode) smDraw(ctx); 
             // Draw coins
             // Coins spin and bob. The spin is a horizontal squash on a sine
@@ -7424,6 +7712,9 @@
                 ctx.fillText('watching the rest', canvas.width/2, canvas.height/2 + 22);
                 ctx.textAlign='left';
             } 
+            // Last of all: the cobwebs are on the window you are looking
+            // through, not in the world, so nothing passes in front of them.
+            drawCobwebs(ctx);
         }
         
         // Fixed timestep. Previously the loop ran on raw requestAnimationFrame,
