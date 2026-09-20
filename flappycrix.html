@@ -1527,6 +1527,17 @@
         .mp-mode-card:hover { transform: translateY(-2px); }
         .mp-mode-icon { font-size: 22px; margin-bottom: 4px; }
         .mp-mode-name { font-size: 10px; font-weight: 700; color: white; text-transform: uppercase; }
+        .mp-mode-card.season { border-color: rgba(255,122,24,.55); position: relative; }
+        .mp-mode-card.season.selected { border-color: var(--accent, #FF7A18); }
+        .mp-mode-card .mp-mode-tag {
+            font-size: 7px; letter-spacing: .6px; margin-top: 3px;
+            color: var(--accent, #FF7A18); opacity: .9;
+        }
+        .mp-mode-blurb {
+            font-size: 10px; color: #9a9db2; line-height: 1.5;
+            background: rgba(255,122,24,.06); border: 1px solid rgba(255,122,24,.22);
+            border-radius: 10px; padding: 8px 11px; margin: -2px 0 8px;
+        }
         .mp-privacy-row { display: flex; gap: 8px; margin: 8px 0; }
         .mp-privacy-btn {
             flex: 1;
@@ -3480,7 +3491,15 @@
                     <div class="mp-mode-card" data-mode="race"><div class="mp-mode-icon">🏁</div><div class="mp-mode-name">Race to 100</div></div>
                     <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
                     <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon">🪙</div><div class="mp-mode-name">Coin Rush</div></div>
+                    <!-- The season's own mode. Filled in and shown by
+                         mpSyncSeasonModeCard, hidden the rest of the year. -->
+                    <div class="mp-mode-card season" id="mpSeasonModeCard" data-mode="" style="display:none;">
+                        <div class="mp-mode-icon" id="mpSeasonModeIcon">🎃</div>
+                        <div class="mp-mode-name" id="mpSeasonModeName">Seasonal</div>
+                        <div class="mp-mode-tag">LIMITED</div>
+                    </div>
                 </div>
+                <div id="mpSeasonModeBlurb" class="mp-mode-blurb" style="display:none;"></div>
                 <div class="mp-section-title">QUEUE</div>
                 <div class="mp-privacy-row">
                     <button class="mp-privacy-btn selected" id="mpQueueCasual">🎮 CASUAL</button>
@@ -6113,6 +6132,17 @@
             }
         };
         const SM_BEST_KEY = 'crix_sm_best_v1';
+        // The three ids, for the places that need to ask "is this a seasonal
+        // mode?" without caring which one.
+        const SEASON_MODE_IDS = ['candyhunt', 'presents', 'egghunt'];
+        function isSeasonMode(m) { return SEASON_MODE_IDS.indexOf(m) !== -1; }
+        function seasonModeById(id) {
+            for (const k in SEASON_MODES) if (SEASON_MODES[k].id === id) return { season: k, mode: SEASON_MODES[k] };
+            return null;
+        }
+        // In a room the lane is shared, so a seasonal match is a race for the
+        // same sweets rather than a solo score attack.
+        function smInRoom() { return !!(mpCurrentRoom && smMode); }
         // How far the chimney stack rises off the pipe it stands on. It has to
         // clear the bird's hit radius by enough that posting a present is a
         // choice about flying low, not a choice about dying.
@@ -6120,6 +6150,8 @@
 
         let smMode = null, smSeasonId = null;
         let smTicks = 0, smScore = 0, smCarry = 0, smItems = [], smEnding = false;
+        let _smSeq = 0;                  // ids for the shared lane's pickups
+        const smTaken = new Set();       // ones somebody already got to
         let smFlash = null;          // { text, colour, ticks } — floats off the bird
 
         // A mode is playable when its own season is the one running, whether
@@ -6154,6 +6186,19 @@
             document.getElementById('hudLive')?.classList.remove('sm-off');
         }
 
+        // Put the mode in place. Solo calls this and then starts a run;
+        // multiplayer calls it from the match-start path, which starts the
+        // run itself.
+        function smAttach(seasonId, mode) {
+            smSeasonId = seasonId; smMode = mode;
+            smTicks = mode.seconds * 60;
+            smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
+            _smSeq = 0; smTaken.clear();
+            document.getElementById('smHud')?.classList.add('on');
+            document.getElementById('hudLive')?.classList.add('sm-off');
+            smSyncHud(true);
+        }
+
         function smStartRun() {
             const a = smAvailable();
             if (!a) {
@@ -6162,51 +6207,68 @@
                 return;
             }
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
-            smSeasonId = a.id; smMode = a.mode;
-            smTicks = a.mode.seconds * 60;
-            smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
-            startGame();                       // resetGame runs inside here
-            smTicks = a.mode.seconds * 60;     // and must not have cleared the clock
-            document.getElementById('smHud')?.classList.add('on');
-            document.getElementById('hudLive')?.classList.add('sm-off');
-            smSyncHud(true);
+            smAttach(a.id, a.mode);
+            startGame();                  // resetGame runs inside here...
+            smAttach(a.id, a.mode);       // ...and must not have cleared the clock
+        }
+
+        // The match-start path has already decided the mode; the season only
+        // has to still exist for its artwork and its rules.
+        function smBeginForRoom(modeId) {
+            const m = seasonModeById(modeId);
+            if (!m) return false;
+            smAttach(m.season, m.mode);
+            return true;
         }
 
         /* ---- what is in the lane ---- */
+        // In a room every client has to lay out the same sweets in the same
+        // places, so the shared seeded generator stands in for Math.random —
+        // the same trick the pipes and coins already use.
+        function smRnd() { return mpCurrentRoom ? mpRng() : Math.random(); }
+
         function smSafeY() {
             // Somewhere a player could actually reach: near the gap of the
             // pipe that has most recently been laid down.
             const last = pipes.length ? pipes[pipes.length - 1] : null;
-            if (!last) return 120 + Math.random() * (canvas.height - 240);
+            if (!last) return 120 + smRnd() * (canvas.height - 240);
             const mid = (last.top + last.bottom) / 2;
             const spread = (last.bottom - last.top) * 0.34;
             return Math.max(60, Math.min(canvas.height - 70,
-                                         mid + (Math.random() - 0.5) * spread * 2));
+                                         mid + (smRnd() - 0.5) * spread * 2));
         }
 
         function smSpawn() {
             if (!smMode) return;
+            // Every pickup carries an id so that, in a room, "Bob got that
+            // one" means the same object on every screen.
+            const id = ++_smSeq;
+            const gone = smTaken.has(id);
             if (smMode.id === 'candyhunt') {
                 // Roughly one in five is sour. It costs you rather than kills
                 // you — the mode is about greed, not about dying twice over.
-                const sour = Math.random() < 0.18;
-                smItems.push({ kind: sour ? 'sour' : 'candy', x: canvas.width + 20, y: smSafeY(),
-                               hue: Math.floor(Math.random() * 5), spin: Math.random() * 6.28 });
+                const sour = smRnd() < 0.18;
+                smItems.push({ id: id, taken: gone, kind: sour ? 'sour' : 'candy',
+                               x: canvas.width + 20, y: smSafeY(),
+                               hue: Math.floor(smRnd() * 5), spin: smRnd() * 6.28 });
             } else if (smMode.id === 'presents') {
                 // Alternate: something to carry, then somewhere to put it.
                 const last = pipes.length ? pipes[pipes.length - 1] : null;
-                if (last && smItems.filter(i => i.kind === 'chimney').length < 3 && Math.random() < 0.34) {
-                    smItems.push({ kind: 'chimney', pipe: last, x: last.x, y: last.bottom,
+                const wantChimney = smRnd() < 0.34;
+                if (last && smItems.filter(i => i.kind === 'chimney').length < 3 && wantChimney) {
+                    // A chimney is scenery, not loot: everyone can post into it.
+                    smItems.push({ id: id, kind: 'chimney', pipe: last, x: last.x, y: last.bottom,
                                    hitY: last.bottom - SM_CHIMNEY_H });
                 } else {
-                    smItems.push({ kind: 'present', x: canvas.width + 20, y: smSafeY(),
-                                   hue: Math.floor(Math.random() * 5) });
+                    smItems.push({ id: id, taken: gone, kind: 'present',
+                                   x: canvas.width + 20, y: smSafeY(),
+                                   hue: Math.floor(smRnd() * 5) });
                 }
             } else if (smMode.id === 'egghunt') {
-                const golden = Math.random() < 0.125;
-                smItems.push({ kind: 'egg', golden: golden, seen: false,
+                const golden = smRnd() < 0.125;
+                smItems.push({ id: id, taken: gone, kind: 'egg', golden: golden, seen: false,
                                x: canvas.width + 20, y: smSafeY(),
-                               hue: Math.floor(Math.random() * EGG_COLOURS.length) });
+                               hue: Math.floor(smRnd() * EGG_COLOURS.length) });
             }
         }
 
@@ -6220,13 +6282,21 @@
                 smCarry = 0;
                 it.lit = 34;                          // a puff of smoke, briefly
                 playSound(coinSound);
+                smReportScore();
                 return;
             }
             it.taken = true;
+            // In a room it is one sweet, not one each: tell everybody it has
+            // gone so it leaves their lane too.
+            if (mpCurrentRoom && it.id) {
+                smTaken.add(it.id);
+                mpRaiseEvent(MP_EV.SM_TAKE, { id: it.id });
+            }
             if (it.kind === 'sour') {
                 smScore = Math.max(0, smScore - 2);
                 smFlashText('-2', '#7ED957');
                 playSfx('error', .5);
+                smReportScore();
                 return;
             }
             if (it.kind === 'present') {
@@ -6239,13 +6309,36 @@
             smScore += worth;
             smFlashText('+' + worth, it.golden ? '#FFD700' : '#FFFFFF');
             playSound(coinSound);
+            smReportScore();
+        }
+
+        // The standings read one number per player. In a seasonal match that
+        // number is what you have collected, not how many pipes you passed.
+        function smReportScore() {
+            if (!smInRoom()) return;
+            if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].score = smScore;
+            mpRaiseEvent(MP_EV.SCORE, { score: smScore });
+            if (typeof mpUpdateHud === 'function') mpUpdateHud();
+        }
+
+        // Someone else got there first.
+        function smOnTaken(id) {
+            if (!id) return;
+            smTaken.add(id);
+            const it = smItems.find(x => x.id === id);
+            if (it && !it.taken) it.taken = true;
         }
 
         function smUpdate() {
             if (!smMode || smEnding) return;
             if (smFlash && --smFlash.ticks <= 0) smFlash = null;
             smTicks--;
-            if (smTicks <= 0) { smFinish('time'); return; }
+            if (smTicks <= 0) {
+                // In a room the host's clock is the clock — it ends the match
+                // for everyone. Ending it here too would race that.
+                if (smInRoom()) { smTicks = 0; }
+                else { smFinish('time'); return; }
+            }
             if (frameCount % smMode.every === 0) smSpawn();
 
             const reach = birdRadius() + 9;
@@ -6380,7 +6473,12 @@
         let _smHudLast = {};
         function smSyncHud(force) {
             if (!smMode) return;
-            const secs = Math.max(0, Math.ceil(smTicks / 60));
+            // In a room the host's clock is the one that ends the match, so
+            // show that rather than a local count that could drift from it
+            // and have the readout hit zero while the match carries on.
+            const secs = smInRoom()
+                ? Math.max(0, Math.ceil(mpCoinRushSecondsLeft || 0))
+                : Math.max(0, Math.ceil(smTicks / 60));
             if (!force && secs === _smHudLast.secs && smScore === _smHudLast.score
                 && smCarry === _smHudLast.carry) return;
             _smHudLast = { secs: secs, score: smScore, carry: smCarry };
@@ -6441,6 +6539,38 @@
             setScreen('menu');
             document.getElementById('smResultModal')?.classList.add('active');
             playSfx(hitTarget ? 'rank' : 'pop', .6);
+        }
+
+        /* The create form's seasonal card. It only exists while the season
+           does, and it carries the mode's id so the rest of the create flow
+           treats it exactly like the other four. */
+        function mpSyncSeasonModeCard() {
+            const card = document.getElementById('mpSeasonModeCard');
+            if (!card) return;
+            const a = smAvailable();
+            const blurb = document.getElementById('mpSeasonModeBlurb');
+            if (!a) {
+                card.style.display = 'none';
+                card.dataset.mode = '';
+                if (blurb) blurb.style.display = 'none';
+                // Nothing to fall back to but the default if it was selected
+                if (card.classList.contains('selected')) {
+                    card.classList.remove('selected');
+                    document.querySelector('.mp-mode-card[data-mode="freemode"]')?.classList.add('selected');
+                }
+                return;
+            }
+            card.style.display = '';
+            card.dataset.mode = a.mode.id;
+            const ico = document.getElementById('mpSeasonModeIcon');
+            const nm  = document.getElementById('mpSeasonModeName');
+            if (ico) ico.textContent = a.mode.emoji;
+            if (nm)  nm.textContent  = a.mode.short;
+            card.title = a.mode.name + ' — only while ' + a.season.name + ' is on';
+            if (blurb) {
+                blurb.textContent = a.mode.emoji + ' ' + a.mode.name + ' — ' + a.mode.blurb;
+                blurb.style.display = card.classList.contains('selected') ? '' : 'none';
+            }
         }
 
         // Shown on the menu only while a season is on.
@@ -6531,6 +6661,7 @@
             }
             updateSeasonCalendarDot();
             smSyncBanner();             // the limited mode comes and goes with it
+            mpSyncSeasonModeCard();     // ...in the create form too
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
         }
@@ -10550,6 +10681,7 @@
             COIN_TAKE: 25, PING: 26,
             // Voice is peer-to-peer WebRTC; Photon only carries the handshake.
             VOICE_HELLO: 27, VOICE_OFFER: 28, VOICE_ANSWER: 29, VOICE_ICE: 30, VOICE_STATE: 31,
+            SM_TAKE: 32,          // a seasonal pickup somebody got to first
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -10906,8 +11038,16 @@
         // Every death route funnels through here — there are three (ceiling,
         // floor and pipes) and previously only one showed the overlay.
         function handleDeath() {
-            // A seasonal run is scored on what you collected, so it ends on
-            // its own screen with its own payout rather than the pipe count.
+            // In a room a seasonal match has a clock, so going down is a
+            // setback rather than the end — same as Race and Coin Rush.
+            if (smInRoom() && mpMatchActive) {
+                setTimeout(() => { if (mpMatchActive) mpRespawn(); }, 1200);
+                if (bgMusic && !musicMuted) bgMusic.pause();
+                if (typeof mpReportDeath === 'function') mpReportDeath();
+                return;
+            }
+            // A solo seasonal run is scored on what you collected, so it ends
+            // on its own screen with its own payout rather than the pipe count.
             if (smMode) { updateHighScore(); setTimeout(() => smFinish('died'), 400); return; }
             // Every death path goes through here, so the overlay is
             // guaranteed rather than only firing on ceiling hits.
@@ -14442,6 +14582,7 @@
             /* ---- create: a game, or a party? ---- */
             document.getElementById('ccBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
             document.getElementById('ccGame')?.addEventListener('click', () => {
+                mpSyncSeasonModeCard();
                 mpShowView('mpViewCreate');
                 playSound(selectSound);
             });
@@ -14622,11 +14763,24 @@
             voiceStart();
         }
 
+        // What a mode is called, wherever it is shown. The seasonal three come
+        // from their own definitions so there is nowhere for the two lists to
+        // disagree — and nowhere for a raw id like "candyhunt" to reach a
+        // player.
+        function mpModeLabel(id) {
+            const fixed = { freemode: '🕊️ Freemode', race: '🏁 Race to 100',
+                            lastone: '💀 Last One Standing', coinrush: '🪙 Coin Rush' };
+            if (fixed[id]) return fixed[id];
+            const sm = typeof seasonModeById === 'function' ? seasonModeById(id) : null;
+            if (sm) return sm.mode.emoji + ' ' + sm.mode.name;
+            return fixed.freemode;
+        }
+
         function mpRenderLobby() {
             if (!mpCurrentRoom) return;
             document.getElementById('mpLobbyCode').textContent = mpCurrentRoom.code;
-            const modes = {freemode:'🕊️ Freemode', race:'🏁 Race to 100', lastone:'💀 Last One Standing'};
-            document.getElementById('mpLobbySub').innerHTML = mpEsc(mpCurrentRoom.roomDisplayName) + ' · ' + (modes[mpCurrentRoom.mode] || 'Freemode');
+            document.getElementById('mpLobbySub').innerHTML =
+                mpEsc(mpCurrentRoom.roomDisplayName) + ' · ' + mpModeLabel(mpCurrentRoom.mode);
             const count = Object.keys(mpPlayers).length;
             document.getElementById('mpPlayerCount').textContent = count;
 
@@ -14804,7 +14958,7 @@
             document.querySelectorAll('.setting-race').forEach(el =>
                 el.style.display = mode === 'race' ? '' : 'none');
             document.querySelectorAll('.setting-coinrush').forEach(el =>
-                el.style.display = mode === 'coinrush' ? '' : 'none');
+                el.style.display = (mode === 'coinrush' || isSeasonMode(mode)) ? '' : 'none');
 
             const note = document.getElementById('rankedLockNote');
             if (note) note.style.display = ranked ? 'block' : 'none';
@@ -15113,27 +15267,53 @@
             Object.values(mpPlayers).forEach(p => { p.score = 0; p.dead = false; });
             mpCoinRushCoins = {};
             Object.keys(mpPlayers).forEach(nr => { mpCoinRushCoins[nr] = 0; });
-            if (mode === 'coinrush') {
-                // Disable powerups in coin rush
+            /* ---- THE MATCH CLOCK ----
+             * Coin Rush and the seasonal modes are both "collect the most
+             * before time runs out", so they share one clock.
+             *
+             * It used to run on the HOST ONLY, which meant every guest's
+             * readout sat frozen at 0:00 for the whole match — the value it
+             * was reading was never set on their machine. Everyone counts
+             * down now, because everyone started together and a second of
+             * drift over ninety does not matter for a number on screen.
+             * Only the host raises MATCH_END, so there is still exactly one
+             * authority on when it is actually over.
+             */
+            if (isSeasonMode(mode) || mode === 'coinrush') {
                 powerups.forEach(pw => pw.active = false);
                 updateActivePowerups();
-                // Start timer on host
-                if (mpIsHost) {
-                    mpCoinRushSecondsLeft = mpCurrentRoom?.rushTime || MP_COIN_RUSH_SECONDS;
-                    mpCoinRushTimer = setInterval(() => {
-                        mpCoinRushSecondsLeft--;
-                        mpUpdateHud();
-                        if (mpCoinRushSecondsLeft <= 0) {
-                            clearInterval(mpCoinRushTimer);
-                            const results = Object.entries(mpCoinRushCoins)
-                                .map(([a,coins]) => ({ actor: parseInt(a), name: mpPlayers[parseInt(a)]?.name || ('Player'+a), score: coins }))
-                                .sort((a,b) => b.score-a.score);
-                            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
-                            photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor: results[0]?.actor || null, mode: 'coinrush' }, { receivers: RC.All });
-                            mpShowMatchOver(results, results[0]?.actor || null, 'coinrush');
-                        }
-                    }, 1000);
-                }
+                if (isSeasonMode(mode)) smBeginForRoom(mode);
+
+                mpCoinRushSecondsLeft = isSeasonMode(mode)
+                    ? (smMode ? smMode.seconds : 90)
+                    : (mpCurrentRoom?.rushTime || MP_COIN_RUSH_SECONDS);
+
+                if (mpCoinRushTimer) clearInterval(mpCoinRushTimer);
+                mpCoinRushTimer = setInterval(() => {
+                    mpCoinRushSecondsLeft--;
+                    mpUpdateHud();
+                    if (typeof smSyncHud === 'function' && smMode) smSyncHud(true);
+                    if (mpCoinRushSecondsLeft > 0) return;
+                    clearInterval(mpCoinRushTimer); mpCoinRushTimer = null;
+                    if (!mpIsHost) return;          // guests only display it
+                    // Coin Rush scores by coins collected; a seasonal mode by
+                    // what the player picked up, which lives on their entry.
+                    const results = (mode === 'coinrush'
+                        ? Object.entries(mpCoinRushCoins).map(([a, coins]) => ({
+                            actor: parseInt(a),
+                            name: mpPlayers[parseInt(a)]?.name || ('Player' + a),
+                            score: coins }))
+                        : Object.entries(mpPlayers).map(([a, pl]) => ({
+                            actor: parseInt(a),
+                            name: pl.name || ('Player' + a),
+                            score: pl.score || 0 }))
+                    ).sort((a, b) => b.score - a.score);
+                    const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                    photonClient.raiseEvent(MP_EV.MATCH_END,
+                        { results, winnerActor: results[0]?.actor || null, mode: mode },
+                        { receivers: RC.All });
+                    mpShowMatchOver(results, results[0]?.actor || null, mode);
+                }, 1000);
             }
             document.getElementById('mpModal').classList.remove('active');
             document.getElementById('mpHud').classList.add('active');
@@ -15344,6 +15524,7 @@
 
         function mpEndMatchUI() {
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
+            if (smInRoom()) smClear();     // the room's mode leaves with the room
             document.getElementById('mpHud').classList.remove('active', 'open');
             document.getElementById('mpHud').innerHTML = '';
             document.getElementById('mpHudBtn')?.classList.remove('on');
@@ -15908,6 +16089,10 @@
                     }
                     break;
                 }
+                case MP_EV.SM_TAKE:
+                    // The seasonal equivalent: one sweet, not one each.
+                    smOnTaken(content.id);
+                    break;
                 // PIPE_SPAWN / COIN_SPAWN removed — every client now generates
                 // the identical map locally from the shared seed, so there is no
                 // network latency offset between players.
@@ -16411,9 +16596,14 @@
 
         document.querySelectorAll('.mp-mode-card').forEach(card => {
             card.addEventListener('click', () => {
+                if (!card.dataset.mode) return;      // the seasonal card, out of season
                 document.querySelectorAll('.mp-mode-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 mpSelectedMode = card.dataset.mode;
+                // The seasonal one needs a line of explanation; the other four
+                // say what they are in two words.
+                const blurb = document.getElementById('mpSeasonModeBlurb');
+                if (blurb) blurb.style.display = card.id === 'mpSeasonModeCard' ? '' : 'none';
             });
         });
         // ---- QUEUE TABS (browser) ----
