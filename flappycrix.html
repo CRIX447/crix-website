@@ -2997,6 +2997,55 @@
      Everything about it is defensive: the file may not be there, autoplay may
      be refused, the codec may be unsupported, and someone may simply not want
      to sit through it. Any of those and it gets out of the way. -->
+<!-- A blank screen tells nobody anything. If an uncaught error ever takes
+     the page down before the game is up, this says what it was, so the next
+     report can be "it says X" rather than "I see nothing". It is deliberately
+     plain inline CSS and no dependencies: it has to work precisely when the
+     rest of the page did not. -->
+<div id="fatalBar" style="display:none;position:fixed;left:0;right:0;top:0;z-index:2147483647;
+     background:#2a0b0f;color:#ffd9dd;font:12px/1.5 system-ui,sans-serif;
+     padding:10px 44px 10px 12px;border-bottom:2px solid #FF4655;white-space:pre-wrap;
+     word-break:break-word;max-height:45vh;overflow:auto;">
+  <b>Something broke while loading.</b>
+  <span id="fatalMsg"></span>
+  <button id="fatalCopy" type="button" style="margin-top:6px;background:#FF4655;color:#fff;border:0;
+          border-radius:6px;padding:5px 10px;font:inherit;font-weight:700;cursor:pointer;">COPY</button>
+  <button id="fatalHide" type="button" style="position:absolute;top:6px;right:8px;background:none;
+          border:0;color:#ffd9dd;font:16px/1 system-ui;cursor:pointer;padding:4px 6px;">&times;</button>
+</div>
+<script>
+(function () {
+    var seen = [];
+    function show(what) {
+        if (seen.length > 3) return;
+        seen.push(what);
+        var bar = document.getElementById('fatalBar');
+        var msg = document.getElementById('fatalMsg');
+        if (!bar || !msg) return;
+        msg.textContent = '\n' + seen.join('\n\n');
+        bar.style.display = 'block';
+    }
+    window.addEventListener('error', function (e) {
+        // A failed image or sound is not worth a banner; a broken script is.
+        if (e && e.target && e.target !== window && e.target.tagName) return;
+        show((e && e.message ? e.message : 'Unknown error') +
+             (e && e.filename ? '\n' + String(e.filename).split('/').pop() + ':' + e.lineno : ''));
+    }, true);
+    window.addEventListener('unhandledrejection', function (e) {
+        var r = e && e.reason;
+        show('Unhandled: ' + ((r && r.message) || r || 'promise rejected'));
+    });
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.id === 'fatalHide') document.getElementById('fatalBar').style.display = 'none';
+        if (e.target && e.target.id === 'fatalCopy') {
+            var t = document.getElementById('fatalMsg').textContent.trim();
+            if (navigator.clipboard) navigator.clipboard.writeText(t).catch(function () {});
+            e.target.textContent = 'COPIED';
+        }
+    });
+})();
+</script>
+
 <div id="intro" hidden>
     <video id="introVideo" playsinline muted preload="auto"></video>
     <div id="introBar"><i id="introFill"></i></div>
@@ -7603,6 +7652,15 @@
         }
 
         function drawGame(){
+            /* Every frame starts from a known canvas state. The lane is drawn
+               inside a save/restore pair, and if anything in there ever threw
+               between the two, the translate would survive into the next
+               frame and the one after — each frame shifting further until the
+               whole game slid off screen and stayed there. Resetting the
+               transform here means a leaked save costs one bad frame instead
+               of the rest of the session. */
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.globalAlpha = 1;
             // The HUD rebuilt its DOM every frame, which was the main cause
             // of the lag. Text changes 10x a second is plenty and the
             // difference is invisible.
@@ -7778,13 +7836,22 @@
             _accum += delta;
             let steps = 0;
             while (_accum >= TICK_MS && steps < 5) {   // cap catch-up work
-                if (gameRunning) updateGame();
+                try { if (gameRunning) updateGame(); }
+                catch (e) { if (!window.__tickWarned) { window.__tickWarned = true;
+                    console.error('[Tick] update failed:', e); } }
                 _accum -= TICK_MS; steps++;
             }
             // Whatever is left of a tick is how far past the last one we are
             _alpha = Math.max(0, Math.min(1, _accum / TICK_MS));
-            drawGame();
-            if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
+            // A throw in here used to escape the loop, so the next frame was
+            // never asked for and the game froze on whatever was last painted.
+            // One bad frame is a glitch; a frozen screen is the game being
+            // over. Keep asking for frames and say what happened.
+            try { drawGame(); }
+            catch (e) { if (!window.__drawWarned) { window.__drawWarned = true;
+                console.error('[Draw] frame failed:', e); } }
+            try { if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition(); }
+            catch (e) { console.warn('[MP] sync:', e.message); }
             if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
         }
         function startGame(){
