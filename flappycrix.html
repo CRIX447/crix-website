@@ -4857,17 +4857,28 @@
          *
          * What is deliberately NOT the original: the gap is wider, there is
          * no ceiling to die on, the fall speed is capped so a long drop is
-         * always recoverable, and the hitbox is a circle inside the sprite
+         * always recoverable, and the hitbox is an ellipse inside the sprite
          * rather than its bounding square. The original killed you on all
          * four, and that is what "people die easy" was.
+         *
+         * FALLING IS GENTLER THAN RISING, and that asymmetry is the point.
+         * With one gravity for both, the tap that felt right gave a descent
+         * that left 0.43s between the top of a gap and the bottom of it, and
+         * a terminal speed of 840px/s down a 600px screen — the whole thing
+         * crossed in under a second, which is what "hard to control" was.
+         * The rise is untouched, so a tap peaks in the same 0.28s it always
+         * did; only the sink was slowed, which is where the thinking happens.
          */
         const PHYS = {
-            gravity:   0.52,   // per tick, at the 60Hz fixed step
+            gravity:   0.52,   // going up: unchanged, the tap still feels the same
+            fallGrav:  0.34,   // coming down: gentler, so there is time to aim
             flap:     -8.8,    // impulse, one tap
-            maxFall:   14,     // terminal velocity: a long drop stays flyable
-            slowGrav:  0.32,   // the slowmo cheat, same arc shape, slower
+            maxFall:   10,     // terminal velocity: 600px/s, was 840
+            slowGrav:  0.32,   // the slowmo cheat, same shape, slower
+            slowFall:  0.21,
             slowFlap: -7.0,
             lowGrav:   0.22,   // the owner's low-gravity toggle
+            lowFall:   0.15,
             // The hitbox is an ELLIPSE, sized to the art rather than to a
             // guess. The sprite is opaque to the top and bottom edges of its
             // box but only about 0.85 of it wide, so a single radius either
@@ -5503,7 +5514,8 @@
         function resetGame() {
             // All players start at x=100 — same world, same physics
             bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0,
-                     gravity: window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity),
+                     gravity:  window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity),
+                     fallGrav: window.__pmLowGrav ? PHYS.lowFall : (cheats.slowmo ? PHYS.slowFall : PHYS.fallGrav),
                      jump: cheats.slowmo ? PHYS.slowFlap : PHYS.flap };
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             _graceLeft = PHYS.graceTicks;
@@ -5580,7 +5592,10 @@
             if (_graceLeft > 0) _graceLeft--;
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode
                                  || _graceLeft > 0;
-            bird.velocity += bird.gravity;
+            // Rising uses the full gravity so the hop still peaks crisply;
+            // falling uses the gentler one so there is time to read the gap.
+            bird.velocity += (bird.velocity < 0 || bird.fallGrav == null)
+                             ? bird.gravity : bird.fallGrav;
             // Terminal velocity. Without it a long drop builds a speed no flap
             // can answer, and the run is over several frames before it looks it.
             if (bird.velocity > PHYS.maxFall) bird.velocity = PHYS.maxFall;
@@ -7655,7 +7670,7 @@
             // steadily further nose-down the longer you fall. The old scale
             // saturated in one tick at the new velocities, so it read as a
             // snap between two poses rather than a rotation.
-            let rot=Math.min(Math.max(bird.velocity*0.062,-0.42),1.15); 
+            let rot=Math.min(Math.max(bird.velocity*0.088,-0.42),1.0); 
             ctx.rotate(rot); 
             let birdSize = birdDrawSize();
 
@@ -12004,7 +12019,10 @@
                     break;
                 case 'lowgrav':
                     window.__pmLowGrav = !window.__pmLowGrav;
-                    if (bird) bird.gravity = window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity);
+                    if (bird) {
+                        bird.gravity  = window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity);
+                        bird.fallGrav = window.__pmLowGrav ? PHYS.lowFall : (cheats.slowmo ? PHYS.slowFall : PHYS.fallGrav);
+                    }
                     pmLog('Low gravity ' + (window.__pmLowGrav ? 'ON' : 'OFF'));
                     break;
                 case 'clearAll':
@@ -16006,7 +16024,7 @@
                 context.translate(p.rx, p.ry);
 
                 // Rotate slightly based on velocity for natural arc
-                const rot = Math.min(Math.max((p.vel || 0) * 0.062, -0.42), 1.15);
+                const rot = Math.min(Math.max((p.vel || 0) * 0.088, -0.42), 1.0);
                 context.rotate(rot);
 
                 // Colour ring behind bird
