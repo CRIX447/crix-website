@@ -1231,6 +1231,14 @@
             border-radius: 20px; padding: 1px 5px; margin-left: 2px;
         }
         .party-note { font-size: 11px; color: #8d90a6; margin-bottom: 10px; text-align: center; }
+        .party-blocked {
+            font-size: 11px; line-height: 1.6; color: #FFC078; margin-bottom: 12px;
+            background: rgba(255,165,0,.07); border: 1px solid rgba(255,165,0,.32);
+            border-radius: 12px; padding: 10px 12px;
+        }
+        .party-blocked code {
+            background: rgba(0,0,0,.35); border-radius: 5px; padding: 1px 5px; font-size: 10px;
+        }
         .party-members { display: flex; flex-direction: column; gap: 6px; max-height: 190px; overflow-y: auto; }
         .party-row {
             display: flex; align-items: center; gap: 10px;
@@ -3903,6 +3911,13 @@
             <div class="modal-header">
                 <div class="modal-title">🎧 PARTY</div>
                 <button class="modal-close" id="partyCloseBtn">✕</button>
+            </div>
+            <div class="party-blocked" id="partyBlockedNote" style="display:none;">
+                ⚠️ <b>Parties are not switched on yet.</b><br>
+                Firestore is refusing these writes. Open the Firebase console →
+                Firestore Database → Rules, paste in <code>firestore.rules</code>
+                from the repo, and press Publish. The repo copy does nothing on
+                its own — the console is the only thing that applies it.
             </div>
             <div class="party-note" id="partyLeaderNote"></div>
             <div class="party-members" id="partyMembers"></div>
@@ -14292,6 +14307,30 @@
             meter: null
         };
 
+        /* "Missing or insufficient permissions" is Firestore saying the rules
+           in the console do not allow this write. For the party that almost
+           always means one thing — firestore.rules is in the repo but has not
+           been pasted into the Firebase console, because the repo is not what
+           Firebase reads. Saying so beats repeating the raw error, which
+           tells nobody anything. */
+        let _partyBlocked = false;
+        function partyDenied(e) {
+            const code = (e && (e.code || '')) + ' ' + ((e && e.message) || '');
+            if (!/permission|insufficient|PERMISSION_DENIED/i.test(code)) return false;
+            _partyBlocked = true;
+            partyRenderBlocked();
+            toast({ kind: 'warn', title: 'Parties are not switched on yet',
+                    body: 'Firestore is refusing the write. Publish firestore.rules: ' +
+                          'Firebase Console → Firestore Database → Rules → Publish. ' +
+                          'The file is in the repo, but the console is the only thing that applies it.',
+                    timeout: 0 });
+            return true;
+        }
+        function partyRenderBlocked() {
+            const note = document.getElementById('partyBlockedNote');
+            if (note) note.style.display = _partyBlocked ? '' : 'none';
+        }
+
         function partyMe() { return currentUser?.uid || null; }
         function partyIsLeader() { return !!(party.doc && party.doc.leader === partyMe()); }
         function partyMembers() {
@@ -14330,7 +14369,7 @@
                     at: firebase.firestore.FieldValue.serverTimestamp()
                 });
             } catch (e) {
-                toast({ kind:'warn', title:'Could not start a party', body: mpEsc(e.message) });
+                if (!partyDenied(e)) toast({ kind:'warn', title:'Could not start a party', body: mpEsc(e.message) });
                 return null;
             }
             partyAttach(ref.id);
@@ -14364,7 +14403,7 @@
                                          mic: false, at: Date.now() }
                 });
             } catch (e) {
-                toast({ kind:'warn', title:'Could not join', body: mpEsc(e.message) });
+                if (!partyDenied(e)) toast({ kind:'warn', title:'Could not join', body: mpEsc(e.message) });
                 return false;
             }
             partyAttach(id);
@@ -14444,7 +14483,7 @@
                 });
                 toast({ kind:'info', title:'Removed from party', body: mpEsc(name) });
             } catch (e) {
-                toast({ kind:'warn', title:'Could not remove', body: mpEsc(e.message) });
+                if (!partyDenied(e)) toast({ kind:'warn', title:'Could not remove', body: mpEsc(e.message) });
             }
         }
 
@@ -14479,7 +14518,7 @@
                 if (d.room?.code && d.room.code !== hadRoom && d.leader !== me) {
                     partyFollowToRoom(d.room);
                 }
-            }, err => console.warn('[Party] watch:', err.message));
+            }, err => { console.warn('[Party] watch:', err.message); partyDenied(err); });
         }
 
         function partyWatchChat() {
@@ -14505,7 +14544,7 @@
                     uid: partyMe(), name: partyMyName(), text: text, at: Date.now()
                 });
             } catch (e) {
-                toast({ kind:'warn', title:'Message not sent', body: mpEsc(e.message) });
+                if (!partyDenied(e)) toast({ kind:'warn', title:'Message not sent', body: mpEsc(e.message) });
             }
         }
 
@@ -14896,6 +14935,7 @@
             if (!party.id) { partyCreate(); }
             party.unread = 0;
             document.getElementById('partyModal')?.classList.add('active');
+            partyRenderBlocked();
             partyRender();
             partyRenderChat(true);
             playSfx('whoosh', .45);
