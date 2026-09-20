@@ -1170,6 +1170,45 @@
         .cheat-badge.bigbird { border: 2px solid var(--orange); color: #FFB347; }
 
 
+
+        /* ---- CREATE: A GAME OR A PARTY ---- */
+        .create-choice { display: flex; flex-direction: column; gap: 9px; margin: 8px 0; }
+        .create-card {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+            width: 100%; text-align: left; cursor: pointer;
+            background: rgba(255,255,255,.04); color: #e6e8f5;
+            border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+            padding: 13px 15px; font-family: inherit; min-height: 64px;
+        }
+        .create-card:hover { border-color: var(--orange, #FF6B35); background: rgba(255,107,53,.08); }
+        .create-card .cc-ico { font-size: 21px; }
+        .create-card .cc-name { font-size: 13px; font-weight: 800; letter-spacing: .6px; }
+        .create-card .cc-sub { font-size: 10px; color: #9a9db2; line-height: 1.45; }
+
+        /* ---- INVITE PICKER ---- */
+        .ip-where { font-size: 11px; color: #8d90a6; text-align: center; margin-bottom: 10px; }
+        .ip-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+        .ip-row {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,.04); border-radius: 12px; padding: 7px 10px;
+        }
+        .ip-av {
+            width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: #fff; background: #FF4655; flex: 0 0 auto;
+        }
+        .ip-who { flex: 1; min-width: 0; }
+        .ip-name { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ip-state { font-size: 9px; color: #8d90a6; margin-top: 1px; }
+        .ip-btn {
+            flex: 0 0 auto; min-height: 34px; padding: 8px 13px; cursor: pointer;
+            background: rgba(0,204,122,.14); color: #7CF0B8;
+            border: 1px solid rgba(0,204,122,.5); border-radius: 20px;
+            font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .5px;
+        }
+        .ip-btn[disabled] { opacity: .5; cursor: default; background: rgba(255,255,255,.05);
+            color: #9a9db2; border-color: rgba(255,255,255,.14); }
+        .ip-empty { font-size: 11px; color: #71748c; text-align: center; padding: 20px 8px; line-height: 1.6; }
         /* ---- PARTY ----
            The pill is fixed to the viewport rather than joining the menu deck:
            the deck is a stack of hard-coded offsets with no room left in it,
@@ -3411,6 +3450,26 @@
                 <div class="auth-error" id="mpJoinError" style="text-align:center;margin-top:8px;"></div>
             </div>
 
+            <!-- VIEW: CREATE — a game or a party? -->
+            <div id="mpViewCreateChoice" style="display:none;">
+                <div class="mp-section-title">WHAT ARE YOU MAKING?</div>
+                <div class="create-choice">
+                    <button class="create-card" id="ccGame">
+                        <span class="cc-ico">🎮</span>
+                        <span class="cc-name">GAME LOBBY</span>
+                        <span class="cc-sub">A room to play in. Pick a mode, set who can join.</span>
+                    </button>
+                    <button class="create-card" id="ccParty">
+                        <span class="cc-ico">🎧</span>
+                        <span class="cc-name">PARTY</span>
+                        <span class="cc-sub">Voice and chat that follow you between games.</span>
+                    </button>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="mp-btn-secondary" id="ccBackBtn">← BACK</button>
+                </div>
+            </div>
+
             <!-- VIEW: CREATE ROOM -->
             <div id="mpViewCreate" style="display:none;">
                 <div class="mp-section-title">ROOM NAME</div>
@@ -3514,6 +3573,7 @@
 
                 <div class="mp-lobby-actions" style="margin-top:10px;flex-wrap:wrap;">
                     <button class="mp-btn-primary" id="mpStartMatchBtn" style="display:none;">▶ START</button>
+                    <button class="mp-btn-secondary" id="mpInviteBtn">➕ INVITE FRIENDS</button>
                     <button class="mp-btn-danger" id="mpEndGameBtn" style="display:none;">⏹ END</button>
                     <button class="mp-btn-danger" id="mpLeaveLobbyBtn">LEAVE</button>
                 </div>
@@ -3804,6 +3864,20 @@
     </div>
 
     <!-- SEASONAL CALENDAR -->
+    <!-- INVITE FRIENDS — one picker, used by the lobby and by the party -->
+    <div class="mp-modal" id="invitePickerModal" style="z-index:46500;">
+        <div class="mp-modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <div class="modal-title" id="ipTitle">➕ INVITE FRIENDS</div>
+                <button class="modal-close" id="ipCloseBtn">✕</button>
+            </div>
+            <div class="ip-where" id="ipWhere"></div>
+            <input type="text" class="mp-input" id="ipSearch" placeholder="Search friends…"
+                   maxlength="24" style="text-transform:none;letter-spacing:0;margin-bottom:8px;">
+            <div class="ip-list" id="ipList"></div>
+        </div>
+    </div>
+
     <!-- PARTY -->
     <div class="mp-modal" id="partyModal" style="z-index:46400;">
         <div class="mp-modal-content" style="max-width:420px;">
@@ -10801,7 +10875,7 @@
         document.getElementById('mmRankedBtn')?.addEventListener('click', () => { mmSearch('competitive');
         });
         document.getElementById('mmCreateBtn')?.addEventListener('click', () => {
-            mmStop(); mpShowView('mpViewCreate');
+            mmStop(); mpShowView('mpViewCreateChoice');
         });
         document.getElementById('mmCodeBtn')?.addEventListener('click', () => {
             mmStop(); mpShowView('mpViewJoinCode');
@@ -13722,7 +13796,7 @@
         }
 
         // ----- LOBBY UI -----
-        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreate','mpViewLobby'];
+        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreateChoice','mpViewCreate','mpViewLobby'];
         function mpShowView(id) {
             MP_VIEWS.forEach(v => {
                 const el = document.getElementById(v);
@@ -14266,6 +14340,120 @@
             party.speaking.clear();
         }
 
+
+        /* ═══════════ INVITE PICKER ═══════════
+         *
+         * "Where is the invite friends button" was a fair question: there
+         * wasn't one. Inviting lived only as a small ✉ on a row inside the
+         * FRIENDS tab of the lobby browser, which is three taps from the
+         * lobby you are actually sitting in and nowhere near the word
+         * "invite". This is one button in the places you would look for it —
+         * the lobby and the party panel — opening one list.
+         */
+        let _ipKind = 'lobby';          // which of the two we are inviting to
+
+        function ipOpen(kind) {
+            _ipKind = kind === 'party' ? 'party' : 'lobby';
+            if (_ipKind === 'lobby' && !mpCurrentRoom) {
+                toast({ kind:'warn', title:'Not in a lobby',
+                        body:'Create or join one first, then invite.' });
+                return;
+            }
+            const where = document.getElementById('ipWhere');
+            if (where) {
+                where.textContent = _ipKind === 'party'
+                    ? 'They will join your party — voice and chat, wherever you both are.'
+                    : `They will join ${mpEsc(mpCurrentRoom.roomDisplayName || mpCurrentRoom.code)}.`;
+            }
+            const t = document.getElementById('ipTitle');
+            if (t) t.textContent = _ipKind === 'party' ? '🎧 INVITE TO PARTY' : '🎮 INVITE TO LOBBY';
+            const q = document.getElementById('ipSearch');
+            if (q) q.value = '';
+            document.getElementById('invitePickerModal')?.classList.add('active');
+            ipRender();
+            // The list is only as good as the last load of it
+            if (typeof loadPlayFabFriends === 'function') loadPlayFabFriends().then(ipRender).catch(() => {});
+            playSfx('whoosh', .45);
+        }
+
+        function ipClose() {
+            document.getElementById('invitePickerModal')?.classList.remove('active');
+        }
+
+        function ipRender() {
+            const list = document.getElementById('ipList');
+            if (!list) return;
+            const q = (document.getElementById('ipSearch')?.value || '').trim().toLowerCase();
+            const all = (typeof fList !== 'undefined' && fList.friends) ? fList.friends : [];
+            const rows = all.filter(f => !q || (f.displayName || '').toLowerCase().includes(q));
+
+            if (!all.length) {
+                list.innerHTML = '<div class="ip-empty">No friends yet.<br>Add someone with their friend code first —' +
+                                 ' the FRIENDS tab in the lobby browser has yours.</div>';
+                return;
+            }
+            if (!rows.length) { list.innerHTML = '<div class="ip-empty">Nobody by that name.</div>'; return; }
+
+            // Whoever is online goes first: they are the ones who can accept
+            const pres = (typeof _friendPresence !== 'undefined' && _friendPresence) || {};
+            rows.sort((a, b) => {
+                const ao = (pres[a.playFabId]?.status && pres[a.playFabId].status !== 'offline') ? 0 : 1;
+                const bo = (pres[b.playFabId]?.status && pres[b.playFabId].status !== 'offline') ? 0 : 1;
+                return ao - bo || (a.displayName || '').localeCompare(b.displayName || '');
+            });
+
+            list.innerHTML = rows.map(f => {
+                const initial = mpEsc((f.displayName || '?').charAt(0).toUpperCase());
+                const av = f.avatarUrl
+                    ? `<img class="ip-av" src="${mpEsc(f.avatarUrl)}" alt="" data-fallback="${initial}">`
+                    : `<div class="ip-av">${initial}</div>`;
+                const st = pres[f.playFabId]?.status || 'offline';
+                const online = st !== 'offline';
+                const already = _ipKind === 'party' && party.doc &&
+                                Object.values(party.doc.members || {}).some(m => m.playFabId === f.playFabId);
+                return `<div class="ip-row">${av}
+                    <div class="ip-who">
+                        <div class="ip-name">${mpEsc(f.displayName || 'Player')}</div>
+                        <div class="ip-state">${already ? 'already in your party' : (online ? '🟢 online' : 'offline — they will see it next time')}</div>
+                    </div>
+                    <button class="ip-btn" data-ip="${mpEsc(f.playFabId)}"
+                            data-name="${mpEsc(f.displayName || 'Player')}"${already ? ' disabled' : ''}>
+                        ${already ? 'IN PARTY' : 'INVITE'}
+                    </button></div>`;
+            }).join('');
+            if (typeof attachAvatarFallbacks === 'function') attachAvatarFallbacks(list);
+        }
+
+        function ipBind() {
+            document.getElementById('ipCloseBtn')?.addEventListener('click', ipClose);
+            document.getElementById('invitePickerModal')?.addEventListener('click', e => {
+                if (e.target.id === 'invitePickerModal') ipClose();
+            });
+            document.getElementById('ipSearch')?.addEventListener('input', ipRender);
+            document.getElementById('ipList')?.addEventListener('click', async e => {
+                const btn = e.target.closest('[data-ip]');
+                if (!btn || btn.disabled) return;
+                btn.disabled = true;
+                btn.textContent = 'SENT';
+                await inviteFriendTo(btn.dataset.ip, btn.dataset.name, _ipKind);
+            });
+            document.getElementById('mpInviteBtn')?.addEventListener('click', () => ipOpen('lobby'));
+
+            /* ---- create: a game, or a party? ---- */
+            document.getElementById('ccBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
+            document.getElementById('ccGame')?.addEventListener('click', () => {
+                mpShowView('mpViewCreate');
+                playSound(selectSound);
+            });
+            document.getElementById('ccParty')?.addEventListener('click', async () => {
+                playSound(selectSound);
+                const id = party.id || await partyCreate(true);
+                if (!id) return;
+                document.getElementById('mpModal')?.classList.remove('active');
+                partyOpen();
+            });
+        }
+
         /* ---- THE PANEL ---- */
 
         function partyPanelOpen() {
@@ -14387,16 +14575,7 @@
             document.getElementById('partyMicBtn')?.addEventListener('click', partyVoiceToggle);
             document.getElementById('partyMuteBtn')?.addEventListener('click', () => partySetMuted(!party.muted));
             document.getElementById('partyLeaveBtn')?.addEventListener('click', () => partyLeave());
-            // Straight to the friends list, which is the FRIENDS tab inside
-            // the multiplayer panel — that is where the invite buttons are.
-            document.getElementById('partyInviteBtn')?.addEventListener('click', () => {
-                partyClose();
-                document.getElementById('mpModal')?.classList.add('active');
-                if (typeof mpShowView === 'function') mpShowView('mpViewHome');
-                document.querySelector('.queue-tab[data-queue="friends"]')?.click();
-                toast({ kind:'invite', title:'Invite to party',
-                        body:'Tap 🎧 next to a friend.' });
-            });
+            document.getElementById('partyInviteBtn')?.addEventListener('click', () => ipOpen('party'));
             document.getElementById('partyMembers')?.addEventListener('click', e => {
                 const b = e.target.closest('[data-kick]');
                 if (b) partyKick(b.dataset.kick);
@@ -16182,7 +16361,7 @@
         });
 
         // Home buttons
-        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreate'); playSound(selectSound); });
+        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreateChoice'); playSound(selectSound); });
         document.getElementById('mpJoinByCodeBtn')?.addEventListener('click', () => { mpShowView('mpViewJoinCode'); playSound(selectSound); });
         document.getElementById('mpRefreshBtn')?.addEventListener('click', () => { mpRenderRoomList(); playSound(selectSound); });
         document.getElementById('mpEditProfileBtn')?.addEventListener('click', () => {
@@ -16670,6 +16849,7 @@
         }, { passive: false });
         setupSettings();
         partyBindUi();
+        ipBind();
         partyRenderPill();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
