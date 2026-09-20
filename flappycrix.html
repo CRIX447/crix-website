@@ -5491,15 +5491,9 @@
            in the bird's own space: the origin is the middle of the sprite and
            `s` is the bird's size, so the art runs from -s/2 to +s/2 on both
            axes.
-           Worth knowing before moving any of these numbers: the sprite is a
-           close-up of the character's face, not a small bird with room above
-           its head. Measured off the pixels, the hood reaches the very top of
-           the box, the face runs from about -0.22s to +0.5s, and the eyes are
-           at roughly y = -0.03s. So a hat perches around y = -0.40s, where the
-           crown is, and a mask is centred near y = 0 — over the face — rather
-           than up where a hat goes.
-           Everything is flat fill with a dark outline, to match the pipes and
-           the rest of the canvas. */
+           The measured geometry, and the rule that a hat's brim rests at the
+           crown while its body goes ABOVE the sprite, are written down at the
+           top of cosmetic-art.js. Read that before moving any of it. */
         // The shapes, the image placement and the trail renderer all live in
         // cosmetic-art.js, because the owner console draws the same cosmetics
         // and a second copy would drift the first time one was nudged.
@@ -5554,11 +5548,38 @@
         // the file has loaded and forever if it 404s, so an item with a drawn
         // shape shows that shape until its PNG is uploaded and then swaps to it
         // on the next frame, with nothing to change here.
-        function drawHatItem(context, item, birdSize) {
+        /* ---- HOW A HAT MOVES ----
+           A cap's tip, a pair of ears and a witch's cone hang off the bird
+           rather than being welded to it, so they lag behind what it does:
+           stream upward on a fall, whip over on a flap, then settle. One
+           damped spring per wearer, driven by that wearer's vertical speed.
+           It is only ever cosmetic. Nothing reads the angle back, and it is
+           never sent over the network — every client runs the same spring off
+           the velocity it already has for that player, so it stays in step
+           without costing a single extra byte. */
+        const _wobbles = new Map();          // wearer key -> spring state
+        function wobbleFor(key) {
+            let w = _wobbles.get(key);
+            if (!w) {
+                // A room churns through actor numbers, so this would otherwise
+                // grow for as long as the tab is open. A spring that gets
+                // dropped just starts at rest again, which nobody can see.
+                if (_wobbles.size > 64) _wobbles.clear();
+                w = window.CrixArt.makeWobble();
+                _wobbles.set(key, w);
+            }
+            return w;
+        }
+        function stepWobble(key, velocity, ticks) {
+            return window.CrixArt.stepWobble(wobbleFor(key), velocity, ticks);
+        }
+
+        function drawHatItem(context, item, birdSize, swing) {
             if (!item) return;
             // The cache and the saved fit are the game's; the drawing is shared.
             window.CrixArt.drawHatOn(context, item, birdSize,
-                                     cachedImage(item.image), hatFit(item.id));
+                                     cachedImage(item.image), hatFit(item.id),
+                                     swing || 0);
         }
 
         // A pipe with a lit edge, a shaded edge and a rim, so it reads as a
@@ -6450,7 +6471,7 @@
             drawSprite(ctx, birdImage, 0, 0, birdSize); 
             // Hat: sits on top of the head, above the bird's outline
             let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned);
-            if (hat) drawHatItem(ctx, hat, birdSize);
+            if (hat) drawHatItem(ctx, hat, birdSize, stepWobble('me', bird.velocity, 1));
             
             ctx.restore(); 
             const mpGodmodeActiveDraw = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
@@ -13682,13 +13703,16 @@
             });
         }
 
-        function mpDrawWornCosmetics(context, p, size) {
+        function mpDrawWornCosmetics(context, p, size, key) {
             // Trails are drawn in world space by the caller, so the only worn
             // item left here is the hat. It goes through the same entry point
             // as our own, so a drawn hat reaches other players too.
             if (!p.hat) return;
             const item = cosmetics.find(c => c.id === p.hat);
-            if (item) drawHatItem(context, item, size);
+            // Their own velocity drives their own spring, so their hat moves
+            // with what their bird is doing rather than with ours.
+            if (item) drawHatItem(context, item, size,
+                                  stepWobble('p' + key, p.vel || 0, 1));
         }
 
         function mpDrawOtherPlayers(context) {
@@ -13735,7 +13759,7 @@
                 context.translate(p.rx, p.ry);
 
                 // Rotate slightly based on velocity for natural arc
-                const rot = Math.min(Math.max((p.vel || 0) * 0.08, -0.45), 0.45);
+                const rot = Math.min(Math.max((p.vel || 0) * 0.062, -0.42), 1.15);
                 context.rotate(rot);
 
                 // Colour ring behind bird
@@ -13751,7 +13775,7 @@
                     drawSprite(context, birdImage, 0, 0, birdSize);
                     // Their equipped cosmetics. Previously these were only ever
                     // drawn on your own bird, so nobody could see anyone's drip.
-                    mpDrawWornCosmetics(context, p, birdSize);
+                    mpDrawWornCosmetics(context, p, birdSize, actorNr);
                 } else {
                     // Fallback circle if image not loaded
                     context.beginPath();
