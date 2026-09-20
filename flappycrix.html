@@ -1144,6 +1144,91 @@
         .cheat-badge.slowmo { border: 2px solid var(--green); color: #7affc7; }
         .cheat-badge.bigbird { border: 2px solid var(--orange); color: #FFB347; }
 
+
+        /* ---- PARTY ----
+           The pill is fixed to the viewport rather than joining the menu deck:
+           the deck is a stack of hard-coded offsets with no room left in it,
+           and the party has to stay reachable in a match as well, where the
+           deck is not on screen at all. */
+        .party-pill {
+            position: fixed; z-index: 44;
+            top: calc(60px + env(safe-area-inset-top)); right: 12px;
+            display: flex; align-items: center; gap: 6px;
+            background: rgba(8,6,18,.82); color: #cfd2e6;
+            border: 1px solid rgba(255,255,255,.18); border-radius: 30px;
+            padding: 7px 12px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
+            cursor: pointer; min-height: 34px;
+        }
+        .party-pill.active { border-color: rgba(0,204,122,.7); color: #7CF0B8; }
+        .party-pill.talking { border-color: #00CC7A; box-shadow: 0 0 0 2px rgba(0,204,122,.28); }
+        .party-pill .pp-ico { font-size: 14px; }
+        .party-pill .pp-dot {
+            font-style: normal; font-size: 9px; background: #FF4655; color: #fff;
+            border-radius: 20px; padding: 1px 5px; margin-left: 2px;
+        }
+        .party-note { font-size: 11px; color: #8d90a6; margin-bottom: 10px; text-align: center; }
+        .party-members { display: flex; flex-direction: column; gap: 6px; max-height: 190px; overflow-y: auto; }
+        .party-row {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,.04); border: 1px solid transparent;
+            border-radius: 12px; padding: 7px 10px;
+        }
+        .party-row.talking { border-color: rgba(0,204,122,.55); background: rgba(0,204,122,.07); }
+        .party-av, .party-av-wrap > div {
+            width: 30px; height: 30px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: #fff; background: #FF4655;
+            object-fit: cover;
+        }
+        .party-who { flex: 1; min-width: 0; }
+        .party-name { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .party-name em { font-style: normal; color: #7d7f97; font-size: 10px; }
+        .party-crown { font-style: normal; margin-left: 4px; font-size: 10px; }
+        .party-state { font-size: 9px; color: #8d90a6; margin-top: 1px; }
+        .party-kick {
+            background: none; border: none; color: #FF4655; font-size: 13px;
+            cursor: pointer; padding: 4px 6px; min-height: 30px; min-width: 30px;
+        }
+        .party-empty { font-size: 11px; color: #71748c; text-align: center; padding: 14px 6px; }
+        .party-voice-row { display: flex; gap: 8px; margin: 12px 0; }
+        .party-btn {
+            flex: 1; background: rgba(255,255,255,.06); color: #dfe1f0;
+            border: 1px solid rgba(255,255,255,.16); border-radius: 12px;
+            padding: 10px 8px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
+            cursor: pointer; min-height: 40px;
+        }
+        .party-btn.primary { background: rgba(0,204,122,.14); border-color: rgba(0,204,122,.5); color: #7CF0B8; }
+        .party-btn.primary.on { background: rgba(0,204,122,.28); }
+        .party-btn.danger { background: rgba(255,70,85,.12); border-color: rgba(255,70,85,.45); color: #FF8A94; }
+        .party-chat-title {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: 9px; letter-spacing: 1px; color: #8d90a6; margin-bottom: 5px;
+        }
+        .party-chat-title span { font-size: 8px; color: #61637a; letter-spacing: 0; }
+        .party-chat-log {
+            height: 110px; overflow-y: auto; display: flex; flex-direction: column; gap: 3px;
+            background: rgba(0,0,0,.28); border-radius: 12px; padding: 8px 10px; margin-bottom: 7px;
+        }
+        .party-msg { font-size: 11px; color: #d6d8e6; line-height: 1.45; word-break: break-word; }
+        .party-msg b { color: #FFB347; margin-right: 4px; }
+        .party-msg.mine b { color: #7CF0B8; }
+        .party-chat-row { display: flex; gap: 6px; margin-bottom: 10px; }
+        .party-chat-input {
+            flex: 1; min-width: 0; background: rgba(255,255,255,.05); color: #fff;
+            border: 1px solid rgba(255,255,255,.16); border-radius: 12px;
+            padding: 10px 12px; font-size: 12px; min-height: 40px;
+        }
+        .party-chat-row .party-btn { flex: 0 0 auto; padding: 10px 14px; }
+        .party-actions { display: flex; gap: 8px; }
+        /* In a match the pill drops to a corner, out of the score's way */
+        body.playing .party-pill, body.dead .party-pill {
+            top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
+            right: 12px; padding: 6px 10px; min-height: 30px; font-size: 10px;
+        }
+        @media (max-width: 480px) {
+            .party-pill { top: calc(52px + env(safe-area-inset-top)); right: 10px; padding: 6px 10px; }
+            .party-chat-log { height: 92px; }
+        }
         /* ---- LIMITED SEASONAL MODES ----
            The phone menu is an absolutely-positioned deck with a hard-coded
            offset per row, so a season cannot be allowed to add a row: it would
@@ -2961,6 +3046,9 @@
             <button class="logout-btn" id="logoutBtn" style="display:none;">🚪 SIGN OUT</button>
         </div>
         
+        <!-- The party follows you everywhere, so its handle does too -->
+        <button class="party-pill" id="partyPill" style="display:none;"></button>
+
         <div class="game-header" id="gameHeader">
             <div class="game-title">FLAPPY CRIX</div>
             <div class="game-sub">tap · collect · drip</div>
@@ -3691,6 +3779,33 @@
     </div>
 
     <!-- SEASONAL CALENDAR -->
+    <!-- PARTY -->
+    <div class="mp-modal" id="partyModal" style="z-index:46400;">
+        <div class="mp-modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <div class="modal-title">🎧 PARTY</div>
+                <button class="modal-close" id="partyCloseBtn">✕</button>
+            </div>
+            <div class="party-note" id="partyLeaderNote"></div>
+            <div class="party-members" id="partyMembers"></div>
+            <div class="party-voice-row">
+                <button class="party-btn primary" id="partyMicBtn">🎧 JOIN VOICE</button>
+                <button class="party-btn" id="partyMuteBtn" style="display:none;">MUTE</button>
+            </div>
+            <div class="party-chat-title">PARTY CHAT<span>no mic? type here</span></div>
+            <div class="party-chat-log" id="partyChatLog"></div>
+            <div class="party-chat-row">
+                <input class="party-chat-input" id="partyChatInput" maxlength="500"
+                       placeholder="Message the party…" autocomplete="off">
+                <button class="party-btn" id="partyChatSend">SEND</button>
+            </div>
+            <div class="party-actions">
+                <button class="party-btn" id="partyInviteBtn">➕ INVITE</button>
+                <button class="party-btn danger" id="partyLeaveBtn">LEAVE PARTY</button>
+            </div>
+        </div>
+    </div>
+
     <!-- What a seasonal run paid out -->
     <div class="mp-modal" id="smResultModal" style="z-index:46300;">
         <div class="mp-modal-content" style="max-width:380px;">
@@ -7890,7 +8005,9 @@
                     loadPlayFabFriends().catch(() => {});
                     pollNotifications(false);              // seed without toasting
                     startFriendWatcher();                  // instant updates
+                    startInviteWatcher();                  // and invites, which never arrived live
                     startRequestPolling();
+                    partyRestore().catch(() => {});        // back into the party we were in
                     PlayFabManager.setPresence(myPresence).catch(() => {});
                 }
                 refreshSettingsUI();
@@ -7979,6 +8096,10 @@
                 } else {
                     myDiscord = null;
                     clearInterval(pairPoll);
+                    // Signing out leaves the party — the account is what was in it
+                    try { partyLeave(true); } catch(e) {}
+                    try { stopInviteWatcher(); } catch(e) {}
+                    try { partyRenderPill(); } catch(e) {}
                     try { refreshDiscordRow(); } catch(e) {}
                     try { hideVerifyBanner(); } catch(e) {}
                 }
@@ -11779,14 +11900,136 @@
             }
         }
 
+
+        /* ═══════════ INVITES ═══════════
+         *
+         * Invites were being written and never read live: pollNotifications
+         * only ran at sign-in and when the notification panel was opened, and
+         * both of those pass announce=false. So an invite sat in Firestore
+         * until the person happened to open a panel, which is not an invite.
+         * This watches for them, so one arrives while you are looking at
+         * whatever you are looking at.
+         *
+         * The same document carries both kinds: a lobby invite has a roomCode,
+         * a party invite has a partyId. One listener, one toast, two verbs.
+         */
+        let _inviteWatcher = null;
+        const _inviteSeen = new Set();
+
+        function startInviteWatcher() {
+            stopInviteWatcher();
+            if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
+            if (!PlayFabManager.playFabId || !db) return;
+            try {
+                _inviteWatcher = db.collection('invites')
+                    .where('toPlayFabId', '==', PlayFabManager.playFabId)
+                    .onSnapshot(snap => {
+                        const live = [];
+                        snap.docChanges().forEach(ch => {
+                            if (ch.type === 'removed') return;
+                            const v = ch.doc.data();
+                            // Ten minutes is long enough to answer an invite and
+                            // short enough that a stale one is not offered.
+                            if (Date.now() - (v.at || 0) > 600000) {
+                                ch.doc.ref.delete().catch(() => {});
+                                return;
+                            }
+                            if (_inviteSeen.has(ch.doc.id)) return;
+                            _inviteSeen.add(ch.doc.id);
+                            showInviteToast({ id: ch.doc.id, from: v.fromPlayFabId, name: v.name || 'A player',
+                                              roomCode: v.roomCode || null, partyId: v.partyId || null,
+                                              mode: v.mode || 'freemode', at: v.at });
+                        });
+                        pendingInvites = snap.docs
+                            .map(d => Object.assign({ id: d.id }, d.data()))
+                            .filter(v => Date.now() - (v.at || 0) <= 600000);
+                        updateNotifBadge();
+                        renderNotifList();
+                    }, err => {
+                        console.warn('[Invites] listener failed, polling instead:', err.message);
+                        _inviteWatcher = null;
+                        if (!window._invitePoll) window._invitePoll = setInterval(() => pollNotifications(true), 30000);
+                    });
+                console.log('[Invites] live listener attached');
+            } catch (e) {
+                console.warn('[Invites]', e.message);
+            }
+        }
+
+        function stopInviteWatcher() {
+            if (_inviteWatcher) { try { _inviteWatcher(); } catch (e) {} _inviteWatcher = null; }
+            if (window._invitePoll) { clearInterval(window._invitePoll); window._invitePoll = null; }
+            _inviteSeen.clear();
+        }
+
+        function showInviteToast(inv) {
+            const isParty = !!inv.partyId;
+            toast({
+                kind: 'invite',
+                title: isParty ? '🎧 Party invite' : '🎮 Lobby invite',
+                body: isParty
+                    ? `${mpEsc(inv.name)} wants you in their party.`
+                    : `${mpEsc(inv.name)} invited you to a ${mpEsc(inv.mode)} match.`,
+                timeout: 0,
+                actions: [
+                    { label: isParty ? 'Join' : 'Join', style: 'yes',
+                      onClick: () => acceptInvite(inv) },
+                    { label: 'Dismiss', style: 'no', onClick: () => dismissInvite(inv) }
+                ]
+            });
+            playSfx('pop', .5);
+        }
+
+        function dismissInvite(inv) {
+            if (!inv?.id || !db) return;
+            db.collection('invites').doc(inv.id).delete().catch(() => {});
+        }
+
+        // Invite a friend to whichever of the two we are in. A party beats a
+        // lobby: bring them to the group and the group takes them to the game.
+        async function inviteFriendTo(playFabId, name, kind) {
+            const u = currentUser;
+            if (!u || !db || !PlayFabManager?.playFabId) {
+                toast({ kind:'warn', title:'Sign in first', body:'' });
+                return;
+            }
+            if (kind === 'party' && !party.id) {
+                const made = await partyCreate(true);
+                if (!made) return;
+            }
+            if (kind === 'lobby' && !mpCurrentRoom) {
+                toast({ kind:'warn', title:'Not in a lobby', body:'Create or join one first.' });
+                return;
+            }
+            const payload = {
+                toPlayFabId: playFabId,
+                fromPlayFabId: PlayFabManager.playFabId,
+                fromUid: u.uid,
+                name: partyMyName(),
+                mode: kind === 'party' ? 'party' : (mpCurrentRoom?.mode || 'freemode'),
+                at: Date.now()
+            };
+            if (kind === 'party') payload.partyId = party.id;
+            else payload.roomCode = mpCurrentRoom.code;
+            try {
+                await db.collection('invites')
+                        .doc(`${playFabId}_${PlayFabManager.playFabId}`).set(payload);
+                toast({ kind:'invite', title:'Invite sent',
+                        body:`${mpEsc(name || 'They')} ${kind === 'party' ? 'was invited to your party.' : 'has been invited.'}` });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not invite', body: mpEsc(e.message) });
+            }
+        }
+
         function acceptInvite(inv) {
+            dismissInvite(inv);
+            if (inv.partyId) { partyJoin(inv.partyId).then(ok => { if (ok) partyOpen(); }); return; }
             if (mpCurrentRoom) { mpLeaveLobby(); }
             const input = document.getElementById('mpJoinCodeInput');
             if (input) input.value = inv.roomCode;
             document.getElementById('mpModal')?.classList.add('active');
             mpShowView('mpViewJoinCode');
             setTimeout(() => mpJoinByCode(), 250);
-            PlayFabManager.clearInvites?.().catch(() => {});
         }
 
         // The notification centre is rendered by renderNotifCentre(); this
@@ -12285,6 +12528,7 @@
                         `<button class="friend-btn fav"  data-act="fav"    title="Favourite">${f.favourite ? '★' : '☆'}</button>` +
                         (joinable ? `<button class="friend-btn join" data-act="joinlobby" title="Join their lobby">▶</button>` : '') +
                         (mpCurrentRoom ? `<button class="friend-btn join" data-act="invite" title="Invite to your lobby">✉</button>` : '') +
+                        `<button class="friend-btn join" data-act="party" title="Invite to your party">🎧</button>` +
                         `<button class="friend-btn"      data-act="block"  title="Block" style="color:#FFB347">⊘</button>` +
                         `<button class="friend-btn rm"   data-act="remove" title="Remove">✕</button>`;
                 } else if (friendTab === 'incoming') {
@@ -12378,10 +12622,11 @@
                         return;
                     }
                     case 'invite':
-                        if (!mpCurrentRoom) { toast({kind:'warn',title:'Not in a lobby',body:'Create or join one first.'}); return; }
-                        await PlayFabManager.sendInvite(id, mpCurrentRoom.code, mpCurrentRoom.mode);
-                        toast({ kind:'invite', title:'Invite sent', body:`${mpEsc(f.displayName)} has been invited.` });
+                        await inviteFriendTo(id, f.displayName, 'lobby');
                         return;   // no reload needed
+                    case 'party':
+                        await inviteFriendTo(id, f.displayName, 'party');
+                        return;
                 }
                 await loadPlayFabFriends();
             } catch (e) {
@@ -13238,6 +13483,8 @@
                 };
             }
             mpMatchMode = mpCurrentRoom.mode;
+            // Leading a party means the lobby you are in is where the party is
+            if (party.id && partyIsLeader()) partySetRoom(mpCurrentRoom);
 
             // Seed players using correct API: myRoomActorsArray()
             mpPlayers = {};
@@ -13397,6 +13644,698 @@
             // that reappears every time the view is shown.
             voiceAutoStart();
         }
+
+
+        /* ═══════════════ PARTY ═══════════════
+         *
+         * An Xbox-style party: a group that persists across games, with voice
+         * for whoever has a microphone and text for whoever does not. You stay
+         * in it through the menu, through a match, and through going back to
+         * the menu again.
+         *
+         * WHY IT DOES NOT RIDE ON PHOTON. In-game voice is signalled through
+         * the Photon room, which works because everyone in that voice mesh is
+         * in that room. A party outlives rooms — half of it can be in a match
+         * while the rest is on the menu — and a Photon client can only be in
+         * one room at a time. So the party lives in Firestore: the members and
+         * the chat in a document, and the WebRTC handshake in a subcollection.
+         * That also means party voice survives joining and leaving lobbies,
+         * which is the entire point of a party.
+         *
+         *   parties/{id}            leader, memberIds[], members{}, room
+         *   parties/{id}/chat/{id}  uid, name, text, at
+         *   parties/{id}/signal/{id} from, to, type, data      (WebRTC only)
+         */
+        const PARTY_MAX = 8;
+        const PARTY_CHAT_KEEP = 60;          // messages held in the log
+        const PARTY_KEY = 'crix_party_v1';   // so a refresh rejoins
+
+        const party = {
+            id: null,
+            doc: null,          // the last snapshot of the party document
+            unsub: null,        // members
+            unsubChat: null,
+            unsubSignal: null,
+            chat: [],
+            unread: 0,
+            // voice, its own mesh with its own signalling
+            micOn: false,
+            micBusy: false,
+            muted: false,
+            stream: null,
+            peers: new Map(),   // uid -> { pc, audio, level }
+            speaking: new Set(),
+            meter: null
+        };
+
+        function partyMe() { return currentUser?.uid || null; }
+        function partyIsLeader() { return !!(party.doc && party.doc.leader === partyMe()); }
+        function partyMembers() {
+            if (!party.doc) return [];
+            return (party.doc.memberIds || [])
+                .map(uid => Object.assign({ uid: uid }, party.doc.members?.[uid] || {}))
+                .filter(m => m.name);
+        }
+        function partyMyName() {
+            return currentUser?.displayName || (typeof mpGetDisplayName === 'function' ? mpGetDisplayName() : 'Player');
+        }
+        function partyMyAvatar() {
+            return currentUser?.photoURL || null;
+        }
+
+        /* ---- joining and leaving ---- */
+
+        async function partyCreate(quiet) {
+            if (!db || !partyMe()) {
+                toast({ kind:'warn', title:'Sign in first', body:'A party needs an account.' });
+                return null;
+            }
+            if (party.id) return party.id;
+            const me = partyMe();
+            const ref = db.collection('parties').doc();
+            const member = { name: partyMyName(), avatar: partyMyAvatar(),
+                             playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                             mic: false, at: Date.now() };
+            try {
+                await ref.set({
+                    leader: me,
+                    leaderName: member.name,
+                    memberIds: [me],
+                    members: { [me]: member },
+                    room: null,
+                    at: firebase.firestore.FieldValue.serverTimestamp()
+                });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not start a party', body: mpEsc(e.message) });
+                return null;
+            }
+            partyAttach(ref.id);
+            if (!quiet) toast({ kind:'invite', title:'🎧 Party started',
+                                body:'Invite friends from the friends list.' });
+            return ref.id;
+        }
+
+        async function partyJoin(id) {
+            if (!db || !partyMe() || !id) return false;
+            if (party.id === id) return true;
+            if (party.id) await partyLeave(true);
+            const me = partyMe();
+            const ref = db.collection('parties').doc(id);
+            try {
+                const snap = await ref.get();
+                if (!snap.exists) {
+                    toast({ kind:'warn', title:'Party is gone', body:'That party has closed.' });
+                    return false;
+                }
+                const d = snap.data();
+                if ((d.memberIds || []).length >= PARTY_MAX && !(d.memberIds || []).includes(me)) {
+                    toast({ kind:'warn', title:'Party is full',
+                            body:`A party holds ${PARTY_MAX}.` });
+                    return false;
+                }
+                await ref.update({
+                    memberIds: firebase.firestore.FieldValue.arrayUnion(me),
+                    ['members.' + me]: { name: partyMyName(), avatar: partyMyAvatar(),
+                                         playFabId: (typeof PlayFabManager !== 'undefined' && PlayFabManager.playFabId) || null,
+                                         mic: false, at: Date.now() }
+                });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not join', body: mpEsc(e.message) });
+                return false;
+            }
+            partyAttach(id);
+            playSfx('unlock', .5);
+            return true;
+        }
+
+        function partyAttach(id) {
+            party.id = id;
+            try { localStorage.setItem(PARTY_KEY, id); } catch (e) {}
+            partyWatch();
+            partyWatchChat();
+            partyWatchSignal();
+            partyRender();
+        }
+
+        async function partyLeave(quiet) {
+            const id = party.id, me = partyMe();
+            partyVoiceStop();
+            partyDetach();
+            if (!id || !me || !db) { partyRender(); return; }
+            const ref = db.collection('parties').doc(id);
+            try {
+                const snap = await ref.get();
+                if (!snap.exists) return;
+                const d = snap.data();
+                const left = (d.memberIds || []).filter(u => u !== me);
+                if (!left.length) {
+                    // Last one out closes the party rather than leaving an
+                    // empty document for an invite to point at.
+                    await partyWipe(ref);
+                } else {
+                    const patch = {
+                        memberIds: firebase.firestore.FieldValue.arrayRemove(me),
+                        ['members.' + me]: firebase.firestore.FieldValue.delete()
+                    };
+                    // The leader leaving hands it to whoever has been in longest
+                    if (d.leader === me) {
+                        patch.leader = left[0];
+                        patch.leaderName = d.members?.[left[0]]?.name || 'Player';
+                    }
+                    await ref.update(patch);
+                }
+            } catch (e) { console.warn('[Party] leave:', e.message); }
+            if (!quiet) toast({ kind:'info', title:'Left the party', body:'' });
+            partyRender();
+        }
+
+        async function partyWipe(ref) {
+            // Subcollections do not go with the parent, so clear them first or
+            // the chat and half-finished handshakes outlive the party.
+            for (const sub of ['chat', 'signal']) {
+                try {
+                    const s = await ref.collection(sub).get();
+                    await Promise.all(s.docs.map(d => d.ref.delete().catch(() => {})));
+                } catch (e) {}
+            }
+            await ref.delete().catch(() => {});
+        }
+
+        function partyDetach() {
+            [party.unsub, party.unsubChat, party.unsubSignal].forEach(fn => {
+                if (fn) { try { fn(); } catch (e) {} }
+            });
+            party.unsub = party.unsubChat = party.unsubSignal = null;
+            party.id = null; party.doc = null; party.chat = []; party.unread = 0;
+            try { localStorage.removeItem(PARTY_KEY); } catch (e) {}
+        }
+
+        async function partyKick(uid) {
+            if (!partyIsLeader() || !party.id || uid === partyMe()) return;
+            const name = party.doc?.members?.[uid]?.name || 'They';
+            try {
+                await db.collection('parties').doc(party.id).update({
+                    memberIds: firebase.firestore.FieldValue.arrayRemove(uid),
+                    ['members.' + uid]: firebase.firestore.FieldValue.delete()
+                });
+                toast({ kind:'info', title:'Removed from party', body: mpEsc(name) });
+            } catch (e) {
+                toast({ kind:'warn', title:'Could not remove', body: mpEsc(e.message) });
+            }
+        }
+
+        /* ---- watching ---- */
+
+        function partyWatch() {
+            if (party.unsub) { try { party.unsub(); } catch (e) {} }
+            if (!db || !party.id) return;
+            party.unsub = db.collection('parties').doc(party.id).onSnapshot(snap => {
+                if (!snap.exists) {
+                    // Closed, or we were removed from it
+                    partyVoiceStop();
+                    partyDetach();
+                    partyRender();
+                    toast({ kind:'info', title:'Party closed', body:'' });
+                    return;
+                }
+                const d = snap.data();
+                const me = partyMe();
+                if (me && !(d.memberIds || []).includes(me)) {
+                    partyVoiceStop();
+                    partyDetach();
+                    partyRender();
+                    toast({ kind:'warn', title:'Removed from the party', body:'' });
+                    return;
+                }
+                const hadRoom = party.doc?.room?.code || null;
+                party.doc = d;
+                partyRender();
+                partyVoiceSync();
+                // The leader taking the party into a lobby brings everyone
+                if (d.room?.code && d.room.code !== hadRoom && d.leader !== me) {
+                    partyFollowToRoom(d.room);
+                }
+            }, err => console.warn('[Party] watch:', err.message));
+        }
+
+        function partyWatchChat() {
+            if (party.unsubChat) { try { party.unsubChat(); } catch (e) {} }
+            if (!db || !party.id) return;
+            party.unsubChat = db.collection('parties').doc(party.id)
+                .collection('chat').orderBy('at', 'desc').limit(PARTY_CHAT_KEEP)
+                .onSnapshot(snap => {
+                    const wasOpen = partyPanelOpen();
+                    const before = party.chat.length;
+                    party.chat = snap.docs.map(d => d.data()).reverse();
+                    if (!wasOpen && party.chat.length > before) party.unread++;
+                    partyRenderChat();
+                    partyRenderPill();
+                }, err => console.warn('[Party] chat:', err.message));
+        }
+
+        async function partySay(text) {
+            text = (text || '').trim().slice(0, 500);
+            if (!text || !party.id || !db) return;
+            try {
+                await db.collection('parties').doc(party.id).collection('chat').add({
+                    uid: partyMe(), name: partyMyName(), text: text, at: Date.now()
+                });
+            } catch (e) {
+                toast({ kind:'warn', title:'Message not sent', body: mpEsc(e.message) });
+            }
+        }
+
+        /* ---- taking the party into a game ---- */
+
+        // The leader broadcasts where the party is playing; everyone else's
+        // watcher sees the room change and follows.
+        async function partySetRoom(room) {
+            if (!party.id || !partyIsLeader() || !db) return;
+            try {
+                await db.collection('parties').doc(party.id)
+                        .update({ room: room ? { code: room.code, mode: room.mode || 'freemode' } : null });
+            } catch (e) { console.warn('[Party] room:', e.message); }
+        }
+
+        function partyFollowToRoom(room) {
+            if (!room?.code) return;
+            if (mpCurrentRoom && mpCurrentRoom.code === room.code) return;
+            toast({ kind:'invite', title:'🎧 Party is playing',
+                    body:'Taking you to the lobby…' });
+            if (mpCurrentRoom && typeof mpLeaveLobby === 'function') mpLeaveLobby();
+            const input = document.getElementById('mpJoinCodeInput');
+            if (input) input.value = room.code;
+            document.getElementById('mpModal')?.classList.add('active');
+            if (typeof mpShowView === 'function') mpShowView('mpViewJoinCode');
+            setTimeout(() => { if (typeof mpJoinByCode === 'function') mpJoinByCode(); }, 350);
+        }
+
+        /* ---- PARTY VOICE ----
+         * The same WebRTC mesh as the in-game one, signalled through Firestore
+         * instead of Photon so it can outlive any room. One side has to make
+         * the offer or both do and neither connects: the lower uid calls, an
+         * ordering both ends agree on without another round trip — the same
+         * rule as the room mesh, with uids in place of actor numbers.
+         */
+        function partyShouldCall(uid) { return (partyMe() || '') < uid; }
+
+        async function partySignal(to, type, data) {
+            if (!party.id || !db) return;
+            try {
+                await db.collection('parties').doc(party.id).collection('signal').add({
+                    from: partyMe(), to: to, type: type, data: data, at: Date.now()
+                });
+            } catch (e) { console.warn('[Party voice] signal:', e.message); }
+        }
+
+        function partyWatchSignal() {
+            if (party.unsubSignal) { try { party.unsubSignal(); } catch (e) {} }
+            if (!db || !party.id || !partyMe()) return;
+            party.unsubSignal = db.collection('parties').doc(party.id)
+                .collection('signal').where('to', '==', partyMe())
+                .onSnapshot(snap => {
+                    snap.docChanges().forEach(async ch => {
+                        if (ch.type !== 'added') return;
+                        const v = ch.doc.data();
+                        // Each message is for one handshake step and is no use
+                        // twice, so it is deleted as it is consumed.
+                        ch.doc.ref.delete().catch(() => {});
+                        if (Date.now() - (v.at || 0) > 60000) return;   // stale
+                        try { await partyOnSignal(v); }
+                        catch (e) { console.warn('[Party voice]', e.message); }
+                    });
+                }, err => console.warn('[Party voice] watch:', err.message));
+        }
+
+        async function partyOnSignal(v) {
+            if (!party.micOn && v.type !== 'bye') return;
+            if (v.type === 'offer')  return partyOnOffer(v.from, v.data);
+            if (v.type === 'answer') {
+                const p = party.peers.get(v.from);
+                if (p) await p.pc.setRemoteDescription({ type:'answer', sdp: v.data });
+                return;
+            }
+            if (v.type === 'ice') {
+                const p = party.peers.get(v.from);
+                if (p && p.pc.remoteDescription) {
+                    await p.pc.addIceCandidate(JSON.parse(v.data)).catch(() => {});
+                }
+                return;
+            }
+            if (v.type === 'bye') partyDropPeer(v.from);
+        }
+
+        function partyPeer(uid) {
+            let peer = party.peers.get(uid);
+            if (peer) return peer;
+            if (party.peers.size >= VOICE_MAX_PEERS) return null;
+            const pc = new RTCPeerConnection({ iceServers: iceServers() });
+            const audio = new Audio();
+            audio.autoplay = true;
+            peer = { pc: pc, audio: audio, stream: null, level: 0 };
+            party.peers.set(uid, peer);
+            if (party.stream) party.stream.getTracks().forEach(t => pc.addTrack(t, party.stream));
+            pc.onicecandidate = e => {
+                if (e.candidate) partySignal(uid, 'ice', JSON.stringify(e.candidate));
+            };
+            pc.ontrack = e => {
+                peer.stream = e.streams[0];
+                audio.srcObject = peer.stream;
+                const sink = window.CrixAudio && CrixAudio.speakerId;
+                if (sink && 'setSinkId' in audio) audio.setSinkId(sink).catch(() => {});
+                audio.play().catch(() => {});
+                partyRender();
+            };
+            pc.onconnectionstatechange = () => {
+                if (['failed', 'closed'].includes(pc.connectionState)) partyDropPeer(uid);
+                partyRender();
+            };
+            return peer;
+        }
+
+        async function partyCall(uid) {
+            const peer = partyPeer(uid);
+            if (!peer) return;
+            try {
+                const offer = await peer.pc.createOffer({ offerToReceiveAudio: true });
+                await peer.pc.setLocalDescription(offer);
+                partySignal(uid, 'offer', offer.sdp);
+            } catch (e) { console.warn('[Party voice] call:', e.message); }
+        }
+
+        async function partyOnOffer(uid, sdp) {
+            const peer = partyPeer(uid);
+            if (!peer) return;
+            await peer.pc.setRemoteDescription({ type:'offer', sdp: sdp });
+            const answer = await peer.pc.createAnswer();
+            await peer.pc.setLocalDescription(answer);
+            partySignal(uid, 'answer', answer.sdp);
+        }
+
+        function partyDropPeer(uid) {
+            const p = party.peers.get(uid);
+            if (!p) return;
+            try { p.pc.close(); } catch (e) {}
+            try { p.audio.srcObject = null; } catch (e) {}
+            party.peers.delete(uid);
+            party.speaking.delete(uid);
+        }
+
+        async function partyVoiceStart() {
+            if (party.micOn || party.micBusy || !party.id) return;
+            if (!voiceSupported()) {
+                toast({ kind:'warn', title:'No voice here',
+                        body:'This browser cannot open a microphone. You can still type in party chat.' });
+                return;
+            }
+            party.micBusy = true;
+            partyRender();
+            try {
+                party.stream = await navigator.mediaDevices.getUserMedia(
+                    window.CrixAudio ? CrixAudio.micConstraints() : { audio: true });
+            } catch (e) {
+                party.micBusy = false;
+                partyRender();
+                toast({ kind:'warn', title:'Microphone blocked',
+                        body: e.name === 'NotAllowedError'
+                            ? 'Allow the mic to talk — or type in party chat instead.'
+                            : 'No microphone found. Party chat still works.' });
+                return;
+            }
+            party.micOn = true;
+            party.micBusy = false;
+            if (window.CrixAudio) CrixAudio.refresh();
+            partyMeterStart();
+            await partySetMic(true);
+            partyVoiceSync();
+            partyRender();
+        }
+
+        function partyVoiceStop() {
+            if (!party.micOn && !party.stream) return;
+            party.micOn = false;
+            party.micBusy = false;
+            partyMeterStop();
+            party.peers.forEach((_, uid) => { partySignal(uid, 'bye', ''); partyDropPeer(uid); });
+            party.peers.clear();
+            party.speaking.clear();
+            if (party.stream) {
+                party.stream.getTracks().forEach(t => t.stop());
+                party.stream = null;
+            }
+            partySetMic(false);
+            partyRender();
+        }
+
+        function partyVoiceToggle() { party.micOn ? partyVoiceStop() : partyVoiceStart(); }
+
+        function partySetMuted(m) {
+            party.muted = m;
+            if (party.stream) party.stream.getAudioTracks().forEach(t => { t.enabled = !m; });
+            partyRender();
+        }
+
+        async function partySetMic(on) {
+            if (!party.id || !db || !partyMe()) return;
+            try {
+                await db.collection('parties').doc(party.id)
+                        .update({ ['members.' + partyMe() + '.mic']: !!on });
+            } catch (e) {}
+        }
+
+        // Connect to everyone in the party who also has their mic on, and drop
+        // anyone who has left or switched theirs off.
+        function partyVoiceSync() {
+            if (!party.micOn || !party.doc) {
+                if (!party.micOn && party.peers.size) {
+                    party.peers.forEach((_, uid) => partyDropPeer(uid));
+                }
+                return;
+            }
+            const me = partyMe();
+            const want = new Set(
+                (party.doc.memberIds || []).filter(u => u !== me && party.doc.members?.[u]?.mic));
+            party.peers.forEach((_, uid) => { if (!want.has(uid)) partyDropPeer(uid); });
+            want.forEach(uid => {
+                if (party.peers.has(uid)) return;
+                // Only one side opens the connection; the other waits for it.
+                if (partyShouldCall(uid)) partyCall(uid);
+            });
+        }
+
+        /* Who is talking. Nothing here is sent anywhere — each client measures
+           the streams it already has, so the ring round an avatar costs no
+           traffic at all. */
+        function partyMeterStart() {
+            partyMeterStop();
+            let ctx;
+            try { ctx = new (window.AudioContext || window.webkitAudioContext)(); }
+            catch (e) { return; }
+            const nodes = new Map();
+            const attach = (key, stream) => {
+                if (!stream || nodes.has(key)) return;
+                try {
+                    const src = ctx.createMediaStreamSource(stream);
+                    const an = ctx.createAnalyser();
+                    an.fftSize = 512;
+                    src.connect(an);
+                    nodes.set(key, { an: an, buf: new Uint8Array(an.frequencyBinCount) });
+                } catch (e) {}
+            };
+            party.meter = setInterval(() => {
+                if (party.stream) attach('me', party.stream);
+                party.peers.forEach((p, uid) => attach(uid, p.stream));
+                let changed = false;
+                nodes.forEach((n, key) => {
+                    n.an.getByteFrequencyData(n.buf);
+                    let sum = 0;
+                    for (let i = 0; i < n.buf.length; i++) sum += n.buf[i];
+                    const loud = (sum / n.buf.length) > 12;
+                    const uid = key === 'me' ? partyMe() : key;
+                    const was = party.speaking.has(uid);
+                    if (loud && !was) { party.speaking.add(uid); changed = true; }
+                    else if (!loud && was) { party.speaking.delete(uid); changed = true; }
+                });
+                if (changed) partyRenderMembers();
+            }, 180);
+            party._meterCtx = ctx;
+        }
+
+        function partyMeterStop() {
+            if (party.meter) { clearInterval(party.meter); party.meter = null; }
+            if (party._meterCtx) { try { party._meterCtx.close(); } catch (e) {} party._meterCtx = null; }
+            party.speaking.clear();
+        }
+
+        /* ---- THE PANEL ---- */
+
+        function partyPanelOpen() {
+            return !!document.getElementById('partyModal')?.classList.contains('active');
+        }
+
+        function partyOpen() {
+            if (!party.id) { partyCreate(); }
+            party.unread = 0;
+            document.getElementById('partyModal')?.classList.add('active');
+            partyRender();
+            partyRenderChat(true);
+            playSfx('whoosh', .45);
+        }
+        function partyClose() {
+            document.getElementById('partyModal')?.classList.remove('active');
+            partyRenderPill();
+        }
+
+        function partyRender() {
+            partyRenderPill();
+            partyRenderMembers();
+            const mic = document.getElementById('partyMicBtn');
+            if (mic) {
+                mic.classList.toggle('on', party.micOn && !party.muted);
+                mic.classList.toggle('busy', party.micBusy);
+                mic.innerHTML = party.micBusy ? '⏳ ASKING…'
+                              : party.micOn ? (party.muted ? '🔇 MUTED' : '🎙️ TALKING')
+                              : '🎧 JOIN VOICE';
+            }
+            const mute = document.getElementById('partyMuteBtn');
+            if (mute) {
+                mute.style.display = party.micOn ? '' : 'none';
+                mute.textContent = party.muted ? 'UNMUTE' : 'MUTE';
+            }
+            const lead = document.getElementById('partyLeaderNote');
+            if (lead) {
+                lead.textContent = party.doc
+                    ? (partyIsLeader() ? 'You lead this party — the lobby you join takes everyone with you.'
+                                       : mpEsc(party.doc.leaderName || 'The leader') + ' leads this party.')
+                    : '';
+            }
+            const inv = document.getElementById('partyInviteBtn');
+            if (inv) inv.style.display = party.id ? '' : 'none';
+            const lv = document.getElementById('partyLeaveBtn');
+            if (lv) lv.style.display = party.id ? '' : 'none';
+        }
+
+        function partyRenderPill() {
+            const pill = document.getElementById('partyPill');
+            if (!pill) return;
+            // Signed out there is nothing to be in, so the pill stays away.
+            if (!partyMe()) { pill.style.display = 'none'; return; }
+            pill.style.display = '';
+            const n = partyMembers().length;
+            const talking = party.speaking.size > 0;
+            pill.classList.toggle('active', !!party.id);
+            pill.classList.toggle('talking', talking);
+            pill.innerHTML = party.id
+                ? `<span class="pp-ico">🎧</span><span class="pp-n">${n}</span>` +
+                  (party.unread ? `<i class="pp-dot">${party.unread > 9 ? '9+' : party.unread}</i>` : '')
+                : `<span class="pp-ico">🎧</span><span class="pp-lbl">PARTY</span>`;
+            pill.title = party.id ? `Party · ${n} member${n === 1 ? '' : 's'}` : 'Start a party';
+        }
+
+        function partyRenderMembers() {
+            const list = document.getElementById('partyMembers');
+            if (!list) return;
+            const rows = partyMembers();
+            if (!rows.length) {
+                list.innerHTML = '<div class="party-empty">No party yet. Start one, then invite friends.</div>';
+                return;
+            }
+            const me = partyMe();
+            list.innerHTML = rows.map(m => {
+                const initial = mpEsc((m.name || '?').charAt(0).toUpperCase());
+                const av = m.avatar
+                    ? `<img class="party-av" src="${mpEsc(m.avatar)}" alt="" data-fallback="${initial}">`
+                    : `<div class="party-av">${initial}</div>`;
+                const talking = party.speaking.has(m.uid);
+                // Someone with no microphone is not broken — they type instead,
+                // and the row says so rather than showing a dead mic icon.
+                const state = m.mic ? (talking ? '🔊 talking' : '🎙️ voice') : '⌨️ typing only';
+                const crown = party.doc?.leader === m.uid ? '<i class="party-crown" title="Party leader">👑</i>' : '';
+                const kick = (partyIsLeader() && m.uid !== me)
+                    ? `<button class="party-kick" data-kick="${mpEsc(m.uid)}" title="Remove">✕</button>` : '';
+                return `<div class="party-row${talking ? ' talking' : ''}">
+                    <div class="party-av-wrap">${av}</div>
+                    <div class="party-who">
+                        <div class="party-name">${mpEsc(m.name)}${crown}${m.uid === me ? ' <em>(you)</em>' : ''}</div>
+                        <div class="party-state">${state}</div>
+                    </div>${kick}
+                </div>`;
+            }).join('');
+            if (typeof attachAvatarFallbacks === 'function') attachAvatarFallbacks(list);
+        }
+
+        function partyRenderChat(scroll) {
+            const log = document.getElementById('partyChatLog');
+            if (!log) return;
+            if (!party.chat.length) {
+                log.innerHTML = '<div class="party-empty">Nothing said yet. No microphone? Type here.</div>';
+                return;
+            }
+            const me = partyMe();
+            log.innerHTML = party.chat.map(m =>
+                `<div class="party-msg${m.uid === me ? ' mine' : ''}">` +
+                `<b>${mpEsc(m.name || 'Player')}</b> ${mpEsc(m.text || '')}</div>`).join('');
+            if (scroll !== false) log.scrollTop = log.scrollHeight;
+        }
+
+        /* ---- wiring ---- */
+        function partyBindUi() {
+            document.getElementById('partyPill')?.addEventListener('click', partyOpen);
+            document.getElementById('partyCloseBtn')?.addEventListener('click', partyClose);
+            document.getElementById('partyModal')?.addEventListener('click', e => {
+                if (e.target.id === 'partyModal') partyClose();
+            });
+            document.getElementById('partyMicBtn')?.addEventListener('click', partyVoiceToggle);
+            document.getElementById('partyMuteBtn')?.addEventListener('click', () => partySetMuted(!party.muted));
+            document.getElementById('partyLeaveBtn')?.addEventListener('click', () => partyLeave());
+            // Straight to the friends list, which is the FRIENDS tab inside
+            // the multiplayer panel — that is where the invite buttons are.
+            document.getElementById('partyInviteBtn')?.addEventListener('click', () => {
+                partyClose();
+                document.getElementById('mpModal')?.classList.add('active');
+                if (typeof mpShowView === 'function') mpShowView('mpViewHome');
+                document.querySelector('.queue-tab[data-queue="friends"]')?.click();
+                toast({ kind:'invite', title:'Invite to party',
+                        body:'Tap 🎧 next to a friend.' });
+            });
+            document.getElementById('partyMembers')?.addEventListener('click', e => {
+                const b = e.target.closest('[data-kick]');
+                if (b) partyKick(b.dataset.kick);
+            });
+            const send = () => {
+                const i = document.getElementById('partyChatInput');
+                if (!i || !i.value.trim()) return;
+                partySay(i.value);
+                i.value = '';
+            };
+            document.getElementById('partyChatSend')?.addEventListener('click', send);
+            document.getElementById('partyChatInput')?.addEventListener('keydown', e => {
+                if (e.key === 'Enter') { e.preventDefault(); send(); }
+            });
+        }
+
+        // Rejoin whatever party we were in before the refresh, if it is still
+        // there. A party that has closed just quietly drops the stored id.
+        async function partyRestore() {
+            if (!db || !partyMe() || party.id) return;
+            let saved = null;
+            try { saved = localStorage.getItem(PARTY_KEY); } catch (e) {}
+            if (!saved) return;
+            try {
+                const snap = await db.collection('parties').doc(saved).get();
+                if (!snap.exists) { try { localStorage.removeItem(PARTY_KEY); } catch (e) {} return; }
+                if ((snap.data().memberIds || []).includes(partyMe())) partyAttach(saved);
+                else await partyJoin(saved);
+            } catch (e) {
+                try { localStorage.removeItem(PARTY_KEY); } catch (e2) {}
+            }
+        }
+
+        // Leaving the tab open in a party and closing it should not leave a
+        // ghost in the member list for everyone else.
+        window.addEventListener('pagehide', () => {
+            if (party.id) { try { partyLeave(true); } catch (e) {} }
+        });
 
         function voiceAutoStart() {
             if (voice.on || voice.joining || voice.autoTried) return;
@@ -13790,6 +14729,10 @@
             voice.autoTried = false;
             voice.blocked = false;
             try { photonClient && photonClient.leaveRoom(); } catch(e) {}
+            // ...and leaving it means the party is not there any more either.
+            // Party VOICE is untouched: it is signalled through Firestore
+            // precisely so it survives coming and going from rooms.
+            if (party.id && partyIsLeader()) partySetRoom(null);
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
             mpStopPing();
             if (typeof sendHeartbeat === 'function') sendHeartbeat();
@@ -15621,6 +16564,8 @@
             if (gameRunning) e.preventDefault();
         }, { passive: false });
         setupSettings();
+        partyBindUi();
+        partyRenderPill();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));
         loadAppConfig();

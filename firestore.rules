@@ -77,11 +77,63 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.uid == myUid();
     }
 
-    // ---- LOBBY INVITES ----
+    // ---- LOBBY AND PARTY INVITES ----
+    // One collection carries both: a lobby invite has a roomCode, a party
+    // invite has a partyId. The recipient deletes it once answered, which is
+    // why delete is open to any signed-in user rather than just the sender.
     match /invites/{inviteId} {
       allow read:   if signedIn();
       allow create: if signedIn() && request.resource.data.fromUid == myUid();
       allow delete: if signedIn();
+    }
+
+    // ---- PARTIES ----
+    // A group that outlives any one lobby. Read is open to signed-in users,
+    // matching how invites and DMs are handled here: a party id is random and
+    // only ever handed out in an invite, and someone answering one has to be
+    // able to look the party up before they are a member of it.
+    //
+    // Writes are the part that matters. You may only add or edit YOUR OWN
+    // entry in members, and only the leader may remove someone else — so one
+    // member cannot rename, mute or eject another.
+    match /parties/{partyId} {
+      function isLeader()   { return resource.data.leader == myUid(); }
+      function onlyMine()   {
+        // Everything this write changes is either the member list or my own
+        // slot in it. Anything else is for the leader to change.
+        return request.resource.data.diff(resource.data).affectedKeys()
+               .hasOnly(['memberIds', 'members']) &&
+               request.resource.data.members.diff(resource.data.members)
+               .affectedKeys().hasOnly([myUid()]);
+      }
+
+      allow read:   if signedIn();
+      allow create: if signedIn()
+                    && request.resource.data.leader == myUid()
+                    && request.resource.data.memberIds == [myUid()];
+      // The leader runs the party; everyone else may only join, leave, or
+      // change their own entry.
+      allow update: if signedIn() && (isLeader() || onlyMine());
+      allow delete: if signedIn() && isLeader();
+
+      // Party chat, for whoever has no microphone — and for everyone else too.
+      match /chat/{msgId} {
+        allow read:   if signedIn();
+        allow create: if signedIn()
+                      && request.resource.data.uid == myUid()
+                      && request.resource.data.text is string
+                      && request.resource.data.text.size() > 0
+                      && request.resource.data.text.size() <= 500;
+        allow delete: if signedIn();      // the party closing clears its chat
+      }
+
+      // The WebRTC handshake. Each message names who it is for, is read once
+      // and deleted, and carries nothing but SDP and ICE.
+      match /signal/{docId} {
+        allow read:   if signedIn();
+        allow create: if signedIn() && request.resource.data.from == myUid();
+        allow delete: if signedIn();
+      }
     }
 
     // ---- FRIEND REMOVALS ----
