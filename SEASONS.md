@@ -106,14 +106,108 @@ They are drawn on the canvas from `HAT_SHAPES` in `flappycrix.html`, the same
 way trails are, which is why they worked the day they were written rather than
 waiting on artwork.
 
-Two things to know before moving any of those numbers. Each shape draws in the
-bird's own space: the origin is the middle of the sprite, `s` is the bird's
-size, and the art runs from `-s/2` to `+s/2`. And the sprite is a close-up of
-the character's face rather than a small bird with room above its head — the
-face runs from about `-0.22s` to `+0.5s` and the eyes sit near `y = -0.03s`. So
-a hat perches around `y = -0.40s` where the crown is, while a mask (the pumpkin,
-the skull) is centred near `y = 0`, over the face.
+They live in `cosmetic-art.js`, shared by the game and the owner console so the
+two cannot drift apart.
+
+**Before moving any of those numbers, read the header of that file.** The
+geometry was measured off the sprite's pixels, and it is not what you would
+guess. Each shape draws in the bird's own space — origin at the middle, `s` is
+the bird's size, art from `-s/2` to `+s/2` — and the sprite is opaque all the
+way to the top edge of its box. That top band, `-0.50` to `-0.24`, is already
+the character's hood. There is no clear air above his head at all. A hat rests
+its brim at `HEAD_TOP` (`-0.455`) and puts its body **above** the sprite, in
+negative space; a mask (the pumpkin, the skull) is centred over the face near
+`y = -0.05`. The first version of these hats assumed headroom that does not
+exist, which is why every band drew as a bar painted across his head.
+
+### They move
+
+A cap's tip, a pair of ears and a witch's cone hang off the bird rather than
+being welded to it, so they lag what it does: stream up on a fall, whip over on
+a flap, settle in about a quarter second. One damped spring per wearer, driven
+by that wearer's vertical speed, hard-stopped at 0.52 radians.
+
+It costs nothing on the wire — every client already knows every player's
+velocity, so each runs the same spring locally. Masks are rigid, which is what
+a pumpkin worn over your head does. Any item can opt out with `rigid: true`.
 
 Replacing one with real artwork later is a one-line change: swap `draw: 'santa'`
 for `image: '/img/santa-hat.png'` on that item and the existing image path takes
-over.
+over. An image hat rests on the same brim line and gets the same swing, so the
+artwork lands where the drawn shape was.
+
+## Limited gamemodes
+
+Each season brings one extra way to play, and it only exists while that season
+is on. The button sits beside MULTIPLAYER on the menu and disappears with the
+season.
+
+| Season | Mode | What you do | Target |
+|---|---|---|---|
+| 🎃 Halloween | Candy Hunt | Ninety seconds of sweets. About one in five is sour and costs you two. | 40 |
+| 🎄 Christmas | Deliver the Presents | Collect presents, carry up to three, post them down the chimneys on the pipes. | 30 |
+| 🐣 Easter | Find the Eggs | Eggs are a tuft of grass until you are within 125px. One in eight is golden, worth five. | 70 |
+
+They share one engine (`SEASON_MODES` and the `sm*` functions in
+`flappycrix.html`) — a timed run down the ordinary lane with the season's own
+thing to collect. Beating the target pays 250 bonus coins on top of the
+per-pickup rate. Dying ends the run early and you keep what you collected.
+
+Personal bests are kept per mode in `localStorage` under `crix_sm_best_v1`.
+
+### In multiplayer
+
+Each one is also a room mode. While its season is on it appears as a fifth
+card in the create form's GAME MODE grid, marked LIMITED; the rest of the year
+the card is not there. If the season turns over while the form is open the
+card un-selects itself and hands the selection back to Freemode, so a lobby
+cannot be created on a mode that no longer exists.
+
+A seasonal match is a race for the *same* lane rather than a solo score
+attack:
+
+* every pickup comes off the room's shared seed, so the sweets are in the
+  same places on everyone's screen;
+* every pickup has an id, and taking one tells the room, so it leaves
+  everybody else's lane — one sweet, not one each. A chimney is scenery, so
+  everyone can keep posting into it;
+* going down respawns you, the way Race and Coin Rush do. The clock decides
+  the match, not your last mistake.
+
+The solo payout (coins, the target bonus, personal best) applies only to solo
+runs. A room match is scored by the standings like any other mode.
+
+Forcing a season from the owner panel turns its mode on too, which is how to
+try one out of season.
+
+## Halloween dressing
+
+Two things appear during Halloween and nowhere else.
+
+**Cobwebs** are strung across all four corners of the screen. They are pinned
+to the viewport rather than scrolling with the lane, because they are on the
+window you are looking through rather than in the world — so they draw last
+and nothing passes in front of them.
+
+**Pumpkins** sit in the lane, on the line you were already flying. Fly into
+one and it bursts into eight pieces, plays `/img/smash.mp3` and kicks the
+screen. It is deliberately not an obstacle — no damage, no slowdown, no score.
+A cost would make people avoid the one thing that is meant to be fun to hit.
+
+In a room they come off the shared generator like everything else, so they sit
+in the same place for everyone; whether one has been smashed stays local, so
+each player gets to hit their own.
+
+`smash.mp3` is the only file these need. Without it the burst and the shake
+still happen — the sound fails once, is noted as missing, and is never asked
+for again.
+
+### If you want to move them
+
+`PUMPKIN_EVERY` in `flappycrix.html` is the gap between them, in ticks at
+60Hz — `[520, 900]` is roughly nine to fifteen seconds. `drawWholePumpkin`
+draws one, and every part of it is measured from `r`, the same radius the
+collision uses, centred on the origin. Keep it that way: the first version
+borrowed the pumpkin *hat's* drawing, which is built to sit over a face, and
+it came out as a tall egg whose visual centre sat 12px above the point being
+collided against.
