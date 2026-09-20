@@ -159,13 +159,15 @@ button,input,textarea{font-family:inherit}
     <div class="logo">CRIX CHAT</div>
     <div class="tag">Private chat &amp; calls with your Flappy Crix friends</div>
     <button class="btn g" id="gGoogle">Continue with Google</button>
-    <button class="btn d" id="gDiscord" style="margin-top:8px;">Continue with Discord</button>
     <div class="sep">or</div>
     <input class="inp" type="email" id="email" placeholder="Email" autocomplete="email">
     <input class="inp" type="password" id="pass" placeholder="Password" autocomplete="current-password">
     <input class="inp" type="text" id="dname" placeholder="Display name" style="display:none">
     <button class="btn" id="gAuth">Sign in</button>
     <div class="swap" id="gSwap">Need an account? Sign up</div>
+    <!-- Discord links to an account, it does not make one. The accounts it
+         made while it could still exist, and this is the door back in. -->
+    <a href="#" class="swap" id="gDiscord" style="display:block;font-size:11px;opacity:.7;">Signed up with Discord before? Recover that account</a>
     <div class="err" id="gErr"></div>
     <div style="margin-top:16px;text-align:center;font-size:10px;color:var(--dim);line-height:1.7">
       Same account as <a href="/flappycrix" style="color:var(--green)">Flappy Crix</a>.
@@ -488,7 +490,8 @@ on('soundBtn', 'click', function () {
 });
 
 /* ---------- DISCORD ---------- */
-$('gDiscord').onclick = () => {
+$('gDiscord').onclick = (e) => {
+  e.preventDefault();
   const d = window.__cfg?.discord || {};
   if (!d.clientId || d.clientId.startsWith('PASTE_')) {
     $('gErr').textContent = 'Discord is not configured — add clientId to api.json.';
@@ -511,7 +514,7 @@ async function handleDiscordReturn() {
   if (!code) return;
   history.replaceState(null, '', location.pathname);
   $('gErr').style.color = 'var(--green)';
-  $('gErr').textContent = 'Signing in with Discord…';
+  $('gErr').textContent = 'Looking for your Discord account…';
   try {
     const r = await fetch('/api/discord-auth', {
       method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ code })
@@ -520,6 +523,9 @@ async function handleDiscordReturn() {
     const ct = r.headers.get('content-type') || '';
     if (!ct.includes('json')) throw new Error('The auth function returned ' + r.status + ' — it is missing or crashed.');
     const d = await r.json();
+    if (d.error === 'no_discord_account') {
+      throw new Error('There is no account for that Discord. Sign in with Google or email, then link Discord in the game.');
+    }
     if (!r.ok || !d.token) throw new Error(d.detail || d.error || 'Server returned ' + r.status);
     await auth.signInWithCustomToken(d.token);
   } catch (e) {

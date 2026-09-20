@@ -184,6 +184,12 @@
         }
         .auth-btn:hover { transform: translateY(-2px); box-shadow: 2px 4px 0 rgba(0,0,0,0.4); }
         .auth-btn:active { transform: translateY(2px); border-bottom-width: 2px; box-shadow: none; }
+        .auth-recover {
+            display: block; text-align: center; margin-top: 10px;
+            font-size: 10px; color: #7d7f97; text-decoration: none;
+            letter-spacing: .3px;
+        }
+        .auth-recover:hover { color: #A5AEFF; text-decoration: underline; }
         .auth-switch {
             color: var(--green);
             cursor: pointer;
@@ -2919,9 +2925,6 @@
                 <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0ZGQzEwNyIgZD0iTTQzLjYxMSwyMC4wODNINDJWMjBIMjR2OGgxMS4zMDNjLTEuNjQ5LDQuNjU3LTYuMDgsOC0xMS4zMDMsOGMtNi42MjcsMC0xMi01LjM3My0xMi0xMmMwLTYuNjI3LDUuMzczLTEyLDEyLTEyYzMuMDU5LDAsNS44NDIsMS4xNTQsNy45NjEsMy4wMzlsNS42NTctNS42NTdDMzQuMDQ2LDYuMDUzLDI5LjI2OCw0LDI0LDRDMTIuOTU1LDQsNCwxMi45NTUsNCwyNGMwLDExLjA0NSw4Ljk1NSwyMCwyMCwyMGMxMS4wNDUsMCwyMC04Ljk1NSwyMC0yMEM0NCwyMi42NTksNDMuODYyLDIxLjM1LDQzLjYxMSwyMC4wODN6Ii8+PHBhdGggZmlsbD0iI0ZGM0QwMCIgZD0iTTYuMzA2LDE0LjY5MWw2LjU3MSw0LjgxOUMxNC42NTUsMTUuMTA4LDE4Ljk2MSwxMiwyNCwxMmMzLjA1OSwwLDUuODQyLDEuMTU0LDcuOTYxLDMuMDM5bDUuNjU3LTUuNjU3QzMzLjA0Niw1LjA1MywyOC42NjgsMywyNCwzQzE2LjMxOCwzLDkuNjU2LDcuMzM3LDYuMzA2LDEyLjY5MXoiLz48cGF0aCBmaWxsPSIjNENBRjUwIiBkPSJNMjQsNDRjNS4xNjYsMCw5Ljg2LTEuOTc3LDEzLjQwOS01LjE5MmwtNi4xOS01LjIzOEMyOS4yMTEsMzQuOTEsMjYuNzE1LDM2LDI0LDM2Yy01LjIwMiwwLTkuNjE5LTMuMzE3LTExLjI4My03Ljk0NmwtNi41MjIsNS4wMjVDOS41MDUsMzkuNTU2LDE2LjIyNyw0NCwyNCw0NHoiLz48cGF0aCBmaWxsPSIjMTk3NkQyIiBkPSJNNDMuNjExLDIwLjA4M0w0My41OTUsMjBINDJ2MEgyNHY4aDExLjMwM2MtMC43OTIsMi4yMzctMi4yMzEsNC4xNjYtNC4wODcsNS41NzFsMC4wMDMtMC4wMDJsNi4xOSw1LjIzOEMzNi45NzEsMzkuMjA1LDQwLDM0LjMyLDQwLDI0QzQwLDIyLjY1OSw0My44NjIsMjEuMzUsNDMuNjExLDIwLjA4M3oiLz48L3N2Zz4K" class="google-icon" alt="">
                 CONTINUE WITH GOOGLE
             </button>
-                <button class="auth-btn" id="discordSignInBtn" style="background:rgba(88,101,242,.16);border-color:rgba(88,101,242,.6);color:#A5AEFF;">
-                    CONTINUE WITH DISCORD
-                </button>
                 <button class="auth-btn" id="pairSignInBtn" style="background:rgba(39,169,245,.12);border-color:rgba(39,169,245,.5);color:#27A9F5;">
                     🔑 SIGN IN WITH A PAIRING CODE
                 </button>
@@ -2938,6 +2941,10 @@
                 <button class="auth-btn" id="authSubmitBtn">SIGN IN</button>
             </div>
             <div id="authSwitch" class="auth-switch">Need an account? SIGN UP</div>
+            <!-- Discord is not a way to sign in. It was once, and the accounts
+                 it made then still exist, so this is the one door back into
+                 them; it can never create a new one. -->
+            <a href="#" id="discordRecoverBtn" class="auth-recover">Signed up with Discord before? Recover that account</a>
             <div id="authError" class="auth-error"></div>
         </div>
     </div>
@@ -9653,9 +9660,10 @@
             }
         }
 
-        document.getElementById('discordSignInBtn')?.addEventListener('click', () => {
+        document.getElementById('discordRecoverBtn')?.addEventListener('click', (e) => {
+            e.preventDefault();
             playSfx('select', .5);
-            startDiscordSignIn();
+            startDiscordLink('recover');
         });
         document.getElementById('pairBtn')?.addEventListener('click', () => showPairCode(false));
         document.getElementById('pairNew')?.addEventListener('click', () => showPairCode(true));
@@ -10006,9 +10014,11 @@
                 let mode = 'link';
                 try { mode = sessionStorage.getItem('discord_mode') || 'link'; } catch(e) {}
                 try { sessionStorage.removeItem('discord_mode'); } catch(e) {}
-                // Signing in has no account to attach to yet, so it asks the
-                // endpoint to mint a token instead of linking.
-                const signingIn = (mode === 'signin') || !currentUser;
+                // Recovery has no account to attach to yet, so it asks the
+                // endpoint for a token. The endpoint only hands one back for
+                // a Discord identity that already has an account; it will not
+                // make a new one, which is what stops this being a sign-in.
+                const signingIn = (mode === 'recover') || !currentUser;
 
                 const res = await fetch('/api/discord-auth', {
                     method: 'POST',
@@ -10019,15 +10029,19 @@
                 });
                 if (res.status === 404) throw new Error('/api/discord-auth is not deployed.');
                 const data = await res.json().catch(() => ({}));
-                if (!res.ok) throw new Error(data.detail || data.error || `Server returned ${res.status}`);
+                if (!res.ok) throw new Error(data.error === 'no_discord_account'
+                    ? 'no_discord_account'
+                    : (data.detail || data.error || `Server returned ${res.status}`));
 
                 const p = data.profile || {};
                 if (signingIn) {
-                    if (!data.customToken) throw new Error(data.detail || 'Discord sign-in returned no token');
-                    await auth.signInWithCustomToken(data.customToken);
+                    const tok = data.token || data.customToken;
+                    if (!tok) throw new Error(data.detail || 'Discord did not return a token');
+                    await auth.signInWithCustomToken(tok);
                     document.getElementById('authModal')?.classList.remove('active');
                     playSfx('unlock');
-                    toast({ kind:'invite', title:'✅ Signed in with Discord', body:'Your progress is loading.' });
+                    toast({ kind:'invite', title:'✅ Account recovered',
+                            body:'Your progress is loading. Consider adding an email or Google sign-in.' });
                 }
                 const uid = currentUser?.uid || auth.currentUser?.uid;
                 if (db && uid) {
@@ -10070,7 +10084,12 @@
                 playSfx('unlock');
             } catch (e) {
                 console.error('[Discord] link failed:', e);
-                toast({ kind:'warn', title:'Could not link', body: mpEsc(e.message) });
+                if (/no_discord_account/.test(e.message)) {
+                    toast({ kind:'warn', title:'No account for that Discord',
+                            body:'Discord links to an account rather than making one. Sign in with Google, email or as a guest, then link it in Settings.' });
+                } else {
+                    toast({ kind:'warn', title:'Could not link', body: mpEsc(e.message) });
+                }
             }
         }
 
@@ -10122,10 +10141,11 @@
 
         // Discord was link-only here while CRIX Chat offered it as a way in.
         // Same OAuth trip either way; the mode decides what happens on return.
-        async function startDiscordSignIn() { return startDiscordLink('signin'); }
-
         async function startDiscordLink(mode) {
-            mode = mode === 'signin' ? 'signin' : 'link';
+            // 'link' attaches Discord to the account you are signed into.
+            // 'recover' is the one-way door back into an account Discord made
+            // back when it could make them; it never creates a new one.
+            mode = mode === 'recover' ? 'recover' : 'link';
             if (mode === 'link' && !currentUser) {
                 toast({ kind:'warn', title:'Sign in first', body:'You need an account to link Discord.' });
                 return;
