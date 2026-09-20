@@ -1170,6 +1170,45 @@
         .cheat-badge.bigbird { border: 2px solid var(--orange); color: #FFB347; }
 
 
+
+        /* ---- CREATE: A GAME OR A PARTY ---- */
+        .create-choice { display: flex; flex-direction: column; gap: 9px; margin: 8px 0; }
+        .create-card {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+            width: 100%; text-align: left; cursor: pointer;
+            background: rgba(255,255,255,.04); color: #e6e8f5;
+            border: 1px solid rgba(255,255,255,.14); border-radius: 14px;
+            padding: 13px 15px; font-family: inherit; min-height: 64px;
+        }
+        .create-card:hover { border-color: var(--orange, #FF6B35); background: rgba(255,107,53,.08); }
+        .create-card .cc-ico { font-size: 21px; }
+        .create-card .cc-name { font-size: 13px; font-weight: 800; letter-spacing: .6px; }
+        .create-card .cc-sub { font-size: 10px; color: #9a9db2; line-height: 1.45; }
+
+        /* ---- INVITE PICKER ---- */
+        .ip-where { font-size: 11px; color: #8d90a6; text-align: center; margin-bottom: 10px; }
+        .ip-list { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+        .ip-row {
+            display: flex; align-items: center; gap: 10px;
+            background: rgba(255,255,255,.04); border-radius: 12px; padding: 7px 10px;
+        }
+        .ip-av {
+            width: 30px; height: 30px; border-radius: 50%; object-fit: cover;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px; font-weight: 700; color: #fff; background: #FF4655; flex: 0 0 auto;
+        }
+        .ip-who { flex: 1; min-width: 0; }
+        .ip-name { font-size: 12px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ip-state { font-size: 9px; color: #8d90a6; margin-top: 1px; }
+        .ip-btn {
+            flex: 0 0 auto; min-height: 34px; padding: 8px 13px; cursor: pointer;
+            background: rgba(0,204,122,.14); color: #7CF0B8;
+            border: 1px solid rgba(0,204,122,.5); border-radius: 20px;
+            font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .5px;
+        }
+        .ip-btn[disabled] { opacity: .5; cursor: default; background: rgba(255,255,255,.05);
+            color: #9a9db2; border-color: rgba(255,255,255,.14); }
+        .ip-empty { font-size: 11px; color: #71748c; text-align: center; padding: 20px 8px; line-height: 1.6; }
         /* ---- PARTY ----
            The pill is fixed to the viewport rather than joining the menu deck:
            the deck is a stack of hard-coded offsets with no room left in it,
@@ -1488,6 +1527,17 @@
         .mp-mode-card:hover { transform: translateY(-2px); }
         .mp-mode-icon { font-size: 22px; margin-bottom: 4px; }
         .mp-mode-name { font-size: 10px; font-weight: 700; color: white; text-transform: uppercase; }
+        .mp-mode-card.season { border-color: rgba(255,122,24,.55); position: relative; }
+        .mp-mode-card.season.selected { border-color: var(--accent, #FF7A18); }
+        .mp-mode-card .mp-mode-tag {
+            font-size: 7px; letter-spacing: .6px; margin-top: 3px;
+            color: var(--accent, #FF7A18); opacity: .9;
+        }
+        .mp-mode-blurb {
+            font-size: 10px; color: #9a9db2; line-height: 1.5;
+            background: rgba(255,122,24,.06); border: 1px solid rgba(255,122,24,.22);
+            border-radius: 10px; padding: 8px 11px; margin: -2px 0 8px;
+        }
         .mp-privacy-row { display: flex; gap: 8px; margin: 8px 0; }
         .mp-privacy-btn {
             flex: 1;
@@ -3411,6 +3461,26 @@
                 <div class="auth-error" id="mpJoinError" style="text-align:center;margin-top:8px;"></div>
             </div>
 
+            <!-- VIEW: CREATE — a game or a party? -->
+            <div id="mpViewCreateChoice" style="display:none;">
+                <div class="mp-section-title">WHAT ARE YOU MAKING?</div>
+                <div class="create-choice">
+                    <button class="create-card" id="ccGame">
+                        <span class="cc-ico">🎮</span>
+                        <span class="cc-name">GAME LOBBY</span>
+                        <span class="cc-sub">A room to play in. Pick a mode, set who can join.</span>
+                    </button>
+                    <button class="create-card" id="ccParty">
+                        <span class="cc-ico">🎧</span>
+                        <span class="cc-name">PARTY</span>
+                        <span class="cc-sub">Voice and chat that follow you between games.</span>
+                    </button>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="mp-btn-secondary" id="ccBackBtn">← BACK</button>
+                </div>
+            </div>
+
             <!-- VIEW: CREATE ROOM -->
             <div id="mpViewCreate" style="display:none;">
                 <div class="mp-section-title">ROOM NAME</div>
@@ -3421,7 +3491,15 @@
                     <div class="mp-mode-card" data-mode="race"><div class="mp-mode-icon">🏁</div><div class="mp-mode-name">Race to 100</div></div>
                     <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
                     <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon">🪙</div><div class="mp-mode-name">Coin Rush</div></div>
+                    <!-- The season's own mode. Filled in and shown by
+                         mpSyncSeasonModeCard, hidden the rest of the year. -->
+                    <div class="mp-mode-card season" id="mpSeasonModeCard" data-mode="" style="display:none;">
+                        <div class="mp-mode-icon" id="mpSeasonModeIcon">🎃</div>
+                        <div class="mp-mode-name" id="mpSeasonModeName">Seasonal</div>
+                        <div class="mp-mode-tag">LIMITED</div>
+                    </div>
                 </div>
+                <div id="mpSeasonModeBlurb" class="mp-mode-blurb" style="display:none;"></div>
                 <div class="mp-section-title">QUEUE</div>
                 <div class="mp-privacy-row">
                     <button class="mp-privacy-btn selected" id="mpQueueCasual">🎮 CASUAL</button>
@@ -3514,6 +3592,7 @@
 
                 <div class="mp-lobby-actions" style="margin-top:10px;flex-wrap:wrap;">
                     <button class="mp-btn-primary" id="mpStartMatchBtn" style="display:none;">▶ START</button>
+                    <button class="mp-btn-secondary" id="mpInviteBtn">➕ INVITE FRIENDS</button>
                     <button class="mp-btn-danger" id="mpEndGameBtn" style="display:none;">⏹ END</button>
                     <button class="mp-btn-danger" id="mpLeaveLobbyBtn">LEAVE</button>
                 </div>
@@ -3804,6 +3883,20 @@
     </div>
 
     <!-- SEASONAL CALENDAR -->
+    <!-- INVITE FRIENDS — one picker, used by the lobby and by the party -->
+    <div class="mp-modal" id="invitePickerModal" style="z-index:46500;">
+        <div class="mp-modal-content" style="max-width:400px;">
+            <div class="modal-header">
+                <div class="modal-title" id="ipTitle">➕ INVITE FRIENDS</div>
+                <button class="modal-close" id="ipCloseBtn">✕</button>
+            </div>
+            <div class="ip-where" id="ipWhere"></div>
+            <input type="text" class="mp-input" id="ipSearch" placeholder="Search friends…"
+                   maxlength="24" style="text-transform:none;letter-spacing:0;margin-bottom:8px;">
+            <div class="ip-list" id="ipList"></div>
+        </div>
+    </div>
+
     <!-- PARTY -->
     <div class="mp-modal" id="partyModal" style="z-index:46400;">
         <div class="mp-modal-content" style="max-width:420px;">
@@ -4760,14 +4853,52 @@
             slowGrav:  0.32,   // the slowmo cheat, same arc shape, slower
             slowFlap: -7.0,
             lowGrav:   0.22,   // the owner's low-gravity toggle
-            hitScale:  0.38,   // hit radius as a fraction of the drawn size:
-                               // the face inside the sprite, not its corners
-            graceTicks: 24     // half a second of amnesty after a respawn
+            // The hitbox is an ELLIPSE, sized to the art rather than to a
+            // guess. The sprite is opaque to the top and bottom edges of its
+            // box but only about 0.85 of it wide, so a single radius either
+            // lies vertically or is mean horizontally. A round 0.38 of the
+            // size let the drawn bird sink 3.5px into a solid pipe before the
+            // hit registered, which is exactly what "clipping through" looks
+            // like. These two numbers put that at 1px — invisible — while
+            // still sparing the empty corners a square hitbox used to kill on.
+            hitRX:     0.40,   // 12px at the usual 30px bird
+            hitRY:     0.467,  // 14px — the art runs to 15
+            graceTicks: 24     // a beat of amnesty after a spawn or respawn
         };
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, jump: PHYS.flap };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
         let _graceLeft = 0;        // ticks of post-spawn amnesty still to run
         let _lastPipeTop = 0;      // so one pipe cannot sit a screen from the last
+
+        /* ---- SMOOTH MOTION BETWEEN TICKS ----
+         * The world steps at a fixed 60Hz, but phones draw at 90, 120 or 144.
+         * Drawing the raw state on every one of those frames means the bird
+         * sits still for a frame and then jumps twice as far: measured, half
+         * of all frames on a 120Hz screen did not move it at all. Doubling
+         * gravity to get the Flappy Bird arc doubled the size of each jump,
+         * which is what turned a long-standing wobble into "the movement is
+         * bugged".
+         *
+         * So each frame draws the world where it actually is *now*: a fraction
+         * of a tick past the last one, that fraction being how much time has
+         * piled up since. It changes nothing about the simulation — the
+         * physics, the collisions and the network all still run on whole
+         * ticks — only where those ticks are painted.
+         */
+        let _alpha = 0;            // 0..1 through the tick currently being drawn
+        let _worldPrevShift = 0;   // how far the lane moved on the last tick
+
+        // Where the bird should be PAINTED, as opposed to where it is.
+        function birdRenderY() {
+            if (bird.prevY == null || !gameRunning || gameOver) return bird.y;
+            return bird.prevY + (bird.y - bird.prevY) * _alpha;
+        }
+        // Everything in the lane moves at one speed, so one shift covers pipes,
+        // coins and whatever a seasonal mode has put out there.
+        function worldRenderShift() {
+            if (!gameRunning || gameOver) return 0;
+            return _worldPrevShift * (1 - _alpha);
+        }
         // How far a run can go. A signed 32-bit int is the ceiling every
         // scoreboard this talks to is built on, so the run ends there rather
         // than letting the number drift past what they can store.
@@ -5362,6 +5493,10 @@
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             _graceLeft = PHYS.graceTicks;
             _lastPipeTop = 0;
+            resetPumpkins();
+            bird.prevY = bird.y;
+            _alpha = 0;
+            _worldPrevShift = gameSpeed;
             _coinSeq = 0;
             _localTrail = [];
             // Respawning mid-match continues the same world, so the taken
@@ -5373,33 +5508,48 @@
         // The drawn size and the hit radius come from one place, so a bird
         // the player sees as big is big to the pipes as well.
         function birdDrawSize() { return cheats.bigbird ? 45 : (window.__pmTiny ? 16 : 30); }
-        function birdRadius()   { return birdDrawSize() * PHYS.hitScale; }
+        function birdRX()       { return birdDrawSize() * PHYS.hitRX; }
+        function birdRY()       { return birdDrawSize() * PHYS.hitRY; }
+        // Kept for anything that just wants one number for reach
+        function birdRadius()   { return birdRY(); }
 
-        // Circle against the pipe's two rectangles. A square hitbox on a round
-        // sprite kills on the empty corners, which is the death players call
-        // unfair because, looking at it, it is.
+        /* The bird's ellipse against one of the pipe's rectangles. Squash the
+           world so the ellipse becomes a unit circle and the usual
+           closest-point test works unchanged. A square hitbox on a round
+           sprite kills on the empty corners, which is the death players call
+           unfair because, looking at it, it is. */
         function hitsRect(cx, cy, r, rx, ry, rw, rh) {
-            const nx = Math.max(rx, Math.min(cx, rx + rw));
-            const ny = Math.max(ry, Math.min(cy, ry + rh));
-            const dx = cx - nx, dy = cy - ny;
-            return dx * dx + dy * dy < r * r;
+            return hitsRectE(cx, cy, r, r, rx, ry, rw, rh);
+        }
+        function hitsRectE(cx, cy, erx, ery, rx, ry, rw, rh) {
+            const sx = 1 / erx, sy = 1 / ery;
+            const nx = Math.max(rx * sx, Math.min(cx * sx, (rx + rw) * sx));
+            const ny = Math.max(ry * sy, Math.min(cy * sy, (ry + rh) * sy));
+            const dx = cx * sx - nx, dy = cy * sy - ny;
+            return dx * dx + dy * dy < 1;
         }
 
-        // Solo opens the lane right up for the first dozen pipes and then
-        // settles. It never closes past 175 — wider than the flat 170 this
-        // replaced — because the brief was that people die too easily, so
-        // no score should be harder to reach than it used to be.
+        // Solo opens the lane right up for the first two dozen pipes and then
+        // settles. It never closes past 182 — wider than the flat 170 this
+        // replaced — because the brief was that people die too easily, so no
+        // score should be harder to reach than it used to be.
+        //
+        // The gap now carries the forgiveness the hitbox used to carry in
+        // secret. A hitbox smaller than the art is slack the player cannot
+        // see, and what they see instead is the bird clipping through a solid
+        // pipe. A wider gap is slack they can see.
+        //
         // Multiplayer holds one gap for everybody: the lane has to be the
         // same lane, or the race is not the same race.
         function currentGap() {
             if (mpCurrentRoom) return pipeGap;
-            return Math.max(175, 205 - score * 1.2);
+            return Math.max(182, 215 - score * 1.2);
         }
 
         function updateGame() { 
             if (gameOver || !gameRunning) return;
             if (window.__crixFrozen) return;   // owner freeze
-            if (mpRespawning) { /* brief grace period after respawning */ } 
+
             travelled += gameSpeed;
             if (equippedTrail()) {
                 advanceTrail(_localTrail, gameSpeed);
@@ -5408,6 +5558,10 @@
                 _localTrail.length = 0;
             }
             const mpGodmode = (typeof mpChatGodmodeActive !== 'undefined' && mpChatGodmodeActive);
+            // Where everything was at the start of this tick, so the frames
+            // drawn between ticks have something to interpolate from.
+            bird.prevY = bird.y;
+            _worldPrevShift = gameSpeed;
             if (_graceLeft > 0) _graceLeft--;
             const shieldActive = powerups.find(p => p.id === 'shield')?.active || cheats.godmode || mpGodmode
                                  || _graceLeft > 0;
@@ -5418,7 +5572,10 @@
             bird.y += bird.velocity;
             // No ceiling to die on — the original never had one either. You
             // bonk the top and slide along it; only the ground ends a run.
-            const _ceil = birdRadius();
+            // Stop at the DRAWN edge, not the hitbox: clamping to the hit
+            // radius left the top of the bird cut off by the screen, which
+            // reads as the bird having got stuck in something.
+            const _ceil = birdDrawSize() / 2;
             if (bird.y < _ceil) { bird.y = _ceil; if (bird.velocity < 0) bird.velocity = 0; }
             if (!shieldActive) {
                 if (bird.y > canvas.height - 10) { gameOver=true; playSound(deathSound); handleDeath();
@@ -5463,9 +5620,9 @@
             for(let i=0;i<pipes.length;i++){ 
                 pipes[i].x-=gameSpeed; 
                 if(!shieldActive){
-                    const r = birdRadius(), px = pipes[i].x;
-                    if (hitsRect(bird.x, bird.y, r, px, -1000, pipeWidth, pipes[i].top + 1000) ||
-                        hitsRect(bird.x, bird.y, r, px, pipes[i].bottom, pipeWidth, canvas.height - pipes[i].bottom + 20)) {
+                    const ex = birdRX(), ey = birdRY(), px = pipes[i].x;
+                    if (hitsRectE(bird.x, bird.y, ex, ey, px, -1000, pipeWidth, pipes[i].top + 1000) ||
+                        hitsRectE(bird.x, bird.y, ex, ey, px, pipes[i].bottom, pipeWidth, canvas.height - pipes[i].bottom + 20)) {
                         gameOver=true; playSound(deathSound); handleDeath(); return;
                     }
                 } 
@@ -5528,6 +5685,7 @@
                 if(coinsArr[i].x+20<0) coinsArr.splice(i--,1); 
             } 
             frameCount++;
+            updatePumpkins();
             if (smMode) smUpdate(); 
             if (typeof mpSyncPosition === 'function') mpSyncPosition();
         }
@@ -5976,6 +6134,17 @@
             }
         };
         const SM_BEST_KEY = 'crix_sm_best_v1';
+        // The three ids, for the places that need to ask "is this a seasonal
+        // mode?" without caring which one.
+        const SEASON_MODE_IDS = ['candyhunt', 'presents', 'egghunt'];
+        function isSeasonMode(m) { return SEASON_MODE_IDS.indexOf(m) !== -1; }
+        function seasonModeById(id) {
+            for (const k in SEASON_MODES) if (SEASON_MODES[k].id === id) return { season: k, mode: SEASON_MODES[k] };
+            return null;
+        }
+        // In a room the lane is shared, so a seasonal match is a race for the
+        // same sweets rather than a solo score attack.
+        function smInRoom() { return !!(mpCurrentRoom && smMode); }
         // How far the chimney stack rises off the pipe it stands on. It has to
         // clear the bird's hit radius by enough that posting a present is a
         // choice about flying low, not a choice about dying.
@@ -5983,6 +6152,8 @@
 
         let smMode = null, smSeasonId = null;
         let smTicks = 0, smScore = 0, smCarry = 0, smItems = [], smEnding = false;
+        let _smSeq = 0;                  // ids for the shared lane's pickups
+        const smTaken = new Set();       // ones somebody already got to
         let smFlash = null;          // { text, colour, ticks } — floats off the bird
 
         // A mode is playable when its own season is the one running, whether
@@ -6017,6 +6188,19 @@
             document.getElementById('hudLive')?.classList.remove('sm-off');
         }
 
+        // Put the mode in place. Solo calls this and then starts a run;
+        // multiplayer calls it from the match-start path, which starts the
+        // run itself.
+        function smAttach(seasonId, mode) {
+            smSeasonId = seasonId; smMode = mode;
+            smTicks = mode.seconds * 60;
+            smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
+            _smSeq = 0; smTaken.clear();
+            document.getElementById('smHud')?.classList.add('on');
+            document.getElementById('hudLive')?.classList.add('sm-off');
+            smSyncHud(true);
+        }
+
         function smStartRun() {
             const a = smAvailable();
             if (!a) {
@@ -6025,51 +6209,68 @@
                 return;
             }
             document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
-            smSeasonId = a.id; smMode = a.mode;
-            smTicks = a.mode.seconds * 60;
-            smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
-            startGame();                       // resetGame runs inside here
-            smTicks = a.mode.seconds * 60;     // and must not have cleared the clock
-            document.getElementById('smHud')?.classList.add('on');
-            document.getElementById('hudLive')?.classList.add('sm-off');
-            smSyncHud(true);
+            smAttach(a.id, a.mode);
+            startGame();                  // resetGame runs inside here...
+            smAttach(a.id, a.mode);       // ...and must not have cleared the clock
+        }
+
+        // The match-start path has already decided the mode; the season only
+        // has to still exist for its artwork and its rules.
+        function smBeginForRoom(modeId) {
+            const m = seasonModeById(modeId);
+            if (!m) return false;
+            smAttach(m.season, m.mode);
+            return true;
         }
 
         /* ---- what is in the lane ---- */
+        // In a room every client has to lay out the same sweets in the same
+        // places, so the shared seeded generator stands in for Math.random —
+        // the same trick the pipes and coins already use.
+        function smRnd() { return mpCurrentRoom ? mpRng() : Math.random(); }
+
         function smSafeY() {
             // Somewhere a player could actually reach: near the gap of the
             // pipe that has most recently been laid down.
             const last = pipes.length ? pipes[pipes.length - 1] : null;
-            if (!last) return 120 + Math.random() * (canvas.height - 240);
+            if (!last) return 120 + smRnd() * (canvas.height - 240);
             const mid = (last.top + last.bottom) / 2;
             const spread = (last.bottom - last.top) * 0.34;
             return Math.max(60, Math.min(canvas.height - 70,
-                                         mid + (Math.random() - 0.5) * spread * 2));
+                                         mid + (smRnd() - 0.5) * spread * 2));
         }
 
         function smSpawn() {
             if (!smMode) return;
+            // Every pickup carries an id so that, in a room, "Bob got that
+            // one" means the same object on every screen.
+            const id = ++_smSeq;
+            const gone = smTaken.has(id);
             if (smMode.id === 'candyhunt') {
                 // Roughly one in five is sour. It costs you rather than kills
                 // you — the mode is about greed, not about dying twice over.
-                const sour = Math.random() < 0.18;
-                smItems.push({ kind: sour ? 'sour' : 'candy', x: canvas.width + 20, y: smSafeY(),
-                               hue: Math.floor(Math.random() * 5), spin: Math.random() * 6.28 });
+                const sour = smRnd() < 0.18;
+                smItems.push({ id: id, taken: gone, kind: sour ? 'sour' : 'candy',
+                               x: canvas.width + 20, y: smSafeY(),
+                               hue: Math.floor(smRnd() * 5), spin: smRnd() * 6.28 });
             } else if (smMode.id === 'presents') {
                 // Alternate: something to carry, then somewhere to put it.
                 const last = pipes.length ? pipes[pipes.length - 1] : null;
-                if (last && smItems.filter(i => i.kind === 'chimney').length < 3 && Math.random() < 0.34) {
-                    smItems.push({ kind: 'chimney', pipe: last, x: last.x, y: last.bottom,
+                const wantChimney = smRnd() < 0.34;
+                if (last && smItems.filter(i => i.kind === 'chimney').length < 3 && wantChimney) {
+                    // A chimney is scenery, not loot: everyone can post into it.
+                    smItems.push({ id: id, kind: 'chimney', pipe: last, x: last.x, y: last.bottom,
                                    hitY: last.bottom - SM_CHIMNEY_H });
                 } else {
-                    smItems.push({ kind: 'present', x: canvas.width + 20, y: smSafeY(),
-                                   hue: Math.floor(Math.random() * 5) });
+                    smItems.push({ id: id, taken: gone, kind: 'present',
+                                   x: canvas.width + 20, y: smSafeY(),
+                                   hue: Math.floor(smRnd() * 5) });
                 }
             } else if (smMode.id === 'egghunt') {
-                const golden = Math.random() < 0.125;
-                smItems.push({ kind: 'egg', golden: golden, seen: false,
+                const golden = smRnd() < 0.125;
+                smItems.push({ id: id, taken: gone, kind: 'egg', golden: golden, seen: false,
                                x: canvas.width + 20, y: smSafeY(),
-                               hue: Math.floor(Math.random() * EGG_COLOURS.length) });
+                               hue: Math.floor(smRnd() * EGG_COLOURS.length) });
             }
         }
 
@@ -6083,13 +6284,21 @@
                 smCarry = 0;
                 it.lit = 34;                          // a puff of smoke, briefly
                 playSound(coinSound);
+                smReportScore();
                 return;
             }
             it.taken = true;
+            // In a room it is one sweet, not one each: tell everybody it has
+            // gone so it leaves their lane too.
+            if (mpCurrentRoom && it.id) {
+                smTaken.add(it.id);
+                mpRaiseEvent(MP_EV.SM_TAKE, { id: it.id });
+            }
             if (it.kind === 'sour') {
                 smScore = Math.max(0, smScore - 2);
                 smFlashText('-2', '#7ED957');
                 playSfx('error', .5);
+                smReportScore();
                 return;
             }
             if (it.kind === 'present') {
@@ -6102,13 +6311,36 @@
             smScore += worth;
             smFlashText('+' + worth, it.golden ? '#FFD700' : '#FFFFFF');
             playSound(coinSound);
+            smReportScore();
+        }
+
+        // The standings read one number per player. In a seasonal match that
+        // number is what you have collected, not how many pipes you passed.
+        function smReportScore() {
+            if (!smInRoom()) return;
+            if (mpPlayers[mpLocalActor]) mpPlayers[mpLocalActor].score = smScore;
+            mpRaiseEvent(MP_EV.SCORE, { score: smScore });
+            if (typeof mpUpdateHud === 'function') mpUpdateHud();
+        }
+
+        // Someone else got there first.
+        function smOnTaken(id) {
+            if (!id) return;
+            smTaken.add(id);
+            const it = smItems.find(x => x.id === id);
+            if (it && !it.taken) it.taken = true;
         }
 
         function smUpdate() {
             if (!smMode || smEnding) return;
             if (smFlash && --smFlash.ticks <= 0) smFlash = null;
             smTicks--;
-            if (smTicks <= 0) { smFinish('time'); return; }
+            if (smTicks <= 0) {
+                // In a room the host's clock is the clock — it ends the match
+                // for everyone. Ending it here too would race that.
+                if (smInRoom()) { smTicks = 0; }
+                else { smFinish('time'); return; }
+            }
             if (frameCount % smMode.every === 0) smSpawn();
 
             const reach = birdRadius() + 9;
@@ -6243,7 +6475,12 @@
         let _smHudLast = {};
         function smSyncHud(force) {
             if (!smMode) return;
-            const secs = Math.max(0, Math.ceil(smTicks / 60));
+            // In a room the host's clock is the one that ends the match, so
+            // show that rather than a local count that could drift from it
+            // and have the readout hit zero while the match carries on.
+            const secs = smInRoom()
+                ? Math.max(0, Math.ceil(mpCoinRushSecondsLeft || 0))
+                : Math.max(0, Math.ceil(smTicks / 60));
             if (!force && secs === _smHudLast.secs && smScore === _smHudLast.score
                 && smCarry === _smHudLast.carry) return;
             _smHudLast = { secs: secs, score: smScore, carry: smCarry };
@@ -6304,6 +6541,38 @@
             setScreen('menu');
             document.getElementById('smResultModal')?.classList.add('active');
             playSfx(hitTarget ? 'rank' : 'pop', .6);
+        }
+
+        /* The create form's seasonal card. It only exists while the season
+           does, and it carries the mode's id so the rest of the create flow
+           treats it exactly like the other four. */
+        function mpSyncSeasonModeCard() {
+            const card = document.getElementById('mpSeasonModeCard');
+            if (!card) return;
+            const a = smAvailable();
+            const blurb = document.getElementById('mpSeasonModeBlurb');
+            if (!a) {
+                card.style.display = 'none';
+                card.dataset.mode = '';
+                if (blurb) blurb.style.display = 'none';
+                // Nothing to fall back to but the default if it was selected
+                if (card.classList.contains('selected')) {
+                    card.classList.remove('selected');
+                    document.querySelector('.mp-mode-card[data-mode="freemode"]')?.classList.add('selected');
+                }
+                return;
+            }
+            card.style.display = '';
+            card.dataset.mode = a.mode.id;
+            const ico = document.getElementById('mpSeasonModeIcon');
+            const nm  = document.getElementById('mpSeasonModeName');
+            if (ico) ico.textContent = a.mode.emoji;
+            if (nm)  nm.textContent  = a.mode.short;
+            card.title = a.mode.name + ' — only while ' + a.season.name + ' is on';
+            if (blurb) {
+                blurb.textContent = a.mode.emoji + ' ' + a.mode.name + ' — ' + a.mode.blurb;
+                blurb.style.display = card.classList.contains('selected') ? '' : 'none';
+            }
         }
 
         // Shown on the menu only while a season is on.
@@ -6394,6 +6663,7 @@
             }
             updateSeasonCalendarDot();
             smSyncBanner();             // the limited mode comes and goes with it
+            mpSyncSeasonModeCard();     // ...in the create form too
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
         }
@@ -6496,6 +6766,291 @@
             a.currentTime = 0;
             a.play().catch(() => {});
         }
+
+        /* ═══════════ HALLOWEEN PROPS ═══════════
+         *
+         * Two bits of dressing that only exist while Halloween is on: cobwebs
+         * strung across the corners of the screen, and pumpkins that sit in
+         * the lane and burst when you fly into one.
+         *
+         * The pumpkin is deliberately NOT an obstacle. It blocks the view,
+         * you go through it, it explodes, and that is the whole of it — no
+         * damage, no slowdown, no score. Adding a cost would make people
+         * avoid the one thing that is meant to be fun to hit.
+         */
+        const PUMPKIN_EVERY = [520, 900];    // ticks between them, randomised
+        let _pumpkins = [];
+        let _nextPumpkinAt = 0;
+        let _smashSfx = undefined;           // undefined = not tried, false = missing
+
+        function halloweenOn() {
+            const s = seasonFor('colour');
+            return !!(s && s.motif === 'bat');
+        }
+
+        function playSmash() {
+            if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
+            if (_smashSfx === false) return;
+            if (_smashSfx === undefined) {
+                _smashSfx = new Audio('/img/smash.mp3');
+                // No file yet? Note it once and never ask again.
+                _smashSfx.addEventListener('error', () => { _smashSfx = false; }, { once: true });
+            }
+            const vol = (typeof settings !== 'undefined' && settings.sfxVol != null) ? settings.sfxVol : 100;
+            _smashSfx.volume = Math.min(1, vol / 100 * 0.8);
+            _smashSfx.currentTime = 0;
+            _smashSfx.play().catch(() => {});
+        }
+
+        function resetPumpkins() { _pumpkins = []; _nextPumpkinAt = 0; }
+
+        /* A short kick on impact. It shakes the canvas ELEMENT with a CSS
+           transform rather than the drawing, so it cannot disturb the canvas
+           state the rest of the frame depends on, and it costs nothing on a
+           frame where nothing is being hit. */
+        let _shakeTimer = null;
+        function shakeScreen(px, ms) {
+            const cv = document.getElementById('gameCanvas');
+            if (!cv) return;
+            if (typeof settings !== 'undefined' && settings.reduceMotion) return;
+            const end = performance.now() + (ms || 140);
+            clearInterval(_shakeTimer);
+            _shakeTimer = setInterval(() => {
+                const left = end - performance.now();
+                if (left <= 0) {
+                    clearInterval(_shakeTimer); _shakeTimer = null;
+                    cv.style.transform = '';
+                    return;
+                }
+                const k = (left / (ms || 140)) * (px || 5);
+                cv.style.transform = `translate(${(Math.random()-.5)*2*k}px, ${(Math.random()-.5)*2*k}px)`;
+            }, 16);
+        }
+
+        function updatePumpkins() {
+            if (!halloweenOn()) { if (_pumpkins.length) _pumpkins = []; return; }
+
+            // In a room the lane is shared, so these come off the shared
+            // generator like everything else and sit in the same place for
+            // everybody. Whether one has been smashed stays local — it costs
+            // nothing and affects nothing, so there is no reason to send it.
+            if (!_nextPumpkinAt) {
+                _nextPumpkinAt = frameCount + PUMPKIN_EVERY[0] +
+                                 Math.floor(smRnd() * (PUMPKIN_EVERY[1] - PUMPKIN_EVERY[0]));
+            }
+            if (frameCount >= _nextPumpkinAt) {
+                _nextPumpkinAt = frameCount + PUMPKIN_EVERY[0] +
+                                 Math.floor(smRnd() * (PUMPKIN_EVERY[1] - PUMPKIN_EVERY[0]));
+                // Right in the way: the middle of the gap of the pipe that was
+                // laid down most recently, which is the line you were flying.
+                const last = pipes.length ? pipes[pipes.length - 1] : null;
+                const y = last ? (last.top + last.bottom) / 2
+                              : 140 + smRnd() * (canvas.height - 280);
+                _pumpkins.push({ x: canvas.width + 30, y: y, r: 21,
+                                 smashed: 0, chunks: null, spin: (smRnd() - 0.5) * 0.4 });
+            }
+
+            for (let i = 0; i < _pumpkins.length; i++) {
+                const p = _pumpkins[i];
+                // Each pumpkin's own footprint plus the bird's, rather than a
+                // fixed number that would be wrong the moment either changed.
+                const rx = birdRX() + p.r, ry = birdRY() + p.r * 0.86;
+                p.x -= gameSpeed;
+                if (p.smashed) {
+                    p.smashed--;
+                    p.chunks.forEach(c => {
+                        c.x += c.vx - gameSpeed; c.y += c.vy; c.vy += 0.42; c.rot += c.spin;
+                    });
+                    if (p.smashed <= 0) { _pumpkins.splice(i--, 1); continue; }
+                } else {
+                    const dx = bird.x - p.x, dy = bird.y - p.y;
+                    if (dx * dx / (rx * rx) + dy * dy / (ry * ry) < 1) smashPumpkin(p);
+                }
+                if (p.x < -70) { _pumpkins.splice(i--, 1); }
+            }
+        }
+
+        function smashPumpkin(p) {
+            p.smashed = 46;
+            p.chunks = [];
+            // Eight pieces thrown out along the direction of travel, so the
+            // burst reads as the bird having gone through it rather than the
+            // pumpkin having merely vanished.
+            for (let i = 0; i < 8; i++) {
+                const a = (i / 8) * Math.PI * 2 + Math.random() * 0.4;
+                p.chunks.push({
+                    x: p.x, y: p.y,
+                    vx: Math.cos(a) * (1.6 + Math.random() * 2.4) + 1.2,
+                    vy: Math.sin(a) * (1.6 + Math.random() * 2.4) - 1.4,
+                    r: 4 + Math.random() * 6,
+                    rot: Math.random() * 6.28, spin: (Math.random() - 0.5) * 0.35
+                });
+            }
+            playSmash();
+            if (typeof shakeScreen === 'function') shakeScreen(5, 140);
+        }
+
+        /* The lane pumpkin gets its own drawing rather than borrowing the
+           pumpkin HAT's. The hat is built to sit over a face: it is offset to
+           the head's position and its stem reaches up out of its own
+           footprint. Reused here that came out as a tall egg whose visual
+           centre sat 12px above the point being collided against. They are
+           different objects at different scales, so they get different
+           drawings — and tweaking the hat later cannot silently move an
+           obstacle.
+
+           Everything here is measured from `r`, the radius the collision uses,
+           and centred on the origin, so what is drawn is what is hit. */
+        function drawWholePumpkin(g, r) {
+            const ry = r * 0.86;                       // wider than tall, as they are
+            g.fillStyle = '#3F7A2E';                   // stalk, inside the footprint
+            g.beginPath();
+            g.moveTo(-r * 0.10, -ry * 0.86);
+            g.quadraticCurveTo(-r * 0.04, -ry * 1.18, r * 0.14, -ry * 1.22);
+            g.quadraticCurveTo(r * 0.02, -ry * 1.02, r * 0.11, -ry * 0.84);
+            g.closePath();
+            g.fill();
+
+            const body = g.createLinearGradient(-r, -ry, r, ry);
+            body.addColorStop(0, '#FFAE3D');
+            body.addColorStop(0.5, '#F0761A');
+            body.addColorStop(1, '#B8490A');
+            g.fillStyle = body;
+            g.beginPath();
+            g.ellipse(0, 0, r, ry, 0, 0, Math.PI * 2);
+            g.fill();
+            g.strokeStyle = 'rgba(12,6,20,.7)';
+            g.lineWidth = Math.max(1, r * 0.07);
+            g.stroke();
+
+            g.save();                                  // ribs
+            g.strokeStyle = 'rgba(150,62,0,.42)';
+            g.lineWidth = Math.max(1, r * 0.07);
+            [-0.52, 0, 0.52].forEach(k => {
+                g.beginPath();
+                g.moveTo(r * k * 0.9, -ry * 0.88);
+                g.quadraticCurveTo(r * k * 1.5, 0, r * k * 0.9, ry * 0.88);
+                g.stroke();
+            });
+            g.restore();
+
+            g.save();                                  // the carving, lit from inside
+            g.fillStyle = '#FFE08A';
+            g.shadowColor = 'rgba(255,170,40,.95)';
+            g.shadowBlur = r * 0.3;
+            [-1, 1].forEach(d => {
+                g.beginPath();
+                g.moveTo(d * r * 0.16, -ry * 0.04);
+                g.lineTo(d * r * 0.58, -ry * 0.28);
+                g.lineTo(d * r * 0.54, ry * 0.16);
+                g.closePath();
+                g.fill();
+            });
+            g.beginPath();
+            g.moveTo(-r * 0.54, ry * 0.40);
+            g.lineTo(-r * 0.28, ry * 0.62);
+            g.lineTo(-r * 0.08, ry * 0.42);
+            g.lineTo(r * 0.14, ry * 0.64);
+            g.lineTo(r * 0.38, ry * 0.42);
+            g.lineTo(r * 0.56, ry * 0.54);
+            g.lineTo(r * 0.26, ry * 0.74);
+            g.lineTo(-r * 0.30, ry * 0.72);
+            g.closePath();
+            g.fill();
+            g.restore();
+        }
+
+        function drawPumpkins(g) {
+            if (!_pumpkins.length) return;
+            for (const p of _pumpkins) {
+                if (p.smashed) {
+                    const fade = Math.min(1, p.smashed / 26);
+                    g.save();
+                    g.globalAlpha = fade;
+                    for (const c of p.chunks) {
+                        g.save();
+                        g.translate(c.x, c.y);
+                        g.rotate(c.rot);
+                        g.fillStyle = '#E8761A';
+                        g.beginPath();
+                        g.moveTo(-c.r, -c.r * 0.6);
+                        g.lineTo(c.r * 0.8, -c.r);
+                        g.lineTo(c.r, c.r * 0.7);
+                        g.lineTo(-c.r * 0.5, c.r);
+                        g.closePath();
+                        g.fill();
+                        g.fillStyle = 'rgba(255,225,150,.5)';   // lit inner face
+                        g.fillRect(-c.r * 0.4, -c.r * 0.3, c.r * 0.8, c.r * 0.5);
+                        g.restore();
+                    }
+                    g.restore();
+                    continue;
+                }
+                g.save();
+                g.translate(p.x, p.y);
+                g.rotate(p.spin);
+                drawWholePumpkin(g, p.r);
+                g.restore();
+            }
+        }
+
+        /* ---- COBWEBS ----
+         * Pinned to the corners of the screen rather than scrolling with the
+         * lane: they are on the window you are looking through, not in the
+         * world. Drawn once into an offscreen canvas per size, because the
+         * radials and arcs are the same every frame and there is no sense
+         * paying for them sixty times a second.
+         */
+        let _webCv = null, _webKey = '';
+        function webCanvas(size) {
+            const key = size + 'x' + canvas.width;
+            if (_webCv && _webKey === key) return _webCv;
+            const c = document.createElement('canvas');
+            c.width = c.height = size;
+            const g = c.getContext('2d');
+            g.strokeStyle = 'rgba(226,230,245,.34)';
+            g.lineWidth = 1.1;
+            g.lineCap = 'round';
+            const RINGS = 5, SPOKES = 7;
+            for (let i = 0; i <= SPOKES; i++) {           // spokes, from the corner
+                const a = (i / SPOKES) * (Math.PI / 2);
+                g.beginPath();
+                g.moveTo(0, 0);
+                g.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+                g.stroke();
+            }
+            for (let r = 1; r <= RINGS; r++) {            // the sagging threads between
+                const rad = (r / RINGS) * size * 0.95;
+                g.beginPath();
+                for (let i = 0; i <= SPOKES; i++) {
+                    const a = (i / SPOKES) * (Math.PI / 2);
+                    const x = Math.cos(a) * rad, y = Math.sin(a) * rad;
+                    if (i === 0) { g.moveTo(x, y); continue; }
+                    const pa = ((i - 1) / SPOKES) * (Math.PI / 2);
+                    const mid = (a + pa) / 2, sag = rad * 0.86;   // pulled inward
+                    g.quadraticCurveTo(Math.cos(mid) * sag, Math.sin(mid) * sag, x, y);
+                }
+                g.stroke();
+            }
+            _webCv = c; _webKey = key;
+            return c;
+        }
+
+        function drawCobwebs(g) {
+            if (!halloweenOn()) return;
+            const W = canvas.width, H = canvas.height;
+            const size = Math.round(Math.min(W, H) * 0.30);
+            const web = webCanvas(size);
+            g.save();
+            g.globalAlpha = 0.85;
+            // top-left as drawn, then flipped into the other three corners
+            g.drawImage(web, 0, 0);
+            g.save(); g.translate(W, 0);     g.scale(-1, 1);  g.drawImage(web, 0, 0); g.restore();
+            g.save(); g.translate(0, H);     g.scale(1, -1);  g.drawImage(web, 0, 0); g.restore();
+            g.save(); g.translate(W, H);     g.scale(-1, -1); g.drawImage(web, 0, 0); g.restore();
+            g.restore();
+        }
+
         function updateFlyer() {
             const now = performance.now();
             const dt = _flyerLast ? Math.min(100, now - _flyerLast) : 16;
@@ -7026,13 +7581,18 @@
             ctx.clearRect(0,0,canvas.width,canvas.height);
             drawBackdrop();
             updateFlyer(); drawFlyer();
-            // Draw pipes
+            // Everything in the lane scrolls at one speed, so one shifted
+            // layer keeps pipes, coins and a mode's props lined up with each
+            // other while they are painted between ticks.
+            ctx.save();
+            ctx.translate(worldRenderShift(), 0);
             // Shaded pipes. The hitbox is unchanged — this is purely how they
             // are painted, so the game plays exactly the same.
             for (const p of pipes) {
                 drawPipe(p.x, 0, pipeWidth, p.top, true);
                 drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
             }
+            drawPumpkins(ctx);
             if (smMode) smDraw(ctx); 
             // Draw coins
             // Coins spin and bob. The spin is a horizontal squash on a sine
@@ -7063,6 +7623,7 @@
                 ctx.fill();
                 ctx.restore();
             } 
+            ctx.restore();          // end of the shifted lane layer
             // Draw other multiplayer players (host's pipes are authoritative, so guests see the same layout)
             if (typeof mpDrawOtherPlayers === 'function') mpDrawOtherPlayers(ctx);
             if (typeof mpDrawOffscreenArrows === 'function') mpDrawOffscreenArrows(ctx);
@@ -7072,8 +7633,9 @@
             if (_mt) drawTrail(ctx, _localTrail, _mt.colours, cheats.bigbird ? 45 : 30);
 
             // Draw bird
+            const _by = birdRenderY();
             ctx.save(); 
-            ctx.translate(bird.x,bird.y); 
+            ctx.translate(bird.x,_by); 
             // Flappy Bird's tilt: a modest nose-up on the flap, then it rolls
             // steadily further nose-down the longer you fall. The old scale
             // saturated in one tick at the new velocities, so it read as a
@@ -7150,6 +7712,9 @@
                 ctx.fillText('watching the rest', canvas.width/2, canvas.height/2 + 22);
                 ctx.textAlign='left';
             } 
+            // Last of all: the cobwebs are on the window you are looking
+            // through, not in the world, so nothing passes in front of them.
+            drawCobwebs(ctx);
         }
         
         // Fixed timestep. Previously the loop ran on raw requestAnimationFrame,
@@ -7186,6 +7751,8 @@
                 if (gameRunning) updateGame();
                 _accum -= TICK_MS; steps++;
             }
+            // Whatever is left of a tick is how far past the last one we are
+            _alpha = Math.max(0, Math.min(1, _accum / TICK_MS));
             drawGame();
             if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition();
             if(gameRunning || (mpCurrentRoom && mpMatchActive)) animationId=requestAnimationFrame(gameLoop);
@@ -10405,6 +10972,7 @@
             COIN_TAKE: 25, PING: 26,
             // Voice is peer-to-peer WebRTC; Photon only carries the handshake.
             VOICE_HELLO: 27, VOICE_OFFER: 28, VOICE_ANSWER: 29, VOICE_ICE: 30, VOICE_STATE: 31,
+            SM_TAKE: 32,          // a seasonal pickup somebody got to first
             PIPE_SPAWN: 19, COIN_SPAWN: 20
         };
         const MP_RACE_TARGET = 100;
@@ -10730,7 +11298,7 @@
         document.getElementById('mmRankedBtn')?.addEventListener('click', () => { mmSearch('competitive');
         });
         document.getElementById('mmCreateBtn')?.addEventListener('click', () => {
-            mmStop(); mpShowView('mpViewCreate');
+            mmStop(); mpShowView('mpViewCreateChoice');
         });
         document.getElementById('mmCodeBtn')?.addEventListener('click', () => {
             mmStop(); mpShowView('mpViewJoinCode');
@@ -10761,8 +11329,16 @@
         // Every death route funnels through here — there are three (ceiling,
         // floor and pipes) and previously only one showed the overlay.
         function handleDeath() {
-            // A seasonal run is scored on what you collected, so it ends on
-            // its own screen with its own payout rather than the pipe count.
+            // In a room a seasonal match has a clock, so going down is a
+            // setback rather than the end — same as Race and Coin Rush.
+            if (smInRoom() && mpMatchActive) {
+                setTimeout(() => { if (mpMatchActive) mpRespawn(); }, 1200);
+                if (bgMusic && !musicMuted) bgMusic.pause();
+                if (typeof mpReportDeath === 'function') mpReportDeath();
+                return;
+            }
+            // A solo seasonal run is scored on what you collected, so it ends
+            // on its own screen with its own payout rather than the pipe count.
             if (smMode) { updateHighScore(); setTimeout(() => smFinish('died'), 400); return; }
             // Every death path goes through here, so the overlay is
             // guaranteed rather than only firing on ceiling hits.
@@ -13651,7 +14227,7 @@
         }
 
         // ----- LOBBY UI -----
-        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreate','mpViewLobby'];
+        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreateChoice','mpViewCreate','mpViewLobby'];
         function mpShowView(id) {
             MP_VIEWS.forEach(v => {
                 const el = document.getElementById(v);
@@ -14195,6 +14771,121 @@
             party.speaking.clear();
         }
 
+
+        /* ═══════════ INVITE PICKER ═══════════
+         *
+         * "Where is the invite friends button" was a fair question: there
+         * wasn't one. Inviting lived only as a small ✉ on a row inside the
+         * FRIENDS tab of the lobby browser, which is three taps from the
+         * lobby you are actually sitting in and nowhere near the word
+         * "invite". This is one button in the places you would look for it —
+         * the lobby and the party panel — opening one list.
+         */
+        let _ipKind = 'lobby';          // which of the two we are inviting to
+
+        function ipOpen(kind) {
+            _ipKind = kind === 'party' ? 'party' : 'lobby';
+            if (_ipKind === 'lobby' && !mpCurrentRoom) {
+                toast({ kind:'warn', title:'Not in a lobby',
+                        body:'Create or join one first, then invite.' });
+                return;
+            }
+            const where = document.getElementById('ipWhere');
+            if (where) {
+                where.textContent = _ipKind === 'party'
+                    ? 'They will join your party — voice and chat, wherever you both are.'
+                    : `They will join ${mpEsc(mpCurrentRoom.roomDisplayName || mpCurrentRoom.code)}.`;
+            }
+            const t = document.getElementById('ipTitle');
+            if (t) t.textContent = _ipKind === 'party' ? '🎧 INVITE TO PARTY' : '🎮 INVITE TO LOBBY';
+            const q = document.getElementById('ipSearch');
+            if (q) q.value = '';
+            document.getElementById('invitePickerModal')?.classList.add('active');
+            ipRender();
+            // The list is only as good as the last load of it
+            if (typeof loadPlayFabFriends === 'function') loadPlayFabFriends().then(ipRender).catch(() => {});
+            playSfx('whoosh', .45);
+        }
+
+        function ipClose() {
+            document.getElementById('invitePickerModal')?.classList.remove('active');
+        }
+
+        function ipRender() {
+            const list = document.getElementById('ipList');
+            if (!list) return;
+            const q = (document.getElementById('ipSearch')?.value || '').trim().toLowerCase();
+            const all = (typeof fList !== 'undefined' && fList.friends) ? fList.friends : [];
+            const rows = all.filter(f => !q || (f.displayName || '').toLowerCase().includes(q));
+
+            if (!all.length) {
+                list.innerHTML = '<div class="ip-empty">No friends yet.<br>Add someone with their friend code first —' +
+                                 ' the FRIENDS tab in the lobby browser has yours.</div>';
+                return;
+            }
+            if (!rows.length) { list.innerHTML = '<div class="ip-empty">Nobody by that name.</div>'; return; }
+
+            // Whoever is online goes first: they are the ones who can accept
+            const pres = (typeof _friendPresence !== 'undefined' && _friendPresence) || {};
+            rows.sort((a, b) => {
+                const ao = (pres[a.playFabId]?.status && pres[a.playFabId].status !== 'offline') ? 0 : 1;
+                const bo = (pres[b.playFabId]?.status && pres[b.playFabId].status !== 'offline') ? 0 : 1;
+                return ao - bo || (a.displayName || '').localeCompare(b.displayName || '');
+            });
+
+            list.innerHTML = rows.map(f => {
+                const initial = mpEsc((f.displayName || '?').charAt(0).toUpperCase());
+                const av = f.avatarUrl
+                    ? `<img class="ip-av" src="${mpEsc(f.avatarUrl)}" alt="" data-fallback="${initial}">`
+                    : `<div class="ip-av">${initial}</div>`;
+                const st = pres[f.playFabId]?.status || 'offline';
+                const online = st !== 'offline';
+                const already = _ipKind === 'party' && party.doc &&
+                                Object.values(party.doc.members || {}).some(m => m.playFabId === f.playFabId);
+                return `<div class="ip-row">${av}
+                    <div class="ip-who">
+                        <div class="ip-name">${mpEsc(f.displayName || 'Player')}</div>
+                        <div class="ip-state">${already ? 'already in your party' : (online ? '🟢 online' : 'offline — they will see it next time')}</div>
+                    </div>
+                    <button class="ip-btn" data-ip="${mpEsc(f.playFabId)}"
+                            data-name="${mpEsc(f.displayName || 'Player')}"${already ? ' disabled' : ''}>
+                        ${already ? 'IN PARTY' : 'INVITE'}
+                    </button></div>`;
+            }).join('');
+            if (typeof attachAvatarFallbacks === 'function') attachAvatarFallbacks(list);
+        }
+
+        function ipBind() {
+            document.getElementById('ipCloseBtn')?.addEventListener('click', ipClose);
+            document.getElementById('invitePickerModal')?.addEventListener('click', e => {
+                if (e.target.id === 'invitePickerModal') ipClose();
+            });
+            document.getElementById('ipSearch')?.addEventListener('input', ipRender);
+            document.getElementById('ipList')?.addEventListener('click', async e => {
+                const btn = e.target.closest('[data-ip]');
+                if (!btn || btn.disabled) return;
+                btn.disabled = true;
+                btn.textContent = 'SENT';
+                await inviteFriendTo(btn.dataset.ip, btn.dataset.name, _ipKind);
+            });
+            document.getElementById('mpInviteBtn')?.addEventListener('click', () => ipOpen('lobby'));
+
+            /* ---- create: a game, or a party? ---- */
+            document.getElementById('ccBackBtn')?.addEventListener('click', () => mpShowView('mpViewHome'));
+            document.getElementById('ccGame')?.addEventListener('click', () => {
+                mpSyncSeasonModeCard();
+                mpShowView('mpViewCreate');
+                playSound(selectSound);
+            });
+            document.getElementById('ccParty')?.addEventListener('click', async () => {
+                playSound(selectSound);
+                const id = party.id || await partyCreate(true);
+                if (!id) return;
+                document.getElementById('mpModal')?.classList.remove('active');
+                partyOpen();
+            });
+        }
+
         /* ---- THE PANEL ---- */
 
         function partyPanelOpen() {
@@ -14316,16 +15007,7 @@
             document.getElementById('partyMicBtn')?.addEventListener('click', partyVoiceToggle);
             document.getElementById('partyMuteBtn')?.addEventListener('click', () => partySetMuted(!party.muted));
             document.getElementById('partyLeaveBtn')?.addEventListener('click', () => partyLeave());
-            // Straight to the friends list, which is the FRIENDS tab inside
-            // the multiplayer panel — that is where the invite buttons are.
-            document.getElementById('partyInviteBtn')?.addEventListener('click', () => {
-                partyClose();
-                document.getElementById('mpModal')?.classList.add('active');
-                if (typeof mpShowView === 'function') mpShowView('mpViewHome');
-                document.querySelector('.queue-tab[data-queue="friends"]')?.click();
-                toast({ kind:'invite', title:'Invite to party',
-                        body:'Tap 🎧 next to a friend.' });
-            });
+            document.getElementById('partyInviteBtn')?.addEventListener('click', () => ipOpen('party'));
             document.getElementById('partyMembers')?.addEventListener('click', e => {
                 const b = e.target.closest('[data-kick]');
                 if (b) partyKick(b.dataset.kick);
@@ -14372,11 +15054,24 @@
             voiceStart();
         }
 
+        // What a mode is called, wherever it is shown. The seasonal three come
+        // from their own definitions so there is nowhere for the two lists to
+        // disagree — and nowhere for a raw id like "candyhunt" to reach a
+        // player.
+        function mpModeLabel(id) {
+            const fixed = { freemode: '🕊️ Freemode', race: '🏁 Race to 100',
+                            lastone: '💀 Last One Standing', coinrush: '🪙 Coin Rush' };
+            if (fixed[id]) return fixed[id];
+            const sm = typeof seasonModeById === 'function' ? seasonModeById(id) : null;
+            if (sm) return sm.mode.emoji + ' ' + sm.mode.name;
+            return fixed.freemode;
+        }
+
         function mpRenderLobby() {
             if (!mpCurrentRoom) return;
             document.getElementById('mpLobbyCode').textContent = mpCurrentRoom.code;
-            const modes = {freemode:'🕊️ Freemode', race:'🏁 Race to 100', lastone:'💀 Last One Standing'};
-            document.getElementById('mpLobbySub').innerHTML = mpEsc(mpCurrentRoom.roomDisplayName) + ' · ' + (modes[mpCurrentRoom.mode] || 'Freemode');
+            document.getElementById('mpLobbySub').innerHTML =
+                mpEsc(mpCurrentRoom.roomDisplayName) + ' · ' + mpModeLabel(mpCurrentRoom.mode);
             const count = Object.keys(mpPlayers).length;
             document.getElementById('mpPlayerCount').textContent = count;
 
@@ -14554,7 +15249,7 @@
             document.querySelectorAll('.setting-race').forEach(el =>
                 el.style.display = mode === 'race' ? '' : 'none');
             document.querySelectorAll('.setting-coinrush').forEach(el =>
-                el.style.display = mode === 'coinrush' ? '' : 'none');
+                el.style.display = (mode === 'coinrush' || isSeasonMode(mode)) ? '' : 'none');
 
             const note = document.getElementById('rankedLockNote');
             if (note) note.style.display = ranked ? 'block' : 'none';
@@ -14863,27 +15558,53 @@
             Object.values(mpPlayers).forEach(p => { p.score = 0; p.dead = false; });
             mpCoinRushCoins = {};
             Object.keys(mpPlayers).forEach(nr => { mpCoinRushCoins[nr] = 0; });
-            if (mode === 'coinrush') {
-                // Disable powerups in coin rush
+            /* ---- THE MATCH CLOCK ----
+             * Coin Rush and the seasonal modes are both "collect the most
+             * before time runs out", so they share one clock.
+             *
+             * It used to run on the HOST ONLY, which meant every guest's
+             * readout sat frozen at 0:00 for the whole match — the value it
+             * was reading was never set on their machine. Everyone counts
+             * down now, because everyone started together and a second of
+             * drift over ninety does not matter for a number on screen.
+             * Only the host raises MATCH_END, so there is still exactly one
+             * authority on when it is actually over.
+             */
+            if (isSeasonMode(mode) || mode === 'coinrush') {
                 powerups.forEach(pw => pw.active = false);
                 updateActivePowerups();
-                // Start timer on host
-                if (mpIsHost) {
-                    mpCoinRushSecondsLeft = mpCurrentRoom?.rushTime || MP_COIN_RUSH_SECONDS;
-                    mpCoinRushTimer = setInterval(() => {
-                        mpCoinRushSecondsLeft--;
-                        mpUpdateHud();
-                        if (mpCoinRushSecondsLeft <= 0) {
-                            clearInterval(mpCoinRushTimer);
-                            const results = Object.entries(mpCoinRushCoins)
-                                .map(([a,coins]) => ({ actor: parseInt(a), name: mpPlayers[parseInt(a)]?.name || ('Player'+a), score: coins }))
-                                .sort((a,b) => b.score-a.score);
-                            const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
-                            photonClient.raiseEvent(MP_EV.MATCH_END, { results, winnerActor: results[0]?.actor || null, mode: 'coinrush' }, { receivers: RC.All });
-                            mpShowMatchOver(results, results[0]?.actor || null, 'coinrush');
-                        }
-                    }, 1000);
-                }
+                if (isSeasonMode(mode)) smBeginForRoom(mode);
+
+                mpCoinRushSecondsLeft = isSeasonMode(mode)
+                    ? (smMode ? smMode.seconds : 90)
+                    : (mpCurrentRoom?.rushTime || MP_COIN_RUSH_SECONDS);
+
+                if (mpCoinRushTimer) clearInterval(mpCoinRushTimer);
+                mpCoinRushTimer = setInterval(() => {
+                    mpCoinRushSecondsLeft--;
+                    mpUpdateHud();
+                    if (typeof smSyncHud === 'function' && smMode) smSyncHud(true);
+                    if (mpCoinRushSecondsLeft > 0) return;
+                    clearInterval(mpCoinRushTimer); mpCoinRushTimer = null;
+                    if (!mpIsHost) return;          // guests only display it
+                    // Coin Rush scores by coins collected; a seasonal mode by
+                    // what the player picked up, which lives on their entry.
+                    const results = (mode === 'coinrush'
+                        ? Object.entries(mpCoinRushCoins).map(([a, coins]) => ({
+                            actor: parseInt(a),
+                            name: mpPlayers[parseInt(a)]?.name || ('Player' + a),
+                            score: coins }))
+                        : Object.entries(mpPlayers).map(([a, pl]) => ({
+                            actor: parseInt(a),
+                            name: pl.name || ('Player' + a),
+                            score: pl.score || 0 }))
+                    ).sort((a, b) => b.score - a.score);
+                    const RC = Photon.LoadBalancing.Constants.ReceiverGroup;
+                    photonClient.raiseEvent(MP_EV.MATCH_END,
+                        { results, winnerActor: results[0]?.actor || null, mode: mode },
+                        { receivers: RC.All });
+                    mpShowMatchOver(results, results[0]?.actor || null, mode);
+                }, 1000);
             }
             document.getElementById('mpModal').classList.remove('active');
             document.getElementById('mpHud').classList.add('active');
@@ -15094,6 +15815,7 @@
 
         function mpEndMatchUI() {
             if (mpCoinRushTimer) { clearInterval(mpCoinRushTimer); mpCoinRushTimer = null; }
+            if (smInRoom()) smClear();     // the room's mode leaves with the room
             document.getElementById('mpHud').classList.remove('active', 'open');
             document.getElementById('mpHud').innerHTML = '';
             document.getElementById('mpHudBtn')?.classList.remove('on');
@@ -15312,7 +16034,13 @@
             gameOver = false;
             bird.y = canvas.height / 2;
             bird.velocity = 0;
+            bird.prevY = bird.y;
             gameRunning = true;
+            // You come back in the middle of the screen, which may well be
+            // inside a pipe. The empty `if (mpRespawning)` in updateGame
+            // promised this and never delivered it, so a respawn could kill
+            // you on the frame it happened.
+            _graceLeft = PHYS.graceTicks;
             mpRespawning = true;
             setTimeout(() => { mpRespawning = false; }, 1500);   // brief safety
             if (!animationId) animationId = requestAnimationFrame(gameLoop);
@@ -15652,6 +16380,10 @@
                     }
                     break;
                 }
+                case MP_EV.SM_TAKE:
+                    // The seasonal equivalent: one sweet, not one each.
+                    smOnTaken(content.id);
+                    break;
                 // PIPE_SPAWN / COIN_SPAWN removed — every client now generates
                 // the identical map locally from the shared seed, so there is no
                 // network latency offset between players.
@@ -16105,7 +16837,7 @@
         });
 
         // Home buttons
-        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreate'); playSound(selectSound); });
+        document.getElementById('mpCreateRoomBtn')?.addEventListener('click', () => { mpShowView('mpViewCreateChoice'); playSound(selectSound); });
         document.getElementById('mpJoinByCodeBtn')?.addEventListener('click', () => { mpShowView('mpViewJoinCode'); playSound(selectSound); });
         document.getElementById('mpRefreshBtn')?.addEventListener('click', () => { mpRenderRoomList(); playSound(selectSound); });
         document.getElementById('mpEditProfileBtn')?.addEventListener('click', () => {
@@ -16155,9 +16887,14 @@
 
         document.querySelectorAll('.mp-mode-card').forEach(card => {
             card.addEventListener('click', () => {
+                if (!card.dataset.mode) return;      // the seasonal card, out of season
                 document.querySelectorAll('.mp-mode-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 mpSelectedMode = card.dataset.mode;
+                // The seasonal one needs a line of explanation; the other four
+                // say what they are in two words.
+                const blurb = document.getElementById('mpSeasonModeBlurb');
+                if (blurb) blurb.style.display = card.id === 'mpSeasonModeCard' ? '' : 'none';
             });
         });
         // ---- QUEUE TABS (browser) ----
@@ -16593,6 +17330,7 @@
         }, { passive: false });
         setupSettings();
         partyBindUi();
+        ipBind();
         partyRenderPill();
         setupMentionAutocomplete(document.getElementById('mpChatInput'), document.getElementById('mpChatMentions'));
         setupMentionAutocomplete(document.getElementById('mpLobbyChatInput'), document.getElementById('mpLobbyChatMentions'));

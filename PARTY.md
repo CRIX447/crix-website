@@ -73,9 +73,23 @@ refused. One collection carries both kinds:
 * **lobby invite** — has a `roomCode`. Accepting joins that lobby.
 * **party invite** — has a `partyId`. Accepting joins that party.
 
-Both are sent from the friends list: ✉ invites to your lobby, 🎧 invites to
-your party. Inviting to a party you have not started yet starts one first.
-Invites expire after ten minutes and are deleted once answered.
+Both are sent from the **INVITE FRIENDS** button — in the lobby's action row,
+and in the party panel. Either opens the same picker: it searches, puts
+whoever is online at the top because they are the ones who can accept, says
+where the person is being invited to, and greys out anyone already in your
+party. An offline friend can still be invited; the invite waits in Firestore
+until they next open the game.
+
+(The ✉ and 🎧 buttons on a friend row still work and do the same thing.)
+
+Inviting to a party you have not started yet starts one first. Invites expire
+after ten minutes and are deleted once answered.
+
+## Making one
+
+**Create** — in the matchmaking row or the lobby browser — asks what you are
+making: a **game lobby** (a room to play in, with a mode and a privacy
+setting) or a **party** (voice and chat that follow you between games).
 
 ## No microphone
 
