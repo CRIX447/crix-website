@@ -4942,8 +4942,24 @@
         };
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, jump: PHYS.flap };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
+        // How often a pipe pair is laid down. The pumpkins ride the half-beat
+        // of this, so it has to be one number rather than a literal repeated
+        // in two places that could drift apart.
+        const PIPE_TICKS = 120, PIPE_TICKS_SLOW = 180;
         let _graceLeft = 0;        // ticks of post-spawn amnesty still to run
         let _lastPipeTop = 0;      // so one pipe cannot sit a screen from the last
+        /* The NEXT pipe's top, chosen a beat early.
+         *
+         * Everything in the lane scrolls together, so where a collectible
+         * spawns is where it stays relative to every pipe. Aiming one at the
+         * last pipe's gap was aiming it at a gap up to a full beat behind
+         * where it would actually arrive — measured, candy landed up to 209px
+         * off the line the player has to fly, and the gap is only 182 tall,
+         * so those were inside a pipe wall and could not be reached at all.
+         * Knowing the next pipe in advance means a collectible can be put on
+         * the line between the two gaps, which is the line you are flying. */
+        let _pendingPipeTop = null;
+        let _lastPipeBeat = 0;     // frameCount of the last pipe laid
 
         /* ---- SMOOTH MOTION BETWEEN TICKS ----
          * The world steps at a fixed 60Hz, but phones draw at 90, 120 or 144.
@@ -5526,9 +5542,42 @@
             document.getElementById('previewTitle').innerHTML = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP'; 
         }
         
+        /* Switching a powerup on, separated from paying for it, so a pumpkin
+           can hand one over without a shop transaction. */
+        function grantPowerup(id, seconds) {
+            const p = powerups.find(x => x.id === id);
+            if (!p) return false;
+            // Already running? Top it up rather than doing nothing.
+            p.timeLeft = Math.max(p.timeLeft || 0, seconds || p.duration);
+            if (p.active) { updateActivePowerups(); return true; }
+            p.active = true;
+            if (p.timer) { clearInterval(p.timer); p.timer = null; }
+            playSound(powerupSound);
+            if (id === 'x2coins') coinMultiplier = 2;
+            p.timer = setInterval(() => {
+                p.timeLeft--;
+                if (p.timeLeft <= 0) {
+                    p.active = false;
+                    clearInterval(p.timer); p.timer = null;
+                    if (id === 'x2coins') coinMultiplier = 1;
+                    updateActivePowerups(); autoSave();
+                }
+                updateActivePowerups();
+            }, 1000);
+            updateActivePowerups();
+            return true;
+        }
+
         window.buyPowerup = function(id) {
             if (mpMatchActive && mpMatchMode === 'coinrush') return; // no powerups in coinrush
-            let p = powerups.find(p=>p.id===id); const _pc = salePrice(p && p.price); if(!p||p.active||coinCount<_pc) return; coinCount -= _pc; updateCoinDisplay(); p.active = true; p.timeLeft = p.duration; powerupSound.play(); if(id==='x2coins') coinMultiplier=2; let interval = setInterval(()=>{ p.timeLeft--; if(p.timeLeft<=0){ p.active=false; clearInterval(interval); if(id==='x2coins') coinMultiplier=1; updateActivePowerups(); autoSave(); } updateActivePowerups(); }, 1000); updateActivePowerups(); updateStoreDisplay(); autoSave(); 
+            const p = powerups.find(x => x.id === id);
+            const cost = salePrice(p && p.price);
+            if (!p || p.active || coinCount < cost) return;
+            coinCount -= cost;
+            updateCoinDisplay();
+            grantPowerup(id, p.duration);
+            updateStoreDisplay();
+            autoSave();
         };
         
         window.buyCosmetic = function(id) { 
@@ -5553,12 +5602,39 @@
         // Game functions
         // Seeded RNG (Mulberry32) for deterministic map generation in multiplayer
         let mpRngState = 0;
-        function mpRng() {
-            mpRngState = (mpRngState + 0x6D2B79F5) >>> 0;
-            let z = mpRngState;
+        /* ---- TWO STREAMS, NOT ONE ----
+         * Everyone in a room builds the same lane by drawing from the same
+         * seeded generator in the same order. That only holds while everyone
+         * draws from it the SAME NUMBER OF TIMES.
+         *
+         * The Halloween props and the seasonal pickups used to share this one
+         * stream with the pipes, so a player with the season on consumed
+         * numbers a player without it did not — and from the second pipe
+         * onward the two were flying completely different lanes. Measured:
+         * identical seed, identical room, pipe tops diverged at pipe 2.
+         *
+         * So the lane has its own stream and the decoration has another.
+         * Whatever the props do, the pipes and coins are untouched.
+         */
+        function rngStep(state) {
+            state = (state + 0x6D2B79F5) >>> 0;
+            let z = state;
             z = Math.imul(z ^ (z >>> 15), z | 1);
             z ^= z + Math.imul(z ^ (z >>> 7), z | 61);
-            return ((z ^ (z >>> 14)) >>> 0) / 4294967296;
+            return [state, ((z ^ (z >>> 14)) >>> 0) / 4294967296];
+        }
+        function mpRng() {
+            const r = rngStep(mpRngState);
+            mpRngState = r[0];
+            return r[1];
+        }
+        // The decoration's stream: seeded off the same shared seed, so it is
+        // still identical for everyone, but stepped independently.
+        let propRngState = 12345;
+        function propRng() {
+            const r = rngStep(propRngState);
+            propRngState = r[0];
+            return r[1];
         }
         function resetGame() {
             // All players start at x=100 — same world, same physics
@@ -5569,6 +5645,8 @@
             pipes = []; coinsArr = []; score = 0; gameOver = false; frameCount = 0; travelled = 0; gameSpeed = cheats.slowmo ? 1.5 : 2.5;
             _graceLeft = PHYS.graceTicks;
             _lastPipeTop = 0;
+            _pendingPipeTop = null;
+            _lastPipeBeat = 0;
             resetPumpkins();
             bird.prevY = bird.y;
             _alpha = 0;
@@ -5579,6 +5657,8 @@
             // coins stay taken. A fresh run starts the ledger clean.
             if (!mpMatchActive) mpTakenCoins.clear();
             mpRngState = mpCurrentRoom ? (window.mpSharedSeed >>> 0 || 12345) : 12345;
+            // A different offset so the decoration is not a copy of the lane
+            propRngState = (mpRngState + 0x9E3779B9) >>> 0;
         }
         
         // The drawn size and the hit radius come from one place, so a bird
@@ -5622,6 +5702,40 @@
             return Math.max(182, 215 - score * 1.2);
         }
 
+        // Where the next pipe's gap goes. Two pipes in a row at opposite ends
+        // of the screen cannot be flown, only guessed at, so the step between
+        // them is capped.
+        function nextPipeTop(gap) {
+            const rnd = mpCurrentRoom ? mpRng() : Math.random();
+            let top = rnd * (canvas.height - gap - 150) + 70;
+            if (_lastPipeTop) {
+                const step = 150;
+                top = Math.max(_lastPipeTop - step, Math.min(_lastPipeTop + step, top));
+            }
+            return Math.max(70, Math.min(canvas.height - gap - 80, top));
+        }
+
+        /* The height a collectible spawning RIGHT NOW should sit at to be on
+           the player's flight path. It lands between the pipe last laid and
+           the one coming, so it rides the line between their two gaps. */
+        function laneCentreForSpawn() {
+            const gap = currentGap();
+            const beat = cheats.slowmo ? PIPE_TICKS_SLOW : PIPE_TICKS;
+            if (!pipes.length || _pendingPipeTop == null) return canvas.height / 2;
+            const lastMid = _lastPipeTop + gap / 2;
+            const nextMid = _pendingPipeTop + gap / 2;
+            /* How far through the beat we are: 0 at the pipe just laid, 1 at
+               the one coming. Elapsed ticks, CLAMPED — not modulo. The item
+               spawners run a tick after the pipe block, so a full beat can
+               elapse before this sees a new one, and the modulo wrapped that
+               back to 0: an item spawning right before the next pipe was
+               aimed at the previous gap, a whole beat wrong, and landed
+               inside the wall of the pipe it arrived with. */
+            const since = Math.max(0, Math.min(beat, frameCount - _lastPipeBeat));
+            const f = since / beat;
+            return lastMid + (nextMid - lastMid) * f;
+        }
+
         function updateGame() { 
             if (gameOver || !gameRunning) return;
             if (window.__crixFrozen) return;   // owner freeze
@@ -5662,35 +5776,30 @@
             } else { 
                 if(bird.y > canvas.height-10){ bird.y=canvas.height-10; bird.velocity=-Math.abs(bird.velocity)*0.5; } 
             }
-            if(frameCount % (cheats.slowmo?180:120) ===0){
-                const rnd = mpCurrentRoom ? mpRng() : Math.random();
+            if(frameCount % (cheats.slowmo?PIPE_TICKS_SLOW:PIPE_TICKS) ===0){
                 const gap = currentGap();
-                let top = rnd*(canvas.height-gap-150)+70;
-                // Two pipes in a row at opposite ends of the screen cannot be
-                // flown, only guessed at. Keep the step between them flyable.
-                if (_lastPipeTop) {
-                    const step = 150;
-                    top = Math.max(_lastPipeTop - step, Math.min(_lastPipeTop + step, top));
-                    top = Math.max(70, Math.min(canvas.height - gap - 80, top));
-                }
+                // The one chosen last beat, or a fresh one on the very first
+                const top = _pendingPipeTop != null ? _pendingPipeTop : nextPipeTop(gap);
                 _lastPipeTop = top;
+                _lastPipeBeat = frameCount;
                 pipes.push({x:canvas.width, top:top, bottom:top+gap, scored:false});
+                // ...and pick the one after, so the lane ahead is known
+                _pendingPipeTop = nextPipeTop(gap);
             }
             const coinrushRate = (mpMatchActive && mpMatchMode === 'coinrush') ? 18 : (cheats.coinlord?25:50);
             // A seasonal mode fills the lane with its own thing to collect;
             // ordinary coins on top of it just make both harder to see.
             if(!smMode && frameCount % coinrushRate===0){
                 // Spawn coin in safe gap area (not in pipes)
-                const lastPipe = pipes.length > 0 ? pipes[pipes.length-1] : null;
-                let coinY;
-                if (lastPipe) {
-                    const gapCenter = lastPipe.top + (lastPipe.bottom - lastPipe.top)/2;
-                    const spread = (lastPipe.bottom - lastPipe.top)*0.3;
-                    const rndC = mpCurrentRoom ? mpRng() : Math.random();
-                    coinY = gapCenter + (rndC - 0.5) * spread * 2;
-                } else {
-                    coinY = (mpCurrentRoom ? mpRng() : Math.random())*(canvas.height-100)+50;
-                }
+                // On the line the player is actually flying at the moment
+                // this coin will reach them, not the line of a pipe that is
+                // already a beat behind.
+                const rndC = mpCurrentRoom ? mpRng() : Math.random();
+                const spread = currentGap() * 0.30;
+                let coinY = pipes.length
+                    ? laneCentreForSpawn() + (rndC - 0.5) * spread * 2
+                    : rndC * (canvas.height - 200) + 100;
+                coinY = Math.max(60, Math.min(canvas.height - 90, coinY)) - 10;
                 const _cid = ++_coinSeq;
                 const _took = mpTakenCoins.get(_cid);
                 coinsArr.push({x:canvas.width, y:coinY, id:_cid,
@@ -6306,17 +6415,17 @@
         // In a room every client has to lay out the same sweets in the same
         // places, so the shared seeded generator stands in for Math.random —
         // the same trick the pipes and coins already use.
-        function smRnd() { return mpCurrentRoom ? mpRng() : Math.random(); }
+        function smRnd() { return mpCurrentRoom ? propRng() : Math.random(); }
 
         function smSafeY() {
-            // Somewhere a player could actually reach: near the gap of the
-            // pipe that has most recently been laid down.
-            const last = pipes.length ? pipes[pipes.length - 1] : null;
-            if (!last) return 120 + smRnd() * (canvas.height - 240);
-            const mid = (last.top + last.bottom) / 2;
-            const spread = (last.bottom - last.top) * 0.34;
+            // Somewhere a player can actually reach: on the line between the
+            // gap just laid and the gap coming, which is the line they will be
+            // on when this arrives. Aiming at the last pipe alone put these up
+            // to 209px off it, well inside a pipe wall.
+            if (!pipes.length) return 120 + smRnd() * (canvas.height - 240);
+            const spread = currentGap() * 0.34;
             return Math.max(60, Math.min(canvas.height - 70,
-                                         mid + (smRnd() - 0.5) * spread * 2));
+                       laneCentreForSpawn() + (smRnd() - 0.5) * spread * 2));
         }
 
         function smSpawn() {
@@ -6857,9 +6966,14 @@
          * damage, no slowdown, no score. Adding a cost would make people
          * avoid the one thing that is meant to be fun to hit.
          */
-        const PUMPKIN_EVERY = [520, 900];    // ticks between them, randomised
+        /* Pumpkins ride the half-beat between pipe pairs. Pipes arrive every
+           PIPE_TICKS, so spawning on the half means a pumpkin lands squarely
+           in the open water between two of them rather than in the mouth of a
+           gap, where it hid the thing you were trying to fly through.
+           PUMPKIN_ODDS is how often that half-beat actually gets one. */
+        const PUMPKIN_ODDS = 0.42;
         let _pumpkins = [];
-        let _nextPumpkinAt = 0;
+
         let _smashSfx = undefined;           // undefined = not tried, false = missing
 
         function halloweenOn() {
@@ -6881,7 +6995,7 @@
             _smashSfx.play().catch(() => {});
         }
 
-        function resetPumpkins() { _pumpkins = []; _nextPumpkinAt = 0; }
+        function resetPumpkins() { _pumpkins = []; }
 
         /* A short kick on impact. It shakes the canvas ELEMENT with a CSS
            transform rather than the drawing, so it cannot disturb the canvas
@@ -6913,20 +7027,19 @@
             // generator like everything else and sit in the same place for
             // everybody. Whether one has been smashed stays local — it costs
             // nothing and affects nothing, so there is no reason to send it.
-            if (!_nextPumpkinAt) {
-                _nextPumpkinAt = frameCount + PUMPKIN_EVERY[0] +
-                                 Math.floor(smRnd() * (PUMPKIN_EVERY[1] - PUMPKIN_EVERY[0]));
-            }
-            if (frameCount >= _nextPumpkinAt) {
-                _nextPumpkinAt = frameCount + PUMPKIN_EVERY[0] +
-                                 Math.floor(smRnd() * (PUMPKIN_EVERY[1] - PUMPKIN_EVERY[0]));
-                // Right in the way: the middle of the gap of the pipe that was
-                // laid down most recently, which is the line you were flying.
-                const last = pipes.length ? pipes[pipes.length - 1] : null;
-                const y = last ? (last.top + last.bottom) / 2
-                              : 140 + smRnd() * (canvas.height - 280);
-                _pumpkins.push({ x: canvas.width + 30, y: y, r: 21,
-                                 smashed: 0, chunks: null, spin: (smRnd() - 0.5) * 0.4 });
+            // On the half-beat: exactly between the pipe just laid and the
+            // next one, which is the open water a player is coasting through.
+            const beat = cheats.slowmo ? PIPE_TICKS_SLOW : PIPE_TICKS;
+            if (frameCount % beat === Math.floor(beat / 2)) {
+                if (smRnd() < PUMPKIN_ODDS) {
+                    // The same line every other collectible uses, so a pumpkin
+                    // sits where you already are rather than where you were.
+                    const y = Math.max(90, Math.min(canvas.height - 120,
+                                       laneCentreForSpawn() + (smRnd() - 0.5) * 40));
+                    _pumpkins.push({ x: canvas.width + 30, y: y, r: 21,
+                                     smashed: 0, chunks: null, spin: (smRnd() - 0.5) * 0.4,
+                                     prize: smRnd() });   // decided now, so a room agrees on it
+                }
             }
 
             for (let i = 0; i < _pumpkins.length; i++) {
@@ -6949,6 +7062,34 @@
             }
         }
 
+        /* What was inside. Decided from the shared stream when the pumpkin
+           was laid down, so in a room everybody's pumpkin holds the same
+           thing — and it is only ever a gift. There is no bad pumpkin,
+           because a cost would make people avoid the one thing that is meant
+           to be fun to hit. */
+        function pumpkinPrize(p) {
+            const roll = p.prize != null ? p.prize : Math.random();
+            if (roll < 0.55) {
+                const coins = 25 + Math.floor(roll / 0.55 * 60);   // 25..85
+                const paid = Math.round(coins * (typeof eventCoinMult === 'function' ? eventCoinMult() : 1))
+                             * (coinMultiplier || 1);
+                coinCount += paid;
+                try { updateCoinDisplay(); autoSave(); } catch (e) {}
+                return { text: '+' + paid + ' 🪙', colour: '#FFD700', sfx: 'coin' };
+            }
+            // A powerup, but not in Coin Rush — that mode turns them all off
+            if (mpMatchActive && mpMatchMode === 'coinrush') {
+                coinCount += 40; try { updateCoinDisplay(); } catch (e) {}
+                return { text: '+40 🪙', colour: '#FFD700', sfx: 'coin' };
+            }
+            const pool = ['shield', 'magnet', 'x2coins'];
+            const pick = pool[Math.floor((roll - 0.55) / 0.45 * pool.length) % pool.length];
+            const secs = 10;
+            grantPowerup(pick, secs);
+            const label = { shield: '🛡️ SHIELD', magnet: '🧲 MAGNET', x2coins: '✨ 2X COINS' }[pick];
+            return { text: label + ' ' + secs + 's', colour: '#7CF0B8', sfx: 'power' };
+        }
+
         function smashPumpkin(p) {
             p.smashed = 46;
             p.chunks = [];
@@ -6967,6 +7108,11 @@
             }
             playSmash();
             if (typeof shakeScreen === 'function') shakeScreen(5, 140);
+            const prize = pumpkinPrize(p);
+            p.prizeText = prize.text;
+            p.prizeColour = prize.colour;
+            if (prize.sfx === 'coin') playSound(coinSound);
+            else playSfx('unlock', .55);
         }
 
         /* The lane pumpkin gets its own drawing rather than borrowing the
@@ -7044,6 +7190,19 @@
             for (const p of _pumpkins) {
                 if (p.smashed) {
                     const fade = Math.min(1, p.smashed / 26);
+                    if (p.prizeText) {                     // what was inside
+                        g.save();
+                        g.globalAlpha = Math.min(1, p.smashed / 30);
+                        g.font = 'bold 15px system-ui, sans-serif';
+                        g.textAlign = 'center';
+                        g.lineWidth = 3;
+                        g.strokeStyle = 'rgba(0,0,0,.7)';
+                        g.fillStyle = p.prizeColour || '#fff';
+                        const ty = p.y - 30 - (46 - p.smashed) * 0.6;
+                        g.strokeText(p.prizeText, p.x, ty);
+                        g.fillText(p.prizeText, p.x, ty);
+                        g.restore();
+                    }
                     g.save();
                     g.globalAlpha = fade;
                     for (const c of p.chunks) {
