@@ -407,7 +407,7 @@
                 position: static !important; display: flex !important;
                 margin: 12px 0 !important;
             }
-            .game-header, .game-controls, .icon-bar, .mp-banner-btn, .menu-footer {
+            .game-header, .game-controls, .icon-bar, .banner-row, .menu-footer {
                 position: static !important; inset: auto !important;
                 width: auto !important; margin-left: 0 !important; margin-right: 0 !important;
             }
@@ -434,7 +434,7 @@
         body.playing .game-header,  body.dead .game-header,
         body.playing .stats-grid,   body.dead .stats-grid,
         body.playing .game-controls,body.dead .game-controls,
-        body.playing .mp-banner-btn,body.dead .mp-banner-btn,
+        body.playing .banner-row,   body.dead .banner-row,
         body.playing .icon-bar,     body.dead .icon-bar,
         body.playing .menu-footer,  body.dead .menu-footer,
         body.playing .user-section, body.dead .user-section,
@@ -1137,6 +1137,67 @@
         .cheat-badge.coinlord { border: 2px solid gold; color: gold; background: #2a2400; }
         .cheat-badge.slowmo { border: 2px solid var(--green); color: #7affc7; }
         .cheat-badge.bigbird { border: 2px solid var(--orange); color: #FFB347; }
+
+        /* ---- LIMITED SEASONAL MODES ----
+           The phone menu is an absolutely-positioned deck with a hard-coded
+           offset per row, so a season cannot be allowed to add a row: it would
+           have to shift every offset above it at three breakpoints, and the
+           bottom one has no room to give. The seasonal mode shares the
+           multiplayer banner's row instead, and the row is what the deck
+           positions. With no season on, the one button fills it as before. */
+        .banner-row { display: flex; gap: 8px; width: 100%; margin: 12px 0 6px; }
+        .banner-row .mp-banner-btn { flex: 1; min-width: 0; margin: 0; }
+        .season-mode-btn {
+            background: linear-gradient(135deg, var(--accent, #FF7A18), var(--accent2, #8B3FD6));
+            border: 2px solid rgba(255,255,255,.28);
+            border-bottom-color: rgba(0,0,0,.45);
+            color: #fff;
+            display: flex; align-items: center; justify-content: center; gap: 7px;
+            overflow: hidden;
+        }
+        .season-mode-btn .sm-name { white-space: nowrap; }
+        @media (max-width: 560px) {
+            .banner-row { gap: 6px; }
+            .season-mode-btn { font-size: 12px; gap: 5px; padding: 9px 6px; }
+        }
+        .sm-hud {
+            display: none;
+            position: absolute; top: calc(14px + env(safe-area-inset-top));
+            left: 50%; transform: translateX(-50%);
+            align-items: center; gap: 12px; z-index: 36;
+            background: rgba(6,4,14,.72); border: 1px solid rgba(255,255,255,.16);
+            border-radius: 30px; padding: 7px 16px; pointer-events: none;
+            white-space: nowrap;
+        }
+        body.playing .sm-hud.on { display: flex; }
+        /* The pipe count and the coin purse mean nothing in a mode scored on
+           what you picked up, and two readouts in one slot is just a mess. */
+        body.playing .hud-live.sm-off { display: none !important; }
+        .sm-hud-time { font-size: 17px; font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; }
+        .sm-hud-score { display: flex; align-items: baseline; gap: 5px; }
+        .sm-hud-score b { font-size: 19px; color: var(--accent, #FF7A18); }
+        .sm-hud-score i { font-style: normal; font-size: 9px; letter-spacing: .7px; color: #aaa; }
+        .sm-hud-carry { font-size: 12px; color: #fff; }
+        .smr-why { font-size: 11px; letter-spacing: 1px; color: #999; margin-bottom: 4px; }
+        .smr-big { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin-bottom: 6px; }
+        .smr-big b { font-size: 48px; line-height: 1; color: var(--accent, #FF7A18); }
+        .smr-big i { font-style: normal; font-size: 11px; letter-spacing: 1px; color: #aaa; }
+        .smr-newbest { font-size: 11px; letter-spacing: 1px; color: #FFD700; margin-bottom: 6px; }
+        .smr-target { font-size: 11px; margin-bottom: 12px; }
+        .smr-rows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+        .smr-rows > div {
+            display: flex; justify-content: space-between; font-size: 12px;
+            background: rgba(255,255,255,.04); border-radius: 10px; padding: 8px 12px;
+        }
+        .smr-rows span { color: #999; }
+        .smr-actions { display: flex; gap: 8px; }
+        .smr-actions .game-btn { flex: 1; }
+        @media (max-width: 480px) {
+            .sm-hud { gap: 9px; padding: 5px 12px; }
+            .sm-hud-time { font-size: 15px; }
+            .sm-hud-score b { font-size: 17px; }
+            .smr-big b { font-size: 40px; }
+        }
         .powerup-badge { border: 2px solid gold; color: #FFE484; background: #2a2500; }
         
         /* ---- BUTTONS ---- */
@@ -2565,7 +2626,7 @@
 
             /* ---- BOTTOM CONTROL DECK ---- */
             .game-controls,
-            .mp-banner-btn,
+            .banner-row,
             .icon-bar,
             .menu-footer {
                 position: absolute; z-index: 30; left: 14px; right: 14px;
@@ -2583,7 +2644,7 @@
             .icon-bar.has-season .icon-btn span  { font-size: 17px; }
             .icon-bar.has-staff .icon-btn label,
             .icon-bar.has-season .icon-btn label { font-size: 6px; letter-spacing: 0; }
-            .mp-banner-btn{ bottom: calc(132px + env(safe-area-inset-bottom)); }
+            .banner-row   { bottom: calc(132px + env(safe-area-inset-bottom)); }
             .game-controls{ bottom: calc(196px + env(safe-area-inset-bottom));
                             display: flex; gap: 10px; }
 
@@ -2598,7 +2659,7 @@
             body.playing .game-header,
             body.playing .stats-grid,
             body.playing .game-controls,
-            body.playing .mp-banner-btn,
+            body.playing .banner-row,
             body.playing .icon-bar,
             body.playing .menu-footer { display: none !important; }
 
@@ -2679,7 +2740,8 @@
             .stat-value { font-size: 13px; margin-top: 1px; }
 
             .game-controls { bottom: calc(140px + env(safe-area-inset-bottom)); }
-            .mp-banner-btn { bottom: calc(94px  + env(safe-area-inset-bottom)); min-height: 40px; font-size: 13px; }
+            .banner-row    { bottom: calc(94px  + env(safe-area-inset-bottom)); }
+            .mp-banner-btn { min-height: 40px; font-size: 13px; }
             .icon-bar      { bottom: calc(44px  + env(safe-area-inset-bottom)); }
             .menu-footer   { bottom: calc(6px   + env(safe-area-inset-bottom)); }
 
@@ -2690,7 +2752,7 @@
 
             /* A landscape screen is wide — stretching the deck edge to edge
                puts the buttons an inch and a half apart. */
-            .game-controls, .mp-banner-btn, .icon-bar, .menu-footer {
+            .game-controls, .banner-row, .icon-bar, .menu-footer {
                 left: 50%; right: auto; transform: translateX(-50%);
                 width: min(560px, calc(100% - 28px));
             }
@@ -2745,7 +2807,7 @@
            Give the deck the extra row back. */
         @media (max-width: 380px) {
             .icon-bar      { bottom: calc(86px  + env(safe-area-inset-bottom)); }
-            .mp-banner-btn { bottom: calc(160px + env(safe-area-inset-bottom)); }
+            .banner-row    { bottom: calc(160px + env(safe-area-inset-bottom)); }
             .game-controls { bottom: calc(224px + env(safe-area-inset-bottom)); }
             .foot-btn      { font-size: 8px; padding: 9px 3px; }
         }
@@ -2958,6 +3020,12 @@
                 <span class="hud-coins" id="hudCoins">🪙 0</span>
                 <span class="hud-rush" id="hudRush" style="display:none;">⏱ <b id="hudRushTime">5:00</b></span>
             </div>
+
+            <div class="sm-hud" id="smHud">
+                <div class="sm-hud-time" id="smHudTime">1:30</div>
+                <div class="sm-hud-score"><b id="smHudScore">0</b><i id="smHudUnit">CANDY</i></div>
+                <div class="sm-hud-carry" id="smHudCarry" style="display:none;"></div>
+            </div>
             <button class="mp-hud-btn" id="mpHudBtn" title="Standings">
                 🏁<span class="badge" id="mpHudCount">0</span>
             </button>
@@ -2983,10 +3051,13 @@
         <div class="cheat-indicators" id="cheatIndicators"></div>
         <div class="active-powerups" id="activePowerups"></div>
         <!-- Primary action -->
-        <button class="mp-banner-btn" id="multiplayerBtn">
-            🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
-            <span id="onlineCount" class="online-count" style="display:none;"></span>
-        </button>
+        <div class="banner-row">
+            <button class="mp-banner-btn" id="multiplayerBtn">
+                🌐 MULTIPLAYER <span id="mpStatusDot" class="mp-status-dot offline"></span>
+                <span id="onlineCount" class="online-count" style="display:none;"></span>
+            </button>
+            <button class="mp-banner-btn season-mode-btn" id="seasonModeBtn" style="display:none;"></button>
+        </div>
 
         <!-- Everything else collapses into one icon row -->
         <div class="icon-bar">
@@ -3613,6 +3684,30 @@
     </div>
 
     <!-- SEASONAL CALENDAR -->
+    <!-- What a seasonal run paid out -->
+    <div class="mp-modal" id="smResultModal" style="z-index:46300;">
+        <div class="mp-modal-content" style="max-width:380px;">
+            <div class="modal-header">
+                <div class="modal-title" id="smrTitle">RESULT</div>
+                <button class="modal-close" id="closeSmResultBtn">✕</button>
+            </div>
+            <div style="text-align:center;">
+                <div class="smr-why" id="smrWhy">Time!</div>
+                <div class="smr-big"><b id="smrScore">0</b><i id="smrUnit">CANDY</i></div>
+                <div class="smr-newbest" id="smrNewBest" style="display:none;">★ NEW BEST</div>
+                <div class="smr-target" id="smrTarget"></div>
+                <div class="smr-rows">
+                    <div><span>Coins earned</span><b id="smrCoins">+0</b></div>
+                    <div><span>Your best</span><b id="smrBest">0</b></div>
+                </div>
+                <div class="smr-actions">
+                    <button class="game-btn" id="smrAgainBtn">↻ PLAY AGAIN</button>
+                    <button class="game-btn secondary" id="smrMenuBtn">MENU</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mp-modal" id="seasonCalModal" style="z-index:46200;">
         <div class="mp-modal-content" style="max-width:420px;">
             <div class="modal-header">
@@ -5199,7 +5294,9 @@
                 pipes.push({x:canvas.width, top:top, bottom:top+gap, scored:false});
             }
             const coinrushRate = (mpMatchActive && mpMatchMode === 'coinrush') ? 18 : (cheats.coinlord?25:50);
-            if(frameCount % coinrushRate===0){
+            // A seasonal mode fills the lane with its own thing to collect;
+            // ordinary coins on top of it just make both harder to see.
+            if(!smMode && frameCount % coinrushRate===0){
                 // Spawn coin in safe gap area (not in pipes)
                 const lastPipe = pipes.length > 0 ? pipes[pipes.length-1] : null;
                 let coinY;
@@ -5283,7 +5380,8 @@
                 } 
                 if(coinsArr[i].x+20<0) coinsArr.splice(i--,1); 
             } 
-            frameCount++; 
+            frameCount++;
+            if (smMode) smUpdate(); 
             if (typeof mpSyncPosition === 'function') mpSyncPosition();
         }
         
@@ -5597,7 +5695,8 @@
                 name: 'Halloween', emoji: '🎃', accent: '#FF7A18', accent2: '#8B3FD6',
                 panel: '#1B0F2A', panel2: '#241539', line: 'rgba(255,122,24,.16)',
                 music: '/img/halloweenmusic.mp3',
-                flyer: { img: '/img/witch.png', sfx: '/img/witchl.mp3',
+                flyer: { img: '/img/witch.png', sfx: '/img/witch1.mp3',
+                         sfxAlt: '/img/witchl.mp3',
                          w: 96, every: [14000, 26000], from: 'right', arc: 34, flip: false },
                 cal: { title: 'TRICK OR TREAT', doors: 31, month: 9, icon: '🍬', open: '🎃',
                        prizes: { 7: 'hat_witch', 14: 'hat_skull', 21: 'trail_ghost', 31: 'hat_pumpkin' } },
@@ -5700,6 +5799,377 @@
         // already knows how to handle.
         function seasonFor(part) { return seasonPart(part) ? season() : null; }
 
+        /* ═══════════ LIMITED SEASONAL MODES ═══════════
+         *
+         * One extra way to play per season, and only while that season is on.
+         * They share a single engine — a timed run through the ordinary lane
+         * with the season's own thing to collect — because three bespoke
+         * minigames would be three things to keep working, and the difference
+         * players actually feel is in the collecting, not the plumbing.
+         *
+         * Solo only, and deliberately so: they hand out coins on a curve that
+         * has nothing to do with the pipe ladder, so they stay out of the
+         * leaderboard and out of rooms.
+         */
+        const SEASON_MODES = {
+            spooky: {
+                id: 'candyhunt', name: 'CANDY HUNT', short: 'CANDY HUNT', emoji: '🍬', unit: 'CANDY',
+                blurb: 'Ninety seconds of sweets in the lane. Take every one you can reach — and leave the sour ones well alone.',
+                seconds: 90, target: 40, coinsPer: 3, every: 38, carry: 0
+            },
+            christmas: {
+                id: 'presents', name: 'DELIVER THE PRESENTS', short: 'PRESENTS', emoji: '🎁', unit: 'DELIVERED',
+                blurb: 'Collect presents from the lane, then drop them down the chimneys riding the pipes. You can carry three at a time.',
+                seconds: 90, target: 30, coinsPer: 4, every: 46, carry: 3
+            },
+            easter: {
+                id: 'egghunt', name: 'FIND THE EGGS', short: 'EGG HUNT', emoji: '🥚', unit: 'EGGS',
+                blurb: 'The eggs stay hidden in the grass until you are nearly on top of them. The golden ones are worth five.',
+                seconds: 90, target: 70, coinsPer: 2, every: 40, carry: 0
+            }
+        };
+        const SM_BEST_KEY = 'crix_sm_best_v1';
+        // How far the chimney stack rises off the pipe it stands on. It has to
+        // clear the bird's hit radius by enough that posting a present is a
+        // choice about flying low, not a choice about dying.
+        const SM_CHIMNEY_H = 30;
+
+        let smMode = null, smSeasonId = null;
+        let smTicks = 0, smScore = 0, smCarry = 0, smItems = [], smEnding = false;
+        let smFlash = null;          // { text, colour, ticks } — floats off the bird
+
+        // A mode is playable when its own season is the one running, whether
+        // that is the calendar's doing or the owner's.
+        function smAvailable() {
+            const id = activeSeasonId();
+            if (!id) return null;
+            const mode = SEASON_MODES[id];
+            if (!mode || !SEASONS[id]) return null;
+            return { id: id, mode: mode, season: SEASONS[id] };
+        }
+
+        function smBests() {
+            try { return JSON.parse(localStorage.getItem(SM_BEST_KEY) || '{}') || {}; }
+            catch (e) { return {}; }
+        }
+        function smBest(modeId) { return smBests()[modeId] || 0; }
+        function smRecordBest(modeId, value) {
+            try {
+                const all = smBests();
+                if (value <= (all[modeId] || 0)) return false;
+                all[modeId] = value;
+                localStorage.setItem(SM_BEST_KEY, JSON.stringify(all));
+                return true;
+            } catch (e) { return false; }
+        }
+
+        function smClear() {
+            smMode = null; smSeasonId = null;
+            smTicks = 0; smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
+            document.getElementById('smHud')?.classList.remove('on');
+            document.getElementById('hudLive')?.classList.remove('sm-off');
+        }
+
+        function smStartRun() {
+            const a = smAvailable();
+            if (!a) {
+                toast({ kind: 'info', title: 'Nothing running',
+                        body: 'Seasonal modes only open while their season is on.' });
+                return;
+            }
+            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
+            smSeasonId = a.id; smMode = a.mode;
+            smTicks = a.mode.seconds * 60;
+            smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
+            startGame();                       // resetGame runs inside here
+            smTicks = a.mode.seconds * 60;     // and must not have cleared the clock
+            document.getElementById('smHud')?.classList.add('on');
+            document.getElementById('hudLive')?.classList.add('sm-off');
+            smSyncHud(true);
+        }
+
+        /* ---- what is in the lane ---- */
+        function smSafeY() {
+            // Somewhere a player could actually reach: near the gap of the
+            // pipe that has most recently been laid down.
+            const last = pipes.length ? pipes[pipes.length - 1] : null;
+            if (!last) return 120 + Math.random() * (canvas.height - 240);
+            const mid = (last.top + last.bottom) / 2;
+            const spread = (last.bottom - last.top) * 0.34;
+            return Math.max(60, Math.min(canvas.height - 70,
+                                         mid + (Math.random() - 0.5) * spread * 2));
+        }
+
+        function smSpawn() {
+            if (!smMode) return;
+            if (smMode.id === 'candyhunt') {
+                // Roughly one in five is sour. It costs you rather than kills
+                // you — the mode is about greed, not about dying twice over.
+                const sour = Math.random() < 0.18;
+                smItems.push({ kind: sour ? 'sour' : 'candy', x: canvas.width + 20, y: smSafeY(),
+                               hue: Math.floor(Math.random() * 5), spin: Math.random() * 6.28 });
+            } else if (smMode.id === 'presents') {
+                // Alternate: something to carry, then somewhere to put it.
+                const last = pipes.length ? pipes[pipes.length - 1] : null;
+                if (last && smItems.filter(i => i.kind === 'chimney').length < 3 && Math.random() < 0.34) {
+                    smItems.push({ kind: 'chimney', pipe: last, x: last.x, y: last.bottom,
+                                   hitY: last.bottom - SM_CHIMNEY_H });
+                } else {
+                    smItems.push({ kind: 'present', x: canvas.width + 20, y: smSafeY(),
+                                   hue: Math.floor(Math.random() * 5) });
+                }
+            } else if (smMode.id === 'egghunt') {
+                const golden = Math.random() < 0.125;
+                smItems.push({ kind: 'egg', golden: golden, seen: false,
+                               x: canvas.width + 20, y: smSafeY(),
+                               hue: Math.floor(Math.random() * EGG_COLOURS.length) });
+            }
+        }
+
+        function smFlashText(text, colour) { smFlash = { text: text, colour: colour, ticks: 48 }; }
+
+        function smCollect(it) {
+            if (it.kind === 'chimney') {
+                if (!smCarry) return;                 // nothing to post
+                smScore += smCarry * 2;
+                smFlashText('+' + (smCarry * 2), '#2FA85B');
+                smCarry = 0;
+                it.lit = 34;                          // a puff of smoke, briefly
+                playSound(coinSound);
+                return;
+            }
+            it.taken = true;
+            if (it.kind === 'sour') {
+                smScore = Math.max(0, smScore - 2);
+                smFlashText('-2', '#7ED957');
+                playSfx('error', .5);
+                return;
+            }
+            if (it.kind === 'present') {
+                if (smCarry >= smMode.carry) { it.taken = false; return; }   // hands full
+                smCarry++;
+                playSfx('pop', .45);
+                return;
+            }
+            const worth = (it.kind === 'egg' && it.golden) ? 5 : 1;
+            smScore += worth;
+            smFlashText('+' + worth, it.golden ? '#FFD700' : '#FFFFFF');
+            playSound(coinSound);
+        }
+
+        function smUpdate() {
+            if (!smMode || smEnding) return;
+            if (smFlash && --smFlash.ticks <= 0) smFlash = null;
+            smTicks--;
+            if (smTicks <= 0) { smFinish('time'); return; }
+            if (frameCount % smMode.every === 0) smSpawn();
+
+            const reach = birdRadius() + 9;
+            for (let i = 0; i < smItems.length; i++) {
+                const it = smItems[i];
+                if (it.kind === 'chimney') {
+                    // Chimneys ride the pipe they were laid on, so they move
+                    // with the lane rather than drifting out of it.
+                    if (!it.pipe || pipes.indexOf(it.pipe) === -1) { smItems.splice(i--, 1); continue; }
+                    it.x = it.pipe.x + pipeWidth / 2;
+                    it.y = it.pipe.bottom;
+                    it.hitY = it.y - SM_CHIMNEY_H;   // the opening, up in the gap
+                    if (it.lit) it.lit--;
+                } else {
+                    it.x -= gameSpeed;
+                }
+                if (it.x < -40) { smItems.splice(i--, 1); continue; }
+                if (it.taken) continue;
+                const dx = bird.x - it.x, dy = bird.y - (it.hitY != null ? it.hitY : it.y);
+                const d2 = dx * dx + dy * dy;
+                // An egg is only visible once you are nearly on it — that is
+                // the hunt, and it is why the mode is not just Candy Hunt again
+                if (it.kind === 'egg' && !it.seen && d2 < 125 * 125) it.seen = true;
+                const near = it.kind === 'chimney' ? (reach + 19) : reach;
+                if (d2 < near * near) smCollect(it);
+            }
+            smSyncHud(false);
+        }
+
+        /* ---- drawing ---- */
+        function smDrawItem(g, it) {
+            const s = 18;
+            g.save();
+            g.translate(it.x, it.y);
+            if (it.kind === 'candy' || it.kind === 'sour') {
+                const body = it.kind === 'sour' ? '#7ED957'
+                           : ['#FF4F6D', '#FFC93C', '#4FC3F7', '#C77DFF', '#FF8A3D'][it.hue % 5];
+                g.rotate(it.spin + frameCount * 0.03);
+                g.fillStyle = body;
+                g.beginPath();
+                g.ellipse(0, 0, s * 0.42, s * 0.34, 0, 0, Math.PI * 2);
+                g.fill();
+                g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6; g.stroke();
+                g.fillStyle = body;                                 // twisted ends
+                [-1, 1].forEach(d => {
+                    g.beginPath();
+                    g.moveTo(d * s * 0.40, 0);
+                    g.lineTo(d * s * 0.72, -s * 0.26);
+                    g.lineTo(d * s * 0.72, s * 0.26);
+                    g.closePath(); g.fill(); g.stroke();
+                });
+                if (it.kind === 'sour') {                           // a warning stripe
+                    g.strokeStyle = 'rgba(20,60,20,.85)'; g.lineWidth = 2;
+                    g.beginPath(); g.moveTo(-s * 0.22, -s * 0.2); g.lineTo(s * 0.22, s * 0.2); g.stroke();
+                }
+            } else if (it.kind === 'present') {
+                const body = ['#E8323F', '#2FA85B', '#3B82F6', '#C77DFF', '#F59E0B'][it.hue % 5];
+                g.fillStyle = body;
+                g.fillRect(-s * 0.46, -s * 0.46, s * 0.92, s * 0.92);
+                g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6;
+                g.strokeRect(-s * 0.46, -s * 0.46, s * 0.92, s * 0.92);
+                g.fillStyle = '#FFD700';                            // ribbon
+                g.fillRect(-s * 0.09, -s * 0.46, s * 0.18, s * 0.92);
+                g.fillRect(-s * 0.46, -s * 0.09, s * 0.92, s * 0.18);
+            } else if (it.kind === 'chimney') {
+                // Anchored on the pipe's top edge and drawn upward, so the
+                // opening is SM_CHIMNEY_H clear of it — which is the point
+                // the delivery is measured against.
+                const H = SM_CHIMNEY_H, W = 20;
+                g.fillStyle = '#8B3A2E';
+                g.fillRect(-W / 2, -H, W, H);
+                g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6;
+                g.strokeRect(-W / 2, -H, W, H);
+                g.fillStyle = 'rgba(255,255,255,.14)';              // brick courses
+                for (let k = 1; k < 4; k++) g.fillRect(-W / 2, -H + k * (H / 4), W, 1.5);
+                g.fillStyle = '#D9DEE6';                            // snow on the rim
+                g.fillRect(-W / 2 - 3, -H - 5, W + 6, 6);
+                g.fillStyle = '#1A1220';                            // the opening
+                g.fillRect(-W / 2 + 4, -H - 3, W - 8, 5);
+                if (it.lit) {                                       // smoke on a delivery
+                    g.globalAlpha = it.lit / 34;
+                    g.fillStyle = 'rgba(230,230,240,.9)';
+                    for (let k = 0; k < 3; k++) {
+                        g.beginPath();
+                        g.arc(k * 3 - 3, -H - 10 - k * 7 - (34 - it.lit) * 0.5, 3 + k, 0, Math.PI * 2);
+                        g.fill();
+                    }
+                    g.globalAlpha = 1;
+                }
+            } else if (it.kind === 'egg') {
+                if (!it.seen) {                                     // a tuft, until you are close
+                    g.strokeStyle = 'rgba(80,150,90,.75)'; g.lineWidth = 2; g.lineCap = 'round';
+                    for (let k = -1; k <= 1; k++) {
+                        g.beginPath();
+                        g.moveTo(k * 5, s * 0.4);
+                        g.quadraticCurveTo(k * 8, 0, k * 10, -s * 0.34);
+                        g.stroke();
+                    }
+                } else {
+                    g.fillStyle = it.golden ? '#FFD700' : EGG_COLOURS[it.hue % EGG_COLOURS.length];
+                    g.beginPath();
+                    g.ellipse(0, 0, s * 0.36, s * 0.48, 0, 0, Math.PI * 2);
+                    g.fill();
+                    g.strokeStyle = 'rgba(10,6,16,.8)'; g.lineWidth = 1.6; g.stroke();
+                    g.strokeStyle = it.golden ? 'rgba(255,255,255,.8)' : 'rgba(255,255,255,.55)';
+                    g.lineWidth = 2;
+                    g.beginPath(); g.moveTo(-s * 0.3, -s * 0.05); g.lineTo(s * 0.3, -s * 0.05); g.stroke();
+                    g.beginPath(); g.moveTo(-s * 0.28, s * 0.18); g.lineTo(s * 0.28, s * 0.18); g.stroke();
+                }
+            }
+            g.restore();
+        }
+
+        function smDraw(g) {
+            if (!smMode) return;
+            for (const it of smItems) if (!it.taken) smDrawItem(g, it);
+            if (smFlash) {
+                g.save();
+                g.globalAlpha = Math.min(1, smFlash.ticks / 24);
+                g.fillStyle = smFlash.colour;
+                g.font = 'bold 19px system-ui, sans-serif';
+                g.textAlign = 'center';
+                g.strokeStyle = 'rgba(0,0,0,.65)'; g.lineWidth = 3;
+                const y = bird.y - 28 - (48 - smFlash.ticks) * 0.5;
+                g.strokeText(smFlash.text, bird.x, y);
+                g.fillText(smFlash.text, bird.x, y);
+                g.restore();
+            }
+        }
+
+        /* ---- the readout ---- */
+        let _smHudLast = {};
+        function smSyncHud(force) {
+            if (!smMode) return;
+            const secs = Math.max(0, Math.ceil(smTicks / 60));
+            if (!force && secs === _smHudLast.secs && smScore === _smHudLast.score
+                && smCarry === _smHudLast.carry) return;
+            _smHudLast = { secs: secs, score: smScore, carry: smCarry };
+            const t = document.getElementById('smHudTime');
+            const v = document.getElementById('smHudScore');
+            const u = document.getElementById('smHudUnit');
+            const c = document.getElementById('smHudCarry');
+            if (t) {
+                t.textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
+                t.style.color = secs <= 10 ? '#FF4655' : '';
+            }
+            if (v) v.textContent = smScore;
+            if (u) u.textContent = smMode.unit;
+            if (c) {
+                c.style.display = smMode.carry ? 'block' : 'none';
+                if (smMode.carry) c.textContent = '🎁 ' + smCarry + '/' + smMode.carry;
+            }
+        }
+
+        function smFinish(why) {
+            if (!smMode || smEnding) return;
+            smEnding = true;
+            const mode = smMode, pts = smScore;
+            gameRunning = false; gameOver = true;
+            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
+            if (bgMusic && !musicMuted) bgMusic.pause();
+
+            let coins = pts * mode.coinsPer;
+            const hitTarget = pts >= mode.target;
+            if (hitTarget) coins += 250;
+            if (typeof eventCoinMult === 'function') coins = Math.round(coins * eventCoinMult());
+            coinCount += coins;
+            if (typeof grantXp === 'function') grantXp(Math.max(1, Math.round(pts / 2)), 'season-mode');
+            const isBest = smRecordBest(mode.id, pts);
+
+            try { updateCoinDisplay(); } catch (e) {}
+            try { autoSave(); } catch (e) {}
+            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
+
+            const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
+            set('smrTitle', mode.emoji + ' ' + mode.name);
+            set('smrScore', pts);
+            set('smrUnit', mode.unit);
+            set('smrCoins', '+' + (typeof formatCoins === 'function' ? formatCoins(coins) : coins));
+            set('smrBest', smBest(mode.id));
+            set('smrWhy', why === 'time' ? 'Time!' : 'You went down.');
+            const tg = document.getElementById('smrTarget');
+            if (tg) {
+                tg.textContent = hitTarget
+                    ? '🏆 Target beaten — 250 bonus coins'
+                    : 'Target ' + mode.target + ' · ' + Math.max(0, mode.target - pts) + ' short of the bonus';
+                tg.style.color = hitTarget ? 'var(--green,#00CC7A)' : '#aaa';
+            }
+            const nb = document.getElementById('smrNewBest');
+            if (nb) nb.style.display = isBest ? '' : 'none';
+            document.getElementById('smHud')?.classList.remove('on');
+            document.getElementById('hudLive')?.classList.remove('sm-off');
+            setScreen('menu');
+            document.getElementById('smResultModal')?.classList.add('active');
+            playSfx(hitTarget ? 'rank' : 'pop', .6);
+        }
+
+        // Shown on the menu only while a season is on.
+        function smSyncBanner() {
+            const btn = document.getElementById('seasonModeBtn');
+            if (!btn) return;
+            const a = smAvailable();
+            if (!a) { btn.style.display = 'none'; return; }
+            btn.style.display = '';
+            btn.innerHTML = '<span class="sm-name">' + a.mode.emoji + ' ' + a.mode.short + '</span>';
+            btn.title = a.mode.name + ' — limited to ' + a.season.name;
+        }
+
         function readSeasonPreview() {
             try {
                 const v = JSON.parse(localStorage.getItem(SEASON_PREVIEW_KEY) || '{}');
@@ -5776,6 +6246,7 @@
                 _nextFlyerAt = 0;
             }
             updateSeasonCalendarDot();
+            smSyncBanner();             // the limited mode comes and goes with it
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
         }
@@ -5858,10 +6329,14 @@
             return rec;
         }
         const _flyerSfx = {};
-        function playFlyerSfx(src) {
+        function playFlyerSfx(src, alt) {
             // A fly-by is a sound effect, so it follows the effects switch
             // rather than the music one.
             if (!src) return;
+            // The witch's sound has been spelled both witch1 and witchl, and
+            // only ever one of them is the file that was actually uploaded.
+            // Take whichever is there rather than making the spelling matter.
+            if (alt && _flyerSfx[src] === false) { playFlyerSfx(alt); return; }
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
             let a = _flyerSfx[src];
             if (a === false) return;                 // already known to be missing
@@ -5910,7 +6385,7 @@
                 arc: f.arc,
                 speed: (canvas.width + f.w * 2) / 4600   // about four and a half seconds to cross
             };
-            playFlyerSfx(f.sfx);
+            playFlyerSfx(f.sfx, f.sfxAlt);
         }
         function drawFlyer() {
             if (!_flyer) return;
@@ -6410,7 +6885,8 @@
             for (const p of pipes) {
                 drawPipe(p.x, 0, pipeWidth, p.top, true);
                 drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
-            } 
+            }
+            if (smMode) smDraw(ctx); 
             // Draw coins
             // Coins spin and bob. The spin is a horizontal squash on a sine
             // wave, which reads as rotation without needing sprite frames.
@@ -6650,7 +7126,21 @@
         let uiHidden = false;
         document.addEventListener('keydown', (e) => { if (e.key === 'h' || e.key === 'H') { const tag = document.activeElement?.tagName; if (tag !== 'INPUT' && tag !== 'TEXTAREA') /* hide UI removed */; } });
 
-        document.getElementById('startGameBtn')?.addEventListener('click', startGame);
+        document.getElementById('startGameBtn')?.addEventListener('click', () => {
+            smClear();          // an ordinary run, whatever was played last
+            startGame();
+        });
+        document.getElementById('seasonModeBtn')?.addEventListener('click', smStartRun);
+        document.getElementById('smrAgainBtn')?.addEventListener('click', () => {
+            document.getElementById('smResultModal')?.classList.remove('active');
+            smStartRun();
+        });
+        ['closeSmResultBtn', 'smrMenuBtn'].forEach(id =>
+            document.getElementById(id)?.addEventListener('click', () => {
+                document.getElementById('smResultModal')?.classList.remove('active');
+                smClear();
+                setScreen('menu');
+            }));
         document.getElementById('canvasWrapper')?.addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
         // Gamepad support
         let gamepadJumped = false;
@@ -10102,6 +10592,9 @@
         // Every death route funnels through here — there are three (ceiling,
         // floor and pipes) and previously only one showed the overlay.
         function handleDeath() {
+            // A seasonal run is scored on what you collected, so it ends on
+            // its own screen with its own payout rather than the pipe count.
+            if (smMode) { updateHighScore(); setTimeout(() => smFinish('died'), 400); return; }
             // Every death path goes through here, so the overlay is
             // guaranteed rather than only firing on ceiling hits.
             if (!mpMatchActive) { setTimeout(showDeathScreen, 250); return; }
@@ -10137,6 +10630,7 @@
         }
 
         function backToMenu() {
+            smClear();
             // Belt and braces: whatever route got us here, the spectate bar
             // does not belong on the main menu.
             const _sb = document.getElementById('spectateBar');
