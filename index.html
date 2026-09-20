@@ -398,9 +398,15 @@ body {
     justify-content: space-between; flex-wrap: wrap; gap: 12px;
 }
 .footer-copy { font-size: 11px; color: #8C8C8C; letter-spacing: 0.5px; }
-.footer-links { display: flex; gap: 20px; }
+.footer-links { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
 .footer-link { color: #8C8C8C; text-decoration: none; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; transition: color 0.12s; }
 .footer-link:hover { color: var(--neon-orange); }
+
+@media (max-width: 360px) {
+    /* At this width the brand and both buttons cannot coexist. The buttons win. */
+    .nav-brand { display: none; }
+    .nav-play, .nav-discord { padding: 6px 9px; font-size: 10px; }
+}
 
 /* ── MUSIC BTN ─────────────────────────────────────────────── */
 .music-control {
@@ -498,6 +504,16 @@ body {
     .hero-title { font-size:46px; }
     .video-grid { grid-template-columns:repeat(2,1fr); }
     .site-nav .nav-links { display:none; }
+    /* The brand plus both buttons did not fit a phone, so the bar pushed the
+       whole page sideways. Let the brand give way instead. */
+    .site-nav { gap: 6px; }
+    .nav-brand {
+        font-size: 12px; min-width: 0;
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .nav-right { gap: 6px; flex-shrink: 0; }
+    .nav-play, .nav-discord { padding: 7px 10px; font-size: 10px; }
+    .footer-links { gap: 12px; row-gap: 8px; }
     .site-wrap { padding:0 18px; }
 }
 @media (max-width: 520px) {
@@ -511,6 +527,8 @@ body {
     </style>
 </head>
 <body>
+
+
 
 <audio id="bgMusic" loop><source src="/img/music.mp3" type="audio/mpeg"></audio>
 <audio id="hoverSound" preload="auto"><source src="/img/hover.mp3" type="audio/mpeg"></audio>
@@ -527,8 +545,9 @@ body {
         <a href="#videos"  class="nav-link">Videos</a>
         <a href="#fanmail" class="nav-link">Fan Art</a>
         <a href="#shop"    class="nav-link">Shop</a>
-        <a href="/evidence" class="nav-link">Evidence</a>
-        <a href="#chatsec" class="nav-link">Chat</a>
+        
+        <a href="/crixchat" class="nav-link">CRIX Chat</a>
+        <a href="/flappycrix" class="nav-link">Flappy Crix</a>
         <a href="#word"    class="nav-link">Daily Word</a>
     </div>
     <div class="nav-right">
@@ -548,7 +567,6 @@ body {
             <h1 class="hero-title">CRIX<span class="red">GAMING</span><br>VR</h1>
             <p class="hero-desc">VR gaming content, Minecraft, and more. Over 1K subscribers and growing. Come hang out.</p>
             <div class="hero-actions">
-                <a href="/flappycrix" class="game-button">🎮 Play Flappy Crix</a>
                 <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="game-button discord">
                     💬 Join the Discord
                 </a>
@@ -675,30 +693,6 @@ body {
         <img id="merchFavicon2" src="" style="display:none;" alt="">
     </div>
 
-    <!-- CRIX CHAT -->
-    <div class="section" id="chatsec">
-        <div class="section-header">
-            <span class="section-label">Community</span>
-            <h2 class="section-title">CRIX Chat</h2>
-        </div>
-        <div class="section-body">
-        <div class="chat-promo">
-            <div class="chat-promo-text">
-                <p>Private messages and voice calls with your Flappy Crix friends.
-                   Same account, nothing extra to sign up for.</p>
-                <ul class="chat-feats">
-                    <li>💬 Direct messages and group chats</li>
-                    <li>📞 Voice calls, browser to browser</li>
-                    <li>⏳ Everything disappears after 24 hours</li>
-                    <li>🖼️ Share images and clips</li>
-                </ul>
-                <a href="/crixchat" class="game-button chat" style="margin-top:6px;">💬 Open CRIX Chat</a>
-            </div>
-            <div class="chat-promo-art">💬</div>
-        </div>
-        </div>
-    </div>
-
     <!-- DAILY WORD -->
     <div class="section" id="word">
         <div class="section-header" style="text-align:center;">
@@ -722,6 +716,9 @@ body {
                 <a href="https://shop.crixgamingvr.com" target="_blank" class="footer-link">Shop</a>
                 <a href="#" id="businessEmailLink" class="footer-link">Contact</a>
                 <a href="/crixchat" class="footer-link">CRIX Chat</a>
+            <a href="/bio" class="footer-link">Links</a>
+            <a href="/terms" class="footer-link">Terms</a>
+            <a href="/privacy" class="footer-link">Privacy</a>
             <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" class="footer-link">Discord</a>
             </div>
         </div>
@@ -1238,7 +1235,6 @@ async function init() {
     setInterval(checkLiveStream, 120000);
     loadBibleVerse();
     loadFanmail();
-    setupEvidence();
 }
 
 // =====================================================
@@ -1435,5 +1431,7 @@ else init();
 })();
 
 </script>
+    <!-- Vercel Analytics: no cookies, no personal data, matches the privacy policy -->
+    <script defer src="/_vercel/insights/script.js"></script>
 </body>
 </html>

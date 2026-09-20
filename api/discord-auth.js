@@ -24,6 +24,10 @@
 
 const admin = require('firebase-admin');
 
+const SITE_ORIGIN = process.env.SITE_URL || 'https://crixgamingvr.com';
+const GAME_LINK   = `${SITE_ORIGIN}/flappycrix`;
+const GAME_HOST   = GAME_LINK.replace('https://', '');
+
 const ALLOWED_ORIGINS = [
     'https://crixgamingvr.com',
     'https://www.crixgamingvr.com'
@@ -69,7 +73,10 @@ module.exports = async (req, res) => {
     }
 
     const code = req.body?.code;
+    const linkMode = req.body?.link === true;      // attaching to an existing account
+    const linkUid  = req.body?.uid || null;
     if (!code) return res.status(400).json({ error: 'Missing code' });
+    if (linkMode && !linkUid) return res.status(400).json({ error: 'Missing uid for linking' });
 
     try {
         // 1. Exchange the one-time code for an access token
@@ -123,8 +130,8 @@ module.exports = async (req, res) => {
             }
         }
 
-        // 2c. Send a welcome DM. Also quiet on failure — plenty of people
-        // have DMs from servers turned off, which is their choice.
+        // 2c. Welcome DM. Quiet on failure — plenty of people have DMs from
+        // servers switched off, and that is their choice, not an error.
         if (BOT_TOKEN) {
             try {
                 const dm = await fetch('https://discord.com/api/users/@me/channels', {
@@ -139,13 +146,25 @@ module.exports = async (req, res) => {
                         headers: { 'Authorization': `Bot ${BOT_TOKEN}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             embeds: [{
-                                title: '🐦 Discord linked',
-                                description: 'Your Discord is now connected to Flappy Crix.\n\n' +
-                                             'You will get a message here when there is an update, ' +
-                                             'and you can use `/stats` in the server to show off your rank.',
+                                title: '👋 Hey, I am Flappy Crix',
+                                description:
+                                    `Your Discord is now linked to the game.\n\n` +
+                                    `I will message you here about:\n` +
+                                    `🎉  New updates and what changed\n` +
+                                    `🔨  Moderation action on your account\n` +
+                                    `🏆  Rank milestones\n\n` +
+                                    `**Try these in the server**\n` +
+                                    `\`/stats\` — show off your rank\n` +
+                                    `\`/leaderboard\` — see the top players\n` +
+                                    `\`/patchnotes\` — what changed recently`,
                                 color: 0xFF4655,
-                                fields: [{ name: 'Play', value: 'https://crixgamingvr.com/flappycrix' }],
-                                footer: { text: 'Turn these off any time by unlinking in Settings' }
+                                thumbnail: { url: `${SITE_ORIGIN}/img/newfavicon.png` },
+                                fields: [
+                                    { name: '🎮 Play', value: `[${GAME_HOST}](${GAME_LINK})`, inline: true },
+                                    { name: '💬 Chat', value: `[Open CRIX Chat](${SITE_ORIGIN}/crixchat)`, inline: true }
+                                ],
+                                footer: { text: 'Turn these off any time — Settings → Discord → Unlink' },
+                                timestamp: new Date().toISOString()
                             }]
                         })
                     });
@@ -153,6 +172,22 @@ module.exports = async (req, res) => {
             } catch (e) {
                 console.warn('[discord-auth] welcome DM failed:', e.message);
             }
+        }
+
+        // Linking attaches Discord to an account that already exists, so there
+        // is no token to mint — the caller is already signed in.
+        if (linkMode) {
+            return res.status(200).json({
+                linked: true,
+                joinedGuild,
+                profile: {
+                    id: u.id,
+                    username: u.username,
+                    displayName: u.global_name || u.username,
+                    photoURL: u.avatar
+                        ? `https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png` : null
+                }
+            });
         }
 
         // 3. Mint a Firebase token with a STABLE uid derived from the Discord id

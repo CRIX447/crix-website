@@ -19,7 +19,7 @@
         },
         {
           "key": "Permissions-Policy",
-          "value": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+          "value": "camera=(), microphone=(self), display-capture=(self), geolocation=(), payment=(), usb=()"
         },
         {
           "key": "Strict-Transport-Security",
@@ -78,6 +78,69 @@
           "value": "no-store"
         }
       ]
+    },
+    {
+      "source": "/link",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/bio",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/terms",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/privacy",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/download",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300"
+        }
+      ]
+    },
+    {
+      "source": "/game-release.json",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
+    },
+    {
+      "source": "/launcher",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        }
+      ]
     }
   ],
   "rewrites": [
@@ -106,6 +169,22 @@
       "source": "/chat",
       "destination": "/crixchat",
       "permanent": false
+    },
+    {
+      "source": "/links",
+      "destination": "/bio",
+      "permanent": false
+    },
+    {
+      "source": "/dl",
+      "destination": "/download",
+      "permanent": false
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/dm-worker",
+      "schedule": "0 3 * * *"
     }
   ]
 }

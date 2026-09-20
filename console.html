@@ -10,6 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/playfab-manager.js?v=2026081611"></script>
+<script src="/cosmetic-art.js?v=2026091801"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -60,6 +61,23 @@ input,select,textarea{background:#0c0c14;border:1px solid var(--line);color:#EDE
   border-radius:8px;padding:9px 12px;font-family:inherit;font-size:12px;flex:1;min-width:140px}
 input:focus,select:focus{outline:none;border-color:var(--orange)}
 label{font-size:11px;color:#A0A0A0;min-width:90px}
+/* A checkbox and its wording travel together, and the flex rule above would
+   otherwise stretch the box itself across the row. */
+label.chk{display:inline-flex;align-items:center;gap:6px;min-width:0;flex:0 0 auto;
+  cursor:pointer;color:#EDEDED;white-space:nowrap}
+label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accent-color:var(--orange)}
+/* ---- COSMETIC FITTING ---- */
+.cf-stage{position:relative;margin:4px 0 12px}
+#cfBig{width:100%;height:auto;display:block;border-radius:12px;
+  background:radial-gradient(130% 150% at 25% 15%,#23304D,#0C0C15);
+  border:1px solid var(--line)}
+.cf-small{position:absolute;right:10px;bottom:10px;text-align:center;
+  background:rgba(0,0,0,.55);border-radius:10px;padding:5px 7px 3px}
+#cfSmall{width:60px;height:60px;display:block}
+.cf-small span{font-size:8px;color:#A0A0A0;letter-spacing:.5px}
+.row.cf-slider{margin-bottom:6px}
+.row.cf-slider input[type=range]{flex:1;accent-color:var(--orange);min-width:0;padding:0}
+.row.cf-slider output{flex:0 0 52px;text-align:right;font-size:12px;font-weight:700;color:#FFD700}
 
 /* ---- LOG ---- */
 #logBody{background:#07070b;border:1px solid var(--line);border-radius:10px;padding:12px;
@@ -106,6 +124,10 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     <button class="tab" data-t="logs">Logs</button>
     <button class="tab" data-t="players">Players</button>
     <button class="tab" data-t="economy">Economy</button>
+    <button class="tab" data-t="seasons">🎃 Seasons</button>
+    <button class="tab" data-t="cosmetics">🎯 Cosmetics</button>
+    <button class="tab" data-t="bio">Bio Page</button>
+    <button class="tab" data-t="trailer">Trailer</button>
     <button class="tab" data-t="health">PlayFab</button>
     <button class="tab" data-t="deploy">Deploy</button>
     <button class="tab" data-t="system">System</button>
@@ -182,19 +204,44 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
         <div class="row"><label>Reason</label><input id="modReason" placeholder="Breaking the rules"></div>
         <div class="row">
           <label>Duration</label>
-          <select id="modHours">
-            <option value="1">1 hour</option>
-            <option value="24" selected>24 hours</option>
-            <option value="168">7 days</option>
-            <option value="720">30 days</option>
-            <option value="">Permanent</option>
+          <input id="modAmount" type="number" min="1" value="24" style="flex:0 0 90px">
+          <select id="modUnit" style="flex:0 0 130px">
+            <option value="second">Seconds</option>
+            <option value="minute">Minutes</option>
+            <option value="hour" selected>Hours</option>
+            <option value="day">Days</option>
+            <option value="week">Weeks</option>
+            <option value="month">Months</option>
+            <option value="year">Years</option>
+            <option value="perm">Permanent</option>
           </select>
         </div>
+        <div class="dt" id="modPreview" style="margin-bottom:8px"></div>
         <div class="row">
           <button class="btn sm danger" id="banBtn">Ban</button>
           <button class="btn sm ghost" id="unbanBtn">Unban</button>
         </div>
         <div class="out" id="modOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Warn a player</h2>
+        <div class="row"><label>Player ID</label><input id="warnId" placeholder="PlayFab ID"></div>
+        <div class="row"><label>Message</label><input id="warnMsg" placeholder="Why are you warning them?"></div>
+        <div class="row"><button class="btn sm" id="warnBtn">Send warning</button></div>
+        <div class="out" id="warnOut">—</div>
+        <p class="dt" style="margin-top:6px">Sent as a Discord DM if they have linked their account.</p>
+      </div>
+
+      <div class="panel">
+        <h2>Lobby control</h2>
+        <div class="row"><label>Room code</label><input id="hostRoom" placeholder="e.g. ABCD" maxlength="6"></div>
+        <div class="row">
+          <button class="btn sm" id="claimHostBtn">Make me host</button>
+          <button class="btn sm ghost" id="endLobbyBtn">Force end match</button>
+        </div>
+        <div class="out" id="hostOut">—</div>
+        <p class="dt" style="margin-top:8px">Takes effect for anyone currently in that lobby.</p>
       </div>
 
       <div class="panel">
@@ -249,6 +296,367 @@ label{font-size:11px;color:#A0A0A0;min-width:90px}
     </div>
 
     <!-- PLAYFAB HEALTH -->
+    <div class="view" id="v-seasons" style="display:none;">
+      <div class="panel">
+        <h2>Seasonal theme</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Halloween, Christmas and Easter turn themselves on by date. Force one
+          here to preview it or run it early — it reaches every player at once,
+          not only this browser. Each season brings its own colours, music,
+          fly-bys and calendar.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaForce">
+            <option value="">Follow the calendar</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">Off — no season at all</option>
+          </select>
+          <button class="btn sm" id="seaSave">Apply</button>
+        </div>
+        <div class="out" id="seaOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>👤 Just for me</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Try a season on your own account without anyone else seeing it. This
+          beats the setting above, and it follows you to the game on any device
+          you sign in on — set it here, open Flappy Crix, and it is already on.
+        </p>
+        <div class="row">
+          <label>Theme</label>
+          <select id="seaMine">
+            <option value="">Same as everyone</option>
+            <option value="auto">Follow the calendar, for me</option>
+            <option value="spooky">🎃 Halloween</option>
+            <option value="christmas">🎄 Christmas</option>
+            <option value="easter">🐣 Easter</option>
+            <option value="off">No theme, for me</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Parts</label>
+          <label class="chk"><input type="checkbox" id="seaPartColour" checked> Colours</label>
+          <label class="chk"><input type="checkbox" id="seaPartMusic" checked> Music</label>
+          <label class="chk"><input type="checkbox" id="seaPartFlyer" checked> Fly-by</label>
+          <label class="chk"><input type="checkbox" id="seaPartCal" checked> Calendar</label>
+          <button class="btn sm" id="seaMineSave">Apply to me</button>
+        </div>
+        <div class="out" id="seaMineOut">—</div>
+      </div>
+
+    </div>
+
+    <div class="view" id="v-cosmetics" style="display:none;">
+      <div class="panel">
+        <h2>🎯 Fit a cosmetic</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Artwork never lands sitting exactly where the code assumed. Pick an item,
+          move it until it looks right, and save — it lands for every player, and
+          the game picks it up without a deploy. The small preview is the size the
+          bird actually is in play.
+        </p>
+        <div class="row">
+          <label>Cosmetic</label>
+          <select id="cfPick"></select>
+          <button class="btn sm ghost" id="cfReload">Reload list</button>
+        </div>
+        <div class="cf-stage">
+          <canvas id="cfBig" width="560" height="300"></canvas>
+          <div class="cf-small">
+            <canvas id="cfSmall" width="120" height="120"></canvas>
+            <span>actual size in game</span>
+          </div>
+        </div>
+        <div class="row cf-slider"><label>Across</label>
+          <input type="range" id="cfX" min="-50" max="50" step="1" value="0">
+          <output id="cfXOut">0</output></div>
+        <div class="row cf-slider"><label>Up / down</label>
+          <input type="range" id="cfY" min="-50" max="50" step="1" value="0">
+          <output id="cfYOut">0</output></div>
+        <div class="row cf-slider"><label>Size</label>
+          <input type="range" id="cfS" min="40" max="220" step="1" value="100">
+          <output id="cfSOut">100%</output></div>
+        <div class="row cf-slider"><label>Rotation</label>
+          <input type="range" id="cfR" min="-180" max="180" step="1" value="0">
+          <output id="cfROut">0°</output></div>
+        <div class="row">
+          <button class="btn sm" id="cfSave">Save for everyone</button>
+          <button class="btn sm ghost" id="cfReset">Reset this one</button>
+        </div>
+        <div class="out" id="cfOut">—</div>
+      </div>
+    </div>
+
+    <div class="view" id="v-bio" style="display:none;">
+      <div class="panel">
+        <h2>Bio page</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Live at <a href="/bio" target="_blank" style="color:#00CC7A">crixgamingvr.com/bio</a>.
+          Changes appear as soon as you save.
+        </p>
+
+        <div class="row"><label>Display name</label><input id="bioName" placeholder="CRIXGAMING VR"></div>
+        <div class="row"><label>Bio text</label><input id="bioText" placeholder="Short description"></div>
+        <div class="row"><label>Avatar URL</label><input id="bioAvatar" placeholder="/img/imcrix123.png"></div>
+        <div class="row"><label>Background</label><input id="bioBg" placeholder="image or .mp4 URL — leave blank for plain black"></div>
+        <div class="row">
+          <label>BG opacity</label>
+          <input id="bioBgOp" type="number" min="0" max="1" step="0.05" value="0.45" style="flex:0 0 90px">
+          <label style="flex:0 0 auto">Accent</label>
+          <input id="bioAccent" type="color" value="#FF4655" style="flex:0 0 60px;padding:2px">
+        </div>
+        <div class="row"><label>Music URL</label><input id="bioMusic" placeholder="/img/music.mp3"></div>
+        <div class="row"><label>Track name</label><input id="bioMusicTitle" placeholder="Shown while playing"></div>
+        <div class="row">
+          <label>Verified tick</label>
+          <select id="bioVerified" style="flex:0 0 110px"><option value="yes">Show</option><option value="no">Hide</option></select>
+          <label style="flex:0 0 auto">View count</label>
+          <select id="bioViews" style="flex:0 0 110px"><option value="yes">Show</option><option value="no">Hide</option></select>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Image check</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Loads every image the game references and reports which are missing
+          or the wrong shape.
+        </p>
+        <div class="row"><button class="btn sm" id="imgCheck">Check images</button></div>
+        <div id="imgResults" style="margin-top:10px"></div>
+      </div>
+
+      <div class="panel">
+        <h2>Broadcast</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Appears at the top of every player's screen with a sound. Shows for
+          about six seconds, longer for a long message.
+        </p>
+        <div class="row"><label>Shown as</label><input id="bcFrom" placeholder="CRIX" value="CRIX"></div>
+        <div class="row"><label>Message</label><input id="bcMsg" placeholder="Hi everyone" maxlength="140"></div>
+        <div class="row">
+          <label>Colour</label>
+          <select id="bcColour" style="flex:0 0 170px">
+            <option value="">Red — normal</option>
+            <option value="linear-gradient(135deg,#00CC7A,#0F9B5E)">Green — good news</option>
+            <option value="linear-gradient(135deg,#27A9F5,#1B7FBF)">Blue — information</option>
+            <option value="linear-gradient(135deg,#7B2FF7,#F107A3)">Purple — event</option>
+            <option value="linear-gradient(135deg,#FFB300,#FF8A00)">Amber — warning</option>
+          </select>
+          <button class="btn sm" id="bcSend">Send to everyone</button>
+        </div>
+        <div class="out" id="bcOut">—</div>
+        <div class="row" style="flex-wrap:wrap;gap:6px;margin-top:10px">
+          <button class="btn sm ghost" data-bc="Server restarting in 5 minutes">Restart warning</button>
+          <button class="btn sm ghost" data-bc="Double coins are live for the weekend">Event live</button>
+          <button class="btn sm ghost" data-bc="Thanks for playing — 1.0 is out now">Release</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Events</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Double coin or XP weekends and challenges. Live the moment you save.
+        </p>
+        <div class="row">
+          <label>Status</label>
+          <select id="evtActive" style="flex:0 0 130px">
+            <option value="off">Off</option>
+            <option value="on">Running</option>
+          </select>
+          <label style="flex:0 0 auto">Type</label>
+          <select id="evtType">
+            <option value="multiplier">Multiplier — no prize</option>
+            <option value="challenge">Challenge — winner gets the crown</option>
+          </select>
+        </div>
+        <p class="dt" id="evtTypeNote" style="margin:-4px 0 10px">
+          Multiplier events do not mention a prize, since there is no winner.
+        </p>
+        <div class="row"><label>Title</label><input id="evtTitle" placeholder="Double Coin Weekend"></div>
+        <div class="row"><label>Subtitle</label><input id="evtDesc" placeholder="Optional line under the title"></div>
+        <div class="row">
+          <label>Icon</label><input id="evtIcon" placeholder="🎉" style="flex:0 0 80px">
+          <label style="flex:0 0 auto">Coins</label>
+          <select id="evtCoins" style="flex:0 0 90px">
+            <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option>
+          </select>
+          <label style="flex:0 0 auto">XP</label>
+          <select id="evtXp" style="flex:0 0 90px">
+            <option value="1">1×</option><option value="2">2×</option><option value="3">3×</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Ends</label>
+          <input id="evtEnds" type="datetime-local">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="evtSave">Save event</button>
+          <button class="btn sm ghost" id="evtWeekend">Preset: coin weekend</button>
+          <button class="btn sm ghost" id="evtChallenge">Preset: crown challenge</button>
+        </div>
+        <div class="out" id="evtOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Award event crown</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Gives the Champion's Crown. It cannot be bought, so this is the only
+          way anyone gets one.
+        </p>
+        <div class="row">
+          <label>PlayFab ID</label><input id="crownId" placeholder="Winner's PlayFab ID">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="crownGive">Award crown</button>
+        </div>
+        <div class="out" id="crownOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Evidence page</h2>
+        <p class="dt" style="margin-bottom:12px">
+          Off by default. While off, <a href="/evidence" target="_blank" style="color:#00CC7A">/evidence</a>
+          shows a locked screen to everyone.
+        </p>
+        <div class="row">
+          <label>Visibility</label>
+          <select id="evMode">
+            <option value="off">Off — nobody can see it</option>
+            <option value="key">Link only — needs a passcode</option>
+            <option value="on">Public — anyone with the URL</option>
+          </select>
+        </div>
+        <div class="row" id="evKeyRow" style="display:none">
+          <label>Passcode</label>
+          <input id="evKey" placeholder="e.g. crix2026">
+        </div>
+        <div class="row">
+          <label>Locked message</label>
+          <input id="evMsg" placeholder="This page is currently switched off.">
+        </div>
+        <div class="row">
+          <button class="btn sm" id="evSave">Save</button>
+          <button class="btn sm ghost" id="evCopy">Copy share link</button>
+        </div>
+        <div class="out" id="evOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Links</h2>
+        <p class="dt" style="margin-bottom:10px">
+          One per line: <code>logo | image | title | subtitle | url</code><br>
+          <b>logo</b> — youtube, discord, tiktok, instagram, twitch, x, xbox, globe (leave blank if using an image)<br>
+          <b>image</b> — a file in /img such as <code>fp.png</code>, or <code>-</code> for none
+        </p>
+        <textarea id="bioLinks" rows="8" style="width:100%;background:#0b0b12;border:1px solid var(--line);
+          color:#EDEDED;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;line-height:1.7;"></textarea>
+      </div>
+
+      <div class="panel">
+        <h2>Social icons</h2>
+        <p class="dt" style="margin-bottom:10px">
+          One per line: <code>logo | label | url | colour</code><br>
+          Colour is the hover tint, e.g. <code>#FF0000</code>
+        </p>
+        <textarea id="bioSocials" rows="5" style="width:100%;background:#0b0b12;border:1px solid var(--line);
+          color:#EDEDED;border-radius:8px;padding:10px;font-family:monospace;font-size:12px;line-height:1.7;"></textarea>
+        <div class="row" style="margin-top:12px">
+          <button class="btn" id="bioSave">Save changes</button>
+          <button class="btn sm ghost" id="bioLoad">Reload</button>
+          <button class="btn sm ghost" id="bioReset">Reset to defaults</button>
+          <button class="btn sm ghost" id="bioClearLinks">Clear all links</button>
+        </div>
+        <div class="out" id="bioOut">—</div>
+      </div>
+    </div>
+
+    <div class="view" id="v-trailer" style="display:none;">
+      <div class="panel">
+        <h2>Trailer assets</h2>
+        <p class="dt" style="margin-bottom:14px">
+          Makes transparent PNGs in the game's font and colours, ready to drop
+          straight into your editor.
+        </p>
+
+        <div class="row"><label>Text</label><input id="trText" placeholder="FLAPPY CRIX" value="FLAPPY CRIX"></div>
+        <div class="row"><label>Subtitle</label><input id="trSub" placeholder="Optional second line"></div>
+        <div class="row">
+          <label>Style</label>
+          <select id="trStyle">
+            <option value="gradient">Gradient — red to gold</option>
+            <option value="white">White</option>
+            <option value="outline">Outline only</option>
+            <option value="red">Solid red</option>
+            <option value="green">Solid green</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Backdrop</label>
+          <select id="trBack">
+            <option value="none">None — transparent</option>
+            <option value="bar">Bar behind the text</option>
+            <option value="panel">Rounded panel</option>
+            <option value="lower">Lower third</option>
+          </select>
+        </div>
+        <div class="row">
+          <label>Size</label>
+          <select id="trSize" style="flex:0 0 150px">
+            <option value="1920x1080">1920 × 1080</option>
+            <option value="1080x1920">1080 × 1920 — vertical</option>
+            <option value="1080x1080">1080 × 1080 — square</option>
+            <option value="3840x2160">3840 × 2160 — 4K</option>
+          </select>
+          <label style="flex:0 0 auto">Position</label>
+          <select id="trPos">
+            <option value="center">Centre</option>
+            <option value="lower">Lower third</option>
+            <option value="upper">Upper third</option>
+          </select>
+        </div>
+        <div class="row">
+          <button class="btn sm" id="trMake">Generate</button>
+          <button class="btn sm ghost" id="trDownload" disabled>Download PNG</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Preview</h2>
+        <p class="dt" style="margin-bottom:10px">Checkerboard means transparent.</p>
+        <div id="trPreviewWrap" style="background-image:
+             linear-gradient(45deg,#1a1a24 25%,transparent 25%),
+             linear-gradient(-45deg,#1a1a24 25%,transparent 25%),
+             linear-gradient(45deg,transparent 75%,#1a1a24 75%),
+             linear-gradient(-45deg,transparent 75%,#1a1a24 75%);
+             background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;
+             border:1px solid var(--line);border-radius:10px;padding:10px;overflow:auto;">
+          <canvas id="trCanvas" style="max-width:100%;display:block;margin:0 auto;"></canvas>
+        </div>
+        <div class="out" id="trOut">—</div>
+      </div>
+
+      <div class="panel">
+        <h2>Quick presets</h2>
+        <div class="row" style="margin-bottom:12px">
+          <button class="btn" id="trBatch">⬇ Generate the whole trailer set</button>
+        </div>
+        <p class="dt" style="margin-bottom:14px">
+          Makes all six assets from TRAILER.md and downloads them with the right
+          file names. Your browser may ask to allow multiple downloads.
+        </p>
+        <div class="row" style="flex-wrap:wrap;gap:6px">
+          <button class="btn sm ghost" data-preset="title">Title card</button>
+          <button class="btn sm ghost" data-preset="feature">Feature callout</button>
+          <button class="btn sm ghost" data-preset="outnow">Out now</button>
+          <button class="btn sm ghost" data-preset="download">Download bar</button>
+        </div>
+      </div>
+    </div>
+
     <div class="view" id="v-health" style="display:none;">
       <div class="panel">
         <h2>PlayFab health</h2>
@@ -413,6 +821,11 @@ let auth = null, me = null;
     $('whoName').textContent = user.displayName || user.email || 'Owner';
     renderMe();
     runSetupChecks();
+    // Fill the panels that show existing settings. These were defined but
+    // never called, so Events, Evidence and Bio always opened empty.
+    [evtLoad, evLoad, bioLoad, seaLoad, seaMineLoad].forEach(fn => {
+      try { fn(); } catch (e) { console.warn('[Console] panel load failed:', e); }
+    });
     console.log('[Console] signed in as', PlayFabManager.playFabId, '| roles', PlayFabManager.roles);
   });
 
@@ -464,6 +877,9 @@ $('signOutBtn').onclick = () => auth.signOut().then(() => location.reload());
 
 /* ---------- tabs ---------- */
 document.querySelectorAll('.tab').forEach(t => t.onclick = () => {
+  // The fitting panel fetches the catalog, so it fills on first open rather
+  // than on every sign-in.
+  if (t.dataset.t === 'cosmetics') setTimeout(() => cfInit(false), 0);
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   t.classList.add('active');
   document.querySelectorAll('.view').forEach(v => v.style.display = 'none');
@@ -506,16 +922,48 @@ $('lookupBtn').onclick = () => {
       r => JSON.stringify(r, null, 2));
 };
 
+// Everything is stored as hours; this converts whatever unit was picked.
+const UNIT_HOURS = {
+  second: 1/3600, minute: 1/60, hour: 1, day: 24,
+  week: 168, month: 730, year: 8760
+};
+
+function banHours() {
+  const unit = $('modUnit').value;
+  if (unit === 'perm') return null;
+  const amt = parseFloat($('modAmount').value) || 1;
+  return amt * (UNIT_HOURS[unit] || 1);
+}
+
+function updateBanPreview() {
+  const el = $('modPreview');
+  if (!el) return;
+  const h = banHours();
+  if (h === null) { el.textContent = 'Permanent — never expires.'; return; }
+  const until = new Date(Date.now() + h * 3600000);
+  el.textContent = `Expires ${until.toLocaleString()}`;
+}
+$('modUnit').onchange = () => {
+  $('modAmount').disabled = $('modUnit').value === 'perm';
+  updateBanPreview();
+};
+$('modAmount').oninput = updateBanPreview;
+updateBanPreview();
+
 $('banBtn').onclick = () => {
   const id = $('modId').value.trim();
   if (!id) { $('modOut').textContent = 'Enter a PlayFab ID.'; return; }
-  const hours = $('modHours').value;
+  const hours = banHours();
   const reason = $('modReason').value.trim() || 'Breaking the rules';
-  if (!confirm(`Ban ${id}${hours ? ' for ' + hours + 'h' : ' permanently'}?`)) return;
+  const label = hours === null ? 'permanently'
+              : `for ${$('modAmount').value} ${$('modUnit').value}${$('modAmount').value == 1 ? '' : 's'}`;
+  if (!confirm(`Ban ${id} ${label}?`)) return;
   const note = prompt('Moderator note (optional, shown to the player):', '') || null;
   run('modOut',
       () => PlayFabManager.adminAction('ban', {
-        targetPlayFabId: id, hours: hours || undefined, reason, note
+        targetPlayFabId: id,
+        hours: hours === null ? undefined : hours,
+        reason, note
       }),
       r => `Banned${r.expires ? ' until ' + new Date(r.expires).toLocaleString() : ' permanently'}.`);
 };
@@ -545,23 +993,68 @@ $('stripRole').onclick = () => {
       () => 'All roles removed.');
 };
 
-/* ---------- economy ---------- */
+/* ---------- economy ----------
+   These go through /api/admin, because granting currency needs PlayFab's
+   server API and a browser can never hold the secret key. */
+async function adminCall(action, body) {
+  const idToken = await firebase.auth().currentUser.getIdToken();
+  const r = await fetch('/api/admin', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ idToken, action, ...body })
+  });
+  if (r.status === 404) throw new Error('/api/admin is not deployed yet.');
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.detail || d.error || 'Request failed');
+  return d;
+}
+
 $('giveCoins').onclick = () => {
   const amt = parseInt($('coinAmt').value, 10);
   if (!amt) { $('coinOut').textContent = 'Enter an amount.'; return; }
   const target = $('coinId').value.trim() || PlayFabManager.playFabId;
   run('coinOut',
-      () => PlayFabManager.adminAction('giveCoins', { targetPlayFabId: target, amount: amt }),
-      r => `Granted ${amt.toLocaleString()}. New balance: ${r.balance ?? '?'}`);
+      () => adminCall('giveCoins', { targetPlayFabId: target, amount: amt }),
+      r => `Done. New balance: ${(r.balance ?? 0).toLocaleString()}`);
 };
 
 $('giveItem').onclick = () => {
   const item = $('itemPick').value;
+  if (!item) { $('itemOut').textContent = 'Pick an item first.'; return; }
   const target = $('itemId').value.trim() || PlayFabManager.playFabId;
   run('itemOut',
-      () => PlayFabManager.adminAction('giveItem', { targetPlayFabId: target, itemId: item }),
-      () => `Granted ${item}.`);
+      () => adminCall('grantItem', { targetPlayFabId: target, itemId: item }),
+      () => `Granted ${item} to ${target}.`);
 };
+
+// Fills the dropdown from the live catalog, so it can never list something
+// that does not exist.
+async function loadItemList() {
+  const sel = $('itemPick');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Loading…</option>';
+  try {
+    const d = await adminCall('listItems', { targetPlayFabId: PlayFabManager.playFabId });
+    const groups = {};
+    d.items.forEach(i => {
+      const g = /hat/i.test(i.id) ? '🎩 Hats'
+              : /shirt/i.test(i.id) ? '👕 Shirts'
+              : /^pu_|powerup/i.test(i.id) ? '⚡ Power-ups'
+              : /role/i.test(i.id) ? '🛡️ Roles'
+              : '📦 Other';
+      (groups[g] = groups[g] || []).push(i);
+    });
+    sel.innerHTML = '<option value="">Choose an item…</option>' +
+      Object.entries(groups).map(([g, items]) =>
+        `<optgroup label="${esc(g)}">` +
+        items.map(i => `<option value="${esc(i.id)}">${esc(i.name)}` +
+          (i.price ? ` — ${i.price.toLocaleString()} coins` : ' — grant only') +
+          `</option>`).join('') + '</optgroup>').join('');
+  } catch (e) {
+    sel.innerHTML = '<option value="">Could not load the catalog</option>';
+    $('itemOut').className = 'out bad';
+    $('itemOut').textContent = e.message;
+  }
+}
 
 /* ---------- system ---------- */
 async function renderMe() {
@@ -886,6 +1379,31 @@ function copyRows(rows, btnId, label) {
     b.textContent = 'Copied'; setTimeout(() => b.textContent = label, 1500);
   });
 }
+bind('warnBtn', () => {
+  const id = $('warnId').value.trim();
+  const msg = $('warnMsg').value.trim();
+  if (!id) { $('warnOut').textContent = 'Enter a PlayFab ID.'; return; }
+  if (!msg) { $('warnOut').textContent = 'Write a message.'; return; }
+  run('warnOut',
+      () => PlayFabManager.fs.queueDM(id, 'warned', { reason: msg }),
+      r => r.queued ? 'Warning sent.' : 'They have not linked Discord, so nothing was sent.');
+});
+
+bind('claimHostBtn', () => {
+  const code = $('hostRoom').value.trim().toUpperCase();
+  if (!code) { $('hostOut').textContent = 'Enter the room code.'; return; }
+  run('hostOut',
+      () => PlayFabManager.fs.setLobbyOverride(code, { host: PlayFabManager.playFabId }),
+      () => `Requested host of ${code}. It applies when you are in the lobby.`);
+});
+bind('endLobbyBtn', () => {
+  const code = $('hostRoom').value.trim().toUpperCase();
+  if (!code) { $('hostOut').textContent = 'Enter the room code.'; return; }
+  if (!confirm(`Force the match in ${code} to end?`)) return;
+  run('hostOut',
+      () => PlayFabManager.fs.setLobbyOverride(code, { endMatch: Date.now() }),
+      () => `Sent an end-match signal to ${code}.`);
+});
 bind('listBansBtn', () => {
   const out = $('bansOut');
   out.textContent = 'Loading…'; out.className = 'out';
@@ -900,6 +1418,831 @@ bind('listBansBtn', () => {
       : 'Nobody is currently banned.';
   }).catch(e => { out.className = 'out bad'; out.textContent = e.message; });
 });
+
+
+
+
+/* ---- TRAILER ASSET GENERATOR ---- */
+let trFontReady = false;
+
+// The game font has to be loaded before drawing, or the canvas silently
+// falls back to a system font.
+(function loadGameFont() {
+  try {
+    const f = new FontFace('CRIX Pixel', "url('/img/font.otf')");
+    f.load().then(loaded => { document.fonts.add(loaded); trFontReady = true; })
+            .catch(() => { trFontReady = false; });
+  } catch (e) {}
+})();
+
+function trFont(size) {
+  return `bold ${size}px "CRIX Pixel", "Fredoka One", system-ui, sans-serif`;
+}
+
+function drawTrailerAsset() {
+  const cv = $('trCanvas');
+  const [w, h] = $('trSize').value.split('x').map(Number);
+  cv.width = w; cv.height = h;
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, w, h);
+
+  const text = $('trText').value || 'FLAPPY CRIX';
+  const sub = $('trSub').value.trim();
+  const style = $('trStyle').value;
+  const back = $('trBack').value;
+  const pos = $('trPos').value;
+
+  const size = Math.round(w * 0.075);
+  const subSize = Math.round(size * 0.34);
+  let cy = pos === 'center' ? h / 2 : pos === 'lower' ? h * 0.78 : h * 0.22;
+
+  ctx.font = trFont(size);
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(text).width;
+
+  // ---- backdrop ----
+  const padX = size * 0.7, padY = size * 0.45;
+  const boxW = tw + padX * 2;
+  const boxH = size + padY * 2 + (sub ? subSize * 1.8 : 0);
+
+  if (back === 'bar') {
+    ctx.fillStyle = 'rgba(10,10,15,.86)';
+    ctx.fillRect(0, cy - boxH / 2, w, boxH);
+    ctx.fillStyle = '#FF4655';
+    ctx.fillRect(0, cy - boxH / 2, w, 5);
+    ctx.fillRect(0, cy + boxH / 2 - 5, w, 5);
+  } else if (back === 'panel') {
+    const x = (w - boxW) / 2, y = cy - boxH / 2, r = size * 0.35;
+    ctx.fillStyle = 'rgba(16,16,24,.92)';
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + boxW, y, x + boxW, y + boxH, r);
+    ctx.arcTo(x + boxW, y + boxH, x, y + boxH, r);
+    ctx.arcTo(x, y + boxH, x, y, r);
+    ctx.arcTo(x, y, x + boxW, y, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#FF4655';
+    ctx.lineWidth = Math.max(3, size * 0.05);
+    ctx.stroke();
+  } else if (back === 'lower') {
+    const g = ctx.createLinearGradient(0, cy - boxH, 0, cy + boxH);
+    g.addColorStop(0, 'rgba(10,10,15,0)');
+    g.addColorStop(.35, 'rgba(10,10,15,.88)');
+    g.addColorStop(1, 'rgba(10,10,15,.88)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, cy - boxH, w, h - (cy - boxH));
+  }
+
+  // ---- text ----
+  const textY = sub ? cy - subSize * 0.7 : cy;
+
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowOffsetY = Math.round(size * 0.06);
+  ctx.shadowBlur = 0;
+
+  if (style === 'gradient') {
+    const g = ctx.createLinearGradient(w/2 - tw/2, 0, w/2 + tw/2, 0);
+    g.addColorStop(0, '#FF4655'); g.addColorStop(.5, '#FF6B35'); g.addColorStop(1, '#FFD700');
+    ctx.fillStyle = g;
+    ctx.fillText(text, w/2, textY);
+  } else if (style === 'outline') {
+    ctx.shadowColor = 'transparent';
+    ctx.strokeStyle = '#FF4655';
+    ctx.lineWidth = Math.max(3, size * 0.045);
+    ctx.strokeText(text, w/2, textY);
+  } else {
+    ctx.fillStyle = style === 'white' ? '#FFFFFF' : style === 'green' ? '#00CC7A' : '#FF4655';
+    ctx.fillText(text, w/2, textY);
+  }
+
+  if (sub) {
+    ctx.shadowOffsetY = Math.round(subSize * 0.08);
+    ctx.font = trFont(subSize);
+    ctx.fillStyle = '#C9C9C9';
+    ctx.fillText(sub, w/2, cy + size * 0.62);
+  }
+  ctx.shadowColor = 'transparent';
+
+  $('trDownload').disabled = false;
+  $('trOut').className = 'out ok';
+  $('trOut').textContent = `${w} × ${h} ready` +
+    (trFontReady ? '' : ' — game font did not load, using a fallback');
+}
+
+
+/* ---- BATCH: the full trailer set ---- */
+const TRAILER_SET = [
+  { file:'title-main',          text:'FLAPPY CRIX',        sub:'CRIX STUDIOS',
+    style:'gradient', back:'none',  pos:'center' },
+  { file:'feature-multiplayer', text:'IT IS NOT JUST YOU', sub:'',
+    style:'white',    back:'lower', pos:'lower' },
+  { file:'feature-cosmetics',   text:'EARN EVERYTHING',    sub:'no ads · no purchases · no lootboxes',
+    style:'white',    back:'lower', pos:'lower' },
+  { file:'feature-ranked',      text:'CLIMB THE RANKS',    sub:'Bronze to Unreal',
+    style:'gradient', back:'lower', pos:'lower' },
+  { file:'feature-crossplay',   text:'PLAY ANYWHERE',      sub:'Windows · browser · same account',
+    style:'white',    back:'lower', pos:'lower' },
+  { file:'end-card',            text:'OUT NOW',            sub:'crixgamingvr.com',
+    style:'gradient', back:'panel', pos:'center' }
+];
+
+bind('trBatch', async () => {
+  const out = $('trOut');
+  out.className = 'out';
+
+  // Both orientations, since the vertical cut needs its own set
+  const sizes = [['1920x1080', ''], ['1080x1920', '-vertical']];
+  let made = 0;
+
+  for (const [size, suffix] of sizes) {
+    for (const a of TRAILER_SET) {
+      $('trText').value  = a.text;
+      $('trSub').value   = a.sub;
+      $('trStyle').value = a.style;
+      $('trBack').value  = a.back;
+      $('trPos').value   = a.pos;
+      $('trSize').value  = size;
+      drawTrailerAsset();
+
+      const link = document.createElement('a');
+      link.download = `${a.file}${suffix}.png`;
+      link.href = $('trCanvas').toDataURL('image/png');
+      link.click();
+      made++;
+
+      out.textContent = `Generating… ${made} of ${TRAILER_SET.length * sizes.length}`;
+      // Browsers throttle rapid downloads, so pace them
+      await new Promise(r => setTimeout(r, 450));
+    }
+  }
+
+  out.className = 'out ok';
+  out.textContent = `${made} assets downloaded — horizontal and vertical. ` +
+                    `File names match the table in TRAILER.md.`;
+});
+
+bind('trMake', drawTrailerAsset);
+bind('trDownload', () => {
+  const a = document.createElement('a');
+  const name = ($('trText').value || 'asset').toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  a.download = `crix-${name || 'asset'}-${$('trSize').value}.png`;
+  a.href = $('trCanvas').toDataURL('image/png');
+  a.click();
+});
+
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
+  const p = b.dataset.preset;
+  if (p === 'title')    { $('trText').value='FLAPPY CRIX'; $('trSub').value='CRIX STUDIOS';
+                          $('trStyle').value='gradient'; $('trBack').value='none'; $('trPos').value='center'; }
+  if (p === 'feature')  { $('trText').value='MULTIPLAYER'; $('trSub').value='Race your friends';
+                          $('trStyle').value='white'; $('trBack').value='panel'; $('trPos').value='lower'; }
+  if (p === 'outnow')   { $('trText').value='OUT NOW'; $('trSub').value='crixgamingvr.com';
+                          $('trStyle').value='gradient'; $('trBack').value='lower'; $('trPos').value='lower'; }
+  if (p === 'download') { $('trText').value='FREE ON WINDOWS'; $('trSub').value='crixgamingvr.com/download';
+                          $('trStyle').value='white'; $('trBack').value='bar'; $('trPos').value='lower'; }
+  drawTrailerAsset();
+});
+
+
+
+/* ---- IMAGE CHECK ---- */
+const GAME_IMAGES = [
+  ['bird.png',          'Bird sprite'],
+  ['crown.png',         "Champion's Crown"],
+  ['bucket-hat.avif',   'Bucket hat'],
+  ['cap.png',           'Baseball cap'],
+  ['tank-top.avif',     'Tank top'],
+  ['new-t-shirt.png',   'T-shirt'],
+  ['newfavicon.png',    'Favicon'],
+  ['imcrix123.png',     'Bio avatar'],
+  ['fp.png',            'Bio: Flappy Crix'],
+  ['aac.png',           'Bio: CRIX Chat'],
+  ['is.png',            'Bio: store'],
+  ['font.otf',          'Game font']
+];
+
+bind('imgCheck', async () => {
+  const box = $('imgResults');
+  box.innerHTML = '<div class="dt">Checking…</div>';
+  const rows = [];
+
+  for (const [file, label] of GAME_IMAGES) {
+    const url = '/img/' + file + '?cb=' + Date.now();
+
+    // A font cannot be loaded as an image, so fetch it instead
+    if (file.endsWith('.otf')) {
+      try {
+        const r = await fetch(url, { method: 'HEAD' });
+        rows.push([label, file, r.ok ? 'ok' : 'missing', r.ok ? 'found' : 'HTTP ' + r.status]);
+      } catch (e) { rows.push([label, file, 'missing', e.message]); }
+      continue;
+    }
+
+    const info = await new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        const r = img.naturalWidth / img.naturalHeight;
+        const square = Math.abs(r - 1) < 0.02;
+        res({
+          state: square ? 'ok' : 'warn',
+          detail: `${img.naturalWidth} × ${img.naturalHeight}` +
+                  (square ? ' — square' : ` — ${r > 1 ? 'wide' : 'tall'}, ratio ${r.toFixed(2)}`)
+        });
+      };
+      img.onerror = () => res({ state: 'missing', detail: 'not found in /img' });
+      img.src = url;
+      setTimeout(() => res({ state: 'missing', detail: 'timed out' }), 6000);
+    });
+    rows.push([label, file, info.state, info.detail]);
+  }
+
+  const icons = { ok: '✅', warn: '⚠️', missing: '❌' };
+  const missing = rows.filter(r => r[2] === 'missing').length;
+
+  box.innerHTML =
+    `<div class="out ${missing ? 'bad' : 'ok'}" style="margin-bottom:8px">` +
+    (missing ? `${missing} file${missing === 1 ? '' : 's'} missing from /img`
+             : 'Every image loaded') + '</div>' +
+    rows.map(([label, file, state, detail]) =>
+      `<div class="row" style="margin:0;padding:6px 0;border-bottom:1px solid var(--line)">
+         <span style="width:22px">${icons[state]}</span>
+         <span style="flex:0 0 150px;font-size:12px">${esc(label)}</span>
+         <span style="flex:0 0 130px;font-size:11px;color:#8C8C8C">${esc(file)}</span>
+         <span style="flex:1;font-size:11px;color:${state === 'ok' ? '#8C8C8C' : state === 'warn' ? '#FFB347' : '#ff6b74'}">
+           ${esc(detail)}</span>
+       </div>`).join('') +
+    `<p class="dt" style="margin-top:10px">
+       A ⚠️ only means the image is not square. The game fits it without
+       stretching, but square artwork lines up best.
+     </p>`;
+});
+
+/* ---- BROADCAST ---- */
+bind('bcSend', async () => {
+  const out = $('bcOut');
+  const msg = $('bcMsg').value.trim();
+  const from = $('bcFrom').value.trim() || 'STAFF';
+
+  if (!msg) { out.className = 'out bad'; out.textContent = 'Type a message first.'; return; }
+  if (!confirm(`Send this to everyone currently playing?\n\n${from}: ${msg}`)) return;
+
+  out.className = 'out'; out.textContent = 'Sending…';
+  try {
+    await firebase.firestore().collection('config').doc('broadcast').set({
+      message: msg,
+      from,
+      colour: $('bcColour').value || null,
+      at: Date.now(),
+      sentBy: firebase.auth().currentUser?.uid || null
+    });
+    out.className = 'out ok';
+    out.textContent = `Sent. Everyone online sees it within a second or two.`;
+    $('bcMsg').value = '';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked — owners only. Check firestore.rules is published.'
+      : e.message;
+  }
+});
+
+document.querySelectorAll('[data-bc]').forEach(b =>
+  b.onclick = () => { $('bcMsg').value = b.dataset.bc; $('bcMsg').focus(); });
+
+/* ---- EVENTS ---- */
+async function evtLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('event').get();
+    const v = d.exists ? d.data() : {};
+    $('evtActive').value = v.active ? 'on' : 'off';
+    $('evtType').value = v.type || 'multiplier';
+    $('evtTitle').value = v.title || '';
+    $('evtDesc').value = v.description || '';
+    $('evtIcon').value = v.icon || '';
+    $('evtCoins').value = String(v.coinMultiplier || 1);
+    $('evtXp').value = String(v.xpMultiplier || 1);
+    if (v.endsAt) {
+      const dt = new Date(v.endsAt - new Date().getTimezoneOffset() * 60000);
+      $('evtEnds').value = dt.toISOString().slice(0, 16);
+    }
+    $('evtOut').textContent = v.active
+      ? `Running: ${v.title || 'Untitled'}` + (v.endsAt ? ` until ${new Date(v.endsAt).toLocaleString()}` : '')
+      : 'No event running.';
+  } catch (e) {
+    $('evtOut').className = 'out bad';
+    $('evtOut').textContent = e.message;
+  }
+}
+
+bind('evtWeekend', () => {
+  // Next Friday 6pm to Monday 9am
+  const now = new Date();
+  const end = new Date(now);
+  end.setDate(end.getDate() + ((8 - end.getDay()) % 7 || 7));
+  end.setHours(9, 0, 0, 0);
+  $('evtActive').value = 'on';
+  $('evtType').value = 'multiplier';
+  $('evtTitle').value = 'Double Coin Weekend';
+  $('evtDesc').value = 'Every coin counts twice';
+  $('evtIcon').value = '🪙';
+  $('evtCoins').value = '2';
+  $('evtXp').value = '1';
+  $('evtEnds').value = new Date(end - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('evtOut').textContent = 'Preset filled in — press Save to start it.';
+});
+
+bind('evtChallenge', () => {
+  const end = new Date();
+  end.setDate(end.getDate() + 7);
+  end.setHours(20, 0, 0, 0);
+  $('evtActive').value = 'on';
+  $('evtType').value = 'challenge';
+  $('evtTitle').value = 'Weekly Challenge';
+  $('evtDesc').value = 'Highest score this week wins';
+  $('evtIcon').value = '🏆';
+  $('evtCoins').value = '1';
+  $('evtXp').value = '1';
+  $('evtEnds').value = new Date(end - end.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  $('evtOut').textContent = 'Challenge filled in — press Save to start it.';
+});
+
+bind('evtSave', async () => {
+  const out = $('evtOut');
+  const on = $('evtActive').value === 'on';
+  const ends = $('evtEnds').value ? new Date($('evtEnds').value).getTime() : null;
+  if (on && ends && ends < Date.now()) {
+    out.className = 'out bad'; out.textContent = 'That end time is in the past.'; return;
+  }
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    await firebase.firestore().collection('config').doc('event').set({
+      active: on,
+      type: $('evtType').value,
+      title: $('evtTitle').value.trim() || 'Event',
+      description: $('evtDesc').value.trim() || null,
+      icon: $('evtIcon').value.trim() || '🎉',
+      coinMultiplier: parseInt($('evtCoins').value) || 1,
+      xpMultiplier: parseInt($('evtXp').value) || 1,
+      endsAt: ends
+    });
+    out.className = 'out ok';
+    out.textContent = on ? 'Event is live. Players see it on their next load.' : 'Event switched off.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+
+/* ---- SEASONAL THEME ----
+   The same config/season doc the game watches, so a change here lands on
+   everyone's screen without a reload. '' follows the calendar, 'off' means no
+   season at all. */
+const SEASON_NAMES = { spooky: 'Halloween', christmas: 'Christmas', easter: 'Easter' };
+
+async function seaLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('season').get();
+    const v = d.exists ? d.data() : {};
+    $('seaForce').value = v.force || '';
+    $('seaOut').className = 'out';
+    $('seaOut').textContent = v.force === 'off' ? 'Seasons are switched off for everyone.'
+      : v.force ? `Forced: ${SEASON_NAMES[v.force] || v.force}.`
+      : 'Following the calendar.';
+  } catch (e) {
+    $('seaOut').className = 'out bad';
+    $('seaOut').textContent = e.message;
+  }
+}
+
+bind('seaSave', async () => {
+  const out = $('seaOut');
+  const val = $('seaForce').value;
+  out.className = 'out'; out.textContent = 'Saving\u2026';
+  try {
+    await firebase.firestore().collection('config').doc('season').set({
+      force: val, at: Date.now(), by: firebase.auth().currentUser?.uid || null
+    }, { merge: true });
+    out.className = 'out ok';
+    out.textContent = val === 'off' ? 'Seasons switched off for everyone.'
+      : val ? `${SEASON_NAMES[val] || val} is on for everyone.`
+      : 'Back to following the calendar.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+
+/* ---- SEASONAL THEME, JUST FOR ME ----
+   Written to the signed-in owner's own seasonPreview document, which the game
+   watches, so it reaches Flappy Crix on any device without touching what other
+   players see. */
+const SEA_PARTS = { colour: 'seaPartColour', music: 'seaPartMusic',
+                    flyer: 'seaPartFlyer', cal: 'seaPartCal' };
+const SEA_PART_NAMES = { colour: 'colours', music: 'music', flyer: 'fly-by', cal: 'calendar' };
+
+function seaMineSummary(force, parts) {
+  const off = Object.keys(SEA_PARTS).filter(k => parts[k] === false).map(k => SEA_PART_NAMES[k]);
+  const which = !force ? 'Following what everyone else sees'
+    : force === 'off' ? 'No theme, just for you'
+    : force === 'auto' ? 'Following the calendar, just for you'
+    : `${SEASON_NAMES[force] || force}, just for you`;
+  return which + (off.length ? ` \u00b7 ${off.join(', ')} off` : '');
+}
+
+async function seaMineLoad() {
+  const uid = firebase.auth().currentUser?.uid;
+  if (!uid) { $('seaMineOut').textContent = 'Sign in first.'; return; }
+  try {
+    const d = await firebase.firestore().collection('seasonPreview').doc(uid).get();
+    const v = d.exists ? d.data() : {};
+    const parts = v.parts || {};
+    $('seaMine').value = v.force || '';
+    for (const [k, id] of Object.entries(SEA_PARTS)) $(id).checked = parts[k] !== false;
+    $('seaMineOut').className = 'out';
+    $('seaMineOut').textContent = seaMineSummary(v.force || '', parts);
+  } catch (e) {
+    $('seaMineOut').className = 'out bad';
+    $('seaMineOut').textContent = e.message;
+  }
+}
+
+bind('seaMineSave', async () => {
+  const out = $('seaMineOut');
+  const uid = firebase.auth().currentUser?.uid;
+  if (!uid) { out.className = 'out bad'; out.textContent = 'Sign in first.'; return; }
+  const force = $('seaMine').value;
+  const parts = {};
+  for (const [k, id] of Object.entries(SEA_PARTS)) parts[k] = $(id).checked;
+  out.className = 'out'; out.textContent = 'Saving\u2026';
+  try {
+    await firebase.firestore().collection('seasonPreview').doc(uid).set(
+      { force, parts, at: Date.now() }, { merge: true });
+    out.className = 'out ok';
+    out.textContent = seaMineSummary(force, parts) + ' \u2014 live in the game already.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked \u2014 check firestore.rules is published.' : e.message;
+  }
+});
+
+
+/* ---- COSMETIC FITTING ----
+   The same drawing code the game runs (cosmetic-art.js) against the same
+   Firestore document the game watches (config/cosmeticFit), so what you line
+   up here is exactly what players get. The item list comes from
+   playfab-catalog.json rather than a second list kept in this file. */
+const CF = { items: [], fit: {}, current: null, bird: null, loaded: false };
+
+function cfBirdReady(fn) {
+  if (!CF.bird) {
+    CF.bird = new Image();
+    CF.bird.onload = fn;
+    CF.bird.src = '/img/bird.png';
+    return;
+  }
+  if (CF.bird.complete) fn();
+  else CF.bird.onload = fn;
+}
+
+// Hats only: a trail has no position on the bird to adjust.
+async function cfLoadItems() {
+  const res = await fetch('/playfab-catalog.json', { cache: 'no-store' });
+  const cat = (await res.json()).Catalog || [];
+  CF.items = cat.filter(i => i.ItemClass === 'cosmetic_hat').map(i => {
+    let cd = {};
+    try { cd = JSON.parse(i.CustomData || '{}'); } catch (e) {}
+    return { id: i.ItemId, name: i.DisplayName, image: cd.image || null, draw: cd.draw || null };
+  });
+}
+
+async function cfLoadFit() {
+  const d = await firebase.firestore().collection('config').doc('cosmeticFit').get();
+  CF.fit = (d.exists && d.data().items) || {};
+}
+
+function cfArt(item) {
+  // Mirrors the game: artwork wins when it has loaded, the drawing stands in
+  // until then, and a 404 leaves the drawing in place for good.
+  if (!item.image) return null;
+  const c = cfArt.cache || (cfArt.cache = {});
+  let img = c[item.image];
+  if (!img) { img = new Image(); img.src = item.image; c[item.image] = img; }
+  return (img.complete && img.naturalWidth > 0) ? img : null;
+}
+
+function cfDraw() {
+  const item = CF.items.find(i => i.id === CF.current);
+  if (!item || !CF.bird || !CF.bird.complete) return;
+  const fit = CF.fit[CF.current];
+  [['cfBig', 170, true], ['cfSmall', 30, false]].forEach(([id, size, isBig]) => {
+    const cv = $(id); if (!cv) return;
+    const g = cv.getContext('2d');
+    g.clearRect(0, 0, cv.width, cv.height);
+    g.save();
+    g.translate(cv.width / 2, cv.height / 2 + (isBig ? cv.height * 0.14 : 0));
+    if (isBig) {
+      g.strokeStyle = 'rgba(255,255,255,.12)';
+      g.beginPath(); g.moveTo(0, -cv.height); g.lineTo(0, cv.height); g.stroke();
+    }
+    CrixArt.drawSprite(g, CF.bird, 0, 0, size);
+    CrixArt.drawHatOn(g, item, size, cfArt(item), fit);
+    g.restore();
+  });
+}
+
+function cfSyncFromSliders() {
+  const n = id => +$(id).value;
+  const x = n('cfX'), y = n('cfY'), s = n('cfS'), r = n('cfR');
+  $('cfXOut').textContent = x;
+  $('cfYOut').textContent = y;
+  $('cfSOut').textContent = s + '%';
+  $('cfROut').textContent = r + '°';
+  const f = { x: x / 100, y: y / 100, scale: s / 100, rot: r };
+  if (!x && !y && s === 100 && !r) delete CF.fit[CF.current];
+  else CF.fit[CF.current] = f;
+  cfDraw();
+}
+
+function cfShow(id) {
+  CF.current = id;
+  const f = CF.fit[id] || {};
+  $('cfX').value = Math.round((f.x || 0) * 100);
+  $('cfY').value = Math.round((f.y || 0) * 100);
+  $('cfS').value = Math.round((f.scale == null ? 1 : f.scale) * 100);
+  $('cfR').value = Math.round(f.rot || 0);
+  cfSyncFromSliders();
+}
+
+async function cfInit(force) {
+  if (CF.loaded && !force) return;
+  const out = $('cfOut');
+  try {
+    await cfLoadItems();
+    await cfLoadFit();
+    CF.loaded = true;
+    $('cfPick').innerHTML = CF.items.map(i =>
+      `<option value="${esc(i.id)}">${esc(i.name)}${i.image && !cfArt(i) ? ' · drawn' : ''}</option>`
+    ).join('');
+    cfBirdReady(() => { cfShow(CF.items[0] && CF.items[0].id); });
+    out.className = 'out';
+    out.textContent = `${CF.items.length} hats · ${Object.keys(CF.fit).length} already adjusted.`;
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = e.message;
+  }
+}
+
+bind('cfReload', () => cfInit(true));
+bind('cfReset', () => {
+  delete CF.fit[CF.current];
+  cfShow(CF.current);
+  $('cfOut').className = 'out';
+  $('cfOut').textContent = 'Back to where the code puts it. Save to make that stick.';
+});
+bind('cfSave', async () => {
+  const out = $('cfOut');
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    await firebase.firestore().collection('config').doc('cosmeticFit').set(
+      { items: CF.fit, at: Date.now(), by: firebase.auth().currentUser?.uid || null },
+      { merge: true });
+    out.className = 'out ok';
+    out.textContent = 'Saved — every player sees it there now.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message) ? 'Owners only.' : e.message;
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target && e.target.closest && e.target.closest('#v-cosmetics') && e.target.type === 'range')
+    cfSyncFromSliders();
+});
+document.addEventListener('change', e => { if (e.target.id === 'cfPick') cfShow(e.target.value); });
+
+bind('crownGive', () => {
+  const id = $('crownId').value.trim();
+  if (!id) { $('crownOut').textContent = 'Enter a PlayFab ID.'; return; }
+  if (!confirm(`Award the Champion's Crown to ${id}?`)) return;
+  run('crownOut',
+      () => PlayFabManager.adminAction('grantItem', { targetPlayFabId: id, itemId: 'hat_crown' }),
+      () => `Crown awarded to ${id}.`);
+});
+
+/* ---- EVIDENCE PAGE VISIBILITY ---- */
+async function evLoad() {
+  try {
+    const d = await firebase.firestore().collection('config').doc('evidence').get();
+    const v = d.exists ? d.data() : {};
+    $('evMode').value = v.enabled ? 'on' : (v.passcode ? 'key' : 'off');
+    $('evKey').value = v.passcode || '';
+    $('evMsg').value = v.message || '';
+    evToggleKeyRow();
+    $('evOut').textContent = v.enabled ? 'Currently PUBLIC.'
+      : v.passcode ? 'Currently link-only.' : 'Currently off.';
+  } catch (e) {
+    $('evOut').className = 'out bad';
+    $('evOut').textContent = e.message;
+  }
+}
+function evToggleKeyRow() {
+  $('evKeyRow').style.display = $('evMode').value === 'key' ? 'flex' : 'none';
+}
+$('evMode').onchange = evToggleKeyRow;
+
+bind('evSave', async () => {
+  const out = $('evOut');
+  const mode = $('evMode').value;
+  const data = {
+    enabled: mode === 'on',
+    passcode: mode === 'key' ? ($('evKey').value.trim() || null) : null,
+    message: $('evMsg').value.trim() || null
+  };
+  if (mode === 'key' && !data.passcode) {
+    out.className = 'out bad'; out.textContent = 'Set a passcode first.'; return;
+  }
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    await firebase.firestore().collection('config').doc('evidence').set(data);
+    out.className = 'out ok';
+    out.textContent = mode === 'on' ? 'Now PUBLIC — anyone with the URL can view it.'
+      : mode === 'key' ? 'Link-only. Use Copy share link to get the URL.'
+      : 'Switched off. Nobody can view it.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked — owners only.' : e.message;
+  }
+});
+
+bind('evCopy', () => {
+  const mode = $('evMode').value;
+  const key = $('evKey').value.trim();
+  const url = 'https://crixgamingvr.com/evidence' +
+              (mode === 'key' && key ? '?key=' + encodeURIComponent(key) : '');
+  navigator.clipboard.writeText(url).then(() => {
+    $('evOut').className = 'out ok';
+    $('evOut').textContent = 'Copied: ' + url;
+  });
+});
+
+/* ---- BIO PAGE EDITOR ---- */
+const BIO_DEFAULTS = {
+  name: 'CRIXGAMING VR', verified: true,
+  bio: 'VR content, gaming, and whatever else I feel like making.',
+  avatar: '/img/imcrix123.png', background: '', backgroundOpacity: 0.45,
+  music: '/img/music.mp3', musicTitle: 'CRIXGAMING VR',
+  accent: '#FF4655', showViews: true,
+  socials: [
+    { logo:'youtube',   label:'YouTube',   url:'https://www.youtube.com/@CRIXGAMINGVR', colour:'#FF0000' },
+    { logo:'tiktok',    label:'TikTok',    url:'https://www.tiktok.com/@crixgamingvr',  colour:'#00F2EA' },
+    { logo:'x',         label:'X',         url:'https://x.com/CRIXGAMINGVR',            colour:'#FFFFFF' },
+    { logo:'instagram', label:'Instagram', url:'https://instagram.com/crixgaming_vr',   colour:'#E1306C' },
+    { logo:'twitch',    label:'Twitch',    url:'https://twitch.tv/crix_gaming_vr',      colour:'#9146FF' },
+    { logo:'discord',   label:'Discord',   url:'https://discord.com/invite/MbQvJGDAst', colour:'#5865F2' },
+    { logo:'xbox',      label:'Xbox',      url:'https://xbox.com/en-AU/play/user/NVR',  colour:'#107C10' }
+  ],
+  links: [
+    { logo:'', img:'/img/fp.png',  title:'Flappy Crix', url:'/flappycrix' },
+    { logo:'', img:'/img/aac.png', title:'CRIX Chat',   url:'/crixchat' },
+    { logo:'', img:'/img/is.png',  title:'Merch Store', url:'https://shop.crixgamingvr.com' },
+    { logo:'youtube',   img:'', title:'CRIXGAMING VR',   url:'https://www.youtube.com/@CRIXGAMINGVR' },
+    { logo:'youtube',   img:'', title:'CRIX PLAYZ MC',   url:'https://www.youtube.com/@CRIXPLAYZMC' },
+    { logo:'youtube',   img:'', title:'CRIX REACTS',     url:'https://www.youtube.com/@CRIXREACTS123' },
+    { logo:'youtube',   img:'', title:'CRIX YAPS',       url:'https://www.youtube.com/@CRIXYAPS' },
+    { logo:'youtube',   img:'', title:'CRIXGAMING VR 2', url:'https://www.youtube.com/@CRIXGAMINGVR2' },
+    { logo:'tiktok',    img:'', title:'TikTok',    url:'https://www.tiktok.com/@crixgamingvr' },
+    { logo:'x',         img:'', title:'X',         url:'https://x.com/CRIXGAMINGVR' },
+    { logo:'instagram', img:'', title:'Instagram', url:'https://instagram.com/crixgaming_vr' },
+    { logo:'twitch',    img:'', title:'Twitch',    url:'https://twitch.tv/crix_gaming_vr' },
+    { logo:'discord',   img:'', title:'Discord',   url:'https://discord.com/invite/MbQvJGDAst' },
+    { logo:'xbox',      img:'', title:'Xbox',      url:'https://xbox.com/en-AU/play/user/NVR' },
+    { logo:'globe',     img:'', title:'Main Site', url:'/' }
+  ],
+  footer: '© CRIXGAMING VR'
+};
+
+function bioFill(c) {
+  $('bioName').value = c.name || '';
+  $('bioText').value = c.bio || '';
+  $('bioAvatar').value = c.avatar || '';
+  $('bioBg').value = c.background || '';
+  $('bioBgOp').value = c.backgroundOpacity ?? 0.45;
+  $('bioAccent').value = c.accent || '#FF4655';
+  $('bioMusic').value = c.music || '';
+  $('bioMusicTitle').value = c.musicTitle || '';
+  $('bioVerified').value = c.verified ? 'yes' : 'no';
+  $('bioViews').value = c.showViews ? 'yes' : 'no';
+  $('bioLinks').value = (c.links || []).map(l =>
+    [l.logo || l.icon || 'globe',
+     l.img ? l.img.replace('/img/', '') : '-',
+     l.title || '', l.sub || '', l.url || ''].join(' | ')).join('\n');
+  $('bioSocials').value = (c.socials || []).map(s =>
+    [s.logo || s.icon || 'globe', s.label || '', s.url || '', s.colour || ''].join(' | ')).join('\n');
+}
+
+function bioCollect() {
+  const parse = (text, keys) => text.split('\n')
+    .map(l => l.trim()).filter(Boolean)
+    .map(l => {
+      const parts = l.split('|').map(p => p.trim());
+      const o = {};
+      keys.forEach((k, i) => o[k] = parts[i] || '');
+      return o;
+    })
+    .filter(o => o.url);   // a link without a URL is not a link
+
+  return {
+    name: $('bioName').value.trim() || 'CRIXGAMING VR',
+    bio: $('bioText').value.trim(),
+    avatar: $('bioAvatar').value.trim(),
+    background: $('bioBg').value.trim(),
+    backgroundOpacity: parseFloat($('bioBgOp').value) || 0.45,
+    accent: $('bioAccent').value,
+    music: $('bioMusic').value.trim(),
+    musicTitle: $('bioMusicTitle').value.trim(),
+    verified: $('bioVerified').value === 'yes',
+    showViews: $('bioViews').value === 'yes',
+    links: parse($('bioLinks').value, ['logo','img','title','sub','url']).map(l => ({
+      // A bare filename is assumed to live in /img
+      logo: l.logo,
+      img: (!l.img || l.img === '-') ? '' : (l.img.startsWith('/') ? l.img : '/img/' + l.img),
+      title: l.title, sub: l.sub, url: l.url
+    })),
+    socials: parse($('bioSocials').value, ['logo','label','url','colour']),
+    footer: '© CRIXGAMING VR'
+  };
+}
+
+async function bioLoad() {
+  const out = $('bioOut');
+  out.className = 'out'; out.textContent = 'Loading…';
+  try {
+    const d = await firebase.firestore().collection('config').doc('bio').get();
+    bioFill(d.exists ? { ...BIO_DEFAULTS, ...d.data() } : BIO_DEFAULTS);
+    out.textContent = d.exists ? 'Loaded saved settings.' : 'No saved settings — showing defaults.';
+  } catch (e) {
+    bioFill(BIO_DEFAULTS);
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Cannot read — publish firestore.rules.' : e.message;
+  }
+}
+
+bind('bioSave', async () => {
+  const out = $('bioOut');
+  out.className = 'out'; out.textContent = 'Saving…';
+  try {
+    const data = bioCollect();
+
+    // Leaving a box empty means "no change", not "delete everything". Only
+    // the fields you actually filled in get written.
+    const clean = {};
+    Object.entries(data).forEach(([k, v]) => {
+      if (v === '' || v === null || v === undefined) return;
+      if (Array.isArray(v) && v.length === 0) return;
+      clean[k] = v;
+    });
+
+    await firebase.firestore().collection('config').doc('bio').set(clean, { merge: true });
+    out.className = 'out ok';
+    const bits = [];
+    if (clean.links)   bits.push(`${clean.links.length} links`);
+    if (clean.socials) bits.push(`${clean.socials.length} socials`);
+    out.textContent = 'Saved' + (bits.length ? ' — ' + bits.join(', ') : '') + '. Live now.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = /permission/i.test(e.message)
+      ? 'Blocked — only owners can edit this. Check your owners record.' : e.message;
+  }
+});
+
+bind('bioClearLinks', async () => {
+  // Emptying the box no longer deletes, so this is how you actually clear it
+  if (!confirm('Remove every link from the bio page?')) return;
+  const out = $('bioOut');
+  try {
+    await firebase.firestore().collection('config').doc('bio')
+      .set({ links: [] }, { merge: true });
+    $('bioLinks').value = '';
+    out.className = 'out ok';
+    out.textContent = 'All links removed.';
+  } catch (e) {
+    out.className = 'out bad';
+    out.textContent = e.message;
+  }
+});
+
+bind('bioLoad', bioLoad);
+bind('bioReset', () => {
+  if (!confirm('Reset every field back to the defaults?')) return;
+  bioFill(BIO_DEFAULTS);
+  $('bioOut').textContent = 'Defaults restored — press Save to apply them.';
+});
+
 bind('recheckBtn', runSetupChecks);
 bind('hRun', runHealth);
 bind('hCopy', () => copyRows(hOut, 'hCopy', 'Copy results'));

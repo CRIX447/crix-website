@@ -1,0 +1,8 @@
+{
+  "_comment": "The launcher reads this to know what to download. Update url and sizeMB after each game build.",
+  "version": "1.0.0",
+  "url": "https://github.com/CRIX447/crix-desktop/releases/latest/download/FlappyCrix.exe",
+  "sizeMB": 92,
+  "released": "2026-09-09",
+  "notes": "First full release"
+}

@@ -157,6 +157,93 @@ service cloud.firestore {
       allow write: if signedIn() && myUid() == uid;
     }
 
+    // ---- LOBBY OVERRIDES ----
+    // Only an owner can write these; everyone reads so the game can act on them.
+    match /lobbyOverrides/{roomCode} {
+      allow read:  if signedIn();
+      allow write: if isOwner();
+    }
+
+    // ---- DM OUTBOX ----
+    // Anyone signed in can queue their own welcome message; only owners can
+    // queue moderation notices. The bot reads and marks them sent.
+    match /dmQueue/{id} {
+      allow read:   if signedIn();
+      allow create: if signedIn();
+      allow update: if signedIn();
+      allow delete: if isOwner();
+    }
+
+    // ---- DEVICE LINKS ----
+    // Written only by the server (via the Admin SDK, which bypasses rules).
+    // Nothing here should be reachable from a browser.
+    match /deviceLinks/{code} {
+      allow read, write: if false;
+    }
+
+    // ---- PAIRING CODES ----
+    // Server-only. A browser must never be able to read these — the whole
+    // point is that a code alone grants nothing without approval.
+    match /pairCodes/{code} {
+      allow read, write: if false;
+    }
+
+    // ---- BIO PAGE ----
+    // Public read so the page works for everyone; only an owner can edit.
+    // Evidence page visibility — public read so the page can check it,
+    // owner-only write.
+    match /config/evidence {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Events — public read so the game can apply multipliers, owner write.
+    // Broadcasts — everyone reads, owners write.
+    match /config/broadcast {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /config/event {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // Seasonal theme override — everyone reads it, including guests and
+    // signed-out players, because the season has to look the same for all of
+    // them. The catch-all below would require a sign-in.
+    match /config/season {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    match /config/bio {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // View counter — anyone may increment it, nobody may set it arbitrarily.
+    match /config/bioStats {
+      allow read: if true;
+      allow write: if true;
+    }
+
+    // Where each cosmetic sits on the bird. Everyone reads it, including
+    // guests, or the hat would be in a different place for them than for
+    // everybody else. Owners write it.
+    match /config/cosmeticFit {
+      allow read: if true;
+      allow write: if isOwner();
+    }
+
+    // ---- PERSONAL SEASON PREVIEW ----
+    // Each person's own document and nobody else's. A preview only changes what
+    // that one account sees, so it needs no owner check — but it must not be
+    // readable or writable across accounts.
+    match /seasonPreview/{uid} {
+      allow read, write: if signedIn() && uid == myUid();
+    }
+
     // ---- REPORTS ----
     match /reports/{id} {
       allow create: if signedIn() && request.resource.data.reporterUid == myUid();

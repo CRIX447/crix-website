@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>CRIXGAMING VR</title>
+<meta name="description" content="All my links in one place.">
+<meta name="theme-color" content="#000000">
+<link rel="icon" href="/img/newfavicon.png">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="CRIXGAMING VR">
+    <meta property="og:title" content="CRIXGAMING VR">
+    <meta property="og:description" content="All my links in one place.">
+    <meta property="og:url" content="https://crixgamingvr.com/bio">
+    <meta property="og:image" content="https://crixgamingvr.com/img/newfavicon.png">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CRIXGAMING VR">
+    <meta name="twitter:description" content="All my links in one place.">
+    <meta name="twitter:image" content="https://crixgamingvr.com/img/newfavicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+<style>
+@font-face{font-family:'CRIX Pixel';src:url('/img/font.otf') format('opentype');font-display:swap}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overflow:hidden}
+html{overscroll-behavior:none}
+body{
+  background:#000; color:#EDEDED;
+  font-family:'CRIX Pixel','Fredoka One',system-ui,sans-serif;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* ── BACKGROUND ── */
+#bgWrap{position:fixed;inset:0;z-index:0;overflow:hidden;background:#000}
+#bgMedia{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
+  opacity:0;transition:opacity 1.2s ease}
+#bgMedia.on{opacity:var(--bg-op,.45)}
+#bgTint{position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 40%,transparent 0%,rgba(0,0,0,.75) 100%)}
+#grain{position:absolute;inset:0;opacity:.05;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+/* ── ENTER GATE ── */
+#gate{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  cursor:pointer;background:rgba(0,0,0,.55);backdrop-filter:blur(14px);
+  transition:opacity .7s ease,backdrop-filter .7s ease}
+#gate.gone{opacity:0;pointer-events:none;backdrop-filter:blur(0)}
+.gate-inner{text-align:center;animation:breathe 2.8s ease-in-out infinite}
+.gate-text{font-size:clamp(15px,4vw,20px);letter-spacing:7px;text-transform:uppercase;
+  color:rgba(255,255,255,.92)}
+.gate-sub{font-size:10px;letter-spacing:3px;color:rgba(255,255,255,.4);margin-top:10px}
+@keyframes breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.03)}}
+
+/* ── CARD ── */
+#page{position:relative;z-index:10;height:100%;overflow-y:auto;
+  display:flex;justify-content:center;
+  /* safe-area padding so the notch and gesture bar do not clip anything */
+  padding:34px 20px calc(90px + env(safe-area-inset-bottom));
+  padding-top:calc(34px + env(safe-area-inset-top));
+  opacity:0;transform:translateY(14px);transition:opacity .8s ease .15s,transform .8s ease .15s;
+  -webkit-overflow-scrolling:touch;}
+/* Centre vertically ONLY when the content fits. auto margins do this without
+   the overflow clipping that align-items:center causes. */
+#page > .card{margin-block:auto}
+#page.in{opacity:1;transform:none}
+.card{width:100%;max-width:420px;text-align:center}
+
+.pfp{width:104px;height:104px;border-radius:50%;object-fit:cover;margin:0 auto 14px;
+  border:3px solid rgba(255,255,255,.14);box-shadow:0 8px 34px rgba(0,0,0,.65);display:block}
+.name{font-size:clamp(23px,6vw,30px);font-weight:bold;letter-spacing:2px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(135deg,#FF4655,#FF6B35,#FFD700);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+  filter:drop-shadow(0 3px 0 rgba(0,0,0,.5))}
+.name .badge{-webkit-text-fill-color:#27A9F5}
+.badge{font-size:15px;color:#27A9F5}
+.bio{font-size:12px;color:rgba(255,255,255,.62);line-height:1.85;margin:9px auto 20px;max-width:330px}
+
+/* ── SOCIAL ROW ── */
+.socials{display:flex;justify-content:center;gap:13px;flex-wrap:wrap;margin-bottom:22px}
+.social{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-size:21px;text-decoration:none;color:#fff;
+  background:rgba(20,20,30,.72);border:2px solid rgba(255,255,255,.1);
+  border-bottom:4px solid rgba(0,0,0,.5);
+  transition:transform .16s,background .16s,border-color .16s,color .16s}
+.social svg{width:21px;height:21px}
+.social:hover{transform:translateY(-4px);background:rgba(255,255,255,.13);
+  border-color:var(--sc,rgba(255,255,255,.3));color:var(--sc,#fff)}
+
+/* ── LINKS ── */
+.link{display:flex;align-items:center;gap:13px;text-decoration:none;color:#fff;
+  background:rgba(20,20,30,.72);border:2px solid rgba(255,255,255,.1);
+  border-bottom:4px solid rgba(0,0,0,.5);
+  border-radius:16px;padding:13px 16px;margin-bottom:9px;
+  transition:transform .14s,background .14s,border-color .14s;position:relative;overflow:hidden}
+.link:active{transform:translateY(2px);border-bottom-width:2px}
+.link::before{content:'';position:absolute;inset:0;opacity:0;transition:opacity .16s;
+  background:linear-gradient(90deg,var(--accent,#FF4655)22,transparent)}
+.link:hover{transform:translateX(4px);border-color:var(--accent,#FF4655)}
+.link:hover::before{opacity:1}
+.link-ico{font-size:20px;flex-shrink:0;position:relative;width:24px;height:24px;
+  display:flex;align-items:center;justify-content:center}
+.link-ico svg{width:22px;height:22px}
+.link-img{width:38px;height:38px;border-radius:10px;object-fit:cover;flex-shrink:0;
+  position:relative;border:1px solid rgba(255,255,255,.1)}
+.link-txt{flex:1;min-width:0;text-align:left;position:relative}
+.link-title{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.link-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px}
+.link-arrow{font-size:14px;color:rgba(255,255,255,.3);position:relative}
+
+.foot{margin-top:26px;margin-bottom:10px;font-size:10px;color:rgba(255,255,255,.28);line-height:2}
+.foot a{color:rgba(255,255,255,.45);text-decoration:none}
+.foot a:hover{color:#fff}
+
+/* ── AUDIO CONTROL ── */
+#audioBtn{position:fixed;bottom:18px;right:18px;z-index:40;
+  width:46px;height:46px;border-radius:50%;cursor:pointer;
+  background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.16);
+  color:#fff;font-size:17px;backdrop-filter:blur(8px);display:none;
+  align-items:center;justify-content:center}
+#audioBtn.show{display:flex}
+#nowPlaying{position:fixed;bottom:20px;left:18px;z-index:40;display:none;
+  align-items:center;gap:9px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.14);
+  border-radius:22px;padding:8px 15px 8px 11px;backdrop-filter:blur(8px);max-width:62vw}
+#nowPlaying.show{display:flex}
+.bars{display:flex;align-items:flex-end;gap:2px;height:14px;flex-shrink:0}
+.bars i{width:2px;background:#FF4655;animation:eq .9s ease-in-out infinite}
+.bars i:nth-child(2){animation-delay:.2s}
+.bars i:nth-child(3){animation-delay:.4s}
+.bars i:nth-child(4){animation-delay:.15s}
+@keyframes eq{0%,100%{height:3px}50%{height:14px}}
+#npText{font-size:11px;color:rgba(255,255,255,.75);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis}
+
+#views{position:fixed;top:16px;right:18px;z-index:40;font-size:10px;
+  color:rgba(255,255,255,.35);background:rgba(0,0,0,.45);
+  border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:5px 11px;
+  backdrop-filter:blur(8px)}
+</style>
+</head>
+<body>
+
+<div id="bgWrap">
+  <video id="bgMedia" autoplay muted loop playsinline></video>
+  <div id="bgTint"></div>
+  <div id="grain"></div>
+</div>
+
+<div id="gate">
+  <div class="gate-inner">
+    <div class="gate-text">click to enter</div>
+    <div class="gate-sub">sound on</div>
+  </div>
+</div>
+
+<div id="page">
+  <div class="card">
+    <img class="pfp" id="pfp" src="/img/imcrix123.png" alt=""
+         onerror="this.src='/img/newfavicon.png'">
+    <div class="name" id="name">CRIXGAMING VR <span class="badge" id="badge">✓</span></div>
+    <div class="bio" id="bio"></div>
+    <div class="socials" id="socials"></div>
+    <div id="links"></div>
+    <div class="foot" id="foot"></div>
+  </div>
+</div>
+
+<audio id="music" loop></audio>
+<button id="audioBtn" title="Sound">🔊</button>
+<div id="nowPlaying"><div class="bars"><i></i><i></i><i></i><i></i></div><span id="npText"></span></div>
+<div id="views" style="display:none"></div>
+
+<script>
+const $ = i => document.getElementById(i);
+const esc = s => { const d = document.createElement('div'); d.textContent = String(s ?? ''); return d.innerHTML; };
+
+// Defaults. Anything set in the console overrides these, so the page still
+// works perfectly if Firestore is unreachable.
+// Real SVG logos rather than emoji, so it matches the site.
+// Brand SVGs plus custom marks drawn for your own sites, so the store,
+// game and chat get their own identity rather than a generic icon.
+
+// Defaults. Anything set in the console overrides these, so the page still
+// works perfectly if Firestore is unreachable.
+// Real SVG logos rather than emoji, so it matches the site.
+const LOGOS = {
+  youtube:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1c1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1c.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.6V8.4l6.3 3.6-6.3 3.6z"/></svg>',
+  discord:  '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.3 4.4A19.8 19.8 0 0 0 15.4 3l-.2.4a13.6 13.6 0 0 1 4.4 2.2 19 19 0 0 0-15.2 0A13.6 13.6 0 0 1 8.8 3.4L8.6 3a19.8 19.8 0 0 0-5 1.4C.5 9 0 13.4.2 17.8a19.9 19.9 0 0 0 6.1 3.1l1.2-1.7a13 13 0 0 1-2-1l.5-.4a14.2 14.2 0 0 0 12 0l.5.4a13 13 0 0 1-2 1l1.2 1.7a19.9 19.9 0 0 0 6.1-3.1c.3-5.1-.5-9.5-3.5-13.4zM8.4 15.3c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4zm7.2 0c-1.2 0-2.2-1.1-2.2-2.4s1-2.4 2.2-2.4 2.2 1.1 2.2 2.4-1 2.4-2.2 2.4z"/></svg>',
+  tiktok:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.6 6.7a5.2 5.2 0 0 1-3.6-1.5 5.2 5.2 0 0 1-1.5-3.2h-3.4v13.9a3.1 3.1 0 1 1-2.2-3v-3.5a6.6 6.6 0 1 0 5.6 6.5V8.7a8.5 8.5 0 0 0 5.1 1.7z"/></svg>',
+  instagram:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.2c3.2 0 3.6 0 4.9.1 3.3.1 4.8 1.7 4.9 4.9.1 1.3.1 1.6.1 4.8s0 3.6-.1 4.9c-.1 3.2-1.7 4.8-4.9 4.9-1.3.1-1.6.1-4.9.1s-3.6 0-4.9-.1c-3.3-.2-4.8-1.7-4.9-4.9C2.2 15.6 2.2 15.2 2.2 12s0-3.6.1-4.9C2.4 3.9 4 2.4 7.1 2.3 8.4 2.2 8.8 2.2 12 2.2zm0 4.6a5.2 5.2 0 1 0 0 10.4 5.2 5.2 0 0 0 0-10.4zm0 8.6a3.4 3.4 0 1 1 0-6.8 3.4 3.4 0 0 1 0 6.8zm5.4-9.9a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4z"/></svg>',
+  twitch:   '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.3 1.5 2 5.9v15.4h5.3V24h2.9l2.9-2.7h4.3l5.7-5.4V1.5H4.3zm16 13.1-3.3 3.1h-5.3l-2.9 2.7v-2.7H4.3V3.6h16v11zM16.6 7v6.1h-2.2V7h2.2zm-5.8 0v6.1H8.6V7h2.2z"/></svg>',
+  x:        '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.2 2.3h3.3l-7.2 8.3 8.5 11.1h-6.6l-5.2-6.8-6 6.8H1.7l7.7-8.8L1.3 2.3h6.8l4.7 6.2 5.4-6.2zm-1.2 17.5h1.8L7.1 4.1H5.2l11.8 15.7z"/></svg>',
+  xbox:     '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-6.6 2.5C7.2 3.6 10 5.7 12 7.9c2-2.2 4.8-4.3 6.6-3.4A10 10 0 0 0 12 2zM4 5.9A10 10 0 0 0 2 12c0 2.6 1 5 2.6 6.8-.4-2.5 3.1-7.6 5.6-10.4C8.6 6.7 5.6 4.9 4 5.9zm16 0c-1.6-1-4.6.8-6.2 2.5 2.5 2.8 6 7.9 5.6 10.4A10 10 0 0 0 22 12a10 10 0 0 0-2-6.1zM12 10.4c-2.3 2.6-5.6 7.5-5 9.2A10 10 0 0 0 12 22a10 10 0 0 0 5-2.4c.6-1.7-2.7-6.6-5-9.2z"/></svg>',
+  globe:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.3 9.6h17.4M3.3 14.4h17.4"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>'
+};
+
+// Defaults. Anything set in the console overrides these, so the page still
+// works perfectly if Firestore is unreachable.
+const DEFAULTS = {
+  name: 'CRIXGAMING VR',
+  verified: true,
+  bio: 'VR content, gaming, and whatever else I feel like making.',
+  avatar: '/img/imcrix123.png',
+  background: '',
+  backgroundOpacity: 0.45,
+  music: '/img/music.mp3',
+  musicTitle: 'CRIXGAMING VR',
+  accent: '#FF4655',
+  showViews: true,
+
+  socials: [
+    { logo:'youtube',   url:'https://www.youtube.com/@CRIXGAMINGVR', label:'YouTube',   colour:'#FF0000' },
+    { logo:'tiktok',    url:'https://www.tiktok.com/@crixgamingvr',  label:'TikTok',    colour:'#00F2EA' },
+    { logo:'x',         url:'https://x.com/CRIXGAMINGVR',            label:'X',         colour:'#FFFFFF' },
+    { logo:'instagram', url:'https://instagram.com/crixgaming_vr',   label:'Instagram', colour:'#E1306C' },
+    { logo:'twitch',    url:'https://twitch.tv/crix_gaming_vr',      label:'Twitch',    colour:'#9146FF' },
+    { logo:'discord',   url:'https://discord.com/invite/MbQvJGDAst', label:'Discord',   colour:'#5865F2' },
+    { logo:'xbox',      url:'https://xbox.com/en-AU/play/user/NVR',  label:'Xbox',      colour:'#107C10' }
+  ],
+
+  links: [
+    // Your own sites use their real logo from /img
+    { img:'/img/fp.png',  title:'Flappy Crix', url:'/flappycrix' },
+    { img:'/img/aac.png', title:'CRIX Chat',   url:'/crixchat' },
+    { img:'/img/is.png',  title:'Merch Store', url:'https://shop.crixgamingvr.com' },
+    { logo:'youtube',   title:'CRIXGAMING VR',   url:'https://www.youtube.com/@CRIXGAMINGVR' },
+    { logo:'youtube',   title:'CRIX PLAYZ MC',   url:'https://www.youtube.com/@CRIXPLAYZMC' },
+    { logo:'youtube',   title:'CRIX REACTS',     url:'https://www.youtube.com/@CRIXREACTS123' },
+    { logo:'youtube',   title:'CRIX YAPS',       url:'https://www.youtube.com/@CRIXYAPS' },
+    { logo:'youtube',   title:'CRIXGAMING VR 2', url:'https://www.youtube.com/@CRIXGAMINGVR2' },
+    { logo:'tiktok',    title:'TikTok',    url:'https://www.tiktok.com/@crixgamingvr' },
+    { logo:'x',         title:'X',         url:'https://x.com/CRIXGAMINGVR' },
+    { logo:'instagram', title:'Instagram', url:'https://instagram.com/crixgaming_vr' },
+    { logo:'twitch',    title:'Twitch',    url:'https://twitch.tv/crix_gaming_vr' },
+    { logo:'discord',   title:'Discord',   url:'https://discord.com/invite/MbQvJGDAst' },
+    { logo:'xbox',      title:'Xbox',      url:'https://xbox.com/en-AU/play/user/NVR' },
+    { logo:'globe',     title:'Main Site', url:'/' }
+  ],
+    footer: '<a href="/terms">Terms</a> · <a href="/privacy">Privacy</a><br>© CRIXGAMING VR'
+};
+
+let cfg = DEFAULTS;
+
+(async function boot() {
+  // Render defaults straight away so the page never sits blank waiting on
+  // the network, then swap in the saved config if there is one.
+  render(cfg);
+
+  try {
+    const api = await (await fetch('/api.json?cb=' + Date.now())).json();
+    firebase.initializeApp(api.firebase);
+    const db = firebase.firestore();
+    const doc = await db.collection('config').doc('bio').get();
+    if (doc.exists) {
+      cfg = { ...DEFAULTS, ...doc.data() };
+      render(cfg);
+    }
+    if (cfg.showViews) countView(db);
+  } catch (e) {
+    console.warn('[bio] using defaults:', e.message);
+  }
+})();
+
+function render(c) {
+  document.documentElement.style.setProperty('--accent', c.accent || '#FF4655');
+  document.documentElement.style.setProperty('--bg-op', c.backgroundOpacity ?? 0.45);
+
+  document.title = c.name || 'CRIXGAMING VR';
+  $('name').innerHTML = esc(c.name) + (c.verified ? ' <span class="badge">✓</span>' : '');
+  $('bio').textContent = c.bio || '';
+  if (c.avatar) $('pfp').src = c.avatar;
+  $('foot').innerHTML = esc(c.footer || '');
+
+  // background — video or image
+  const bg = $('bgMedia');
+  if (c.background) {
+    const isVideo = /\.(mp4|webm|mov)(\?|$)/i.test(c.background);
+    if (isVideo) {
+      bg.outerHTML = `<video id="bgMedia" autoplay muted loop playsinline src="${esc(c.background)}"></video>`;
+    } else {
+      bg.outerHTML = `<img id="bgMedia" src="${esc(c.background)}" alt="">`;
+    }
+    setTimeout(() => $('bgMedia')?.classList.add('on'), 60);
+  }
+
+  // A logo name uses the built-in SVG; anything else falls back to the
+  // emoji or text supplied.
+  const iconFor = o => o.logo && LOGOS[o.logo]
+      ? LOGOS[o.logo]
+      : esc(o.icon || '🔗');
+
+  $('socials').innerHTML = (c.socials || []).map(s =>
+    `<a class="social" href="${esc(s.url)}" target="_blank" rel="noopener"
+        title="${esc(s.label || '')}"
+        style="${s.colour ? `--sc:${esc(s.colour)}` : ''}">${iconFor(s)}</a>`).join('');
+
+  $('links').innerHTML = (c.links || []).map(l => {
+    // An image sits to the left of the row — drop it into /img and name it
+    // in the console. A missing file hides itself rather than showing a
+    // broken-image icon.
+    const thumb = l.img
+      ? `<img class="link-img" src="${esc(l.img)}" alt=""
+              onerror="this.style.display='none'">`
+      : `<span class="link-ico">${iconFor(l)}</span>`;
+    return `<a class="link" href="${esc(l.url)}"${/^https?:/i.test(l.url) ? ' target="_blank" rel="noopener"' : ''}>
+       ${thumb}
+       <span class="link-txt">
+         <span class="link-title">${esc(l.title)}</span>
+         ${l.sub ? `<span class="link-sub">${esc(l.sub)}</span>` : ''}
+       </span>
+       <span class="link-arrow">→</span>
+     </a>`;
+  }).join('');
+
+  if (c.music) {
+    $('music').src = c.music;
+    $('npText').textContent = c.musicTitle || 'Now playing';
+  }
+}
+
+// ── ENTER ──
+// Browsers block autoplay until a real interaction, which is exactly what
+// the click-to-enter screen provides.
+let entered = false;
+function enter() {
+  if (entered) return;
+  entered = true;
+  $('gate').classList.add('gone');
+  setTimeout(() => { $('gate').style.display = 'none'; }, 750);
+  $('page').classList.add('in');
+
+  const m = $('music');
+  if (cfg.music) {
+    m.volume = 0;
+    m.play().then(() => {
+      $('audioBtn').classList.add('show');
+      $('nowPlaying').classList.add('show');
+      // Fade in rather than starting at full volume
+      let v = 0;
+      const fade = setInterval(() => {
+        v = Math.min(0.35, v + 0.02);
+        m.volume = v;
+        if (v >= 0.35) clearInterval(fade);
+      }, 60);
+    }).catch(() => {
+      $('audioBtn').classList.add('show');
+      $('audioBtn').textContent = '🔇';
+    });
+  }
+}
+$('gate').addEventListener('click', enter);
+document.addEventListener('keydown', e => { if (!entered && (e.key === 'Enter' || e.key === ' ')) enter(); });
+
+$('audioBtn').onclick = () => {
+  const m = $('music');
+  if (m.paused) { m.play().catch(()=>{}); $('audioBtn').textContent = '🔊'; $('nowPlaying').classList.add('show'); }
+  else { m.pause(); $('audioBtn').textContent = '🔇'; $('nowPlaying').classList.remove('show'); }
+};
+
+// ── VIEW COUNT ──
+async function countView(db) {
+  try {
+    const ref = db.collection('config').doc('bioStats');
+    await ref.set({ views: firebase.firestore.FieldValue.increment(1) }, { merge: true });
+    const d = await ref.get();
+    const n = d.data()?.views || 0;
+    $('views').textContent = `${n.toLocaleString()} views`;
+    $('views').style.display = '';
+  } catch (e) { /* not important enough to surface */ }
+}
+</script>
+    <!-- Vercel Analytics: no cookies, no personal data, matches the privacy policy -->
+    <script defer src="/_vercel/insights/script.js"></script>
+</body>
+</html>

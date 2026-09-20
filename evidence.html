@@ -97,8 +97,23 @@ footer a:hover{color:var(--orange)}
   .lbnav{width:38px;height:38px;font-size:19px}
 }
 </style>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
+<!-- Hidden by default. The console decides whether this page is public. -->
+<div id="evGate" style="position:fixed;inset:0;z-index:9000;background:#0A0A0F;
+     display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;">
+  <div>
+    <div style="font-size:46px;margin-bottom:14px;">🔒</div>
+    <div style="font-size:18px;color:#EDEDED;margin-bottom:8px;">Not available</div>
+    <p style="font-size:12px;color:#8C8C8C;line-height:1.9;max-width:320px;">
+      This page is currently switched off.
+    </p>
+    <a href="/" style="display:inline-block;margin-top:18px;color:#00CC7A;
+       font-size:12px;text-decoration:none;">← back to crixgamingvr.com</a>
+  </div>
+</div>
 
 <nav class="nav">
   <a href="/" class="brand">CRIXGAMING VR</a>
@@ -288,6 +303,36 @@ document.querySelectorAll('.chip').forEach(b=>b.addEventListener('click',()=>{
 }));
 
 scan();
+</script>
+<script>
+// The page stays hidden until Firestore says otherwise, so a failed lookup
+// keeps it private rather than exposing it.
+(async function evidenceGate() {
+  const gate = document.getElementById('evGate');
+  try {
+    const api = await (await fetch('/api.json?cb=' + Date.now())).json();
+    firebase.initializeApp(api.firebase);
+    const doc = await firebase.firestore().collection('config').doc('evidence').get();
+    const d = doc.exists ? doc.data() : {};
+
+    if (d.enabled === true) {
+      gate.remove();
+      document.documentElement.style.overflow = '';
+      return;
+    }
+
+    // A passcode lets you share it without making it fully public
+    if (d.passcode) {
+      const given = new URLSearchParams(location.search).get('key');
+      if (given && given === d.passcode) { gate.remove(); return; }
+    }
+    if (d.message) {
+      gate.querySelector('p').textContent = d.message;
+    }
+  } catch (e) {
+    console.warn('[evidence] gate check failed — staying hidden');
+  }
+})();
 </script>
 </body>
 </html>
