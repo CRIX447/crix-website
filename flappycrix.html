@@ -1557,6 +1557,20 @@
         .mp-mode-card:hover { transform: translateY(-2px); }
         .mp-mode-icon { font-size: 22px; margin-bottom: 4px; }
         .mp-mode-name { font-size: 10px; font-weight: 700; color: white; text-transform: uppercase; }
+        .mp-section-title.limited {
+            display: flex; align-items: center; gap: 8px;
+            color: var(--accent, #FF7A18);
+        }
+        .limited-chip {
+            font-style: normal; font-size: 8px; letter-spacing: .6px;
+            background: rgba(255,122,24,.16); border: 1px solid rgba(255,122,24,.45);
+            color: var(--accent, #FF7A18); border-radius: 30px; padding: 2px 7px;
+        }
+        .mp-mode-grid.one { grid-template-columns: 1fr; }
+        .mp-mode-grid.one .mp-mode-card { display: flex; align-items: center; gap: 11px; text-align: left; }
+        .mp-mode-grid.one .mp-mode-icon { font-size: 22px; }
+        .mp-mode-grid.one .mp-mode-name { flex: 1; }
+        .mp-mode-grid.one .mp-mode-tag { margin-top: 0; }
         .mp-mode-card.season { border-color: rgba(255,122,24,.55); position: relative; }
         .mp-mode-card.season.selected { border-color: var(--accent, #FF7A18); }
         .mp-mode-card .mp-mode-tag {
@@ -3543,27 +3557,6 @@
                 <div class="auth-error" id="mpJoinError" style="text-align:center;margin-top:8px;"></div>
             </div>
 
-            <!-- VIEW: how do you want to play the season's mode? -->
-            <div id="mpViewSeasonPlay" style="display:none;">
-                <div class="mp-section-title" id="spTitle">SEASONAL MODE</div>
-                <div class="mp-mode-blurb" id="spBlurb"></div>
-                <div class="create-choice">
-                    <button class="create-card" id="spSolo">
-                        <span class="cc-ico">🎯</span>
-                        <span class="cc-name">PLAY SOLO</span>
-                        <span class="cc-sub">Ninety seconds on your own. Coins and a personal best.</span>
-                    </button>
-                    <button class="create-card" id="spRoom">
-                        <span class="cc-ico">🌐</span>
-                        <span class="cc-name">PLAY WITH OTHERS</span>
-                        <span class="cc-sub">Same lane, same pickups, first to grab them wins them.</span>
-                    </button>
-                </div>
-                <div style="display:flex;gap:8px;margin-top:12px;">
-                    <button class="mp-btn-secondary" id="spBackBtn">← BACK</button>
-                </div>
-            </div>
-
             <!-- VIEW: CREATE — a game or a party? -->
             <div id="mpViewCreateChoice" style="display:none;">
                 <div class="mp-section-title">WHAT ARE YOU MAKING?</div>
@@ -3594,15 +3587,27 @@
                     <div class="mp-mode-card" data-mode="race"><div class="mp-mode-icon">🏁</div><div class="mp-mode-name">Race to 100</div></div>
                     <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
                     <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon">🪙</div><div class="mp-mode-name">Coin Rush</div></div>
-                    <!-- The season's own mode. Filled in and shown by
-                         mpSyncSeasonModeCard, hidden the rest of the year. -->
-                    <div class="mp-mode-card season" id="mpSeasonModeCard" data-mode="" style="display:none;">
-                        <div class="mp-mode-icon" id="mpSeasonModeIcon">🎃</div>
-                        <div class="mp-mode-name" id="mpSeasonModeName">Seasonal</div>
-                        <div class="mp-mode-tag">LIMITED</div>
-                    </div>
                 </div>
-                <div id="mpSeasonModeBlurb" class="mp-mode-blurb" style="display:none;"></div>
+
+                <!-- The season's own mode, kept apart from the four that are
+                     always there. It is here for weeks, not for good, and
+                     burying it as a fifth tile made it look permanent. Shown
+                     and filled in by mpSyncSeasonModeCard; gone the rest of
+                     the year, heading and all. -->
+                <div id="mpSeasonSection" style="display:none;">
+                    <div class="mp-section-title limited">
+                        <span id="mpSeasonSectionLabel">LIMITED TIME</span>
+                        <i class="limited-chip" id="mpSeasonUntil"></i>
+                    </div>
+                    <div class="mp-mode-grid one">
+                        <div class="mp-mode-card season" id="mpSeasonModeCard" data-mode="">
+                            <div class="mp-mode-icon" id="mpSeasonModeIcon">🎃</div>
+                            <div class="mp-mode-name" id="mpSeasonModeName">Seasonal</div>
+                            <div class="mp-mode-tag">LIMITED</div>
+                        </div>
+                    </div>
+                    <div id="mpSeasonModeBlurb" class="mp-mode-blurb"></div>
+                </div>
                 <div class="mp-section-title">QUEUE</div>
                 <div class="mp-privacy-row">
                     <button class="mp-privacy-btn selected" id="mpQueueCasual">🎮 CASUAL</button>
@@ -4030,30 +4035,6 @@
             <div class="party-actions">
                 <button class="party-btn" id="partyInviteBtn">➕ INVITE</button>
                 <button class="party-btn danger" id="partyLeaveBtn">LEAVE PARTY</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- What a seasonal run paid out -->
-    <div class="mp-modal" id="smResultModal" style="z-index:46300;">
-        <div class="mp-modal-content" style="max-width:380px;">
-            <div class="modal-header">
-                <div class="modal-title" id="smrTitle">RESULT</div>
-                <button class="modal-close" id="closeSmResultBtn">✕</button>
-            </div>
-            <div style="text-align:center;">
-                <div class="smr-why" id="smrWhy">Time!</div>
-                <div class="smr-big"><b id="smrScore">0</b><i id="smrUnit">CANDY</i></div>
-                <div class="smr-newbest" id="smrNewBest" style="display:none;">★ NEW BEST</div>
-                <div class="smr-target" id="smrTarget"></div>
-                <div class="smr-rows">
-                    <div><span>Coins earned</span><b id="smrCoins">+0</b></div>
-                    <div><span>Your best</span><b id="smrBest">0</b></div>
-                </div>
-                <div class="smr-actions">
-                    <button class="game-btn" id="smrAgainBtn">↻ PLAY AGAIN</button>
-                    <button class="game-btn secondary" id="smrMenuBtn">MENU</button>
-                </div>
             </div>
         </div>
     </div>
@@ -4665,6 +4646,13 @@
                 <span class="set-label">Sound effects</span>
                 <input type="range" id="setSfxVol" min="0" max="100" value="100" class="set-slider">
             </div>
+            <div class="set-row">
+                <span class="set-label">Test sound</span>
+                <button id="setSfxTest" class="menu-btn secondary" style="padding:6px 14px;font-size:11px;">PLAY</button>
+            </div>
+            <div id="setSfxDiag" style="display:none;font-size:10px;line-height:1.5;opacity:.75;
+                 padding:6px 10px;margin:0 0 6px;border-radius:8px;background:rgba(0,0,0,.25);
+                 font-family:monospace;word-break:break-word;"></div>
             <!-- Ask before the pickers, because a browser will not tell you what
                  your devices are called until you have said yes once. -->
             <div class="set-row">
@@ -5161,7 +5149,16 @@
         // Generated with the Web Audio API rather than loaded from files, so
         // there is nothing to download or host and they work immediately.
         // If an mp3 of the same name exists in /img it is used instead.
-        let _actx = null;
+        let _actx = null, _sfxBus = null;
+
+        // The generated tones were written at oscillator amplitudes of .07-.18,
+        // which measured 20-26 dB below the real mp3s (coin.mp3 sits at
+        // -10 dBFS, the loudest tone at -29). On a phone speaker that is not
+        // "subtle", it is inaudible — which is why none of the newer sounds
+        // could be heard. Everything generated now runs through one bus with
+        // makeup gain, and a limiter catches the overlaps so the boost cannot
+        // clip when several fire at once.
+        const SFX_MAKEUP = 4.0;
         function audioCtx() {
             if (!_actx) {
                 try { _actx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -5170,20 +5167,72 @@
             if (_actx.state === 'suspended') _actx.resume().catch(() => {});
             return _actx;
         }
+        function sfxBus() {
+            const ctx = audioCtx();
+            if (!ctx) return null;
+            if (!_sfxBus || _sfxBus.context !== ctx) {
+                const g = ctx.createGain();
+                g.gain.value = SFX_MAKEUP;
+                let tail = g;
+                try {
+                    const comp = ctx.createDynamicsCompressor();
+                    comp.threshold.value = -10;
+                    comp.knee.value = 8;
+                    comp.ratio.value = 20;
+                    comp.attack.value = .002;
+                    comp.release.value = .10;
+                    g.connect(comp);
+                    tail = comp;
+                } catch (e) { /* no compressor: the raw gain still works */ }
+                // The compressor has no lookahead, so six effects landing on
+                // the same tick still punched past 1.0 and hard-clipped at the
+                // output. A tanh curve after it rounds those peaks off instead.
+                try {
+                    const shaper = ctx.createWaveShaper();
+                    const n = 1024, curve = new Float32Array(n);
+                    for (let i = 0; i < n; i++) {
+                        const x = (i / (n - 1)) * 2 - 1;
+                        curve[i] = 0.88 * Math.tanh(x * 1.35) / Math.tanh(1.35);
+                    }
+                    shaper.curve = curve;
+                    shaper.oversample = '2x';
+                    tail.connect(shaper);
+                    tail = shaper;
+                } catch (e) { /* no shaper: the compressor alone still helps */ }
+                tail.connect(ctx.destination);
+                _sfxBus = g;
+            }
+            return _sfxBus;
+        }
+
+        // One place decides how loud an effect is. The slider in Settings
+        // writes sfxVol (0-100); playSfx used to read sfxVolume, a second key
+        // nothing ever wrote, so the slider moved nothing but the <audio>
+        // tags. Prefer the key the slider actually sets.
+        function sfxVolume() {
+            if (typeof settings === 'undefined') return 1;
+            if (settings.sfxVol != null && isFinite(settings.sfxVol)) {
+                return Math.max(0, Math.min(1, settings.sfxVol / 100));
+            }
+            if (settings.sfxVolume != null && isFinite(settings.sfxVolume)) {
+                return Math.max(0, Math.min(1, settings.sfxVolume));
+            }
+            return 1;
+        }
 
         // note: [frequency, startTime, duration, type, volume]
         const SFX_DEFS = {
-            swoosh:    [[300, 0,    .07, 'sine',     .07]],
-            whoosh:    [[220, 0,    .12, 'sine',     .10]],
+            swoosh:    [[300, 0,    .07, 'sine',     .13]],
+            whoosh:    [[220, 0,    .12, 'sine',     .17]],
             join:      [[440, 0,    .07, 'square',   .14], [660, .07, .09, 'square', .14]],
             leave:     [[660, 0,    .07, 'square',   .13], [440, .07, .09, 'square', .13]],
-            message:   [[780, 0,    .04, 'sine',     .12]],
+            message:   [[780, 0,    .04, 'sine',     .17]],
             notify:    [[880, 0,    .07, 'sine',     .16], [1170,.09, .10, 'sine',  .14]],
-            send:      [[620, 0,    .04, 'sine',     .09]],
-            error:     [[200, 0,    .16, 'sawtooth', .13], [150, .09, .16, 'sawtooth', .11]],
+            send:      [[620, 0,    .04, 'sine',     .14]],
+            error:     [[200, 0,    .16, 'sawtooth', .17], [150, .09, .16, 'sawtooth', .15]],
             purchase:  [[660, 0,    .06, 'square',   .15], [880, .06, .06, 'square', .15],
                         [1320,.13,  .14, 'square',   .13]],
-            unlock:    [[880, 0,    .06, 'sine',     .15], [1100,.06, .06, 'sine',  .15],
+            unlock:    [[880, 0,    .06, 'sine',     .18], [1100,.06, .06, 'sine',  .18],
                         [1320,.12,  .06, 'sine',     .15], [1760,.18, .18, 'sine',  .13]],
             levelup:   [[523, 0,    .09, 'square',   .16], [659, .09, .09, 'square', .16],
                         [784, .18,  .09, 'square',   .16], [1047,.27, .24, 'square', .15]],
@@ -5198,27 +5247,27 @@
              * These are generated, so they work today; drop a file of the
              * same name into sfxFiles and it takes over with nothing else
              * to change. */
-            pickup:    [[880, 0,    .05, 'sine',     .13], [1320,.05, .06, 'sine',  .11]],
+            pickup:    [[880, 0,    .05, 'sine',     .19], [1320,.05, .06, 'sine',  .16]],
             pickupBig: [[784, 0,    .05, 'square',   .14], [1047,.05, .05, 'square',.14],
                         [1568,.10,  .12, 'square',   .12]],
-            sour:      [[300, 0,    .10, 'sawtooth', .12], [190, .08, .14, 'sawtooth', .10]],
-            deliver:   [[523, 0,    .06, 'sine',     .15], [784, .06, .06, 'sine',  .15],
+            sour:      [[300, 0,    .10, 'sawtooth', .17], [190, .08, .14, 'sawtooth', .15]],
+            deliver:   [[523, 0,    .06, 'sine',     .19], [784, .06, .06, 'sine',  .19],
                         [1047,.12,  .16, 'sine',     .13]],
             smash:     [[180, 0,    .09, 'sawtooth', .18], [90,  .04, .16, 'square', .14],
                         [260, .02,  .07, 'sawtooth', .10]],
-            carry:     [[520, 0,    .04, 'square',   .10]],
-            near:      [[1200,0,    .03, 'sine',     .05]],   // a gap threaded close
+            carry:     [[520, 0,    .06, 'square',   .22]],
+            near:      [[1200,0,    .03, 'sine',     .10]],   // a gap threaded close
             milestone: [[659, 0,    .08, 'square',   .16], [880, .08, .08, 'square', .16],
                         [1047,.16,  .08, 'square',   .16], [1319,.24, .20, 'square', .14]],
             timeLow:   [[880, 0,    .07, 'square',   .14], [880, .14, .07, 'square', .12]],
-            hatch:     [[1320,0,    .05, 'sine',     .12], [1760,.05, .10, 'sine',  .10]],
+            hatch:     [[1320,0,    .05, 'sine',     .18], [1760,.05, .10, 'sine',  .15]],
 
             /* These two were being ASKED for in four places and had no
                definition and no file, so every one of those calls has been a
                silent no-op — the tap on a settings tab, the party panel
                opening, a friend row. They make a noise now. */
-            pop:       [[660, 0,    .035,'sine',     .11]],
-            select:    [[520, 0,    .03, 'square',   .10], [780, .03, .04, 'square', .08]]
+            pop:       [[660, 0,    .035,'sine',     .16]],
+            select:    [[520, 0,    .03, 'square',   .14], [780, .03, .04, 'square', .12]]
         };
 
         // Real files take priority over the generated tones. Rather than
@@ -5238,16 +5287,26 @@
             a.addEventListener('error', () => { sfxFiles[name] = null; }, { once: true });
             a.load();
         }
-        Object.keys(SFX_DEFS).forEach(tryLoadSfx);
+
+        // Probing all 26 names up front meant 26 Audio objects and 26 parallel
+        // mp3 requests before the menu had even drawn, on top of the 11 <audio>
+        // tags - 37 media elements, most of them for files that are not there.
+        // Mobile Safari caps how many it will keep alive, and the ones that
+        // matter were competing with the ones that do not exist. Each name is
+        // probed the first time it is asked for instead; the generated tone
+        // covers that first play.
+        function sfxFileFor(name) {
+            if (!sfxChecked[name]) { tryLoadSfx(name); return null; }
+            return sfxFiles[name] || null;
+        }
 
 
         function playSfx(name, volume) {
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            const vol = (volume ?? 1) * ((typeof settings !== 'undefined' && settings.sfxVolume != null)
-                        ? settings.sfxVolume : 1);
+            const vol = (volume ?? 1) * sfxVolume();
             if (vol <= 0) return;
 
-            const file = sfxFiles[name];
+            const file = sfxFileFor(name);
             if (file) {
                 try {
                     const clone = file.cloneNode();
@@ -5262,7 +5321,8 @@
         function playTone(name, vol) {
             const def = SFX_DEFS[name];
             const ctx = audioCtx();
-            if (!def || !ctx) return;
+            const bus = sfxBus();
+            if (!def || !ctx || !bus) return;
             def.forEach(([freq, at, dur, type, amp]) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -5272,15 +5332,61 @@
                 gain.gain.setValueAtTime(0.0001, ctx.currentTime + at);
                 gain.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), ctx.currentTime + at + .008);
                 gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
-                osc.connect(gain); gain.connect(ctx.destination);
+                osc.connect(gain); gain.connect(bus);
                 osc.start(ctx.currentTime + at);
                 osc.stop(ctx.currentTime + at + dur + .02);
             });
         }
 
-        // Browsers block audio until the first interaction — unlock on any tap
+        // Browsers block audio until the first interaction — unlock on any tap.
+        //
+        // Two things had to change here. iPhones mute Web Audio and <audio>
+        // outright when the hardware ring/silent switch is set to silent, so
+        // the game is dead quiet on a phone no matter how loud the samples
+        // are; Safari 16.4 added navigator.audioSession, and asking for the
+        // 'playback' category opts out of that. And the listeners used to be
+        // {once:true}, so if the very first gesture failed to resume the
+        // context there was no second attempt for the rest of the session —
+        // now they stay until a resume actually succeeds.
+        function claimAudioSession() {
+            try {
+                if (navigator.audioSession) navigator.audioSession.type = 'playback';
+            } catch (e) { /* not supported: nothing to claim */ }
+        }
+        function unlockAudio() {
+            claimAudioSession();
+            const ctx = audioCtx();
+            if (ctx && ctx.state === 'running') {
+                ['pointerdown','keydown','touchstart'].forEach(ev =>
+                    window.removeEventListener(ev, unlockAudio));
+            }
+        }
         ['pointerdown','keydown','touchstart'].forEach(ev =>
-            window.addEventListener(ev, () => audioCtx(), { once: true, passive: true }));
+            window.addEventListener(ev, unlockAudio, { passive: true }));
+        claimAudioSession();
+
+        // A phone has no console, so the only way to find out why a device is
+        // silent is to ask the device. Returns everything that can mute this
+        // game, in one object.
+        window.soundReport = function () {
+            const ctx = _actx;
+            return {
+                ctx:        ctx ? ctx.state : 'never created',
+                sampleRate: ctx ? ctx.sampleRate : null,
+                audioSession: (() => { try { return navigator.audioSession
+                                      ? navigator.audioSession.type : 'unsupported'; }
+                                catch (e) { return 'error'; } })(),
+                sfxEnabled: typeof settings !== 'undefined' ? settings.sfxEnabled : '?',
+                sfxVol:     typeof settings !== 'undefined' ? settings.sfxVol : '?',
+                musicVol:   typeof settings !== 'undefined' ? settings.musicVol : '?',
+                resolved:   (typeof sfxVolume === 'function') ? sfxVolume() : '?',
+                makeup:     typeof SFX_MAKEUP !== 'undefined' ? SFX_MAKEUP : 'OLD BUILD',
+                busUp:      !!_sfxBus,
+                filesReady: Object.keys(sfxFiles).filter(k => sfxFiles[k]).length,
+                jumpVol:    jumpSound ? jumpSound.volume : null,
+                jumpMuted:  jumpSound ? jumpSound.muted : null
+            };
+        };
         // Fix slow sound — ensure playbackRate is 1.0 on all audio elements
         [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
         function playSound(snd) {
@@ -6397,7 +6503,6 @@
                 seconds: 90, target: 70, coinsPer: 2, every: 40, carry: 0
             }
         };
-        const SM_BEST_KEY = 'crix_sm_best_v1';
         // The three ids, for the places that need to ask "is this a seasonal
         // mode?" without caring which one.
         const SEASON_MODE_IDS = ['candyhunt', 'presents', 'egghunt'];
@@ -6406,9 +6511,6 @@
             for (const k in SEASON_MODES) if (SEASON_MODES[k].id === id) return { season: k, mode: SEASON_MODES[k] };
             return null;
         }
-        // In a room the lane is shared, so a seasonal match is a race for the
-        // same sweets rather than a solo score attack.
-        function smInRoom() { return !!(mpCurrentRoom && smMode); }
         // How far the chimney stack rises off the pipe it stands on. It has to
         // clear the bird's hit radius by enough that posting a present is a
         // choice about flying low, not a choice about dying.
@@ -6430,21 +6532,6 @@
             return { id: id, mode: mode, season: SEASONS[id] };
         }
 
-        function smBests() {
-            try { return JSON.parse(localStorage.getItem(SM_BEST_KEY) || '{}') || {}; }
-            catch (e) { return {}; }
-        }
-        function smBest(modeId) { return smBests()[modeId] || 0; }
-        function smRecordBest(modeId, value) {
-            try {
-                const all = smBests();
-                if (value <= (all[modeId] || 0)) return false;
-                all[modeId] = value;
-                localStorage.setItem(SM_BEST_KEY, JSON.stringify(all));
-                return true;
-            } catch (e) { return false; }
-        }
-
         function smClear() {
             smMode = null; smSeasonId = null;
             smTicks = 0; smScore = 0; smCarry = 0; smItems = []; smEnding = false; smFlash = null;
@@ -6463,19 +6550,6 @@
             document.getElementById('smHud')?.classList.add('on');
             document.getElementById('hudLive')?.classList.add('sm-off');
             smSyncHud(true);
-        }
-
-        function smStartRun() {
-            const a = smAvailable();
-            if (!a) {
-                toast({ kind: 'info', title: 'Nothing running',
-                        body: 'Seasonal modes only open while their season is on.' });
-                return;
-            }
-            document.querySelectorAll('.modal.active').forEach(m => m.classList.remove('active'));
-            smAttach(a.id, a.mode);
-            startGame();                  // resetGame runs inside here...
-            smAttach(a.id, a.mode);       // ...and must not have cleared the clock
         }
 
         // The match-start path has already decided the mode; the season only
@@ -6599,12 +6673,9 @@
             if (!smMode || smEnding) return;
             if (smFlash && --smFlash.ticks <= 0) smFlash = null;
             smTicks--;
-            if (smTicks <= 0) {
-                // In a room the host's clock is the clock — it ends the match
-                // for everyone. Ending it here too would race that.
-                if (smInRoom()) { smTicks = 0; }
-                else { smFinish('time'); return; }
-            }
+            // The host's clock is the clock — it raises MATCH_END for
+            // everyone. Counting past zero here would only race that.
+            if (smTicks <= 0) smTicks = 0;
             if (frameCount % smMode.every === 0) smSpawn();
 
             const reach = birdRadius() + 9;
@@ -6770,80 +6841,51 @@
             }
         }
 
-        function smFinish(why) {
-            if (!smMode || smEnding) return;
-            smEnding = true;
-            const mode = smMode, pts = smScore;
-            gameRunning = false; gameOver = true;
-            if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
-            if (bgMusic && !musicMuted) bgMusic.pause();
+        /* There is no smFinish any more. A seasonal mode is a room mode, so
+           a run ends the way every other room mode ends — the host's clock
+           raises MATCH_END and the standings decide it. The solo payout
+           screen, the coin formula and the personal bests all went with it. */
 
-            let coins = pts * mode.coinsPer;
-            const hitTarget = pts >= mode.target;
-            if (hitTarget) coins += 250;
-            if (typeof eventCoinMult === 'function') coins = Math.round(coins * eventCoinMult());
-            coinCount += coins;
-            if (typeof grantXp === 'function') grantXp(Math.max(1, Math.round(pts / 2)), 'season-mode');
-            const isBest = smRecordBest(mode.id, pts);
-
-            try { updateCoinDisplay(); } catch (e) {}
-            try { autoSave(); } catch (e) {}
-            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
-
-            const set = (id, txt) => { const el = document.getElementById(id); if (el) el.textContent = txt; };
-            set('smrTitle', mode.emoji + ' ' + mode.name);
-            set('smrScore', pts);
-            set('smrUnit', mode.unit);
-            set('smrCoins', '+' + (typeof formatCoins === 'function' ? formatCoins(coins) : coins));
-            set('smrBest', smBest(mode.id));
-            set('smrWhy', why === 'time' ? 'Time!' : 'You went down.');
-            const tg = document.getElementById('smrTarget');
-            if (tg) {
-                tg.textContent = hitTarget
-                    ? '🏆 Target beaten — 250 bonus coins'
-                    : 'Target ' + mode.target + ' · ' + Math.max(0, mode.target - pts) + ' short of the bonus';
-                tg.style.color = hitTarget ? 'var(--green,#00CC7A)' : '#aaa';
-            }
-            const nb = document.getElementById('smrNewBest');
-            if (nb) nb.style.display = isBest ? '' : 'none';
-            document.getElementById('smHud')?.classList.remove('on');
-            document.getElementById('hudLive')?.classList.remove('sm-off');
-            setScreen('menu');
-            document.getElementById('smResultModal')?.classList.add('active');
-            playSfx(hitTarget ? 'rank' : 'pop', .6);
-        }
+        // Kept because the room paths still ask it, and because a seasonal
+        // mode outside a room is now a state that should never exist — if it
+        // ever does, this is what notices.
+        function smInRoom() { return !!(mpCurrentRoom && smMode); }
 
         /* The create form's seasonal card. It only exists while the season
            does, and it carries the mode's id so the rest of the create flow
            treats it exactly like the other four. */
         function mpSyncSeasonModeCard() {
             const card = document.getElementById('mpSeasonModeCard');
-            if (!card) return;
+            const section = document.getElementById('mpSeasonSection');
+            if (!card || !section) return;
             const a = smAvailable();
-            const blurb = document.getElementById('mpSeasonModeBlurb');
             if (!a) {
-                card.style.display = 'none';
+                // The whole section goes, heading and all — an empty "LIMITED
+                // TIME" header with nothing under it is worse than no header.
+                section.style.display = 'none';
                 card.dataset.mode = '';
-                if (blurb) blurb.style.display = 'none';
-                // Nothing to fall back to but the default if it was selected
                 if (card.classList.contains('selected')) {
                     card.classList.remove('selected');
-                    document.querySelector('.mp-mode-card[data-mode="freemode"]')?.classList.add('selected');
+                    const fm = document.querySelector('.mp-mode-card[data-mode="freemode"]');
+                    if (fm) { fm.classList.add('selected'); mpSelectedMode = 'freemode'; }
                 }
                 return;
             }
-            card.style.display = '';
+            section.style.display = '';
             card.dataset.mode = a.mode.id;
             const ico = document.getElementById('mpSeasonModeIcon');
             const nm  = document.getElementById('mpSeasonModeName');
+            const lb  = document.getElementById('mpSeasonSectionLabel');
+            const un  = document.getElementById('mpSeasonUntil');
             if (ico) ico.textContent = a.mode.emoji;
-            if (nm)  nm.textContent  = a.mode.short;
+            if (nm)  nm.textContent  = a.mode.name;
+            if (lb)  lb.textContent  = 'LIMITED TIME';
+            if (un)  un.textContent  = a.season.emoji + ' ' + a.season.name.toUpperCase();
             card.title = a.mode.name + ' — only while ' + a.season.name + ' is on';
-            if (blurb) {
-                blurb.textContent = a.mode.emoji + ' ' + a.mode.name + ' — ' + a.mode.blurb;
-                blurb.style.display = card.classList.contains('selected') ? '' : 'none';
-            }
+            const blurb = document.getElementById('mpSeasonModeBlurb');
+            if (blurb) blurb.textContent = a.mode.blurb;
         }
+
 
         // Shown on the menu only while a season is on.
         function smSyncBanner() {
@@ -6854,7 +6896,7 @@
             btn.style.display = '';
             btn.innerHTML = '<span class="pp-ico">' + a.mode.emoji + '</span>' +
                             '<span class="sm-name">' + a.mode.short + '</span>';
-            btn.title = a.mode.name + ' — limited to ' + a.season.name;
+            btn.title = a.mode.name + ' — a limited multiplayer mode, ' + a.season.name + ' only';
         }
 
         function readSeasonPreview() {
@@ -8186,47 +8228,30 @@
             smClear();          // an ordinary run, whatever was played last
             startGame();
         });
-        /* The seasonal modes are not solo-only, and the button used to make
-           them look like they were by launching a solo run on the spot. It
-           asks now, and the multiplayer half takes you to the create form
-           with the mode already chosen. */
-        document.getElementById('seasonModeBtn')?.addEventListener('click', () => {
+        /* A seasonal mode is a room mode and nothing else. The button goes
+           straight to the create form with it already picked, so there is one
+           way in and it is the multiplayer one. */
+        document.getElementById('seasonModeBtn')?.addEventListener('click', async () => {
             const a = smAvailable();
-            if (!a) { smStartRun(); return; }          // says why, if nothing is on
-            const t = document.getElementById('spTitle');
-            const bl = document.getElementById('spBlurb');
-            if (t) t.textContent = a.mode.emoji + ' ' + a.mode.name;
-            if (bl) bl.textContent = a.mode.blurb;
-            document.getElementById('mpModal')?.classList.add('active');
-            mpShowView('mpViewSeasonPlay');
+            if (!a) {
+                toast({ kind: 'info', title: 'Nothing running',
+                        body: 'Limited modes only open while their season is on.' });
+                return;
+            }
             playSound(selectSound);
-        });
-        document.getElementById('spBackBtn')?.addEventListener('click', () => {
-            document.getElementById('mpModal')?.classList.remove('active');
-        });
-        document.getElementById('spSolo')?.addEventListener('click', () => {
-            document.getElementById('mpModal')?.classList.remove('active');
-            smStartRun();
-        });
-        document.getElementById('spRoom')?.addEventListener('click', () => {
-            const a = smAvailable();
+            // This is a way into multiplayer, so it answers to the same ban
+            // check the multiplayer button does.
+            if (window.__crixBanned) { showBanScreen(window.__crixBanInfo || {}); return; }
+            if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) {
+                if (await checkMyBan()) { showBanScreen(window.__crixBanInfo || {}); return; }
+            }
+            document.getElementById('mpModal')?.classList.add('active');
+            document.getElementById('mpModalTitle').textContent = a.mode.emoji + ' ' + a.mode.name;
             mpSyncSeasonModeCard();
             mpShowView('mpViewCreate');
-            // pre-pick the season's card so the room is that mode by default
             const card = document.getElementById('mpSeasonModeCard');
-            if (a && card && card.dataset.mode) card.click();
-            playSound(selectSound);
+            if (card && card.dataset.mode) card.click();
         });
-        document.getElementById('smrAgainBtn')?.addEventListener('click', () => {
-            document.getElementById('smResultModal')?.classList.remove('active');
-            smStartRun();
-        });
-        ['closeSmResultBtn', 'smrMenuBtn'].forEach(id =>
-            document.getElementById(id)?.addEventListener('click', () => {
-                document.getElementById('smResultModal')?.classList.remove('active');
-                smClear();
-                setScreen('menu');
-            }));
         document.getElementById('canvasWrapper')?.addEventListener('click', () => { if (gameOver && !mpMatchActive) { startGame(); } else { jump(); } });
         // Gamepad support
         let gamepadJumped = false;
@@ -8708,6 +8733,18 @@
             });
             document.getElementById('setSfxVol')?.addEventListener('input', e => {
                 settings.sfxVol = +e.target.value; saveSettings();
+            });
+            // Hearing it is the test; the read-out underneath says why not.
+            document.getElementById('setSfxVol')?.addEventListener('change', () => playSfx('pickup'));
+            document.getElementById('setSfxTest')?.addEventListener('click', () => {
+                claimAudioSession();
+                playSfx('milestone');
+                if (jumpSound) { try { jumpSound.currentTime = 0; jumpSound.play().catch(()=>{}); } catch(e){} }
+                const box = document.getElementById('setSfxDiag');
+                if (!box) return;
+                const r = window.soundReport();
+                box.style.display = 'block';
+                box.textContent = Object.entries(r).map(([k,v]) => k + '=' + v).join('  ');
             });
             // Sign in from settings
             document.getElementById('setSignInBtn')?.addEventListener('click', () => {
@@ -11701,17 +11738,14 @@
         // Every death route funnels through here — there are three (ceiling,
         // floor and pipes) and previously only one showed the overlay.
         function handleDeath() {
-            // In a room a seasonal match has a clock, so going down is a
-            // setback rather than the end — same as Race and Coin Rush.
-            if (smInRoom() && mpMatchActive) {
+            // A seasonal match has a clock, so going down is a setback rather
+            // than the end — same as Race and Coin Rush.
+            if (smMode && mpMatchActive) {
                 setTimeout(() => { if (mpMatchActive) mpRespawn(); }, 1200);
                 if (bgMusic && !musicMuted) bgMusic.pause();
                 if (typeof mpReportDeath === 'function') mpReportDeath();
                 return;
             }
-            // A solo seasonal run is scored on what you collected, so it ends
-            // on its own screen with its own payout rather than the pipe count.
-            if (smMode) { updateHighScore(); setTimeout(() => smFinish('died'), 400); return; }
             // Every death path goes through here, so the overlay is
             // guaranteed rather than only firing on ceiling hits.
             if (!mpMatchActive) { setTimeout(showDeathScreen, 250); return; }
@@ -14602,7 +14636,7 @@
         }
 
         // ----- LOBBY UI -----
-        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewSeasonPlay','mpViewCreateChoice','mpViewCreate','mpViewLobby'];
+        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreateChoice','mpViewCreate','mpViewLobby'];
         function mpShowView(id) {
             MP_VIEWS.forEach(v => {
                 const el = document.getElementById(v);
@@ -17307,10 +17341,6 @@
                 document.querySelectorAll('.mp-mode-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 mpSelectedMode = card.dataset.mode;
-                // The seasonal one needs a line of explanation; the other four
-                // say what they are in two words.
-                const blurb = document.getElementById('mpSeasonModeBlurb');
-                if (blurb) blurb.style.display = card.id === 'mpSeasonModeCard' ? '' : 'none';
             });
         });
         // ---- QUEUE TABS (browser) ----
