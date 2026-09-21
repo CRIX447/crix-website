@@ -4646,6 +4646,13 @@
                 <span class="set-label">Sound effects</span>
                 <input type="range" id="setSfxVol" min="0" max="100" value="100" class="set-slider">
             </div>
+            <div class="set-row">
+                <span class="set-label">Test sound</span>
+                <button id="setSfxTest" class="menu-btn secondary" style="padding:6px 14px;font-size:11px;">PLAY</button>
+            </div>
+            <div id="setSfxDiag" style="display:none;font-size:10px;line-height:1.5;opacity:.75;
+                 padding:6px 10px;margin:0 0 6px;border-radius:8px;background:rgba(0,0,0,.25);
+                 font-family:monospace;word-break:break-word;"></div>
             <!-- Ask before the pickers, because a browser will not tell you what
                  your devices are called until you have said yes once. -->
             <div class="set-row">
@@ -5331,9 +5338,55 @@
             });
         }
 
-        // Browsers block audio until the first interaction — unlock on any tap
+        // Browsers block audio until the first interaction — unlock on any tap.
+        //
+        // Two things had to change here. iPhones mute Web Audio and <audio>
+        // outright when the hardware ring/silent switch is set to silent, so
+        // the game is dead quiet on a phone no matter how loud the samples
+        // are; Safari 16.4 added navigator.audioSession, and asking for the
+        // 'playback' category opts out of that. And the listeners used to be
+        // {once:true}, so if the very first gesture failed to resume the
+        // context there was no second attempt for the rest of the session —
+        // now they stay until a resume actually succeeds.
+        function claimAudioSession() {
+            try {
+                if (navigator.audioSession) navigator.audioSession.type = 'playback';
+            } catch (e) { /* not supported: nothing to claim */ }
+        }
+        function unlockAudio() {
+            claimAudioSession();
+            const ctx = audioCtx();
+            if (ctx && ctx.state === 'running') {
+                ['pointerdown','keydown','touchstart'].forEach(ev =>
+                    window.removeEventListener(ev, unlockAudio));
+            }
+        }
         ['pointerdown','keydown','touchstart'].forEach(ev =>
-            window.addEventListener(ev, () => audioCtx(), { once: true, passive: true }));
+            window.addEventListener(ev, unlockAudio, { passive: true }));
+        claimAudioSession();
+
+        // A phone has no console, so the only way to find out why a device is
+        // silent is to ask the device. Returns everything that can mute this
+        // game, in one object.
+        window.soundReport = function () {
+            const ctx = _actx;
+            return {
+                ctx:        ctx ? ctx.state : 'never created',
+                sampleRate: ctx ? ctx.sampleRate : null,
+                audioSession: (() => { try { return navigator.audioSession
+                                      ? navigator.audioSession.type : 'unsupported'; }
+                                catch (e) { return 'error'; } })(),
+                sfxEnabled: typeof settings !== 'undefined' ? settings.sfxEnabled : '?',
+                sfxVol:     typeof settings !== 'undefined' ? settings.sfxVol : '?',
+                musicVol:   typeof settings !== 'undefined' ? settings.musicVol : '?',
+                resolved:   (typeof sfxVolume === 'function') ? sfxVolume() : '?',
+                makeup:     typeof SFX_MAKEUP !== 'undefined' ? SFX_MAKEUP : 'OLD BUILD',
+                busUp:      !!_sfxBus,
+                filesReady: Object.keys(sfxFiles).filter(k => sfxFiles[k]).length,
+                jumpVol:    jumpSound ? jumpSound.volume : null,
+                jumpMuted:  jumpSound ? jumpSound.muted : null
+            };
+        };
         // Fix slow sound — ensure playbackRate is 1.0 on all audio elements
         [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
         function playSound(snd) {
@@ -8680,6 +8733,18 @@
             });
             document.getElementById('setSfxVol')?.addEventListener('input', e => {
                 settings.sfxVol = +e.target.value; saveSettings();
+            });
+            // Hearing it is the test; the read-out underneath says why not.
+            document.getElementById('setSfxVol')?.addEventListener('change', () => playSfx('pickup'));
+            document.getElementById('setSfxTest')?.addEventListener('click', () => {
+                claimAudioSession();
+                playSfx('milestone');
+                if (jumpSound) { try { jumpSound.currentTime = 0; jumpSound.play().catch(()=>{}); } catch(e){} }
+                const box = document.getElementById('setSfxDiag');
+                if (!box) return;
+                const r = window.soundReport();
+                box.style.display = 'block';
+                box.textContent = Object.entries(r).map(([k,v]) => k + '=' + v).join('  ');
             });
             // Sign in from settings
             document.getElementById('setSignInBtn')?.addEventListener('click', () => {
