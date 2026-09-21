@@ -12811,13 +12811,28 @@
             b.style.display = n ? 'flex' : 'none';
         }
 
+        // A watch* returns Firestore's unsubscribe function. If an older
+        // cached playfab-manager.js is being served it returns a Promise
+        // instead, which is truthy but not callable — that crashed the lobby
+        // watcher and left the previous listener attached forever. Detach
+        // whatever shape turned up, and never let a non-function be kept.
+        function detachWatcher(w) {
+            if (!w) return null;
+            try {
+                if (typeof w === 'function') w();
+                else if (typeof w.then === 'function') w.then(u => { if (typeof u === 'function') u(); })
+                                                       .catch(() => {});
+            } catch (e) { /* already gone */ }
+            return null;
+        }
+
         // Firestore pushes changes as they happen, so requests appear in about
         // a second. Polling stays as a fallback if the listener can't attach.
-        let _friendWatcher = null;
+        let _friendWatcher = null, _friendPollTimer = null;
         function startFriendWatcher() {
             if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
             try {
-                if (_friendWatcher) _friendWatcher();
+                _friendWatcher = detachWatcher(_friendWatcher);
                 _friendWatcher = PlayFabManager.fs.watchRequests(async (kind, data) => {
                     if (kind === 'incoming') {
                         const known = new Set(pendingRequests.map(r => r.from));
@@ -12846,10 +12861,20 @@
                         }
                     }
                 });
+                // The listener is live, so the fallback poll is redundant.
+                if (_friendPollTimer) { clearInterval(_friendPollTimer); _friendPollTimer = null; }
                 console.log('[Friends] live listener attached');
             } catch (e) {
                 console.warn('[Friends] listener failed, falling back to polling:', e.message);
-                setInterval(() => pollNotifications(true), 45000);
+                // This interval used to be created bare: no handle, so nothing
+                // could ever clear it. startFriendWatcher is re-run whenever
+                // the friends view refreshes, and while Firestore rules are
+                // unpublished the listener fails every single time, so each
+                // attempt stacked another permanent 45s poll on top of the
+                // last. One poll, kept and reused.
+                if (!_friendPollTimer) {
+                    _friendPollTimer = setInterval(() => pollNotifications(true), 45000);
+                }
             }
         }
 
@@ -13297,7 +13322,7 @@
         function startOnlineWatcher() {
             if (typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
             try {
-                if (_onlineWatcher) _onlineWatcher();
+                _onlineWatcher = detachWatcher(_onlineWatcher);
                 _onlineWatcher = PlayFabManager.fs.watchOnline(data => {
                     _onlineData = data;
                     renderOnlineCount();
@@ -13459,7 +13484,7 @@
             const ids = fList.friends.map(f => f.playFabId).filter(Boolean);
             if (!ids.length) return;
             try {
-                if (_presenceWatcher) _presenceWatcher();
+                _presenceWatcher = detachWatcher(_presenceWatcher);
                 _presenceWatcher = PlayFabManager.fs.watchPresence(ids, p => {
                     _friendPresence = p;
                     if (friendTab === 'friends') renderFriendsList();
@@ -15820,7 +15845,7 @@
         let _lobbyWatcher = null;
         function watchLobbyOverride() {
             if (!mpCurrentRoom || typeof PlayFabManager === 'undefined' || !PlayFabManager.fs) return;
-            if (_lobbyWatcher) _lobbyWatcher();
+            _lobbyWatcher = detachWatcher(_lobbyWatcher);
             try {
                 _lobbyWatcher = PlayFabManager.fs.watchLobbyOverride(mpCurrentRoom.code, async data => {
                     if (data.host && mpIsHost && data.host !== (PlayFabManager.playFabId)) {

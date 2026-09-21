@@ -1199,12 +1199,27 @@ if (typeof window !== 'undefined') {
         return _admin.call(PFM, action, params);
     };
 
-    // Wrap every fallback method so permission errors explain themselves
+    // Wrap every fallback method so permission errors explain themselves.
+    //
+    // This used to declare the wrapper `async`, which meant every method
+    // returned a Promise — including the four watch* subscribers, whose
+    // return value is the unsubscribe function Firestore hands back. Callers
+    // stored that Promise and later did `if (_watcher) _watcher()`, so the
+    // second call threw "is not a function" (uncaught in watchLobbyOverride,
+    // swallowed by the try in the other three) and, worse, never detached the
+    // previous onSnapshot. Every re-watch left another live listener behind.
+    // The wrapper now only attaches to the promise when there is one, so
+    // subscribers keep returning their unsubscribe synchronously.
     Object.keys(PFM.fs).forEach(k => {
         const orig = PFM.fs[k];
-        PFM.fs[k] = async function (...args) {
-            try { return await orig.apply(PFM.fs, args); }
-            catch (e) { throw explain(e, k); }
+        PFM.fs[k] = function (...args) {
+            try {
+                const out = orig.apply(PFM.fs, args);
+                if (out && typeof out.then === 'function') {
+                    return out.catch(e => { throw explain(e, k); });
+                }
+                return out;
+            } catch (e) { throw explain(e, k); }
         };
     });
 
