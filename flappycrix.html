@@ -1210,26 +1210,37 @@
             color: #9a9db2; border-color: rgba(255,255,255,.14); }
         .ip-empty { font-size: 11px; color: #71748c; text-align: center; padding: 20px 8px; line-height: 1.6; }
         /* ---- PARTY ----
-           The pill is fixed to the viewport rather than joining the menu deck:
-           the deck is a stack of hard-coded offsets with no room left in it,
-           and the party has to stay reachable in a match as well, where the
-           deck is not on screen at all. */
-        .party-pill {
-            position: fixed; z-index: 44;
-            top: calc(60px + env(safe-area-inset-top)); right: 12px;
-            display: flex; align-items: center; gap: 6px;
-            background: rgba(8,6,18,.82); color: #cfd2e6;
-            border: 1px solid rgba(255,255,255,.18); border-radius: 30px;
-            padding: 7px 12px; font-size: 11px; font-weight: 700; letter-spacing: .5px;
-            cursor: pointer; min-height: 34px;
-        }
-        .party-pill.active { border-color: rgba(0,204,122,.7); color: #7CF0B8; }
-        .party-pill.talking { border-color: #00CC7A; box-shadow: 0 0 0 2px rgba(0,204,122,.28); }
-        .party-pill .pp-ico { font-size: 14px; }
-        .party-pill .pp-dot {
+           TWO SLOTS, ONE STATE. The pill used to float over everything with
+           position:fixed, which put it straight through the sign-out button:
+           .game-container has a backdrop-filter, and that makes it the
+           containing block for fixed children, so "12px from the right of the
+           screen" was really 12px from the right of the card — on top of the
+           user row. Rather than chase offsets, the menu's party button now
+           sits IN the banner row beside Multiplayer, in normal flow, where it
+           cannot overlap anything by construction.
+           The menu is hidden during a match, so a second small tag covers the
+           playfield. Both are filled in by partyRenderPill(); there is one
+           piece of state and two places to show it. */
+        .party-pill.active { border-color: rgba(0,204,122,.7) !important; color: #7CF0B8; }
+        .party-pill.talking { border-color: #00CC7A !important; box-shadow: 0 0 0 2px rgba(0,204,122,.28); }
+        .party-pill .pp-ico, .party-tag .pp-ico { font-size: 14px; }
+        .party-pill .pp-dot, .party-tag .pp-dot {
             font-style: normal; font-size: 9px; background: #FF4655; color: #fff;
             border-radius: 20px; padding: 1px 5px; margin-left: 2px;
         }
+        .party-tag {
+            display: none;
+            position: absolute; z-index: 44;
+            bottom: calc(10px + env(safe-area-inset-bottom)); right: 10px;
+            align-items: center; gap: 5px;
+            background: rgba(8,6,18,.82); color: #cfd2e6;
+            border: 1px solid rgba(255,255,255,.18); border-radius: 30px;
+            padding: 6px 11px; font-size: 10px; font-weight: 700; letter-spacing: .5px;
+            cursor: pointer; min-height: 32px; font-family: inherit;
+        }
+        body.playing .party-tag.on, body.dead .party-tag.on { display: flex; }
+        .party-tag.active { border-color: rgba(0,204,122,.7); color: #7CF0B8; }
+        .party-tag.talking { border-color: #00CC7A; box-shadow: 0 0 0 2px rgba(0,204,122,.28); }
         .party-note { font-size: 11px; color: #8d90a6; margin-bottom: 10px; text-align: center; }
         .party-blocked {
             font-size: 11px; line-height: 1.6; color: #FFC078; margin-bottom: 12px;
@@ -1292,13 +1303,24 @@
         }
         .party-chat-row .party-btn { flex: 0 0 auto; padding: 10px 14px; }
         .party-actions { display: flex; gap: 8px; }
-        /* In a match the pill drops to a corner, out of the score's way */
-        body.playing .party-pill, body.dead .party-pill {
-            top: auto; bottom: calc(12px + env(safe-area-inset-bottom));
-            right: 12px; padding: 6px 10px; min-height: 30px; font-size: 10px;
+        /* Three banner buttons will not fit on a phone with their words on.
+           Multiplayer keeps its label because it is the one people are
+           looking for; the season and the party shrink to their icon, which
+           is what they are recognised by anyway. Their full names stay in the
+           title attribute. */
+        @media (max-width: 559px) {
+            .banner-row { gap: 6px; }
+            .banner-row .season-mode-btn,
+            .banner-row .party-pill {
+                flex: 0 0 auto; min-width: 0; padding: 9px 13px; gap: 0;
+            }
+            .banner-row .season-mode-btn .sm-name,
+            .banner-row .party-pill .pp-n { display: none; }
+            .banner-row .season-mode-btn .pp-ico,
+            .banner-row .party-pill .pp-ico { font-size: 17px; }
+            .banner-row .party-pill .pp-dot { margin-left: 3px; }
         }
         @media (max-width: 480px) {
-            .party-pill { top: calc(52px + env(safe-area-inset-top)); right: 10px; padding: 6px 10px; }
             .party-chat-log { height: 92px; }
         }
         /* ---- LIMITED SEASONAL MODES ----
@@ -3178,8 +3200,10 @@
             <button class="logout-btn" id="logoutBtn" style="display:none;">🚪 SIGN OUT</button>
         </div>
         
-        <!-- The party follows you everywhere, so its handle does too -->
-        <button class="party-pill" id="partyPill" style="display:none;"></button>
+        <!-- In a match the menu is gone, so the party keeps a small tag over
+             the playfield. See the note by .party-pill for why it is not one
+             floating element doing both jobs. -->
+        <button class="party-tag" id="partyTag"></button>
 
         <div class="game-header" id="gameHeader">
             <div class="game-title">FLAPPY CRIX</div>
@@ -3284,6 +3308,7 @@
                 <span id="onlineCount" class="online-count" style="display:none;"></span>
             </button>
             <button class="mp-banner-btn season-mode-btn" id="seasonModeBtn" style="display:none;"></button>
+            <button class="mp-banner-btn party-pill" id="partyPill" style="display:none;"></button>
         </div>
 
         <!-- Everything else collapses into one icon row -->
@@ -3516,6 +3541,27 @@
                     <button class="mp-btn-primary" id="mpJoinCodeConfirmBtn">JOIN</button>
                 </div>
                 <div class="auth-error" id="mpJoinError" style="text-align:center;margin-top:8px;"></div>
+            </div>
+
+            <!-- VIEW: how do you want to play the season's mode? -->
+            <div id="mpViewSeasonPlay" style="display:none;">
+                <div class="mp-section-title" id="spTitle">SEASONAL MODE</div>
+                <div class="mp-mode-blurb" id="spBlurb"></div>
+                <div class="create-choice">
+                    <button class="create-card" id="spSolo">
+                        <span class="cc-ico">🎯</span>
+                        <span class="cc-name">PLAY SOLO</span>
+                        <span class="cc-sub">Ninety seconds on your own. Coins and a personal best.</span>
+                    </button>
+                    <button class="create-card" id="spRoom">
+                        <span class="cc-ico">🌐</span>
+                        <span class="cc-name">PLAY WITH OTHERS</span>
+                        <span class="cc-sub">Same lane, same pickups, first to grab them wins them.</span>
+                    </button>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:12px;">
+                    <button class="mp-btn-secondary" id="spBackBtn">← BACK</button>
+                </div>
             </div>
 
             <!-- VIEW: CREATE — a game or a party? -->
@@ -5145,7 +5191,34 @@
                         [659, .20,  .10, 'square',   .16], [880, .30, .28, 'square', .15]],
             start:     [[440, 0,    .08, 'square',   .16], [554, .08, .08, 'square', .16],
                         [659, .16,  .20, 'square',   .16]],
-            countdown: [[600, 0,    .10, 'square',   .16]]
+            countdown: [[600, 0,    .10, 'square',   .16]],
+
+            /* ---- THE LANE ----
+             * Everything that happens to you in a run now makes a noise.
+             * These are generated, so they work today; drop a file of the
+             * same name into sfxFiles and it takes over with nothing else
+             * to change. */
+            pickup:    [[880, 0,    .05, 'sine',     .13], [1320,.05, .06, 'sine',  .11]],
+            pickupBig: [[784, 0,    .05, 'square',   .14], [1047,.05, .05, 'square',.14],
+                        [1568,.10,  .12, 'square',   .12]],
+            sour:      [[300, 0,    .10, 'sawtooth', .12], [190, .08, .14, 'sawtooth', .10]],
+            deliver:   [[523, 0,    .06, 'sine',     .15], [784, .06, .06, 'sine',  .15],
+                        [1047,.12,  .16, 'sine',     .13]],
+            smash:     [[180, 0,    .09, 'sawtooth', .18], [90,  .04, .16, 'square', .14],
+                        [260, .02,  .07, 'sawtooth', .10]],
+            carry:     [[520, 0,    .04, 'square',   .10]],
+            near:      [[1200,0,    .03, 'sine',     .05]],   // a gap threaded close
+            milestone: [[659, 0,    .08, 'square',   .16], [880, .08, .08, 'square', .16],
+                        [1047,.16,  .08, 'square',   .16], [1319,.24, .20, 'square', .14]],
+            timeLow:   [[880, 0,    .07, 'square',   .14], [880, .14, .07, 'square', .12]],
+            hatch:     [[1320,0,    .05, 'sine',     .12], [1760,.05, .10, 'sine',  .10]],
+
+            /* These two were being ASKED for in four places and had no
+               definition and no file, so every one of those calls has been a
+               silent no-op — the tap on a settings tab, the party panel
+               opening, a friend row. They make a noise now. */
+            pop:       [[660, 0,    .035,'sine',     .11]],
+            select:    [[520, 0,    .03, 'square',   .10], [780, .03, .04, 'square', .08]]
         };
 
         // Real files take priority over the generated tones. Rather than
@@ -5817,6 +5890,9 @@
                 if(pipes[i].x+pipeWidth<bird.x && !pipes[i].scored){
                     pipes[i].scored=true;
                     if (score < MAX_SCORE) score++;
+                    // Every ten pipes gets its own noise, so a long run has
+                    // landmarks in it rather than being silent until it ends.
+                    if (score % 10 === 0) playSfx('milestone', .45);
                     grantXp(1, 'score');
                     if (typeof mpReportScore === 'function') mpReportScore(score);
                     if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); }
@@ -6471,7 +6547,7 @@
                 smFlashText('+' + (smCarry * 2), '#2FA85B');
                 smCarry = 0;
                 it.lit = 34;                          // a puff of smoke, briefly
-                playSound(coinSound);
+                playSfx('deliver', .7);
                 smReportScore();
                 return;
             }
@@ -6485,20 +6561,20 @@
             if (it.kind === 'sour') {
                 smScore = Math.max(0, smScore - 2);
                 smFlashText('-2', '#7ED957');
-                playSfx('error', .5);
+                playSfx('sour', .6);
                 smReportScore();
                 return;
             }
             if (it.kind === 'present') {
                 if (smCarry >= smMode.carry) { it.taken = false; return; }   // hands full
                 smCarry++;
-                playSfx('pop', .45);
+                playSfx('carry', .55);
                 return;
             }
             const worth = (it.kind === 'egg' && it.golden) ? 5 : 1;
             smScore += worth;
             smFlashText('+' + worth, it.golden ? '#FFD700' : '#FFFFFF');
-            playSound(coinSound);
+            playSfx(it.golden ? 'pickupBig' : (it.kind === 'egg' ? 'hatch' : 'pickup'), .6);
             smReportScore();
         }
 
@@ -6671,7 +6747,8 @@
                 : Math.max(0, Math.ceil(smTicks / 60));
             if (!force && secs === _smHudLast.secs && smScore === _smHudLast.score
                 && smCarry === _smHudLast.carry) return;
-            _smHudLast = { secs: secs, score: smScore, carry: smCarry };
+            const _tickedAt = _smHudLast.tickedAt;
+            _smHudLast = { secs: secs, score: smScore, carry: smCarry, tickedAt: _tickedAt };
             const t = document.getElementById('smHudTime');
             const v = document.getElementById('smHudScore');
             const u = document.getElementById('smHudUnit');
@@ -6679,6 +6756,11 @@
             if (t) {
                 t.textContent = Math.floor(secs / 60) + ':' + String(secs % 60).padStart(2, '0');
                 t.style.color = secs <= 10 ? '#FF4655' : '';
+                // The last ten seconds tick, once each, so you hear it coming
+                if (secs <= 10 && secs > 0 && secs !== _smHudLast.tickedAt) {
+                    _smHudLast.tickedAt = secs;
+                    playSfx('timeLow', .5);
+                }
             }
             if (v) v.textContent = smScore;
             if (u) u.textContent = smMode.unit;
@@ -6770,7 +6852,8 @@
             const a = smAvailable();
             if (!a) { btn.style.display = 'none'; return; }
             btn.style.display = '';
-            btn.innerHTML = '<span class="sm-name">' + a.mode.emoji + ' ' + a.mode.short + '</span>';
+            btn.innerHTML = '<span class="pp-ico">' + a.mode.emoji + '</span>' +
+                            '<span class="sm-name">' + a.mode.short + '</span>';
             btn.title = a.mode.name + ' — limited to ' + a.season.name;
         }
 
@@ -6983,7 +7066,7 @@
 
         function playSmash() {
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            if (_smashSfx === false) return;
+            if (_smashSfx === false) { playSfx('smash', .7); return; }
             if (_smashSfx === undefined) {
                 _smashSfx = new Audio('/img/smash.mp3');
                 // No file yet? Note it once and never ask again.
@@ -7883,11 +7966,14 @@
             const _by = birdRenderY();
             ctx.save(); 
             ctx.translate(bird.x,_by); 
-            // Flappy Bird's tilt: a modest nose-up on the flap, then it rolls
-            // steadily further nose-down the longer you fall. The old scale
-            // saturated in one tick at the new velocities, so it read as a
-            // snap between two poses rather than a rotation.
-            let rot=Math.min(Math.max(bird.velocity*0.088,-0.42),1.0); 
+            /* Tilt, kept small on purpose. Flappy Bird's bird is drawn in
+               profile, so pitching it 50° nose-down reads as a dive. This
+               sprite is a front-facing portrait with a hood, and at 50° the
+               hood swings out sideways and the whole thing reads as a broken
+               image rather than a diving bird. Seventeen degrees up, twenty
+               down: enough to feel the fall, little enough that the face
+               stays a face. */
+            let rot=Math.min(Math.max(bird.velocity*0.035,-0.30),0.40); 
             ctx.rotate(rot); 
             let birdSize = birdDrawSize();
 
@@ -8100,7 +8186,37 @@
             smClear();          // an ordinary run, whatever was played last
             startGame();
         });
-        document.getElementById('seasonModeBtn')?.addEventListener('click', smStartRun);
+        /* The seasonal modes are not solo-only, and the button used to make
+           them look like they were by launching a solo run on the spot. It
+           asks now, and the multiplayer half takes you to the create form
+           with the mode already chosen. */
+        document.getElementById('seasonModeBtn')?.addEventListener('click', () => {
+            const a = smAvailable();
+            if (!a) { smStartRun(); return; }          // says why, if nothing is on
+            const t = document.getElementById('spTitle');
+            const bl = document.getElementById('spBlurb');
+            if (t) t.textContent = a.mode.emoji + ' ' + a.mode.name;
+            if (bl) bl.textContent = a.mode.blurb;
+            document.getElementById('mpModal')?.classList.add('active');
+            mpShowView('mpViewSeasonPlay');
+            playSound(selectSound);
+        });
+        document.getElementById('spBackBtn')?.addEventListener('click', () => {
+            document.getElementById('mpModal')?.classList.remove('active');
+        });
+        document.getElementById('spSolo')?.addEventListener('click', () => {
+            document.getElementById('mpModal')?.classList.remove('active');
+            smStartRun();
+        });
+        document.getElementById('spRoom')?.addEventListener('click', () => {
+            const a = smAvailable();
+            mpSyncSeasonModeCard();
+            mpShowView('mpViewCreate');
+            // pre-pick the season's card so the room is that mode by default
+            const card = document.getElementById('mpSeasonModeCard');
+            if (a && card && card.dataset.mode) card.click();
+            playSound(selectSound);
+        });
         document.getElementById('smrAgainBtn')?.addEventListener('click', () => {
             document.getElementById('smResultModal')?.classList.remove('active');
             smStartRun();
@@ -14486,7 +14602,7 @@
         }
 
         // ----- LOBBY UI -----
-        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewCreateChoice','mpViewCreate','mpViewLobby'];
+        const MP_VIEWS = ['mpViewSignInRequired','mpViewProfile','mpViewHome','mpViewJoinCode','mpViewSeasonPlay','mpViewCreateChoice','mpViewCreate','mpViewLobby'];
         function mpShowView(id) {
             MP_VIEWS.forEach(v => {
                 const el = document.getElementById(v);
@@ -15218,21 +15334,36 @@
             if (lv) lv.style.display = party.id ? '' : 'none';
         }
 
+        // One piece of state, two places to show it: the button in the menu's
+        // banner row, and the small tag over the playfield during a match.
         function partyRenderPill() {
             const pill = document.getElementById('partyPill');
-            if (!pill) return;
-            // Signed out there is nothing to be in, so the pill stays away.
-            if (!partyMe()) { pill.style.display = 'none'; return; }
-            pill.style.display = '';
+            const tag  = document.getElementById('partyTag');
+            const me = partyMe();
             const n = partyMembers().length;
             const talking = party.speaking.size > 0;
-            pill.classList.toggle('active', !!party.id);
-            pill.classList.toggle('talking', talking);
-            pill.innerHTML = party.id
-                ? `<span class="pp-ico">🎧</span><span class="pp-n">${n}</span>` +
-                  (party.unread ? `<i class="pp-dot">${party.unread > 9 ? '9+' : party.unread}</i>` : '')
-                : `<span class="pp-ico">🎧</span><span class="pp-lbl">PARTY</span>`;
-            pill.title = party.id ? `Party · ${n} member${n === 1 ? '' : 's'}` : 'Start a party';
+            const dot = party.unread ? `<i class="pp-dot">${party.unread > 9 ? '9+' : party.unread}</i>` : '';
+            const label = party.id
+                ? `<span class="pp-ico">🎧</span><span class="pp-n">PARTY · ${n}</span>${dot}`
+                : `<span class="pp-ico">🎧</span><span class="pp-n">PARTY</span>`;
+            const title = party.id ? `Party · ${n} member${n === 1 ? '' : 's'}` : 'Start a party';
+
+            if (pill) {
+                // Signed out there is nothing to be in, so it stays away.
+                pill.style.display = me ? '' : 'none';
+                pill.classList.toggle('active', !!party.id);
+                pill.classList.toggle('talking', talking);
+                pill.innerHTML = label;
+                pill.title = title;
+            }
+            if (tag) {
+                // In a match the tag only earns its place once you are in one
+                tag.classList.toggle('on', !!(me && party.id));
+                tag.classList.toggle('active', !!party.id);
+                tag.classList.toggle('talking', talking);
+                tag.innerHTML = `<span class="pp-ico">🎧</span><span class="pp-n">${n}</span>${dot}`;
+                tag.title = title;
+            }
         }
 
         function partyRenderMembers() {
@@ -15284,6 +15415,7 @@
         /* ---- wiring ---- */
         function partyBindUi() {
             document.getElementById('partyPill')?.addEventListener('click', partyOpen);
+            document.getElementById('partyTag')?.addEventListener('click', partyOpen);
             document.getElementById('partyCloseBtn')?.addEventListener('click', partyClose);
             document.getElementById('partyModal')?.addEventListener('click', e => {
                 if (e.target.id === 'partyModal') partyClose();
@@ -16250,7 +16382,7 @@
                 context.translate(p.rx, p.ry);
 
                 // Rotate slightly based on velocity for natural arc
-                const rot = Math.min(Math.max((p.vel || 0) * 0.088, -0.42), 1.0);
+                const rot = Math.min(Math.max((p.vel || 0) * 0.035, -0.30), 0.40);
                 context.rotate(rot);
 
                 // Colour ring behind bird
