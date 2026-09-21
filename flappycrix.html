@@ -5142,7 +5142,16 @@
         // Generated with the Web Audio API rather than loaded from files, so
         // there is nothing to download or host and they work immediately.
         // If an mp3 of the same name exists in /img it is used instead.
-        let _actx = null;
+        let _actx = null, _sfxBus = null;
+
+        // The generated tones were written at oscillator amplitudes of .07-.18,
+        // which measured 20-26 dB below the real mp3s (coin.mp3 sits at
+        // -10 dBFS, the loudest tone at -29). On a phone speaker that is not
+        // "subtle", it is inaudible — which is why none of the newer sounds
+        // could be heard. Everything generated now runs through one bus with
+        // makeup gain, and a limiter catches the overlaps so the boost cannot
+        // clip when several fire at once.
+        const SFX_MAKEUP = 4.0;
         function audioCtx() {
             if (!_actx) {
                 try { _actx = new (window.AudioContext || window.webkitAudioContext)(); }
@@ -5151,20 +5160,72 @@
             if (_actx.state === 'suspended') _actx.resume().catch(() => {});
             return _actx;
         }
+        function sfxBus() {
+            const ctx = audioCtx();
+            if (!ctx) return null;
+            if (!_sfxBus || _sfxBus.context !== ctx) {
+                const g = ctx.createGain();
+                g.gain.value = SFX_MAKEUP;
+                let tail = g;
+                try {
+                    const comp = ctx.createDynamicsCompressor();
+                    comp.threshold.value = -10;
+                    comp.knee.value = 8;
+                    comp.ratio.value = 20;
+                    comp.attack.value = .002;
+                    comp.release.value = .10;
+                    g.connect(comp);
+                    tail = comp;
+                } catch (e) { /* no compressor: the raw gain still works */ }
+                // The compressor has no lookahead, so six effects landing on
+                // the same tick still punched past 1.0 and hard-clipped at the
+                // output. A tanh curve after it rounds those peaks off instead.
+                try {
+                    const shaper = ctx.createWaveShaper();
+                    const n = 1024, curve = new Float32Array(n);
+                    for (let i = 0; i < n; i++) {
+                        const x = (i / (n - 1)) * 2 - 1;
+                        curve[i] = 0.88 * Math.tanh(x * 1.35) / Math.tanh(1.35);
+                    }
+                    shaper.curve = curve;
+                    shaper.oversample = '2x';
+                    tail.connect(shaper);
+                    tail = shaper;
+                } catch (e) { /* no shaper: the compressor alone still helps */ }
+                tail.connect(ctx.destination);
+                _sfxBus = g;
+            }
+            return _sfxBus;
+        }
+
+        // One place decides how loud an effect is. The slider in Settings
+        // writes sfxVol (0-100); playSfx used to read sfxVolume, a second key
+        // nothing ever wrote, so the slider moved nothing but the <audio>
+        // tags. Prefer the key the slider actually sets.
+        function sfxVolume() {
+            if (typeof settings === 'undefined') return 1;
+            if (settings.sfxVol != null && isFinite(settings.sfxVol)) {
+                return Math.max(0, Math.min(1, settings.sfxVol / 100));
+            }
+            if (settings.sfxVolume != null && isFinite(settings.sfxVolume)) {
+                return Math.max(0, Math.min(1, settings.sfxVolume));
+            }
+            return 1;
+        }
 
         // note: [frequency, startTime, duration, type, volume]
         const SFX_DEFS = {
-            swoosh:    [[300, 0,    .07, 'sine',     .07]],
-            whoosh:    [[220, 0,    .12, 'sine',     .10]],
+            swoosh:    [[300, 0,    .07, 'sine',     .13]],
+            whoosh:    [[220, 0,    .12, 'sine',     .17]],
             join:      [[440, 0,    .07, 'square',   .14], [660, .07, .09, 'square', .14]],
             leave:     [[660, 0,    .07, 'square',   .13], [440, .07, .09, 'square', .13]],
-            message:   [[780, 0,    .04, 'sine',     .12]],
+            message:   [[780, 0,    .04, 'sine',     .17]],
             notify:    [[880, 0,    .07, 'sine',     .16], [1170,.09, .10, 'sine',  .14]],
-            send:      [[620, 0,    .04, 'sine',     .09]],
-            error:     [[200, 0,    .16, 'sawtooth', .13], [150, .09, .16, 'sawtooth', .11]],
+            send:      [[620, 0,    .04, 'sine',     .14]],
+            error:     [[200, 0,    .16, 'sawtooth', .17], [150, .09, .16, 'sawtooth', .15]],
             purchase:  [[660, 0,    .06, 'square',   .15], [880, .06, .06, 'square', .15],
                         [1320,.13,  .14, 'square',   .13]],
-            unlock:    [[880, 0,    .06, 'sine',     .15], [1100,.06, .06, 'sine',  .15],
+            unlock:    [[880, 0,    .06, 'sine',     .18], [1100,.06, .06, 'sine',  .18],
                         [1320,.12,  .06, 'sine',     .15], [1760,.18, .18, 'sine',  .13]],
             levelup:   [[523, 0,    .09, 'square',   .16], [659, .09, .09, 'square', .16],
                         [784, .18,  .09, 'square',   .16], [1047,.27, .24, 'square', .15]],
@@ -5179,27 +5240,27 @@
              * These are generated, so they work today; drop a file of the
              * same name into sfxFiles and it takes over with nothing else
              * to change. */
-            pickup:    [[880, 0,    .05, 'sine',     .13], [1320,.05, .06, 'sine',  .11]],
+            pickup:    [[880, 0,    .05, 'sine',     .19], [1320,.05, .06, 'sine',  .16]],
             pickupBig: [[784, 0,    .05, 'square',   .14], [1047,.05, .05, 'square',.14],
                         [1568,.10,  .12, 'square',   .12]],
-            sour:      [[300, 0,    .10, 'sawtooth', .12], [190, .08, .14, 'sawtooth', .10]],
-            deliver:   [[523, 0,    .06, 'sine',     .15], [784, .06, .06, 'sine',  .15],
+            sour:      [[300, 0,    .10, 'sawtooth', .17], [190, .08, .14, 'sawtooth', .15]],
+            deliver:   [[523, 0,    .06, 'sine',     .19], [784, .06, .06, 'sine',  .19],
                         [1047,.12,  .16, 'sine',     .13]],
             smash:     [[180, 0,    .09, 'sawtooth', .18], [90,  .04, .16, 'square', .14],
                         [260, .02,  .07, 'sawtooth', .10]],
-            carry:     [[520, 0,    .04, 'square',   .10]],
-            near:      [[1200,0,    .03, 'sine',     .05]],   // a gap threaded close
+            carry:     [[520, 0,    .06, 'square',   .22]],
+            near:      [[1200,0,    .03, 'sine',     .10]],   // a gap threaded close
             milestone: [[659, 0,    .08, 'square',   .16], [880, .08, .08, 'square', .16],
                         [1047,.16,  .08, 'square',   .16], [1319,.24, .20, 'square', .14]],
             timeLow:   [[880, 0,    .07, 'square',   .14], [880, .14, .07, 'square', .12]],
-            hatch:     [[1320,0,    .05, 'sine',     .12], [1760,.05, .10, 'sine',  .10]],
+            hatch:     [[1320,0,    .05, 'sine',     .18], [1760,.05, .10, 'sine',  .15]],
 
             /* These two were being ASKED for in four places and had no
                definition and no file, so every one of those calls has been a
                silent no-op — the tap on a settings tab, the party panel
                opening, a friend row. They make a noise now. */
-            pop:       [[660, 0,    .035,'sine',     .11]],
-            select:    [[520, 0,    .03, 'square',   .10], [780, .03, .04, 'square', .08]]
+            pop:       [[660, 0,    .035,'sine',     .16]],
+            select:    [[520, 0,    .03, 'square',   .14], [780, .03, .04, 'square', .12]]
         };
 
         // Real files take priority over the generated tones. Rather than
@@ -5219,16 +5280,26 @@
             a.addEventListener('error', () => { sfxFiles[name] = null; }, { once: true });
             a.load();
         }
-        Object.keys(SFX_DEFS).forEach(tryLoadSfx);
+
+        // Probing all 26 names up front meant 26 Audio objects and 26 parallel
+        // mp3 requests before the menu had even drawn, on top of the 11 <audio>
+        // tags - 37 media elements, most of them for files that are not there.
+        // Mobile Safari caps how many it will keep alive, and the ones that
+        // matter were competing with the ones that do not exist. Each name is
+        // probed the first time it is asked for instead; the generated tone
+        // covers that first play.
+        function sfxFileFor(name) {
+            if (!sfxChecked[name]) { tryLoadSfx(name); return null; }
+            return sfxFiles[name] || null;
+        }
 
 
         function playSfx(name, volume) {
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            const vol = (volume ?? 1) * ((typeof settings !== 'undefined' && settings.sfxVolume != null)
-                        ? settings.sfxVolume : 1);
+            const vol = (volume ?? 1) * sfxVolume();
             if (vol <= 0) return;
 
-            const file = sfxFiles[name];
+            const file = sfxFileFor(name);
             if (file) {
                 try {
                     const clone = file.cloneNode();
@@ -5243,7 +5314,8 @@
         function playTone(name, vol) {
             const def = SFX_DEFS[name];
             const ctx = audioCtx();
-            if (!def || !ctx) return;
+            const bus = sfxBus();
+            if (!def || !ctx || !bus) return;
             def.forEach(([freq, at, dur, type, amp]) => {
                 const osc = ctx.createOscillator();
                 const gain = ctx.createGain();
@@ -5253,7 +5325,7 @@
                 gain.gain.setValueAtTime(0.0001, ctx.currentTime + at);
                 gain.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), ctx.currentTime + at + .008);
                 gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
-                osc.connect(gain); gain.connect(ctx.destination);
+                osc.connect(gain); gain.connect(bus);
                 osc.start(ctx.currentTime + at);
                 osc.stop(ctx.currentTime + at + dur + .02);
             });
