@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.22-1200";</script>
+    <script>window.__BUILD__ = "2026.09.22-1500";</script>
     
 
     <script src="/filter.js?v=2026092122"></script>
@@ -5642,19 +5642,19 @@
                 </div>`;
             };
 
-            /* A one-off like the crown stays hidden until it is won — showing
-               something permanently unbuyable is just a tease. A seasonal
-               reward is the opposite: it comes round every year, so it is a
-               goal, and hiding it meant a player had no idea any of it existed
-               until they had already earned it. */
+            /* Nothing that cannot be bought belongs in a shop. The seasonal
+               sets used to fill a whole section with locked cards all year
+               round, advertising items no amount of coins could buy — the
+               calendar is where they are earned and the calendar is where
+               they are shown. What a player has already won still appears
+               under EVENT REWARDS, so the shop shows a collection rather
+               than a wishlist. */
             const buyable = t => cosmetics.filter(c => c.type === t && !isExclusive(c));
-            const seasonal = cosmetics.filter(c => c.season);
-            const trophies = cosmetics.filter(c => isExclusive(c) && !c.season && c.owned);
+            const trophies = cosmetics.filter(c => isExclusive(c) && c.owned);
 
             document.getElementById('cosmeticsStoreGrid').innerHTML =
                 storeSection('🧢 HATS',   'Worn on the head',              buyable('hat'),   card) +
                 storeSection('✨ TRAILS', 'Streams out behind you in flight', buyable('trail'), card) +
-                storeSection('🗓️ SEASONAL', 'Earned from the season calendars', seasonal, card) +
                 storeSection('👑 EVENT REWARDS', 'Awarded, never sold',    trophies,         card);
 
             paintAllSwatches();
@@ -6464,13 +6464,6 @@
             const d = now || new Date();
             const syd = seasonNow(d);
             const month = syd.month;                    // 0 = January, in Sydney
-            // Halloween used to begin on 1 October, so for the whole of the
-            // run-up there was no season, which meant no decorations, no
-            // banner and — since the limited modes hang off the season — an
-            // empty LIMITED TIME section. It now opens on 20 September, the
-            // way seasonal events usually do. The advent calendar still keys
-            // off October and says "Opens on the 1st" until then.
-            if (month === 8 && syd.day >= 20) return 'spooky';
             if (month === 9) return 'spooky';           // all of October
             if (month === 11 && syd.day <= 26) return 'christmas';
             // Palm Sunday through Easter Monday
@@ -6953,11 +6946,19 @@
             try { localStorage.setItem(SEASON_SEEN_KEY, stamp); } catch (e) {}
 
             const m = a.mode;
+            // The calendar is the only place the seasonal cosmetics come from
+            // now that the shop no longer lists them, so say so here.
+            const cal = a.season.cal;
+            const prizeCount = cal && cal.prizes ? Object.keys(cal.prizes).length : 0;
+            const calLine = cal
+                ? ` ${cal.icon} ${cal.title} is open too — ${cal.doors} doors`
+                  + (prizeCount ? `, ${prizeCount} of them holding a cosmetic you can only get this season.` : '.')
+                : '';
             toast({
                 kind: 'invite',
                 title: `${a.season.emoji} ${a.season.name.toUpperCase()} IS ON`,
                 body: `${m.emoji} ${m.name} is live — ${m.seconds} seconds, multiplayer only, `
-                    + `and it goes when the season does. ${m.blurb}`,
+                    + `and it goes when the season does.${calLine}`,
                 actions: [
                     { label: 'PLAY IT', style: 'yes', onClick: () => {
                         const btn = document.getElementById('seasonModeBtn');
@@ -7062,6 +7063,21 @@
             }
         }
         let _seasonAnnounceQueued = false;
+
+        /* applySeasonClass only ran at load and when somebody changed a
+           preview, so a tab left open across the turn of a season never
+           noticed — and the announcement for that season never fired. Every
+           season is announced by the same code path, so one cheap check a
+           minute is all any of them need. */
+        let _calSeasonSeen = null;
+        setInterval(function checkSeasonRollover() {
+            const now = autoSeason();
+            if (_calSeasonSeen === null) { _calSeasonSeen = now; return; }
+            if (now === _calSeasonSeen) return;
+            _calSeasonSeen = now;
+            _seasonAnnounceQueued = false;    // a new season gets its own notice
+            try { applySeasonClass(); } catch (e) {}
+        }, 60000);
 
         function renderSeasonBadge() {
             const s = season();
