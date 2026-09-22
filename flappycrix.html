@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.21-2200";</script>
+    <script>window.__BUILD__ = "2026.09.22-1200";</script>
     
 
     <script src="/filter.js?v=2026092122"></script>
@@ -5961,7 +5961,14 @@
                 const top = _pendingPipeTop != null ? _pendingPipeTop : nextPipeTop(gap);
                 _lastPipeTop = top;
                 _lastPipeBeat = frameCount;
-                pipes.push({x:canvas.width, top:top, bottom:top+gap, scored:false});
+                // One or two corners at most, so the gap stays readable.
+                let web = 0;
+                if (halloweenOn() && smRnd() < WEB_ODDS) {
+                    const corners = [1, 2, 4, 8];
+                    web = corners[Math.floor(smRnd() * 4) % 4];
+                    if (smRnd() < 0.35) web |= corners[Math.floor(smRnd() * 4) % 4];
+                }
+                pipes.push({x:canvas.width, top:top, bottom:top+gap, scored:false, web:web});
                 // ...and pick the one after, so the lane ahead is known
                 _pendingPipeTop = nextPipeTop(gap);
             }
@@ -6429,23 +6436,48 @@
             return new Date(Date.UTC(year, month - 1, day));
         }
 
+        /* A season is one event, so it has to start at one moment for
+           everybody. Reading the player's own clock meant Halloween opened at
+           a different time in every timezone — someone in Los Angeles got it
+           seventeen hours after someone in Sydney, and whoever was nearest
+           the date line decided when it began. The calendar is now read in
+           Australian eastern time, which is where this game is run from, so
+           the whole event turns on at the same instant worldwide. Intl
+           handles the AEST/AEDT switch on its own. */
+        const SEASON_TZ = 'Australia/Sydney';
+        let _seasonTzOk = true;
+        function seasonNow(now) {
+            const d = now || new Date();
+            if (_seasonTzOk) {
+                try {
+                    const parts = new Intl.DateTimeFormat('en-AU', {
+                        timeZone: SEASON_TZ, year: 'numeric', month: 'numeric', day: 'numeric'
+                    }).formatToParts(d);
+                    const get = t => parseInt(parts.find(x => x.type === t).value, 10);
+                    return { year: get('year'), month: get('month') - 1, day: get('day') };
+                } catch (e) { _seasonTzOk = false; }   // no tz data: fall back once
+            }
+            return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
+        }
+
         function autoSeason(now) {
             const d = now || new Date();
-            const month = d.getMonth();                 // 0 = January
+            const syd = seasonNow(d);
+            const month = syd.month;                    // 0 = January, in Sydney
             // Halloween used to begin on 1 October, so for the whole of the
             // run-up there was no season, which meant no decorations, no
             // banner and — since the limited modes hang off the season — an
             // empty LIMITED TIME section. It now opens on 20 September, the
             // way seasonal events usually do. The advent calendar still keys
             // off October and says "Opens on the 1st" until then.
-            if (month === 8 && d.getDate() >= 20) return 'spooky';
+            if (month === 8 && syd.day >= 20) return 'spooky';
             if (month === 9) return 'spooky';           // all of October
-            if (month === 11 && d.getDate() <= 26) return 'christmas';
+            if (month === 11 && syd.day <= 26) return 'christmas';
             // Palm Sunday through Easter Monday
-            const e = easterSunday(d.getFullYear());
+            const e = easterSunday(syd.year);
             const from = new Date(e); from.setUTCDate(e.getUTCDate() - 7);
             const to   = new Date(e); to.setUTCDate(e.getUTCDate() + 1);
-            const today = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+            const today = Date.UTC(syd.year, syd.month, syd.day);
             if (today >= from.getTime() && today <= to.getTime()) return 'easter';
             return null;
         }
@@ -6906,6 +6938,37 @@
             btn.title = a.mode.name + ' — a limited multiplayer mode, ' + a.season.name + ' only';
         }
 
+        /* Tell people the event has started. Once per season per year, held
+           until the menu is actually in front of them rather than fired at
+           a still-loading page, and remembered in storage so it does not
+           greet them again on every reload. */
+        const SEASON_SEEN_KEY = 'crix_season_seen_v1';
+        function smAnnounceSeason() {
+            const a = smAvailable();
+            if (!a) return;
+            const stamp = a.id + ':' + seasonNow().year;
+            let seen = '';
+            try { seen = localStorage.getItem(SEASON_SEEN_KEY) || ''; } catch (e) {}
+            if (seen === stamp) return;
+            try { localStorage.setItem(SEASON_SEEN_KEY, stamp); } catch (e) {}
+
+            const m = a.mode;
+            toast({
+                kind: 'invite',
+                title: `${a.season.emoji} ${a.season.name.toUpperCase()} IS ON`,
+                body: `${m.emoji} ${m.name} is live — ${m.seconds} seconds, multiplayer only, `
+                    + `and it goes when the season does. ${m.blurb}`,
+                actions: [
+                    { label: 'PLAY IT', style: 'yes', onClick: () => {
+                        const btn = document.getElementById('seasonModeBtn');
+                        if (btn) btn.click();
+                    } },
+                    { label: 'Later' }
+                ]
+            });
+            playSfx('milestone', .6);
+        }
+
         function readSeasonPreview() {
             try {
                 const v = JSON.parse(localStorage.getItem(SEASON_PREVIEW_KEY) || '{}');
@@ -6986,7 +7049,19 @@
             mpSyncSeasonModeCard();     // ...in the create form too
             _pipeGrad = null;           // the pipe gradient is cached by width
             renderSeasonBadge();
+            // Deferred: this also runs during load, and an announcement fired
+            // at a half-built page is one nobody sees. Never over a run.
+            if (!_seasonAnnounceQueued) {
+                _seasonAnnounceQueued = true;
+                setTimeout(function announce() {
+                    if (typeof gameRunning !== 'undefined' && gameRunning) {
+                        setTimeout(announce, 4000); return;   // wait for the menu
+                    }
+                    try { smAnnounceSeason(); } catch (e) {}
+                }, 2500);
+            }
         }
+        let _seasonAnnounceQueued = false;
 
         function renderSeasonBadge() {
             const s = season();
@@ -7406,18 +7481,41 @@
             return c;
         }
 
-        function drawCobwebs(g) {
-            if (!halloweenOn()) return;
-            const W = canvas.width, H = canvas.height;
-            const size = Math.round(Math.min(W, H) * 0.30);
+        /* The webs used to be painted into the four corners of the viewport,
+           on the glass rather than in the world, so they sat over the bird
+           and never moved. They belong on the scenery: strung into the inner
+           corners of a pipe gap, scrolling past with the pipe they are on.
+           Which pipes get one is decided once at spawn, from the decoration
+           RNG, so it is steady from frame to frame and identical for every
+           client in a room. */
+        const WEB_ODDS = 0.45;
+        function pipeWebSize() { return Math.round(Math.min(canvas.width, canvas.height) * 0.11); }
+        function drawPipeWebs(g, p) {
+            if (!halloweenOn() || !p.web) return;
+            const size = pipeWebSize();
             const web = webCanvas(size);
+            const right = p.x + pipeWidth;
             g.save();
-            g.globalAlpha = 0.85;
-            // top-left as drawn, then flipped into the other three corners
-            g.drawImage(web, 0, 0);
-            g.save(); g.translate(W, 0);     g.scale(-1, 1);  g.drawImage(web, 0, 0); g.restore();
-            g.save(); g.translate(0, H);     g.scale(1, -1);  g.drawImage(web, 0, 0); g.restore();
-            g.save(); g.translate(W, H);     g.scale(-1, -1); g.drawImage(web, 0, 0); g.restore();
+            g.globalAlpha = 0.7;
+            // Top pipe: the corner is where its underside meets a side.
+            // The quarter-web fans from its origin into +x/+y, so each corner
+            // is flipped to point it inward, across the gap.
+            if (p.web & 1) {                              // top pipe, left edge
+                g.save(); g.translate(p.x, p.top);
+                g.drawImage(web, 0, 0); g.restore();
+            }
+            if (p.web & 2) {                              // top pipe, right edge
+                g.save(); g.translate(right, p.top); g.scale(-1, 1);
+                g.drawImage(web, 0, 0); g.restore();
+            }
+            if (p.web & 4) {                              // bottom pipe, left edge
+                g.save(); g.translate(p.x, p.bottom); g.scale(1, -1);
+                g.drawImage(web, 0, 0); g.restore();
+            }
+            if (p.web & 8) {                              // bottom pipe, right edge
+                g.save(); g.translate(right, p.bottom); g.scale(-1, -1);
+                g.drawImage(web, 0, 0); g.restore();
+            }
             g.restore();
         }
 
@@ -7515,15 +7613,18 @@
             }
 
             const d = new Date();
+            // Same clock as the season itself, or a door could open a day
+            // early or late depending on where the player happens to be.
+            const syd = seasonNow(d);
             if (c.month === null) {
                 // Seven doors ending on Easter Sunday
-                const e = easterSunday(d.getFullYear());
-                const today = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+                const e = easterSunday(syd.year);
+                const today = Date.UTC(syd.year, syd.month, syd.day);
                 const n = Math.floor((today - (e.getTime() - (c.doors - 1) * 86400000)) / 86400000) + 1;
                 return (n >= 1 && n <= c.doors) ? n : 0;
             }
-            if (d.getMonth() !== c.month) return 0;
-            return d.getDate() <= c.doors ? d.getDate() : 0;
+            if (syd.month !== c.month) return 0;
+            return syd.day <= c.doors ? syd.day : 0;
         }
         function calReward(s, door) {
             return door === s.cal.doors ? 750 : 60 + door * 12;
@@ -7970,6 +8071,7 @@
             for (const p of pipes) {
                 drawPipe(p.x, 0, pipeWidth, p.top, true);
                 drawPipe(p.x, p.bottom, pipeWidth, canvas.height - p.bottom, false);
+                drawPipeWebs(ctx, p);
             }
             drawPumpkins(ctx);
             if (smMode) smDraw(ctx); 
@@ -8094,9 +8196,9 @@
                 ctx.fillText('watching the rest', canvas.width/2, canvas.height/2 + 22);
                 ctx.textAlign='left';
             } 
-            // Last of all: the cobwebs are on the window you are looking
-            // through, not in the world, so nothing passes in front of them.
-            drawCobwebs(ctx);
+            // The cobwebs used to be painted here, over the finished frame.
+            // They are scenery now and ride the pipes, so they are drawn with
+            // the lane above rather than on top of everything.
         }
         
         // Fixed timestep. Previously the loop ran on raw requestAnimationFrame,
@@ -15742,14 +15844,61 @@
             hostCtrl.style.display = canSettings ? 'block' : 'none';
             if (mpIsHost) {
                 document.getElementById('mpVisibilityLabel').textContent = mpCurrentRoom.isPublic ? 'Public' : 'Invite Only';
-                const sel = document.getElementById('mpHostModeSelect');
-                if (sel) sel.value = mpCurrentRoom.mode;
+                mpSyncHostModeOptions();
             }
             applyModeSettingVisibility();
             document.getElementById('mpStartMatchBtn').style.display = canSettings ? '' : 'none';
             document.getElementById('mpEndGameBtn').style.display = (canSettings && mpMatchActive) ? '' : 'none';
             mpRenderPermissionsPanel();
             document.getElementById('mpWaitingForHostMsg').style.display = mpIsHost ? 'none' : '';
+        }
+
+        /* The host's Game Mode dropdown listed only the four standard modes,
+           hard-coded in the markup. A seasonal room therefore set .value to
+           something no <option> matched, so the select rendered BLANK — the
+           mode was running, it just had no name — and once the host picked
+           anything else there was no way back to it. The seasonal option is
+           built from SEASON_MODES instead: offered while its season is on,
+           and always offered when the room is already running it, so the
+           current mode can never be an option that does not exist. */
+        // Seasonal modes this lobby has already offered. Once a mode has been
+        // on in a room it stays in the list for that room: otherwise the host
+        // switches away to read another option and the mode disappears with
+        // no way back, which is exactly how the blank box was first noticed.
+        let _mpLobbySeasonModes = new Set();
+        function mpSyncHostModeOptions() {
+            const sel = document.getElementById('mpHostModeSelect');
+            if (!sel) return;
+            const current = mpCurrentRoom?.mode || 'freemode';
+            const live = smAvailable();                      // the season's mode, if on
+            if (isSeasonMode(current)) _mpLobbySeasonModes.add(current);
+            const wanted = new Map();
+            if (live) wanted.set(live.mode.id, `${live.mode.emoji} ${live.mode.name}`);
+            // Whatever is running, or has run here, stays listed even out of
+            // season, so the host can always go back to it.
+            _mpLobbySeasonModes.forEach(id => {
+                if (wanted.has(id)) return;
+                const m = seasonModeById(id);
+                if (m) wanted.set(id, `${m.mode.emoji} ${m.mode.name}`);
+            });
+            // Drop seasonal options that no longer apply, add the ones that do.
+            [...sel.options].forEach(o => {
+                if (isSeasonMode(o.value) && !wanted.has(o.value)) o.remove();
+            });
+            wanted.forEach((label, id) => {
+                let o = [...sel.options].find(x => x.value === id);
+                if (!o) { o = document.createElement('option'); o.value = id; sel.appendChild(o); }
+                o.textContent = label;
+            });
+            sel.value = current;
+            // A value with no matching option leaves selectedIndex at -1 and
+            // the box empty. If that somehow happens, say so rather than
+            // showing nothing at all.
+            if (sel.selectedIndex < 0) {
+                const o = document.createElement('option');
+                o.value = current; o.textContent = current.toUpperCase();
+                sel.appendChild(o); sel.value = current;
+            }
         }
 
         // ----- LOBBY CHAT -----
@@ -15970,6 +16119,7 @@
             // precisely so it survives coming and going from rooms.
             if (party.id && partyIsLeader()) partySetRoom(null);
             mpCurrentRoom = null; mpPlayers = {}; mpIsHost = false;
+            _mpLobbySeasonModes = new Set();   // a new lobby starts its list over
             mpStopPing();
             if (typeof sendHeartbeat === 'function') sendHeartbeat();
             mpMatchActive = false; mpSpectating = false;
