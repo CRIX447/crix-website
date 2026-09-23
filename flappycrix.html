@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.22-1500";</script>
+    <script>window.__BUILD__ = "2026.09.23-1200";</script>
     
 
     <script src="/filter.js?v=2026092122"></script>
@@ -915,6 +915,12 @@
             color:#A0A0A0; font-family:inherit; font-size:10px; text-decoration:none;
             padding:9px 13px; border-radius:20px; cursor:pointer; white-space:nowrap;
             transition:all .12s;
+            /* WEBSITE is an <a> among <button>s. A button centres its label in
+               a min-height box on its own; an anchor does not, so on touch
+               screens its label rode a few pixels high. Centre it the same
+               way for both. */
+            display:inline-flex; align-items:center; justify-content:center;
+            box-sizing:border-box; line-height:1.2;
         }
         .foot-btn:hover { color:#fff; border-color:rgba(255,255,255,.25);
             background:rgba(255,255,255,.08); }
@@ -946,6 +952,10 @@
             text-decoration:none; color:#EDEDED; display:block; }
         .po.ready { border-color:rgba(0,204,122,.4); }
         .po.soon { opacity:.45; }
+        /* The card for the device in your hand */
+        .po.here { opacity:1; border-color:var(--green);
+                   box-shadow:inset 0 0 0 1px var(--green), 0 0 14px rgba(0,204,122,.18); }
+        .po.here .po-state { color:var(--green); }
         a.po.ready:hover { border-color:#27A9F5; background:rgba(39,169,245,.1); }
         .po-ico { display:block; font-size:19px; }
         .po-name { display:block; font-size:10px; margin-top:4px; }
@@ -2879,11 +2889,31 @@
                The phone shell pins the title to the top and the buttons to
                the bottom, which on a tall screen leaves a few hundred pixels
                of nothing in between. */
+            /* Centred by left/right/margin, NOT by the animation. It used to
+               sit at left:50% and rely on the bob keyframes to supply the
+               translate(-50%) — so anything that stops the animation (the
+               Reduced Motion setting, an OS "remove animations" switch,
+               battery saver) dropped the transform and left the image's
+               LEFT EDGE on the centre line, half a width off to the right. */
+            /* ...and it is placed in the middle of the GAP, not the middle of
+               the screen. The shell pins the stat pills to end 168px down and
+               the top of START 254px up, so the gap is known exactly. At 50%
+               of the screen it sat low: on a 360x640 phone it overlapped
+               START, and on a tall one it floated at a fixed 132px in ~500px
+               of nothing. It is now centred on the gap and sized from it. */
+            .game-container {
+                --pills-bottom: calc(168px + env(safe-area-inset-top));
+                --deck-top:     calc(254px + env(safe-area-inset-bottom));
+                --void-h:       calc(100dvh - var(--pills-bottom) - var(--deck-top));
+            }
             .menu-bird {
                 display: block;
                 position: absolute; z-index: 20;
-                top: 50%; left: 50%;
-                width: min(132px, 34vw); aspect-ratio: 1;
+                top: calc(var(--pills-bottom) + var(--void-h) / 2);
+                left: 0; right: 0; margin-inline: auto;
+                transform: translateY(-50%);          /* at rest, animated or not */
+                width: clamp(84px, min(calc(var(--void-h) * 0.52), 50vw), 220px);
+                aspect-ratio: 1;
                 object-fit: cover;
                 /* the sprite art is a square with its own backdrop, so it is
                    framed as a portrait rather than floated as a cut-out */
@@ -2895,8 +2925,8 @@
                 pointer-events: none;
             }
             @keyframes birdBob {
-                0%, 100% { transform: translate(-50%, -62%); }
-                50%      { transform: translate(-50%, -74%); }
+                0%, 100% { transform: translateY(-50%); }
+                50%      { transform: translateY(calc(-50% - 9px)); }
             }
             body.playing .menu-bird, body.dead .menu-bird { display: none; }
 
@@ -2995,10 +3025,15 @@
            Measured on a 390x844 @3x device: 46fps -> 60fps. */
         @media (max-width: 700px), (max-height: 520px), (pointer: coarse) {
             .game-container, .death-screen, .ig-btn, .hud-coins, .hud-rush,
-            .mp-hud, .mp-hud-btn, .cyber-stat, .mp-chat-panel, #spectateBar {
+            .mp-hud, .mp-hud-btn, .cyber-stat, .mp-chat-panel, #spectateBar,
+            .cheat-badge, .powerup-badge {
                 backdrop-filter: none !important;
                 -webkit-backdrop-filter: none !important;
             }
+            /* The powerup and cheat pills sit over the playfield for the whole
+               of a run — the 2X COINS timer, GODMODE — and were the one live
+               blur this list had missed. Their own tinted backgrounds are
+               already opaque, so only the blur goes. */
             .ig-btn, .mp-hud-btn        { background: #0C0C14; }
             .hud-coins, .hud-rush       { background: #0C0C14; }
             .mp-hud                     { background: #08080E; }
@@ -4117,23 +4152,26 @@
             </div>
 
             <div class="mp-section-title">🎮 PLAY IT ON</div>
-            <div class="play-on">
-                <a class="po ready" href="/download">
+            <!-- Which card says "You are here" is decided by markPlayOn() from
+                 the real device. It used to be hard-coded onto Browser, so an
+                 Android phone and the Windows app both claimed to be a browser. -->
+            <div class="play-on" id="playOn">
+                <a class="po ready" data-plat="windows" href="/download">
                     <span class="po-ico">🖥️</span>
                     <span class="po-name">Windows</span>
                     <span class="po-state">Download</span>
                 </a>
-                <div class="po ready">
+                <div class="po ready" data-plat="browser">
                     <span class="po-ico">🌐</span>
                     <span class="po-name">Browser</span>
-                    <span class="po-state">You are here</span>
+                    <span class="po-state">Any device</span>
                 </div>
-                <div class="po soon">
+                <div class="po soon" data-plat="android">
                     <span class="po-ico">📱</span>
                     <span class="po-name">Android</span>
                     <span class="po-state">Soon</span>
                 </div>
-                <div class="po soon">
+                <div class="po soon" data-plat="mac">
                     <span class="po-ico">🍎</span>
                     <span class="po-name">Mac</span>
                     <span class="po-state">Planned</span>
@@ -6446,21 +6484,61 @@
            handles the AEST/AEDT switch on its own. */
         const SEASON_TZ = 'Australia/Sydney';
         let _seasonTzOk = true;
-        function seasonNow(now) {
-            const d = now || new Date();
+
+        /* This used to build a new Intl.DateTimeFormat on every call, and
+           building one with a timeZone is among the most expensive things
+           the standard library does — it loads ICU timezone data. It is
+           reached from the pipe gradient, halloweenOn, the backdrop, the
+           pumpkins and the flyer, several times per pipe, every frame.
+           Profiled on a phone-speed CPU it was 36% of ALL CPU time and about
+           three quarters of the game loop: the cause of the mobile lag.
+           The formatter is now built once, and "what day is it in Sydney"
+           is only re-read every few seconds — the answer changes once a
+           day. An explicit date (the calendar, tests) is never cached. */
+        let _seasonFmt = null;
+        function seasonFormatter() {
+            if (!_seasonFmt) {
+                _seasonFmt = new Intl.DateTimeFormat('en-AU', {
+                    timeZone: SEASON_TZ, year: 'numeric', month: 'numeric', day: 'numeric'
+                });
+            }
+            return _seasonFmt;
+        }
+        function readSeasonDate(d) {
             if (_seasonTzOk) {
                 try {
-                    const parts = new Intl.DateTimeFormat('en-AU', {
-                        timeZone: SEASON_TZ, year: 'numeric', month: 'numeric', day: 'numeric'
-                    }).formatToParts(d);
+                    const parts = seasonFormatter().formatToParts(d);
                     const get = t => parseInt(parts.find(x => x.type === t).value, 10);
                     return { year: get('year'), month: get('month') - 1, day: get('day') };
                 } catch (e) { _seasonTzOk = false; }   // no tz data: fall back once
             }
             return { year: d.getFullYear(), month: d.getMonth(), day: d.getDate() };
         }
+        const SEASON_CLOCK_MS = 5000;
+        let _sydNow = null, _sydNowAt = -Infinity;
+        function seasonNow(now) {
+            if (now) return readSeasonDate(now);
+            const t = Date.now();
+            if (!_sydNow || t - _sydNowAt >= SEASON_CLOCK_MS || t < _sydNowAt) {
+                _sydNow = readSeasonDate(new Date(t));
+                _sydNowAt = t;
+                _autoSeasonMemo = undefined;       // the day may have turned
+            }
+            return _sydNow;
+        }
 
+        // autoSeason() with no date is asked the same question dozens of
+        // times a frame; the answer only moves when seasonNow's does.
+        let _autoSeasonMemo = undefined;
         function autoSeason(now) {
+            if (!now) {
+                seasonNow();                            // refreshes, clears memo on a new read
+                if (_autoSeasonMemo === undefined) _autoSeasonMemo = computeAutoSeason(new Date());
+                return _autoSeasonMemo;
+            }
+            return computeAutoSeason(now);
+        }
+        function computeAutoSeason(now) {
             const d = now || new Date();
             const syd = seasonNow(d);
             const month = syd.month;                    // 0 = January, in Sydney
@@ -10936,7 +11014,8 @@
 
             const plat = typeof detectPlatform === 'function' ? detectPlatform() : 'unknown';
 
-            if (plat === 'desktop' || window.__IS_ANDROID_APP__) {
+            // Inside an installed app there is nothing to download
+            if (detectShell() === 'app') {
                 el.style.display = 'none';
                 document.body.classList.add('is-desktop-app');
                 return;
@@ -10965,10 +11044,17 @@
                              linux:'LNX', xbox:'XBX', playstation:'PS', nintendo:'NSW',
                              chromeos:'CB', unknown:'' };
 
+        /* The DEVICE someone is playing on. This used to answer a different
+           question: the packaged Windows app came back as 'desktop' and any
+           browser on a computer as 'browser'. Neither has an entry in
+           PLATFORM_ICONS, so platformBadge() drew nothing, and the
+           windows/mac/linux entries there could never be reached — Windows
+           players have never shown a badge at all. It now reports the
+           device, and whether it is the installed app is detectShell()'s
+           job. Other clients only ever look the value up in PLATFORM_ICONS,
+           so an older client receiving 'windows' just starts showing 🪟. */
         function detectPlatform() {
             const ua = navigator.userAgent;
-            // Installed apps report their device; anything else is a browser
-            if (window.CRIX_DESKTOP?.isDesktop || /Electron/i.test(ua)) return 'desktop';
             const p = navigator.platform || '';
 
             if (/Xbox/i.test(ua)) return 'xbox';
@@ -10977,21 +11063,31 @@
             // Check iOS before Mac — iPads report as Mac in recent Safari
             if (/iPhone|iPad|iPod/i.test(ua) ||
                 (/Mac/i.test(p) && navigator.maxTouchPoints > 1)) return 'ios';
-            if (/Android/i.test(ua)) return 'android';
-            // A browser on a desktop OS is a BROWSER. Only the packaged
-            // build above reports as 'desktop', which is the distinction
-            // players actually care about seeing.
-            if (/Win/i.test(p) || /Mac/i.test(p) || /Linux|X11/i.test(p) ||
-                /Windows|Macintosh|Linux/i.test(ua)) return 'browser';
+            // Android before Linux: every Android user agent also says Linux
+            if (window.__IS_ANDROID_APP__ || /Android/i.test(ua)) return 'android';
+            if (/CrOS/i.test(ua)) return 'chromeos';
+            if (/Win/i.test(p) || /Windows/i.test(ua)) return 'windows';
+            if (/Mac/i.test(p) || /Macintosh/i.test(ua)) return 'mac';
+            if (/Linux|X11/i.test(p) || /Linux|X11/i.test(ua)) return 'linux';
             return 'unknown';
+        }
+        // Installed app or a browser tab — a separate question from the device.
+        function detectShell() {
+            if (window.CRIX_DESKTOP?.isDesktop || /Electron/i.test(navigator.userAgent)) return 'app';
+            if (window.__IS_ANDROID_APP__) return 'app';
+            return 'browser';
         }
 
         const PLATFORM_ICONS = {
             windows:     { icon: '🪟', label: 'Windows' },
             android:     { icon: '🤖', label: 'Android' },
-            ios:         { icon: '', label: 'iPhone or iPad' },
-            mac:         { icon: '', label: 'Mac' },
+            // These were empty strings — probably the Apple logo (U+F8FF),
+            // which only exists in Apple's fonts and got stripped — so
+            // platformBadge() skipped them and Apple players showed nothing.
+            ios:         { icon: '📱', label: 'iPhone or iPad' },
+            mac:         { icon: '🍎', label: 'Mac' },
             linux:       { icon: '🐧', label: 'Linux' },
+            chromeos:    { icon: '💻', label: 'Chromebook' },
             xbox:        { icon: '🎮', label: 'Xbox' },
             playstation: { icon: '🎯', label: 'PlayStation' },
             nintendo:    { icon: '🕹️', label: 'Nintendo' },
@@ -10999,6 +11095,35 @@
         };
 
         const myPlatform = detectPlatform();
+
+        /* Mark the card for the device in the player's hand. A device with
+           its own card (Windows, Android, Mac) gets it; anything else — an
+           iPhone, Linux, a Chromebook, a console — is playing in the browser,
+           so that card is the one that is true. */
+        function markPlayOn() {
+            const wrap = document.getElementById('playOn');
+            if (!wrap) return;
+            const shell = detectShell();
+            const cards = {};
+            wrap.querySelectorAll('.po[data-plat]').forEach(c => { cards[c.dataset.plat] = c; });
+            const here = cards[myPlatform] || cards.browser;
+            if (!here) return;
+            here.classList.remove('soon');
+            here.classList.add('here');
+            const state = here.querySelector('.po-state');
+            if (myPlatform === 'windows' && shell === 'browser') {
+                // Still worth offering the app to someone on Windows in a tab
+                state.textContent = 'Here · Get app';
+            } else {
+                state.textContent = 'You are here';
+                // Nothing to download from inside the app itself
+                if (here.tagName === 'A' && shell === 'app') here.removeAttribute('href');
+            }
+            here.title = (PLATFORM_ICONS[myPlatform]?.label || 'Browser') +
+                         (shell === 'app' ? ' app' : ' browser');
+        }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', markPlayOn);
+        else markPlayOn();
 
         function platformBadge(plat) {
             const p = PLATFORM_ICONS[plat];
