@@ -5118,17 +5118,21 @@
          * crossed in under a second, which is what "hard to control" was.
          * The rise is untouched, so a tap peaks in the same 0.28s it always
          * did; only the sink was slowed, which is where the thinking happens.
+         * Players still found the drop too quick, so the sink is slower again:
+         * falling back to where you tapped takes 0.40s instead of 0.35s, and
+         * the fastest a long drop gets is 450px/s, about 1.3s to cross the
+         * whole screen rather than one.
          */
         const PHYS = {
             gravity:   0.52,   // going up: unchanged, the tap still feels the same
-            fallGrav:  0.34,   // coming down: gentler, so there is time to aim
+            fallGrav:  0.25,   // coming down: gentler, so there is time to aim (was 0.34 — still too fast)
             flap:     -8.8,    // impulse, one tap
-            maxFall:   10,     // terminal velocity: 600px/s, was 840
+            maxFall:   7.5,    // terminal velocity: 450px/s (was 600, and 840 before that)
             slowGrav:  0.32,   // the slowmo cheat, same shape, slower
-            slowFall:  0.21,
+            slowFall:  0.16,
             slowFlap: -7.0,
             lowGrav:   0.22,   // the owner's low-gravity toggle
-            lowFall:   0.15,
+            lowFall:   0.11,
             // The hitbox is an ELLIPSE, sized to the art rather than to a
             // guess. The sprite is opaque to the top and bottom edges of its
             // box but only about 0.85 of it wide, so a single radius either
@@ -5145,7 +5149,7 @@
         // but earns nothing: no coins, XP, best score or achievements. That is
         // what lets everyone have it for recording without it being a farm.
         let _assistedRun = false;
-        let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, jump: PHYS.flap };
+        let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, fallGrav: PHYS.fallGrav, jump: PHYS.flap };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
         // How often a pipe pair is laid down. The pumpkins ride the half-beat
         // of this, so it has to be one number rather than a literal repeated
