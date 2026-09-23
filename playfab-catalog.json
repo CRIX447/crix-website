@@ -12,7 +12,7 @@
       "IsStackable": false,
       "IsTradable": false,
       "IsLimitedEdition": false,
-      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"image\":\"/img/crown.png\"}"
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"draw\":\"crown\"}"
     },
     {
       "ItemId": "bucket",
@@ -24,7 +24,7 @@
       "Tags": ["cosmetic", "hat"],
       "IsStackable": false,
       "IsTradable": false,
-      "CustomData": "{\"slot\":\"hat\",\"image\":\"/img/bucket-hat.avif\"}"
+      "CustomData": "{\"slot\":\"hat\",\"draw\":\"bucket\"}"
     },
     {
       "ItemId": "cap",
@@ -36,7 +36,7 @@
       "Tags": ["cosmetic", "hat"],
       "IsStackable": false,
       "IsTradable": false,
-      "CustomData": "{\"slot\":\"hat\",\"image\":\"/img/cap.png\"}"
+      "CustomData": "{\"slot\":\"hat\",\"draw\":\"cap\"}"
     },
 
     {

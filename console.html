@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/playfab-manager.js?v=2026092412"></script>
-<script src="/cosmetic-art.js?v=2026092812"></script>
+<script src="/cosmetic-art.js?v=2026092912"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.woff2') format('woff2'),url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -1895,13 +1895,16 @@ bind('seaMineSave', async () => {
    Firestore document the game watches (config/cosmeticFit), so what you line
    up here is exactly what players get. The item list comes from
    playfab-catalog.json rather than a second list kept in this file. */
-const CF = { items: [], fit: {}, current: null, bird: null, loaded: false };
+const CF = { items: [], fit: {}, current: null, bird: null, bare: null, loaded: false };
 
 function cfBirdReady(fn) {
   if (!CF.bird) {
     CF.bird = new Image();
     CF.bird.onload = fn;
     CF.bird.src = '/img/bird.png';
+    // what a hat is actually worn on: the bird with its own hat off
+    CF.bare = new Image();
+    CF.bare.src = '/img/bird-bare.png';
     return;
   }
   if (CF.bird.complete) fn();
@@ -1921,7 +1924,7 @@ async function cfLoadItems() {
 
 async function cfLoadFit() {
   const d = await firebase.firestore().collection('config').doc('cosmeticFit').get();
-  CF.fit = (d.exists && d.data().items) || {};
+  CF.fit = (d.exists && d.data().items2) || {};   // items2: fits for the redrawn hats
 }
 
 function cfArt(item) {
@@ -1948,7 +1951,7 @@ function cfDraw() {
       g.strokeStyle = 'rgba(255,255,255,.12)';
       g.beginPath(); g.moveTo(0, -cv.height); g.lineTo(0, cv.height); g.stroke();
     }
-    CrixArt.drawSprite(g, CF.bird, 0, 0, size);
+    CrixArt.drawSprite(g, (CF.bare && CF.bare.complete && CF.bare.naturalWidth) ? CF.bare : CF.bird, 0, 0, size);
     CrixArt.drawHatOn(g, item, size, cfArt(item), fit);
     g.restore();
   });
@@ -2008,7 +2011,7 @@ bind('cfSave', async () => {
   out.className = 'out'; out.textContent = 'Saving…';
   try {
     await firebase.firestore().collection('config').doc('cosmeticFit').set(
-      { items: CF.fit, at: Date.now(), by: firebase.auth().currentUser?.uid || null },
+      { items2: CF.fit, at: Date.now(), by: firebase.auth().currentUser?.uid || null },
       { merge: true });
     out.className = 'out ok';
     out.textContent = 'Saved — every player sees it there now.';
