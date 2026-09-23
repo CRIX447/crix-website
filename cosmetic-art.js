@@ -240,25 +240,62 @@
             g.fillStyle = '#FFFFFF'; g.fillRect(0.072 * s, (by - 0.243) * s, 0.115 * s, 0.015 * s);
         },
 
-        // A floppy red cone over a roll of fur. The bird faces +x, so the tip
-        // falls back the other way, and it and the pompom swing.
+        // Santa's hat: a full red body over the whole crown that tips back
+        // (the bird faces +x) and droops to a big pompom behind the head,
+        // over a thick roll of fur. Only the drooping part swings, from the
+        // fold, so the body stays put on the head.
         santa(g, s, w) {
-            const xL = -0.33, xR = 0.35;
-            swingAbout(g, -0.05 * s, brimY(-0.05) * s - 0.1 * s, w * 1.2, () => {
-                hatBlob(g, s, shade(g, s, 'santa', 0.3, -0.4, -0.4, -0.8, [[0, '#E0202C'], [0.6, '#FF4A55'], [1, '#B3131C']]), () => {
-                    g.moveTo((xL + 0.03) * s, (brimY(xL) - 0.08) * s);
-                    g.bezierCurveTo(-0.2 * s, -0.78 * s, -0.42 * s, -0.84 * s, -0.56 * s, -0.56 * s);
-                    g.quadraticCurveTo(-0.3 * s, -0.66 * s, (xR - 0.03) * s, (brimY(xR) - 0.08) * s);
+            const xL = -0.35, xR = 0.37, fur = 0.13;
+            const topL = brimY(xL) - fur + 0.035, topR = brimY(xR) - fur + 0.035;
+            const F = [-0.08, -0.79];            // the fold, where it starts to droop
+            const red = shade(g, s, 'santa', 0.35, -0.3, -0.35, -0.8,
+                              [[0, '#B8121C'], [0.35, '#E3232E'], [0.75, '#FF4E58'], [1, '#D11A25']]);
+            // the drooping end, behind the body so the fold overlaps it
+            swingAbout(g, F[0] * s, F[1] * s, w * 1.1, () => {
+                hatBlob(g, s, shade(g, s, 'santaflop', -0.2, -0.8, -0.6, -0.45,
+                                    [[0, '#E3232E'], [1, '#A8101A']]), () => {
+                    g.moveTo((F[0] + 0.05) * s, (F[1] + 0.005) * s);
+                    g.bezierCurveTo(-0.3 * s, -0.86 * s, -0.56 * s, -0.74 * s, -0.63 * s, -0.5 * s);
+                    g.quadraticCurveTo(-0.5 * s, -0.56 * s, -0.36 * s, -0.62 * s);
+                    g.quadraticCurveTo(-0.24 * s, -0.67 * s, (F[0] - 0.07) * s, (F[1] + 0.09) * s);
                     g.closePath();
                 });
-                // pompom
-                g.fillStyle = '#FFFFFF'; g.beginPath(); g.arc(-0.56 * s, -0.54 * s, 0.075 * s, 0, Math.PI * 2); g.fill();
-                hatStroke(g, s);
-                dot(g, s, -0.58, -0.56, 0.025, '#E6ECF2');
+                // pompom: a fluffy ball, lit from above
+                const px = -0.64, py = -0.47, pr = 0.1;
+                hatBlob(g, s, shade(g, s, 'santapom', px, py - pr, px, py + pr, [[0, '#FFFFFF'], [1, '#CFD8E3']]), () =>
+                    g.arc(px * s, py * s, pr * s, 0, Math.PI * 2));
+                dot(g, s, px - 0.035, py - 0.035, 0.035, 'rgba(255,255,255,.95)');
+                dot(g, s, px + 0.03, py + 0.04, 0.022, 'rgba(160,175,195,.55)');
             });
-            // the fur roll hugging the head
-            hatBlob(g, s, shade(g, s, 'santafur', 0, -0.48, 0, -0.26, [[0, '#FFFFFF'], [1, '#D5DDE6']]), () =>
-                domeBand(g, s, xL, xR, 0.12, 0.02));
+            // the body: wide at the head, rising to the fold
+            hatBlob(g, s, red, () => {
+                g.moveTo(xR * s, topR * s);
+                g.bezierCurveTo(0.34 * s, -0.56 * s, 0.14 * s, -0.8 * s, F[0] * s, F[1] * s);
+                g.quadraticCurveTo(-0.27 * s, -0.72 * s, xL * s, topL * s);
+                through(g, s, xL, topL, HEAD_CX, brimY(HEAD_CX) - fur + 0.035, xR, topR);
+                g.closePath();
+            });
+            // a soft highlight down the body, and the crease at the fold
+            hatBlob(g, s, 'rgba(255,255,255,.18)', () => {
+                g.moveTo(0.2 * s, (topR - 0.03) * s);
+                g.quadraticCurveTo(0.18 * s, -0.66 * s, 0.02 * s, -0.75 * s);
+                g.quadraticCurveTo(0.1 * s, -0.62 * s, 0.1 * s, (topR - 0.03) * s);
+                g.closePath();
+            }, false);
+            g.beginPath();
+            g.moveTo((F[0] - 0.02) * s, (F[1] + 0.03) * s);
+            g.quadraticCurveTo(-0.16 * s, -0.7 * s, -0.2 * s, -0.63 * s);
+            hatStroke(g, s, 'rgba(90,0,8,.55)', 0.022);
+            // the fur roll: thick, following the head, with a puffy edge
+            const furFill = shade(g, s, 'santafur', 0, -0.5, 0, -0.2, [[0, '#FFFFFF'], [0.6, '#F1F4F8'], [1, '#C9D3DF']]);
+            hatBlob(g, s, furFill, () => domeBand(g, s, xL - 0.02, xR + 0.02, fur, 0.035));
+            g.save();
+            g.globalAlpha = 0.55;
+            for (let i = 0; i <= 8; i++) {
+                const x = xL + (xR - xL) * i / 8, y = brimY(x) + 0.035 - fur * 0.45;
+                dot(g, s, x, y + (i % 2 ? 0.02 : -0.015), 0.02, i % 2 ? '#D6DEE8' : '#FFFFFF');
+            }
+            g.restore();
         },
 
         // Antlers on a thin band, with a pair of soft ears. The ears swing.
