@@ -23,7 +23,7 @@
     <meta name="twitter:description" content="Dodge pipes, collect coins, unlock cheats and cosmetics. Can you beat CRIX's high score?">
     <meta name="twitter:image" content="/img/bird.png">
     <!-- Favicon -->
-    <link rel="icon" type="image/png" href="/img/newfavicon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png"><link rel="icon" type="image/png" sizes="192x192" href="/img/favicon-192.png"><link rel="apple-touch-icon" href="/img/favicon-192.png">
     
     <!-- Firebase SDKs -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.24-1200";
+    <script>window.__BUILD__ = "2026.09.25-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -58,7 +58,9 @@
     <style>
         @font-face {
             font-family: 'CrixCustom';
-            src: url('/img/font.otf') format('opentype');
+            /* WOFF2 is the same font, compressed for the web: 84 KB instead of
+               194. The OTF stays as a fallback for anything that cannot read it. */
+            src: url('/img/font.woff2') format('woff2'), url('/img/font.otf') format('opentype');
             font-weight: normal;
             font-style: normal;
             font-display: swap;
@@ -934,6 +936,10 @@
            on the baseline, scaling with whatever font size it is in. */
         .coin-ico { display:inline-block; width:1.05em; height:1.05em; vertical-align:-0.17em;
                     object-fit:contain; pointer-events:none; user-select:none; }
+        /* An emoji picture sits in text the way the font glyph did: the PNG's
+           frame is the font's em box, so 1.15em matches the glyph's size. */
+        img.emo { display:inline-block; width:1.15em; height:1.15em; vertical-align:-0.22em;
+                  object-fit:contain; pointer-events:none; user-select:none; }
 
         .foot-btn {
             background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
@@ -3152,7 +3158,13 @@
     #intro { position: fixed; inset: 0; z-index: 99999; background: #000;
              display: flex; align-items: center; justify-content: center; }
     #intro[hidden] { display: none; }
-    #introVideo { width: 100%; height: 100%; object-fit: cover; }
+    /* The picture is a 4:3 VHS frame. `cover` filled the screen by cropping,
+       which on a portrait phone kept only the middle quarter of it — the
+       PLAY text and the date stamp went off both edges. `contain` always
+       shows the whole frame, centred on black, on any screen shape. The file
+       itself is now cropped to that 4:3 frame (it used to carry its own black
+       side bars) so the picture is as large as the screen allows. */
+    #introVideo { width: 100%; height: 100%; object-fit: contain; background: #000; }
     #introSkip, #introSound {
         position: fixed; bottom: 26px; padding: 11px 20px; border-radius: 24px;
         border: 2px solid rgba(255,255,255,.35); background: rgba(0,0,0,.55);
@@ -4230,6 +4242,7 @@
                 <div><span>Accounts &amp; data</span><span>Firebase</span></div>
                 <div><span>Economy &amp; roles</span><span>PlayFab</span></div>
                 <div><span>Hosting</span><span>Vercel</span></div>
+                <div><span>Emoji art</span><span>Noto Color Emoji</span></div>
             </div>
 
             <div class="mp-section-title">💛 THANK YOU</div>
@@ -5118,9 +5131,10 @@
         }
 
         const coinImage = new Image();
-        coinImage.src = '/img/coin.gif';
-        coinImage.style = 'display:none;position:absolute;';
-        document.body.appendChild(coinImage); // must be in DOM for gif to animate in canvas
+        // The frozen coin (frame 0 of coin.gif). The spin in the lane is the
+        // horizontal squash drawGame applies; the gif's own 21-frame spin on
+        // top of that was 241 KB for a coin drawn about 20px wide.
+        coinImage.src = '/img/coin-still.png';
         const birdImage = new Image(); 
         birdImage.src = '/img/bird.png';
         
@@ -5192,8 +5206,118 @@
            everywhere a price or a balance appeared. The coin is the game's
            own art instead: one still frame of coin.gif, face on. */
         const COIN_SRC = '/img/coin-still.png';
-        const COIN_IMG = '<img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false">';
+        const COIN_IMG = '<img class="coin-ico" src="/img/coin-still.png" srcset="/img/coin-still.png 1x, /img/coin-still@2x.png 2x" alt="coins" draggable="false">';
         const coinStill = new Image(); coinStill.src = COIN_SRC;     // for the canvas
+
+        /* ═══════════ EMOJI AS PICTURES ═══════════
+           An emoji is drawn by whatever font the device happens to have, so
+           the same button looked different on every phone and some showed an
+           empty box. Every emoji this game uses has been rendered once, from
+           Noto Color Emoji, into small PNGs — img/emoji/72 for text and
+           img/emoji/144 for the big ones — and any that reach the page are
+           swapped for the picture: once at start-up, and for anything added
+           later (toasts, lists, chat, the HUD) as it arrives. Text the player
+           is typing, form fields and dropdown options stay as text; so does
+           any emoji not in this list, such as one typed into chat. */
+        const EMOJI_SET = ["🔇", "🔊", "🔑", "👤", "💾", "🚪", "📴", "🏆", "🎮", "🎬", "🎙️", "🛡️", "🏁", "⚡", "💬", "🌐", "🎁", "🛒", "🧢", "🔔", "⚙️", "❓", "✨", "📄", "🎨", "🔓", "🖼️", "📤", "➕", "🌍", "👥", "🔄", "🎧", "🕊️", "💀", "🎃", "⚠️", "🔒", "📋", "👑", "💰", "🚨", "🗳️", "📶", "🔐", "📲", "📱", "🎯", "🐦", "🖥️", "🍎", "🔗", "📺", "🎵", "🙏", "🛠️", "💛", "🐘", "🐌", "🐤", "🎈", "🔧", "✂️", "👢", "🔨", "❤️", "❄️", "▶️", "⭐", "🕺", "☢️", "🗓️", "🎄", "🐣", "🚫", "🧹", "🏷️", "🚀", "ℹ️", "🎉", "💯", "💪", "💎", "🕹️", "🏅", "🕶️", "🌟", "☁️", "⏱️", "🦅", "✅", "🍬", "🥚", "🧲", "📢", "📧", "🐛", "⏳", "🤖", "🐧", "💻", "❌", "🥇", "🥈", "🥉", "⌨️", "5️⃣", "0️⃣", "🔥", "🤝", "🏟️"];
+        const EMOJI_RE = new RegExp(EMOJI_SET.slice().sort((a, b) => b.length - a.length)
+            .map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
+        // Cheap first look: does this text contain anything emoji-shaped at all?
+        const EMOJI_QUICK = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2300-\u23FF\u2460-\u27BF\u2B00-\u2BFF\u20E3\u2122\u2139]/u;
+        const EMO_SKIP = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','OPTION','SELECT','TITLE','CANVAS','CODE','PRE']);
+        const emojiFile = e => [...e].map(c => c.codePointAt(0)).filter(cp => cp !== 0xFE0F)
+                                      .map(cp => cp.toString(16)).join('-');
+        // 72px is sharp up to ~24px of text on a 3x screen; past that, 144.
+        // Remembered per kind of element, so a busy HUD does not ask the
+        // browser for its styles on every update.
+        // Also remembers whether the element lays its children out as flex or
+        // grid items: there, splitting "❓ How to play" into a picture and a
+        // text node made the text its own item, and a flex item drops its
+        // leading space — the label lost the gap after the emoji.
+        const _emoInfo = new Map();
+        function emojiInfo(el) {
+            const key = el.tagName + '.' + (typeof el.className === 'string' ? el.className : '');
+            let info = _emoInfo.get(key);
+            if (!info) {
+                const cs = getComputedStyle(el);
+                const fs = parseFloat(cs.fontSize) || 16;
+                info = { px: fs * 1.15 * (window.devicePixelRatio || 1) > 80 ? 144 : 72,
+                         boxed: /flex|grid/.test(cs.display) };
+                _emoInfo.set(key, info);
+            }
+            return info;
+        }
+        function skipEmoji(el) {
+            for (let e = el; e && e !== document.body; e = e.parentElement) {
+                if (EMO_SKIP.has(e.tagName) || e.isContentEditable ||
+                    (e.hasAttribute && e.hasAttribute('data-no-emoji'))) return true;
+            }
+            return false;
+        }
+        function emojifyText(node) {
+            const text = node.data, parent = node.parentNode;
+            if (!parent || !EMOJI_QUICK.test(text)) return;
+            EMOJI_RE.lastIndex = 0;
+            if (!EMOJI_RE.test(text)) return;
+            const info = emojiInfo(node.parentElement), px = info.px;
+            const frag = document.createDocumentFragment();
+            let last = 0, m;
+            EMOJI_RE.lastIndex = 0;
+            while ((m = EMOJI_RE.exec(text))) {
+                if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                const img = document.createElement('img');
+                img.className = 'emo'; img.alt = m[0]; img.draggable = false; img.decoding = 'async';
+                // No picture (offline and never cached, say)? The emoji itself
+                // is a better fallback than a broken-image icon.
+                img.onerror = () => { if (img.isConnected) img.replaceWith(document.createTextNode(img.alt)); };
+                img.src = '/img/emoji/' + px + '/' + emojiFile(m[0]) + '.png';
+                frag.appendChild(img);
+                last = m.index + m[0].length;
+            }
+            if (last < text.length) frag.appendChild(document.createTextNode(text.slice(last)));
+            // In a flex/grid parent keep it one item, so spaces survive
+            if (info.boxed) {
+                const run = document.createElement('span');
+                run.className = 'emo-run';
+                run.appendChild(frag);
+                parent.replaceChild(run, node);
+            } else {
+                parent.replaceChild(frag, node);
+            }
+        }
+        function emojify(root) {
+            if (!root || !root.isConnected) return;
+            if (root.nodeType === 3) {
+                if (root.parentElement && !skipEmoji(root.parentElement)) emojifyText(root);
+                return;
+            }
+            if (root.nodeType !== 1 || skipEmoji(root)) return;
+            const hits = [];
+            const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+            for (let n = w.nextNode(); n; n = w.nextNode()) if (EMOJI_QUICK.test(n.data)) hits.push(n);
+            for (const t of hits) if (!skipEmoji(t.parentElement)) emojifyText(t);
+        }
+        // Batched into a microtask, so a new emoji never paints as text first
+        const _emoQueue = new Set();
+        let _emoPending = false;
+        const _emoObserver = new MutationObserver(list => {
+            for (const m of list) {
+                if (m.type === 'characterData') _emoQueue.add(m.target);
+                else for (const n of m.addedNodes) _emoQueue.add(n);
+            }
+            if (_emoPending) return;
+            _emoPending = true;
+            queueMicrotask(() => {
+                _emoPending = false;
+                const q = [..._emoQueue]; _emoQueue.clear();
+                for (const n of q) emojify(n);
+            });
+        });
+        emojify(document.body);
+        _emoObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+        document.addEventListener('DOMContentLoaded', () => emojify(document.body));
+        // The one emoji drawn on the canvas: a dead player's skull
+        const skullImg = new Image(); skullImg.src = '/img/emoji/72/1f480.png';
 
         let achievements = [
             { id: 'first', name: 'FIRST FLIGHT', desc: 'Play your first game', icon: '🐣', unlocked: false, progress: 0, target: 1 },
@@ -5259,12 +5383,11 @@
             send:      { f: 'send' },
             error:     { f: 'error' },
             purchase:  { f: 'purchase' },
-            unlock:    { f: 'unlock',    max: 1.6 },   // a 3s shimmer; reward toasts are shorter
+            unlock:    { f: 'unlock-short' },          // the shimmer's first 1.7s — all a reward toast ever played
             levelup:   { f: 'levelup' },
             rank:      { f: 'rank' },
             // matches
-            countdown: { f: 'countdown' },
-            start:     { f: 'countdown', at: 3.15, max: 1.05, gain: 2.5 },   // the GO tone that ends the countdown (a quiet file)
+            start:     { f: 'countdown-go', gain: 2.5 },  // the GO tone that ends countdown.mp3 (a quiet file)
             // the lane
             pickup:    { f: 'coin' },
             pickupBig: { f: 'coin',      rate: 1.35 },
@@ -5274,7 +5397,7 @@
             deliver:   { f: 'purchase',  max: 1.4 },
             smash:     { f: 'smash' },
             milestone: { f: 'ach',       gain: .7 },
-            timeLow:   { f: 'tick',      at: 1.22, max: .2 }      // one tick out of the 11s clock loop
+            timeLow:   { f: 'tick-one' }                  // one tick, cut from the 11s clock loop
         };
 
         let _actx = null, _sfxOut = null;
@@ -17045,8 +17168,8 @@
                 context.fillText(nameText, 0, -birdSize/2 - 7);
 
                 if (p.dead) {
-                    context.font = '11px monospace';
-                    context.fillText('💀', 0, 5);
+                    if (skullImg.complete && skullImg.naturalWidth) context.drawImage(skullImg, -7, -6, 14, 14);
+                    else { context.font = '11px monospace'; context.fillText('💀', 0, 5); }
                 }
 
                 context.textAlign = 'left';
@@ -18440,6 +18563,10 @@
                 }
             } catch (e) {}
             Object.values(SFX).forEach(d => out.add('/img/' + d.f + '.mp3'));   // decoded lazily
+            // every emoji picture at text size (about 210 KB), so a menu first
+            // opened offline still has its icons
+            EMOJI_SET.forEach(e => out.add('/img/emoji/72/' + emojiFile(e) + '.png'));
+            ['/img/coin-still@2x.png', '/img/font.woff2', '/img/favicon-32.png', '/img/favicon-192.png'].forEach(u => out.add(u));
             document.querySelectorAll('audio source[src]').forEach(el => {
                 try { out.add(new URL(el.src, location.href).pathname); } catch (e) {}
             });
