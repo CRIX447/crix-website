@@ -374,7 +374,7 @@ const $ = i => document.getElementById(i);
         <h1>Nothing here</h1>
         <p>The launcher only runs as an app. There is nothing to see on this page.</p>
         <div class="row">
-          <a class="p" href="/download">Download for Windows</a>
+          ${/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ? '' : '<a class="p" href="/download">Download for Windows</a>'}
           <a href="/flappycrix">Play in browser</a>
           <a href="/">Home</a>
         </div>

@@ -177,9 +177,16 @@
 
 
     /* ---------------- EXTERNAL LINKS ----------------
-       The app is the GAME. Links to the website, chat, YouTube and so on
-       should open in the phone's browser rather than turning the app into
-       a website viewer with no way back. */
+       The app is the GAME. The website, CrixChat, the merch shop, Discord
+       and YouTube belong in the phone's real browser — not layered over the
+       game, and never loaded inside the app, where the back button offers
+       to quit rather than go back.
+
+       This used to hand every link to Browser.open, which is a Chrome Custom
+       Tab: an overlay drawn on top of the app, so those pages felt like part
+       of the game. And when that call failed it fell back to
+       window.open(url, '_system') — a Cordova convention Capacitor does not
+       know, so the link simply did nothing. */
     const Browser = plugin('Browser');
     const INTERNAL = ['/flappycrix', '/game.html'];
 
@@ -190,32 +197,50 @@
             return INTERNAL.some(p => u.pathname.startsWith(p));
         } catch (e) { return false; }
     }
+    function available(name) {
+        try { return !!(window.Capacitor && window.Capacitor.isPluginAvailable &&
+                        window.Capacitor.isPluginAvailable(name)); } catch (e) { return false; }
+    }
+
+    function openInBrowser(href) {
+        let u;
+        try { u = new URL(href, location.href); } catch (e) { return; }
+        // 1. The phone's actual browser app. Needs @capacitor/app-launcher in
+        //    the Android build; when it is there, every link goes this way.
+        if (available('AppLauncher')) {
+            plugin('AppLauncher').openUrl({ url: u.href }).catch(() => fallback(u));
+            return;
+        }
+        fallback(u);
+    }
+    function fallback(u) {
+        // 2. Another site: navigating to it is handed to Android, which opens
+        //    the default browser — Capacitor only keeps its own host inside.
+        if (u.host !== location.host) { location.href = u.href; return; }
+        // 3. Our own site's other pages would load inside the app that way, so
+        //    without the launcher they get a browser tab over the app instead.
+        if (Browser) { Browser.open({ url: u.href }).catch(() => { location.href = u.href; }); return; }
+        location.href = u.href;
+    }
+    window.__openInBrowser = openInBrowser;
 
     document.addEventListener('click', e => {
         const a = e.target.closest('a[href]');
         if (!a) return;
         const href = a.getAttribute('href');
-        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
-
+        if (!href || href.startsWith('#') || href.startsWith('javascript:') ||
+            href.startsWith('mailto:') || href.startsWith('tel:')) return;
         // Anything that is not the game itself goes to the real browser
         if (!isInternal(href)) {
             e.preventDefault();
-            const url = new URL(href, location.href).toString();
-            if (Browser) {
-                Browser.open({ url, presentationStyle: 'popover' }).catch(() => window.open(url, '_system'));
-            } else {
-                window.open(url, '_system');
-            }
+            openInBrowser(href);
         }
     }, true);
 
     // Same for anything opened in code
     const _open = window.open;
     window.open = function (url, target, features) {
-        if (url && !isInternal(url)) {
-            if (Browser) { Browser.open({ url: String(url) }).catch(() => {}); return null; }
-            return _open.call(window, url, '_system', features);
-        }
+        if (url && !isInternal(url)) { openInBrowser(String(url)); return null; }
         return _open.call(window, url, target, features);
     };
 
