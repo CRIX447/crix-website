@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.28-1200";
+    <script>window.__BUILD__ = "2026.09.29-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -48,7 +48,7 @@
     <script src="/ui.js?v=2026092412"></script>
     <script src="/android-bridge.js?v=2026092412"></script>
     <script src="/playfab-manager.js?v=2026092412"></script>
-    <script src="/cosmetic-art.js?v=2026092812"></script>
+    <script src="/cosmetic-art.js?v=2026092912"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -2754,8 +2754,10 @@
         /* A drawn hat has no sprite, so its card carries a canvas where the
            <img> would have been, and it has to sit in that image's box rather
            than the wide one a trail needs. */
-        .cos-swatch.hat { width: 46px; max-width: 46px; height: 46px; background: none; }
-        .locker-card .cos-swatch.hat { width: 40px; max-width: 40px; height: 40px; }
+        /* A hat's card shows the bird wearing it, head and shoulders, on the
+           same sky tile the trails use. */
+        .cos-swatch.hat { width: 64px; max-width: 64px; height: 64px; }
+        .locker-card .cos-swatch.hat { width: 50px; max-width: 50px; height: 50px; }
 
         /* ---- ACHIEVEMENT ROWS ---- */
         .ach-section {
@@ -5229,6 +5231,15 @@
         coinImage.src = '/img/coin-still.png';
         const birdImage = new Image(); 
         birdImage.src = '/img/bird.png';
+        // The same bird with its own black hat taken off, down to the red
+        // hood. Anything worn on the head is drawn on this one; stacking a
+        // hat on top of the black one is what made every hat float above the
+        // head with a black brim sticking out underneath.
+        const birdBareImage = new Image();
+        birdBareImage.src = '/img/bird-bare.png';
+        function spriteFor(hat) {
+            return (hat && birdBareImage.complete && birdBareImage.naturalWidth) ? birdBareImage : birdImage;
+        }
         
         let powerups = [
             { id: 'x2coins', name: '2X COINS', price: 1200, duration: 30, active: false, timeLeft: 0, timer: null, desc: 'Double coins 30s' },
@@ -5239,9 +5250,11 @@
         let cosmetics = [
             { id: 'crown', name: "CHAMPION'S CROWN", type: 'hat', price: null, exclusive: true,
               desc: 'Won in an event. Cannot be bought.',
-              image: '/img/crown.png', owned: false, equipped: false },
-            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, image: '/img/bucket-hat.avif', owned: false, equipped: false },
-            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, image: '/img/cap.png', owned: false, equipped: false },
+              draw: 'crown', owned: false, equipped: false },
+            // These three were product photos pasted on the sprite. They are
+            // drawn now, in the same hand as the rest, to sit on the hood.
+            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, draw: 'bucket', owned: false, equipped: false },
+            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, draw: 'cap', owned: false, equipped: false },
             // Trails replaced shirts — a sprite stretched over the bird read
             // as a smudge, a trail reads at any size and in motion.
             { id: 'trail_rainbow', name: 'RAINBOW TRAIL', type: 'trail', price: 800,
@@ -6097,7 +6110,7 @@
             // loads. An item with no shape is just the image, as before.
             if (c.draw)
                 return `<span class="cos-pair">
-                    <canvas class="cos-swatch hat" data-hat="${c.id}" width="${h * 2}" height="${h * 2}"></canvas>
+                    <canvas class="cos-swatch hat" data-hat="${c.id}" width="${h * 3}" height="${h * 3}"></canvas>
                     ${c.image ? `<img src="${c.image}" onload="this.previousElementSibling.style.display='none'"
                                       onerror="this.remove()">` : ''}
                 </span>`;
@@ -6237,8 +6250,8 @@
                 for (let i = TRAIL_LEN - 1; i >= 0; i--) pts.push(-4 - i * 1.6, Math.sin(i * 0.3) * 4);
                 drawTrail(previewCtx, pts, shirt.colours, sz, shirt.fx);
             }
-            drawSprite(previewCtx, birdImage, 0, 0, sz);
             let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned); 
+            drawSprite(previewCtx, spriteFor(hat), 0, 0, sz);
             if (hat) drawHatItem(previewCtx, hat, sz); 
             previewCtx.restore(); 
             document.getElementById('previewTitle').innerHTML = (hat||shirt) ? 'CURRENT DRIP' : 'NO DRIP'; 
@@ -6757,10 +6770,14 @@
             const g = cv.getContext('2d');
             if (!g) return;
             g.clearRect(0, 0, cv.width, cv.height);
-            const s = cv.height * 0.62;
+            // A head-and-shoulders portrait of the bird wearing it: a hat on
+            // its own was a small dark shape with nothing to say what it is.
+            // Framed from the tallest hat's tip (-0.8) down to the chin (+0.3).
+            const s = cv.height / 1.12;
             g.save();
-            g.translate(cv.width / 2, cv.height * 0.72);
-            if (item.draw && HAT_SHAPES[item.draw]) HAT_SHAPES[item.draw](g, s);
+            g.translate(cv.width / 2 - (window.CrixArt.HEAD_CX || 0) * s, cv.height * 0.72);
+            drawSprite(g, spriteFor(item), 0, 0, s);
+            drawHatItem(g, item, s, 0);
             g.restore();
         }
 
@@ -6830,7 +6847,7 @@
         function fitIsDefault(f) {
             return !f || (!f.x && !f.y && (f.scale == null || f.scale === 1) && !f.rot);
         }
-        const FIT_KEY = 'crix_cos_fit_v1';
+        const FIT_KEY = 'crix_cos_fit_v2';
         function readFitLocal() {
             try { cosmeticFit = JSON.parse(localStorage.getItem(FIT_KEY)) || {}; } catch (e) {}
         }
@@ -6842,7 +6859,10 @@
         function watchCosmeticFit() {
             if (!db) return;
             db.collection('config').doc('cosmeticFit').onSnapshot(d => {
-                cosmeticFit = (d.exists && d.data().items) || {};
+                // items2: fits made for the redrawn hats. The old `items`
+                // were tuned to lift hats clear of the black one and would
+                // push these off the head, so they are left behind.
+                cosmeticFit = (d.exists && d.data().items2) || {};
                 writeFitLocal();
                 if (typeof updatePreview === 'function') updatePreview();
                 if (typeof fitRedraw === 'function') fitRedraw();
@@ -6852,7 +6872,7 @@
             writeFitLocal();
             if (!db || !currentUser) return false;
             await db.collection('config').doc('cosmeticFit').set(
-                { items: cosmeticFit, at: Date.now(), by: currentUser.uid }, { merge: true });
+                { items2: cosmeticFit, at: Date.now(), by: currentUser.uid }, { merge: true });
             return true;
         }
 
@@ -8315,7 +8335,7 @@
                     g.strokeStyle = 'rgba(255,255,255,.12)';
                     g.beginPath(); g.moveTo(0, -cv.height); g.lineTo(0, cv.height); g.stroke();
                 }
-                drawSprite(g, birdImage, 0, 0, size);
+                drawSprite(g, spriteFor(item), 0, 0, size);
                 drawHatItem(g, item, size);
                 g.restore();
             });
@@ -8793,9 +8813,9 @@
             ctx.fill();
             ctx.restore();
 
-            drawSprite(ctx, birdImage, 0, 0, birdSize); 
-            // Hat: sits on top of the head, above the bird's outline
+            // Hat: sits on the hood, on the bird with its own hat off
             let hat=cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned);
+            drawSprite(ctx, spriteFor(hat), 0, 0, birdSize); 
             if (hat) drawHatItem(ctx, hat, birdSize, stepWobble('me', bird.velocity, 1));
             
             ctx.restore(); 
@@ -17663,7 +17683,7 @@
                 // Bird sprite
                 context.globalAlpha = alpha;
                 if (birdImage.naturalWidth > 0) {
-                    drawSprite(context, birdImage, 0, 0, birdSize);
+                    drawSprite(context, spriteFor(p.hat && cosmetics.find(c => c.id === p.hat)), 0, 0, birdSize);
                     // Their equipped cosmetics. Previously these were only ever
                     // drawn on your own bird, so nobody could see anyone's drip.
                     mpDrawWornCosmetics(context, p, birdSize, actorNr);
@@ -19102,7 +19122,7 @@
             // first opened offline still has its icons. The chat set is kept
             // as each one is first seen, not fetched all at once.
             EMOJI_UI.forEach(e => out.add('/img/emoji/72/' + emojiFile(e) + '.png'));
-            ['/img/coin-still@2x.png', '/img/font.woff2', '/img/favicon-32.png', '/img/favicon-192.png'].forEach(u => out.add(u));
+            ['/img/coin-still@2x.png', '/img/font.woff2', '/img/favicon-32.png', '/img/favicon-192.png', '/img/bird-bare.png'].forEach(u => out.add(u));
             document.querySelectorAll('audio source[src]').forEach(el => {
                 try { out.add(new URL(el.src, location.href).pathname); } catch (e) {}
             });
