@@ -16,7 +16,7 @@
  *
  * Bump VERSION to throw every cached file away on the next visit.
  */
-const VERSION = 'crix-offline-v1';
+const VERSION = 'crix-offline-v2';   // v2: optimised images, music and sounds replace the old copies
 const SHELL = '/flappycrix';
 const NAV_TIMEOUT_MS = 6000;
 
