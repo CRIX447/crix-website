@@ -90,7 +90,7 @@ handlers.adminAction = function (args, context) {
     var target = args.targetPlayFabId;
 
     // Every action is gated here, server-side.
-    var ownerOnly = ["giveCoins", "giveItem", "setRole", "reviveAll", "killAll", "bigAll"];
+    var ownerOnly = ["giveCoins", "giveItem", "grantItem", "setRole", "reviveAll", "killAll", "bigAll"];
     var modOrOwner = ["kick", "ban", "unban", "lookup"];
 
     if (ownerOnly.indexOf(action) !== -1 && !isOwner(currentPlayerId)) {
@@ -139,6 +139,7 @@ handlers.adminAction = function (args, context) {
             return { ok: true, balance: r.Balance };
         }
 
+        case "grantItem":                        // the console's old name for it
         case "giveItem": {
             if (!args.itemId) return { error: "No itemId" };
             server.GrantItemsToUser({

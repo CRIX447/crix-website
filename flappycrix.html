@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.29-1200";
+    <script>window.__BUILD__ = "2026.09.30-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -5974,12 +5974,34 @@
             localStorage.setItem('flappyAchievements', JSON.stringify(achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))));
         }
         
+        /* Anything granted through PlayFab — the crown from the staff menu
+           or the console, a catalog purchase — lives in the account's PlayFab
+           inventory. The locker only ever read the game's own save, so a
+           granted item never showed up: the crown could be awarded and still
+           never be worn. Inventory is merged in on every load (it only ever
+           adds), and saved into the game's own list from then on. */
+        function mergePlayFabOwned() {
+            const inv = (typeof PlayFabManager !== 'undefined' && PlayFabManager._ownedItems) || [];
+            let added = 0;
+            for (const c of cosmetics) {
+                if (!c.owned && (inv.includes(c.id) || inv.includes('hat_' + c.id))) { c.owned = true; added++; }
+            }
+            return added;
+        }
+        function syncPlayFabOwned() {
+            if (mergePlayFabOwned()) {
+                try { updateStoreDisplay(); updateLockerDisplay(); updatePreview(); } catch (e) {}
+                try { autoSave(); } catch (e) {}
+            }
+        }
+
         function loadFromLocal() { 
             highScore = parseInt(localStorage.getItem('flappyCrixHighScore')) || 0; 
             coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0;
             gamesPlayed = parseInt(localStorage.getItem('flappyCrixGamesPlayed')) || 0;
             let owned = JSON.parse(localStorage.getItem('flappyCrixOwned')||'[]'); 
             cosmetics.forEach(c=>c.owned = owned.includes(c.id)); 
+            mergePlayFabOwned();
             let eq = JSON.parse(localStorage.getItem('flappyCrixEquipped')||'{}'); 
             applyEquipped(eq);
             let storedAchs = JSON.parse(localStorage.getItem('flappyAchievements')||'[]');
@@ -6017,6 +6039,7 @@
             coinCount = d.coinCount || 0;
             gamesPlayed = d.gamesPlayed || 0;
             cosmetics.forEach(c => c.owned = (d.owned || []).includes(c.id));
+            mergePlayFabOwned();
             applyEquipped(d.equipped);
             if (d.achievements) d.achievements.forEach(a => {
                 const ach = achievements.find(x => x.id === a.id);
@@ -9784,6 +9807,7 @@
                 }
                 if (!res) console.warn('[PlayFab] ' + PlayFabManager.statusMessage);
                 if (res) {
+                    syncPlayFabOwned();
                     loadStatsFromPlayFab();
                     // Finish any friendships accepted while we were offline
                     if (PlayFabManager.fs) {
@@ -13651,7 +13675,9 @@
         async function ownerAction(act) {
             const isOwner = myRoles.includes('OWNER');
             const t = selectedTarget();
-            const needsTarget = ['kick','ban','giveCoins','giveItem','makeMod','stripRoles'];
+            // Give Item with nobody picked gives it to you — the crown could
+            // not be given to the owner, because you are never in your own list.
+            const needsTarget = ['kick','ban','giveCoins','makeMod','stripRoles'];
             if (needsTarget.includes(act) && !t) { ownerLog('Pick a player first', false); return; }
 
             const pf = (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) ? PlayFabManager : null;
@@ -13713,11 +13739,25 @@
                     }
 
                     case 'giveItem': {
-                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
-                        const item = prompt('Catalog Item ID (e.g. hat_bucket):', 'hat_bucket');
+                        const ids = cosmetics.map(c => c.id);
+                        const who = t ? t.name : 'yourself';
+                        const item = (prompt(`Item to give ${who}. One of:\n${ids.join(', ')}`, 'crown') || '').trim();
                         if (!item) return;
+                        const c = cosmetics.find(x => x.id === item);
+                        if (!c) { ownerLog(`No item called "${item}"`, false); return; }
+                        if (!t) {
+                            // Yours at once, in your own save, whatever PlayFab says
+                            c.owned = true;
+                            try { autoSave(); updateStoreDisplay(); updateLockerDisplay(); updatePreview(); } catch (e) {}
+                            ownerLog(`${c.name} is yours — equip it in the locker`);
+                            toast({ kind: 'success', title: `🎁 ${c.name}`, body: 'Added to your locker.' });
+                            if (pf) pf.adminAction('giveItem', { itemId: item }).catch(() => {});
+                            break;
+                        }
+                        if (!pf) { ownerLog('PlayFab not connected', false); return; }
+                        if (!t.pfId) { ownerLog(`${t.name} has no PlayFab ID`, false); return; }
                         await pf.adminAction('giveItem', { targetPlayFabId: t.pfId, itemId: item });
-                        ownerLog(`Gave ${t.name} ${item}`);
+                        ownerLog(`Gave ${t.name} ${c.name} — it appears in their locker next time they load in`);
                         break;
                     }
 
