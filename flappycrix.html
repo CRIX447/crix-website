@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.25-1200";
+    <script>window.__BUILD__ = "2026.09.26-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -2529,7 +2529,10 @@
         .store-card:hover, .locker-card:hover {
             transform: translateY(-2px); border-color: var(--orange);
         }
-        .store-card img, .locker-card img {
+        /* The item's picture only. The coin beside a price and any emoji
+           picture in a name are images too, and this rule was blowing them
+           up to 46px as well. */
+        .store-card img:not(.coin-ico):not(.emo), .locker-card img:not(.coin-ico):not(.emo) {
             width: 46px; height: 46px; object-fit: contain; margin-bottom: 6px;
         }
         .store-card-name, .locker-card-name {
@@ -2846,6 +2849,34 @@
             canvas {
                 width: 100%; height: auto; max-width: 100%; max-height: 100dvh;
                 border-radius: 0; box-shadow: none;
+            }
+            /* The playfield is drawn 2:3 and a phone is much taller than
+               that, so bare page showed in strips above and below it — black,
+               or white in the light theme. The strips now carry on the
+               scene: its sky above, its ground below (drawBackdrop keeps the
+               colours current with the theme and the season). The ID beats
+               the theme and season panel colours set for the desktop frame. */
+            #canvasWrapper {
+                background: linear-gradient(to bottom,
+                    var(--play-sky, #0A0A0F) 50%, var(--play-ground, #0A0A0F) 50%);
+            }
+            /* it is a canvas, so the page's canvas styling (backdrop, shadow,
+               sizing) would land on it too — none of that belongs here */
+            #playBandTop {
+                position: absolute; top: 0; pointer-events: none;
+                background: none; box-shadow: none; border: 0; border-radius: 0;
+                margin: 0; padding: 0; max-width: none; max-height: none;
+            }
+            /* The light theme's drop shadow, and the canvas's own dark
+               backing showing through its half-pixel top edge, both drew a
+               line where the canvas meets the strips. */
+            #canvasWrapper #gameCanvas { box-shadow: none; background: var(--play-sky, #0A0A0F); }
+            @media (orientation: landscape) {
+                /* strips at the sides instead: the scene's own sky-to-ground */
+                #canvasWrapper {
+                    background: linear-gradient(to bottom, var(--play-sky, #0A0A0F),
+                        var(--play-sky-low, #0A0A0F) 89%, var(--play-ground, #0A0A0F) 89%);
+                }
             }
 
             /* ---- everything else floats over it ---- */
@@ -3182,7 +3213,15 @@
 <script>
 (function () {
     'use strict';
-    var SOURCES = ['/img/intro.mp4', '/video.mp4', '/img/video.mp4'];
+    // MP4 (H.264) is what Windows, Macs, iPhones and Android play natively;
+    // WebM (VP9) covers browsers built without H.264, such as some Linux
+    // ones. Whichever this browser says it can play goes first, the other
+    // is the fallback. (The two names after these never existed, and only
+    // cost a pair of 404s whenever the first failed.)
+    var MP4 = '/img/intro.mp4', WEBM = '/img/intro.webm';
+    var probe = document.createElement('video');
+    var h264 = probe.canPlayType && probe.canPlayType('video/mp4; codecs="avc1.4D401F, mp4a.40.2"');
+    var SOURCES = h264 ? [MP4, WEBM] : [WEBM, MP4];
     var srcIndex = 0;
     var KEY = 'crix_intro_seen';
 
@@ -4373,8 +4412,8 @@
                 <button class="modal-close" id="closeCreatorBtn">✕</button>
             </div>
             <div class="set-sub" style="margin-bottom:12px;line-height:1.6;">
-                Recording tools. These are cosmetic — nothing here touches your
-                score, coins or rank, so anyone can use them.
+                Recording tools, for everyone. Nothing here touches your coins or
+                rank — a run the autopilot flies earns nothing.
             </div>
             <div class="set-row">
                 <div style="flex:1;min-width:0;">
@@ -4402,8 +4441,19 @@
             </div>
             <div class="set-row">
                 <div style="flex:1;min-width:0;">
+                    <span class="set-label">Format</span>
+                    <div class="set-sub">MP4 for Windows, Mac, iPhone and Android · WebM for browsers and Linux</div>
+                </div>
+                <select class="set-mini-btn" id="recFormat" style="padding:6px 10px;">
+                    <option value="auto">Auto</option>
+                    <option value="mp4">MP4</option>
+                    <option value="webm">WebM</option>
+                </select>
+            </div>
+            <div class="set-row">
+                <div style="flex:1;min-width:0;">
                     <span class="set-label">Record</span>
-                    <div class="set-sub" id="recSub">Saves a .webm — imports into any editor</div>
+                    <div class="set-sub" id="recSub">Saves a video of your run</div>
                 </div>
                 <button class="set-mini-btn" id="recBtn">RECORD</button>
             </div>
@@ -5051,6 +5101,10 @@
             hitRY:     0.467,  // 14px — the art runs to 15
             graceTicks: 24     // a beat of amnesty after a spawn or respawn
         };
+        // A run the autopilot has flown any part of keeps its score on screen
+        // but earns nothing: no coins, XP, best score or achievements. That is
+        // what lets everyone have it for recording without it being a farm.
+        let _assistedRun = false;
         let bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0, gravity: PHYS.gravity, jump: PHYS.flap };
         let pipes = [], coinsArr = [], score = 0, gameOver = false, frameCount = 0, pipeGap = 170, pipeWidth = 50, gameSpeed = 2.5;
         // How often a pipe pair is laid down. The pumpkins ride the half-beat
@@ -5355,49 +5409,54 @@
            buffer plays from anywhere — and iOS honours its volume, which it
            ignores on <audio>.
 
-           The old engine also synthesised beeps for any name that had no
-           file of its own. Those placeholders are gone: every name below is
-           one of the files the game already ships, sometimes trimmed (at /
-           max, in seconds) or pitched (rate) so one file can serve two
-           moments. */
+           Every name plays the file of the same name in /img, whole — the
+           files as they were made, uploaded for exactly these moments. No
+           trimming, no pitching, and no file standing in for another. The
+           two exceptions are spelling only: whoosh is woosh.mp3 and timeLow
+           is timelow.mp3.
+
+           The ones marked `mono` were <audio> tags, and a tag has one voice:
+           playing it again restarts it. Web Audio stacks a new copy on top
+           of the one still ringing instead, so a quick run of flaps sounded
+           doubled. Those keep their single voice. */
         const SFX = {
-            // the core set — these were <audio> tags
-            jump:      { f: 'jump' },
-            coin:      { f: 'coin' },
-            death:     { f: 'death' },
-            fail:      { f: 'fail' },
-            select:    { f: 'select' },
-            powerup:   { f: 'powerup' },
-            victory:   { f: 'victory' },
-            ach:       { f: 'ach' },
-            '67':      { f: '67' },
-            boom:      { f: 'boom' },
+            // were <audio> tags: one voice each, restarted on every play
+            jump:      { f: 'jump',      mono: true },
+            coin:      { f: 'coin',      mono: true },
+            death:     { f: 'death',     mono: true },
+            fail:      { f: 'fail',      mono: true },
+            select:    { f: 'select',    mono: true },
+            powerup:   { f: 'powerup',   mono: true },
+            victory:   { f: 'victory',   mono: true },
+            ach:       { f: 'ach',       mono: true },
+            '67':      { f: '67',        mono: true },
+            boom:      { f: 'boom',      mono: true },
             // menus and social
             swoosh:    { f: 'swoosh' },
-            whoosh:    { f: 'woosh',     max: .65 },   // audible for 0.6s; the rest is silent tail
+            whoosh:    { f: 'woosh' },
             pop:       { f: 'pop' },
             join:      { f: 'join' },
             leave:     { f: 'leave' },
             message:   { f: 'message' },
             notify:    { f: 'notify' },
             send:      { f: 'send' },
-            error:     { f: 'error' },
+            error:     { f: 'error',     mono: true },   // a burst of refusals is one buzz, not a pile
             purchase:  { f: 'purchase' },
-            unlock:    { f: 'unlock-short' },          // the shimmer's first 1.7s — all a reward toast ever played
+            unlock:    { f: 'unlock' },
             levelup:   { f: 'levelup' },
             rank:      { f: 'rank' },
             // matches
-            start:     { f: 'countdown-go', gain: 2.5 },  // the GO tone that ends countdown.mp3 (a quiet file)
+            start:     { f: 'start' },
             // the lane
-            pickup:    { f: 'coin' },
-            pickupBig: { f: 'coin',      rate: 1.35 },
-            hatch:     { f: 'pop',       rate: 1.25 },
-            carry:     { f: 'pop',       rate: .85 },
-            sour:      { f: 'error' },
-            deliver:   { f: 'purchase',  max: 1.4 },
+            pickup:    { f: 'pickup' },
+            pickupBig: { f: 'pickupBig' },
+            hatch:     { f: 'hatch' },
+            carry:     { f: 'carry' },
+            sour:      { f: 'sour' },
+            deliver:   { f: 'deliver' },
             smash:     { f: 'smash' },
-            milestone: { f: 'ach',       gain: .7 },
-            timeLow:   { f: 'tick-one' }                  // one tick, cut from the 11s clock loop
+            milestone: { f: 'milestone' },
+            timeLow:   { f: 'timelow' }
         };
 
         let _actx = null, _sfxOut = null;
@@ -5427,14 +5486,16 @@
             return c;
         }
         // One limiter in front of the speakers, so a stack of pickups landing
-        // on the same tick as a milestone cannot clip.
+        // on the same tick as a milestone cannot clip. It sits just under
+        // full scale and does nothing to a sound playing on its own — at
+        // -3dB it was squashing every file that peaks near the top.
         function sfxOut() {
             const ctx = rawCtx();
             if (!ctx) return null;
             if (!_sfxOut || _sfxOut.context !== ctx) {
                 const lim = ctx.createDynamicsCompressor();
-                lim.threshold.value = -3; lim.knee.value = 2; lim.ratio.value = 20;
-                lim.attack.value = .002; lim.release.value = .12;
+                lim.threshold.value = -0.5; lim.knee.value = 0; lim.ratio.value = 20;
+                lim.attack.value = .001; lim.release.value = .1;
                 lim.connect(ctx.destination);
                 _sfxOut = lim;
             }
@@ -5501,41 +5562,48 @@
         setTimeout(() => (window.requestIdleCallback || (fn => fn()))(preloadSfx), 1200);
 
         /* ---- playing ---- */
-        function playBuffer(buf, def, vol) {
+        const _voice = {};                   // name -> the one voice of a mono effect
+        function playBuffer(buf, name, def, vol) {
             const ctx = rawCtx(), out = sfxOut();
             if (!ctx || !out || ctx.state !== 'running') return false;
             const src = ctx.createBufferSource();
             src.buffer = buf;
-            if (def.rate) src.playbackRate.value = def.rate;
             const g = ctx.createGain();
             g.gain.value = vol;
             src.connect(g); g.connect(out);
-            const now = ctx.currentTime, at = def.at || 0;
-            if (def.max) {
-                // cut long files short, with a quick fade so they do not click
-                g.gain.setValueAtTime(vol, now + Math.max(0, def.max - .08));
-                g.gain.linearRampToValueAtTime(0.0001, now + def.max);
-                src.start(now, at, def.max + .02);
-            } else {
-                src.start(now, at);
+            if (def.mono) {
+                // Restart, the way the <audio> tag did: the voice still
+                // ringing is faded over a few milliseconds (a hard stop
+                // clicks) and the new one takes its place.
+                const prev = _voice[name], now = ctx.currentTime;
+                if (prev) {
+                    try {
+                        prev.g.gain.cancelScheduledValues(now);
+                        prev.g.gain.setValueAtTime(prev.g.gain.value, now);
+                        prev.g.gain.linearRampToValueAtTime(0, now + .012);
+                        prev.src.stop(now + .015);
+                    } catch (e) {}
+                }
+                const v = _voice[name] = { src, g };
+                src.onended = () => { if (_voice[name] === v) delete _voice[name]; };
             }
+            src.start();
             return true;
         }
 
         // Only for a file that has not finished decoding yet, or a browser
-        // with no Web Audio at all. One element per file, cloned per play.
+        // with no Web Audio at all. A mono effect keeps one element and
+        // restarts it; anything else gets a fresh copy per play.
         const _sfxEl = {};
-        function playFallback(def, vol) {
+        function playFallback(name, def, vol) {
             try {
                 let base = _sfxEl[def.f];
                 if (!base) { base = _sfxEl[def.f] = new Audio('/img/' + def.f + '.mp3'); base.preload = 'auto'; }
-                const a = base.cloneNode();
+                const a = def.mono ? base : base.cloneNode();
                 a.volume = Math.max(0, Math.min(1, vol));
-                if (def.rate) a.playbackRate = def.rate;
-                if (def.at) { try { a.currentTime = def.at; } catch (e) {} }
+                if (def.mono) { try { a.currentTime = 0; } catch (e) {} }
                 const p = a.play();
                 if (p && p.catch) p.catch(() => {});
-                if (def.max) setTimeout(() => { try { a.pause(); } catch (e) {} }, def.max * 1000);
             } catch (e) { /* nothing more to try */ }
         }
 
@@ -5543,15 +5611,15 @@
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
             const def = SFX[name];
             if (!def) return;
-            const vol = (volume ?? 1) * sfxVolume() * (def.gain || 1);
+            const vol = (volume ?? 1) * sfxVolume();
             if (vol <= 0) return;
             if (sfxReady(def.f)) {
-                if (playBuffer(_sfxBuf[def.f], def, vol)) return;
+                if (playBuffer(_sfxBuf[def.f], name, def, vol)) return;
                 audioCtx();                     // not unlocked yet: nudge it
             } else {
                 loadSfxFile(def.f);             // first time asked: start fetching
             }
-            playFallback(def, vol);
+            playFallback(name, def, vol);
         }
 
         // A file by path — the seasonal fly-bys. `alt` is tried if the first
@@ -5644,6 +5712,19 @@
             if (name) { playSfx(name); return; }
             try { snd.currentTime = 0; const p = snd.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
         }
+
+        // Tapping something that cannot be used — a disabled button such as
+        // OWNED, a locked calendar door — buzzes. A disabled button never
+        // gets a click event at all, so this listens for the release and
+        // asks what is under the finger.
+        addEventListener('pointerup', e => {
+            if (e.button > 0 || !e.isPrimary) return;
+            const hit = document.elementFromPoint(e.clientX, e.clientY);
+            if (hit && hit.closest && hit.closest(
+                'button:disabled, input:disabled, select:disabled, [aria-disabled="true"], .locked')) {
+                playSfx('error');
+            }
+        }, true);
         
         // ========== SAVING SYSTEM ==========
         // Coalesced. This used to fire on every coin, which meant a Firestore
@@ -6077,12 +6158,13 @@
         }
 
         window.buyPowerup = function(id) {
-            if (mpMatchActive && mpMatchMode === 'coinrush') return; // no powerups in coinrush
+            if (mpMatchActive && mpMatchMode === 'coinrush') { playSfx('error'); return; } // no powerups in coinrush
             const p = powerups.find(x => x.id === id);
             const cost = salePrice(p && p.price);
-            if (!p || p.active || coinCount < cost) return;
+            if (!p || p.active || coinCount < cost) { playSfx('error'); return; }
             coinCount -= cost;
             updateCoinDisplay();
+            playSfx('purchase');
             grantPowerup(id, p.duration);
             updateStoreDisplay();
             autoSave();
@@ -6090,7 +6172,7 @@
         
         window.buyCosmetic = function(id) { 
             let c = cosmetics.find(c=>c.id===id);
-            if (!c || c.owned) return;
+            if (!c || c.owned) { playSfx('error'); return; }
             // Exclusive items are awarded, never sold. Without this the null
             // price passed the coin check and it could be taken for free.
             if (c.exclusive || c.price === null || c.price === undefined) {
@@ -6099,8 +6181,12 @@
                 return;
             }
             const _cc = salePrice(c.price);
-            if (coinCount < _cc) return;
-            coinCount -= _cc; c.owned = true; updateCoinDisplay(); playSound(selectSound); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
+            if (coinCount < _cc) {
+                toast({ kind:'warn', title:'Not enough coins',
+                        body:'You need ' + formatCoins(_cc - coinCount) + ' more for ' + c.name + '.' });
+                return;
+            }
+            coinCount -= _cc; c.owned = true; updateCoinDisplay(); playSfx('purchase'); updateStoreDisplay(); updateLockerDisplay(); autoSave(); 
         };
         
         window.equipItem = function(id) { 
@@ -6145,6 +6231,7 @@
             return r[1];
         }
         function resetGame() {
+            _assistedRun = autopilotOn;
             // All players start at x=100 — same world, same physics
             bird = { x: 100, y: 300, width: 30, height: 30, velocity: 0,
                      gravity:  window.__pmLowGrav ? PHYS.lowGrav : (cheats.slowmo ? PHYS.slowGrav : PHYS.gravity),
@@ -6249,6 +6336,7 @@
             if (window.__crixFrozen) return;   // owner freeze
 
             travelled += gameSpeed;
+            _bgOffset += 0.4;
             if (equippedTrail()) {
                 advanceTrail(_localTrail, gameSpeed);
                 pushTrail(_localTrail, bird.x, bird.y);
@@ -6380,7 +6468,7 @@
                         mpRaiseEvent(MP_EV.SCORE, { score: mpCoinsThisMatch, coins: mpCoinsThisMatch });
                     }
                     const multiplier = (mpMatchActive && mpMatchMode === 'coinrush') ? 1 : coinMultiplier;
-                    coinCount += multiplier;
+                    if (!_assistedRun) coinCount += multiplier;
                     playSound(coinSound); updateCoinDisplay(); checkAchievements(); autoSave();
                     if (mpMatchActive && mpMatchMode === 'coinrush') {
                         if (!mpCoinRushCoins[mpLocalActor]) mpCoinRushCoins[mpLocalActor] = 0;
@@ -7639,7 +7727,7 @@
                 const coins = 25 + Math.floor(roll / 0.55 * 60);   // 25..85
                 const paid = Math.round(coins * (typeof eventCoinMult === 'function' ? eventCoinMult() : 1))
                              * (coinMultiplier || 1);
-                coinCount += paid;
+                if (!_assistedRun) coinCount += paid;
                 try { updateCoinDisplay(); autoSave(); } catch (e) {}
                 return { text: '+' + paid, coin: true, colour: '#FFD700', sfx: 'coin' };
             }
@@ -8036,7 +8124,7 @@
             if (!s || !s.cal) return;
             const open = calToday(s), done = calClaimed(id);
             if (!open || n > open) {
-                toast({ kind: 'info', title: 'Not open yet',
+                toast({ kind: 'info', title: 'Not open yet', sound: 'error',
                         body: `Door ${n} opens on its own day.` });
                 return;
             }
@@ -8232,9 +8320,7 @@
             if (door && !door.disabled) claimCalendarDoor(+door.dataset.door);
         });
 
-        function pipeGradient(w) {
-            if (_pipeGrad && _pipeGradW === w) return _pipeGrad;
-            const g = ctx.createLinearGradient(0, 0, w, 0);
+        function pipeStops(g) {
             const sp = seasonFor('colour');
             const c = sp ? sp.pipe : ['#0B8F56', '#00CC7A', '#4DE8A8', '#00CC7A', '#076B41'];
             g.addColorStop(0,    c[0]);
@@ -8242,13 +8328,95 @@
             g.addColorStop(0.42, c[2]);   // highlight, slightly left of centre
             g.addColorStop(0.72, c[3]);
             g.addColorStop(1,    c[4]);
-            _pipeGrad = g; _pipeGradW = w;
             return g;
+        }
+        function pipeGradient(w) {
+            if (_pipeGrad && _pipeGradW === w) return _pipeGrad;
+            _pipeGrad = pipeStops(ctx.createLinearGradient(0, 0, w, 0)); _pipeGradW = w;
+            return _pipeGrad;
         }
 
         // Backdrop in the style of the original — sky, a distant skyline, a
         // bush line, and a striped ground that scrolls with the pipes.
         let _bgOffset = 0;
+
+        /* Where a scrolling layer sits across the screen. JavaScript's % keeps
+           the sign of the left side, so once the scroll overtook an item's
+           starting place the old `(start - scroll) % span` went negative and
+           stayed there: the item was parked off the left edge for good.
+           Clouds, bushes, the skyline, bats, snow and eggs left one by one,
+           and a couple of minutes into a session the sky was empty. */
+        function bgWrap(v, span) { return ((v % span) + span) % span; }
+
+        // The colours the phone layout extends the scene with, past the
+        // canvas edges. Written only when they change.
+        let _bandKey = '';
+        function playBands(top, low, ground) {
+            _bandSky = top;
+            const key = top + low + ground;
+            if (key === _bandKey) return;
+            const w = document.getElementById('canvasWrapper');
+            if (!w) return;
+            _bandKey = key;
+            w.style.setProperty('--play-sky', top);
+            w.style.setProperty('--play-sky-low', low);
+            w.style.setProperty('--play-ground', ground);
+        }
+
+        /* With sky in the strip above the playfield, the top pipes stopped
+           at the canvas edge and hung from nothing. This canvas, one pixel
+           tall and stretched over the strip, carries them up to the top of
+           the screen: the sky colour, then each top pipe's body where it is
+           in the lane. Painted, not copied from the game canvas — anything
+           crossing its top row (a snowflake) would streak down the strip. */
+        const _bandCv = document.createElement('canvas');
+        _bandCv.id = 'playBandTop'; _bandCv.height = 1; _bandCv.setAttribute('aria-hidden', 'true');
+        const _bandCtx = _bandCv.getContext('2d');
+        const PHONE_PLAYFIELD = matchMedia('(max-width: 700px), (max-height: 520px)');
+        let _bandOn = false, _bandSky = '#12203A', _bandGrad = null, _bandGradFor = null;
+        function layoutPlayBand() {
+            const wrap = document.getElementById('canvasWrapper');
+            if (!wrap || !canvas) return;
+            if (_bandCv.parentNode !== wrap) wrap.insertBefore(_bandCv, wrap.firstChild);
+            const w = wrap.getBoundingClientRect(), r = canvas.getBoundingClientRect();
+            const gap = r.top - w.top;
+            _bandOn = PHONE_PLAYFIELD.matches && gap > 2 && r.width > 0;
+            _bandCv.style.display = _bandOn ? 'block' : 'none';
+            if (!_bandOn) return;
+            if (_bandCv.width !== canvas.width) _bandCv.width = canvas.width;
+            _bandCv.style.left = (r.left - w.left) + 'px';
+            _bandCv.style.width = r.width + 'px';
+            _bandCv.style.height = (Math.ceil(gap) + 1) + 'px';   // 1px under the canvas: no seam
+        }
+        function paintPlayBand() {
+            if (!_bandOn) return;
+            const b = _bandCtx;
+            b.setTransform(1, 0, 0, 1, 0, 0);
+            b.fillStyle = _bandSky;
+            b.fillRect(0, 0, _bandCv.width, 1);
+            const main = pipeGradient(pipeWidth);
+            if (_bandGradFor !== main) {
+                _bandGrad = pipeStops(b.createLinearGradient(0, 0, pipeWidth, 0));
+                _bandGradFor = main;
+            }
+            b.fillStyle = _bandGrad;
+            const shift = worldRenderShift();
+            for (const p of pipes) {
+                if (!(p.top > 0)) continue;
+                b.setTransform(1, 0, 0, 1, p.x + shift, 0);
+                b.fillRect(0, 0, pipeWidth, 1);
+            }
+        }
+        (function watchPlayBand() {
+            const wrap = document.getElementById('canvasWrapper');
+            if (!wrap || !canvas) return;
+            if (window.ResizeObserver) {
+                const ro = new ResizeObserver(layoutPlayBand);
+                ro.observe(wrap); ro.observe(canvas);
+            }
+            addEventListener('resize', layoutPlayBand);
+            addEventListener('orientationchange', () => setTimeout(layoutPlayBand, 250));
+        })();
 
         function drawBackdrop() {
             const light = document.documentElement.classList.contains('theme-light');
@@ -8257,6 +8425,9 @@
             const skyH = H - groundH;
 
             const sp = seasonFor('colour');
+            playBands(sp ? sp.skyTop : light ? '#4EC0CA' : '#12203A',
+                      sp ? sp.skyLow : light ? '#8FD9E0' : '#1B3352',
+                      sp ? sp.ground : light ? '#DED895' : '#2A2A22');
 
             // ---- sky ----
             const sky = ctx.createLinearGradient(0, 0, 0, skyH);
@@ -8266,7 +8437,9 @@
             ctx.fillStyle = sky;
             ctx.fillRect(0, 0, W, skyH);
 
-            if (gameRunning && !gameOver) _bgOffset += 0.4;
+            // The scroll moves per game tick, not per painted frame — a 120Hz
+            // phone was scrolling the scenery twice as fast as a 60Hz one.
+            const bgOff = _bgOffset - ((gameRunning && !gameOver) ? 0.4 * (1 - _alpha) : 0);
 
             // A full moon behind everything, for the two seasons that want one.
             if (sp && (sp.motif === 'bat' || sp.motif === 'snow')) {
@@ -8280,7 +8453,7 @@
             if (!sp) {
                 ctx.fillStyle = light ? 'rgba(255,255,255,.85)' : 'rgba(180,200,235,.10)';
                 for (let i = 0; i < 4; i++) {
-                    const x = ((i * 150 - _bgOffset * 0.12) % (W + 180)) - 90;
+                    const x = bgWrap(i * 150 - bgOff * 0.12, W + 180) - 90;
                     const y = 26 + (i % 3) * 34;
                     blob(x, y, 30, 12);
                     blob(x + 22, y - 7, 22, 10);
@@ -8291,9 +8464,9 @@
                 // so they stay in step with the world for free.
                 ctx.fillStyle = sp.motifFill;
                 for (let i = 0; i < 7; i++) {
-                    const x = ((i * 96 - _bgOffset * 0.5) % (W + 120)) - 60;
-                    const y = 30 + (i % 4) * 30 + Math.sin(_bgOffset * 0.04 + i) * 8;
-                    const w = 11, flap = Math.sin(_bgOffset * 0.22 + i * 1.3) * 5;
+                    const x = bgWrap(i * 96 - bgOff * 0.5, W + 120) - 60;
+                    const y = 30 + (i % 4) * 30 + Math.sin(bgOff * 0.04 + i) * 8;
+                    const w = 11, flap = Math.sin(bgOff * 0.22 + i * 1.3) * 5;
                     ctx.beginPath();
                     ctx.moveTo(x, y);
                     ctx.quadraticCurveTo(x - w, y - 7 - flap, x - w * 2, y + 1);
@@ -8305,15 +8478,15 @@
             } else if (sp.motif === 'snow') {
                 ctx.fillStyle = sp.motifFill;
                 for (let i = 0; i < 34; i++) {
-                    const sx = ((i * 71 + Math.sin(i) * 40 - _bgOffset * 0.25) % (W + 40)) - 20;
-                    const sy = ((i * 53 + _bgOffset * (0.5 + (i % 3) * 0.25)) % (skyH + 20)) - 10;
+                    const sx = bgWrap(i * 71 + Math.sin(i) * 40 - bgOff * 0.25, W + 40) - 20;
+                    const sy = bgWrap(i * 53 + bgOff * (0.5 + (i % 3) * 0.25), skyH + 20) - 10;
                     const r = 1.2 + (i % 3) * 0.8;
                     ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
                 }
             } else if (sp.motif === 'egg') {
                 for (let i = 0; i < 6; i++) {
-                    const x = ((i * 128 - _bgOffset * 0.16) % (W + 150)) - 75;
-                    const y = 34 + (i % 3) * 36 + Math.sin(_bgOffset * 0.03 + i) * 5;
+                    const x = bgWrap(i * 128 - bgOff * 0.16, W + 150) - 75;
+                    const y = 34 + (i % 3) * 36 + Math.sin(bgOff * 0.03 + i) * 5;
                     ctx.fillStyle = EGG_COLOURS[i % EGG_COLOURS.length];
                     ctx.beginPath();
                     ctx.ellipse(x, y, 9, 12, Math.sin(i) * 0.3, 0, Math.PI * 2);
@@ -8329,7 +8502,7 @@
             const cityFill = sp ? sp.city : (light ? 'rgba(120,200,205,.75)' : 'rgba(35,60,95,.7)');
             ctx.fillStyle = cityFill;
             for (let i = 0; i < 14; i++) {
-                const x = ((i * 62 - _bgOffset * 0.2) % (W + 140)) - 70;
+                const x = bgWrap(i * 62 - bgOff * 0.2, W + 140) - 70;
                 const h = 26 + ((i * 37) % 46);
                 ctx.fillRect(x, cityY + (46 - h), 44, h);
                 // a suggestion of windows, not actual detail
@@ -8346,7 +8519,7 @@
             const bushY = skyH - Math.round(H * 0.045);
             ctx.fillStyle = sp ? sp.bush : (light ? '#5BAF3E' : '#1E4A2E');
             for (let i = 0; i < 12; i++) {
-                const x = ((i * 74 - _bgOffset * 0.45) % (W + 160)) - 80;
+                const x = bgWrap(i * 74 - bgOff * 0.45, W + 160) - 80;
                 blob(x, bushY, 34, 15);
                 blob(x + 26, bushY - 5, 28, 14);
             }
@@ -8366,7 +8539,7 @@
             ctx.fillStyle = sp ? sp.stripe : (light ? 'rgba(180,170,90,.5)' : 'rgba(255,255,255,.05)');
             const stripeW = 14, span = groundH;
             for (let x = -span; x < W + span; x += stripeW * 2) {
-                const ox = x - (_bgOffset % (stripeW * 2));
+                const ox = x - bgWrap(bgOff, stripeW * 2);
                 ctx.beginPath();
                 ctx.moveTo(ox, skyH + groundH);
                 ctx.lineTo(ox + span, skyH + 4);
@@ -8427,6 +8600,7 @@
             if (autopilotOn) autopilotStep(); 
             ctx.clearRect(0,0,canvas.width,canvas.height);
             drawBackdrop();
+            paintPlayBand();
             updateFlyer(); drawFlyer();
             // Everything in the lane scrolls at one speed, so one shifted
             // layer keeps pipes, coins and a mode's props lined up with each
@@ -8678,11 +8852,12 @@
         }
 
         function updateHighScore(){
+            if (_assistedRun) return;
             if(score>highScore){ highScore=score; document.getElementById('highScore').textContent=highScore; autoSave(); }
             // Note: fail sound only plays at end of MP match, not on individual deaths.
             // Victory sound plays in single player only on score=1000 (handled in updateGame).
         }
-        function checkAchievements(){ let unlocked=false; if(!achievements[0].unlocked && gamesPlayed>=1){ achievements[0].unlocked=true; unlocked=true; } if(!achievements[1].unlocked){ achievements[1].progress=Math.min(coinCount,100); if(coinCount>=100){ achievements[1].unlocked=true; unlocked=true; } } if(!achievements[2].unlocked && score>=50){ achievements[2].unlocked=true; unlocked=true; } if(!achievements[3].unlocked && score>=100){ achievements[3].unlocked=true; unlocked=true; } if(!achievements[4].unlocked && hasTriggered67){ achievements[4].unlocked=true; unlocked=true; } if(!achievements[5].unlocked && hasTriggered1000){ achievements[5].unlocked=true; unlocked=true; } 
+        function checkAchievements(){ if (_assistedRun) return; let unlocked=false; if(!achievements[0].unlocked && gamesPlayed>=1){ achievements[0].unlocked=true; unlocked=true; } if(!achievements[1].unlocked){ achievements[1].progress=Math.min(coinCount,100); if(coinCount>=100){ achievements[1].unlocked=true; unlocked=true; } } if(!achievements[2].unlocked && score>=50){ achievements[2].unlocked=true; unlocked=true; } if(!achievements[3].unlocked && score>=100){ achievements[3].unlocked=true; unlocked=true; } if(!achievements[4].unlocked && hasTriggered67){ achievements[4].unlocked=true; unlocked=true; } if(!achievements[5].unlocked && hasTriggered1000){ achievements[5].unlocked=true; unlocked=true; } 
             const bump = (id, cond, prog) => {
                 const a = achievements.find(x => x.id === id);
                 if (!a || a.unlocked) return;
@@ -8717,7 +8892,7 @@
         document.getElementById('seasonModeBtn')?.addEventListener('click', async () => {
             const a = smAvailable();
             if (!a) {
-                toast({ kind: 'info', title: 'Nothing running',
+                toast({ kind: 'info', title: 'Nothing running', sound: 'error',
                         body: 'Limited modes only open while their season is on.' });
                 return;
             }
@@ -9939,15 +10114,24 @@
 
         let autopilotOn = false;
         function toggleAutopilot(on) {
+            if (on && typeof mpCurrentRoom !== 'undefined' && mpCurrentRoom) {
+                toast({ kind:'warn', title:'Not in multiplayer',
+                        body:'Autopilot is for recording single-player footage.' });
+                return false;
+            }
             autopilotOn = on;
+            if (on && gameRunning && !gameOver) _assistedRun = true;
             if (on) toast({ kind:'info', title:'Autopilot on',
-                            body:'The bird flies itself. Turn it off in the owner menu.' });
+                            body:'The bird flies itself. Runs it flies earn no coins, XP or best score. Turn it off in the Creator Studio.' });
+            return true;
         }
 
         // Aims for the middle of the next gap and flaps when it drops below.
         // Deliberately imperfect, so footage still looks human.
         function autopilotStep() {
             if (!autopilotOn || !gameRunning || gameOver) return;
+            if (typeof mpCurrentRoom !== 'undefined' && mpCurrentRoom) return;   // never in a room
+            _assistedRun = true;
             let next = null;
             for (const p of pipes) {
                 if (p.x + pipeWidth > bird.x - 10) { next = p; break; }
@@ -9975,6 +10159,130 @@
         //   canvas — just the playfield, transparent-free, perfect gameplay
         //   screen — the whole window, so menus, shop and locker are included
         let recMode = 'canvas';
+
+        /* ---- what a recording is saved as ----
+           Each system gets the file its own player opens without help:
+             Windows  MP4 (H.264 + AAC) — Photos, Films & TV, Clipchamp
+             macOS    MP4 — QuickTime, Photos, iMovie
+             iOS      MP4 — the only thing Safari can record, and what Photos keeps
+             Android  MP4 — every gallery app plays it
+             Linux    WebM (VP9 + Opus) — open codecs, plays in VLC, mpv and browsers
+           WebM is also the browser-to-browser format (YouTube, Discord and
+           every editor take it). A browser that cannot make the preferred
+           one falls back to the other — Firefox, for one, only records WebM.
+           The Format box in the Creator Studio can force either. */
+        // An MP4 only counts if it is H.264 inside — that is what makes it
+        // play everywhere. A Chromium without an H.264 encoder says yes to a
+        // bare 'video/mp4' and then puts VP9 in the box, which Windows and
+        // iPhones will not open; so the bare type is only trusted on Safari,
+        // whose recorder only makes H.264.
+        const IS_SAFARI = /Safari/i.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|Edg|Firefox|FxiOS|Android/i.test(navigator.userAgent);
+        const REC_TYPES = {
+            mp4:  ['video/mp4;codecs=avc1.640028,mp4a.40.2', 'video/mp4;codecs=avc1,mp4a',
+                   'video/mp4;codecs=avc1', 'video/mp4;codecs=h264,aac']
+                  .concat(IS_SAFARI ? ['video/mp4'] : []),
+            webm: ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+        };
+        const RECORD_FOR = { mp4: 'plays on Windows, Mac, iPhone and Android', webm: 'for browsers, Linux and editors' };
+        function recPreferred() {
+            const p = detectPlatform();
+            return (p === 'linux' || p === 'chromeos' || p === 'unknown') ? 'webm' : 'mp4';
+        }
+        function recSupported(type) {
+            if (typeof MediaRecorder === 'undefined' || !MediaRecorder.isTypeSupported) return null;
+            return REC_TYPES[type].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || null;
+        }
+        function pickRecFormat(choice) {
+            const first = choice === 'mp4' || choice === 'webm' ? choice : recPreferred();
+            for (const type of [first, first === 'mp4' ? 'webm' : 'mp4']) {
+                const mime = recSupported(type);
+                if (mime) return { type, mime, vp9: /vp9/.test(mime) };
+            }
+            // Very old Safari: MediaRecorder exists but answers no to everything
+            return typeof MediaRecorder !== 'undefined' ? { type: 'mp4', mime: '', vp9: false } : null;
+        }
+        // Enough bits for the picture, and no more. It was a flat 12 Mbps,
+        // which for the 400x600 playfield is about eight times what it needs
+        // and made a one-minute clip ~90 MB. Sized per pixel now: VP9 needs a
+        // little less than H.264 for the same look.
+        function recBitrate(w, h, fmt) {
+            const bpp = fmt.vp9 ? 0.07 : 0.1;
+            return Math.round(Math.max(1.5e6, Math.min(10e6, w * h * 60 * bpp)));
+        }
+        // On a phone the download lands in Files or Downloads. Share sends it
+        // to Photos / Gallery, TikTok, YouTube — but it has to come from a tap,
+        // so the finished clip gets a button rather than opening by itself.
+        function offerRecShare(blob, name, sub) {
+            try {
+                const file = new File([blob], name, { type: blob.type });
+                if (!navigator.canShare || !navigator.canShare({ files: [file] })) return;
+                if (!/Android|iPhone|iPad|iPod/i.test(navigator.userAgent) &&
+                    !(navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent))) return;
+                const b = document.createElement('button');
+                b.className = 'set-mini-btn'; b.textContent = 'SAVE TO PHOTOS / SHARE';
+                b.style.cssText = 'display:block;margin-top:8px;';
+                b.onclick = () => navigator.share({ files: [file], title: 'Flappy Crix clip' }).catch(() => {});
+                sub.appendChild(b);
+            } catch (e) { /* the download already happened */ }
+        }
+        /* A browser writes a WebM as it goes, so it never goes back to put
+           the length in: players showed no duration and could not seek, and
+           some editors refused the file. The length is added to the header
+           (Segment Info gains a Duration element) once recording stops. */
+        function _find(buf, pat, from, to) {
+            outer: for (let i = from; i <= Math.min(to, buf.length) - pat.length; i++) {
+                for (let k = 0; k < pat.length; k++) if (buf[i + k] !== pat[k]) continue outer;
+                return i;
+            }
+            return -1;
+        }
+        async function fixWebmDuration(blob, ms) {
+            try {
+                const buf = new Uint8Array(await blob.arrayBuffer());
+                const info = _find(buf, [0x15, 0x49, 0xA9, 0x66], 0, 8192);      // Segment Info
+                if (info < 0) return blob;
+                const at = info + 4, first = buf[at];
+                let len = 1, mask = 0x80;
+                while (len <= 8 && !(first & mask)) { len++; mask >>= 1; }
+                if (len > 8) return blob;
+                let size = first & (mask - 1);
+                for (let k = 1; k < len; k++) size = size * 256 + buf[at + k];
+                const start = at + len, end = start + size;
+                if (end > buf.length || _find(buf, [0x44, 0x89], start, end) >= 0) return blob;
+                const dur = new Uint8Array(11);                                  // Duration, float64, in ms
+                dur[0] = 0x44; dur[1] = 0x89; dur[2] = 0x88;
+                new DataView(dur.buffer).setFloat64(3, ms);
+                const sz = new Uint8Array(8); sz[0] = 0x01;                       // new Info size, 8-byte form
+                let v = size + dur.length;
+                for (let k = 7; k >= 1; k--) { sz[k] = v % 256; v = Math.floor(v / 256); }
+                return new Blob([buf.subarray(0, at), sz, buf.subarray(start, end), dur, buf.subarray(end)],
+                                { type: blob.type });
+            } catch (e) { return blob; }
+        }
+
+        function refreshRecOptions() {
+            const sel = document.getElementById('recFormat');
+            if (sel) {
+                const pref = recPreferred();
+                const auto = sel.querySelector('option[value="auto"]');
+                if (auto) auto.textContent = 'Auto (' + pref.toUpperCase() + ' for this device)';
+                for (const o of sel.options) if (o.value !== 'auto') o.disabled = !recSupported(o.value);
+            }
+            // Phones and tablets cannot share a screen, so there is only the playfield
+            const scr = document.querySelector('#recMode option[value="screen"]');
+            if (scr) {
+                const can = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia);
+                scr.disabled = !can;
+                if (!can && recMode === 'screen') { recMode = 'canvas'; document.getElementById('recMode').value = 'canvas'; }
+            }
+            const sub = document.getElementById('recSub'), btn = document.getElementById('recBtn');
+            if (sub && btn && !mediaRecorder) {
+                const f = pickRecFormat(sel ? sel.value : 'auto');
+                btn.disabled = !f;
+                sub.textContent = f ? 'Saves a .' + f.type + ' — ' + RECORD_FOR[f.type]
+                                    : 'This browser cannot record video.';
+            }
+        }
 
         async function toggleRecording() {
             const btn = document.getElementById('recBtn');
@@ -10006,35 +10314,43 @@
                     stream = buildCleanCanvasStream();
                 }
 
-                const types = [
-                    'video/webm;codecs=vp9,opus',
-                    'video/webm;codecs=vp8,opus',
-                    'video/webm'
-                ];
-                const mime = types.find(t => MediaRecorder.isTypeSupported(t)) || '';
+                const fmt = pickRecFormat(document.getElementById('recFormat')?.value || 'auto');
+                if (!fmt) throw new Error('this browser cannot record video');
+                const vt = stream.getVideoTracks()[0];
+                const vs = (vt && vt.getSettings) ? vt.getSettings() : {};
+                const w = vs.width || canvas.width, h = vs.height || canvas.height;
                 mediaRecorder = new MediaRecorder(stream, {
-                    mimeType: mime,
-                    videoBitsPerSecond: 12000000
+                    mimeType: fmt.mime,
+                    videoBitsPerSecond: recBitrate(w, h, fmt),
+                    audioBitsPerSecond: 128000
                 });
 
                 recChunks = [];
                 mediaRecorder.ondataavailable = e => { if (e.data.size) recChunks.push(e.data); };
-                mediaRecorder.onstop = () => {
+                mediaRecorder.onstop = async () => {
                     clearInterval(recTimer);
+                    const tookMs = Date.now() - recStart;
                     stopCleanCanvas();
                     stream.getTracks().forEach(t => t.stop());
 
-                    const blob = new Blob(recChunks, { type: 'video/webm' });
+                    // The recorder may settle on a slightly different type
+                    // than asked for; the file is named for what it made.
+                    const made = (mediaRecorder.mimeType || fmt.mime || '').split(';')[0] || fmt.type;
+                    const ext = /mp4/.test(made) ? 'mp4' : 'webm';
+                    let blob = new Blob(recChunks, { type: made });
+                    if (ext === 'webm') blob = await fixWebmDuration(blob, tookMs);
+                    const name = `flappycrix-${recMode}-${Date.now()}.${ext}`;
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = `flappycrix-${recMode}-${Date.now()}.webm`;
+                    a.download = name;
                     a.click();
-                    setTimeout(() => URL.revokeObjectURL(url), 15000);
+                    setTimeout(() => URL.revokeObjectURL(url), 60000);
 
                     btn.textContent = 'RECORD';
                     btn.style.background = '';
-                    sub.textContent = `Saved ${(blob.size / 1048576).toFixed(1)} MB · WebM imports into any editor`;
+                    sub.textContent = `Saved ${(blob.size / 1048576).toFixed(1)} MB · ${ext.toUpperCase()} · ${RECORD_FOR[ext]}`;
+                    offerRecShare(blob, name, sub);
                     mediaRecorder = null;
                 };
 
@@ -10051,6 +10367,7 @@
                 sub.textContent = e.name === 'NotAllowedError'
                     ? 'Screen share was declined.'
                     : 'Could not record: ' + e.message;
+                playSfx('error');
             }
         }
 
@@ -10074,54 +10391,65 @@
             paint();
 
             const stream = _cleanCv.captureStream(60);
+            // Music and the sound effects both go into the clip. Only the
+            // music used to, so every flap and coin was missing from it.
             try {
                 const actx = audioCtx();
-                if (actx && bgMusic) {
+                if (actx) {
                     const dest = actx.createMediaStreamDestination();
-                    if (!bgMusic._recSrc) {
-                        bgMusic._recSrc = actx.createMediaElementSource(bgMusic);
-                        bgMusic._recSrc.connect(actx.destination);
+                    if (bgMusic) {
+                        if (!bgMusic._recSrc) {
+                            bgMusic._recSrc = actx.createMediaElementSource(bgMusic);
+                            bgMusic._recSrc.connect(actx.destination);
+                        }
+                        bgMusic._recSrc.connect(dest);
                     }
-                    bgMusic._recSrc.connect(dest);
+                    const fx = sfxOut();
+                    if (fx) fx.connect(dest);
+                    _recTaps = { dest, fx };
                     dest.stream.getAudioTracks().forEach(t => stream.addTrack(t));
                 }
             } catch (e) { /* silent video is fine */ }
             return stream;
         }
+        let _recTaps = null;
 
         function stopCleanCanvas() {
             if (_cleanRaf) { cancelAnimationFrame(_cleanRaf); _cleanRaf = null; }
             _cleanCv = null;
+            if (_recTaps) {
+                try { if (_recTaps.fx) _recTaps.fx.disconnect(_recTaps.dest); } catch (e) {}
+                try { if (bgMusic && bgMusic._recSrc) bgMusic._recSrc.disconnect(_recTaps.dest); } catch (e) {}
+                _recTaps = null;
+            }
         }
 
-        function ownerOnly(fn) {
-            return function (...a) {
-                if (!myRoles.includes('OWNER')) {
-                    toast({ kind:'warn', title:'Owners only',
-                            body:'Moderators do not have access to this.' });
-                    return;
-                }
-                return fn.apply(this, a);
-            };
-        }
-
-        document.getElementById('autopilotToggle')?.addEventListener('click', ownerOnly(function () {
-            this.classList.toggle('active');
-            toggleAutopilot(this.classList.contains('active'));
-        }));
-        document.getElementById('cleanToggle')?.addEventListener('click', ownerOnly(function () {
+        /* The Creator Studio is for everyone. These three were still behind
+           an owner check left over from when they lived in the staff menu,
+           so the menu opened for anyone and then refused every switch in it.
+           Autopilot is the only one that could be abused, and a run it has
+           flown earns nothing (see _assistedRun). */
+        document.getElementById('autopilotToggle')?.addEventListener('click', function () {
+            const on = !this.classList.contains('active');
+            if (!toggleAutopilot(on)) return;
+            this.classList.toggle('active', on);
+        });
+        document.getElementById('cleanToggle')?.addEventListener('click', function () {
             this.classList.toggle('active');
             toggleCleanMode(this.classList.contains('active'));
-        }));
+        });
         document.getElementById('recMode')?.addEventListener('change', function () {
             recMode = this.value;
         });
-        document.getElementById('recBtn')?.addEventListener('click', ownerOnly(toggleRecording));
+        document.getElementById('recFormat')?.addEventListener('change', refreshRecOptions);
+        document.getElementById('recBtn')?.addEventListener('click', toggleRecording);
 
         document.addEventListener('keydown', e => {
-            if (e.key === 'c' && (myRoles.includes('OWNER')) && !e.ctrlKey && !e.metaKey) {
+            // Only once the Creator Studio has been opened, so nobody hides
+            // their whole HUD by brushing a key.
+            if (e.key === 'c' && !e.ctrlKey && !e.metaKey && !e.altKey && (window.__creatorUsed || cleanMode)) {
                 const t = document.activeElement?.tagName;
-                if (t === 'INPUT' || t === 'TEXTAREA') return;
+                if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT' || document.activeElement?.isContentEditable) return;
                 toggleCleanMode(!cleanMode);
                 document.getElementById('cleanToggle')?.classList.toggle('active', cleanMode);
             }
@@ -10981,7 +11309,7 @@
                 next.setDate(next.getDate() + 1);
                 next.setHours(0, 0, 0, 0);
                 const hrs = Math.ceil((next - Date.now()) / 3600000);
-                toast({ kind: 'info', title: 'Already claimed today',
+                toast({ kind: 'info', title: 'Already claimed today', sound: 'error',
                         body: `Next reward in about ${hrs} hour${hrs === 1 ? '' : 's'}.` });
                 return;
             }
@@ -12374,7 +12702,7 @@
 
         function showDeathScreen() {
             const best = Math.max(highScore || 0, score);
-            const isNewBest = score > (highScore || 0);
+            const isNewBest = !_assistedRun && score > (highScore || 0);
             document.getElementById('dsScore').textContent = score;
             document.getElementById('dsBest').textContent = best;
             document.getElementById('dsCoins').textContent =
@@ -12382,7 +12710,9 @@
             const nb = document.getElementById('dsNewBest');
             if (nb) nb.style.display = isNewBest ? '' : 'none';
             setScreen('dead');
-            playSfx(isNewBest ? 'rank' : 'error', .6);
+            // A new best chimes. An ordinary death already has its own sound;
+            // the error buzz is kept for things the player is refused.
+            if (isNewBest) playSfx('rank', .6);
         }
 
         function backToMenu() {
@@ -12708,6 +13038,8 @@
         // you needed OWNER or MOD to record anything. They change nothing but
         // what is on screen, so they get their own door.
         function openCreatorStudio() {
+            window.__creatorUsed = true;       // the C shortcut works from now on
+            try { refreshRecOptions(); } catch (e) {}
             document.getElementById('creatorModal')?.classList.add('active');
             playSfx('whoosh', .4);
         }
@@ -12813,16 +13145,16 @@
         }
 
         // type: friend | invite | success | error | info
-        function notify({ type = 'info', title, body = '', actions = null, toast = true, store = true, id = null }) {
+        function notify({ type = 'info', title, body = '', actions = null, toast = true, store = true, id = null, sound = null }) {
             if (store) {
                 notifications.unshift({ id: id || Date.now()+''+Math.random(),
                     type, title, body, ts: Date.now(), read: false });
                 saveNotifs();
             }
-            if (toast) showToast({ type, title, body, actions });
+            if (toast) showToast({ type, title, body, actions, sound });
         }
 
-        function showToast({ type, title, body, actions }) {
+        function showToast({ type, title, body, actions, sound }) {
             const wrap = document.getElementById('toasts');
             if (!wrap) return;
             const el = document.createElement('div');
@@ -12839,8 +13171,9 @@
                                 <button class="toast-btn no">${mpEsc(actions.noLabel||'Decline')}</button>
                               </div>` : '');
             wrap.appendChild(el);
-            playSound(achSound);
-            playSfx('unlock', .8);
+            // Something the player could not do buzzes; news chimes.
+            if (sound === 'error' || (!sound && type === 'error')) playSfx('error');
+            else { playSound(achSound); playSfx('unlock', .8); }
 
             const close = () => { el.classList.add('leaving'); setTimeout(() => el.remove(), 250); };
             if (actions) {
@@ -12953,6 +13286,7 @@
             d.style.color = ok ? '#00CC7A' : '#FF4655';
             d.textContent = (ok ? '✓ ' : '✗ ') + msg;
             el.prepend(d);
+            if (!ok) playSfx('error');
             while (el.children.length > 6) el.lastChild.remove();
         }
 
@@ -13032,10 +13366,12 @@
 
             if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
                 err.textContent = 'Sign in first — purchases are saved to your account.';
+                playSfx('error');
                 return;
             }
             if (coinCount < PLAYER_MENU_PRICE) {
                 err.textContent = `You need ${formatCoins(PLAYER_MENU_PRICE - coinCount)} more coins.`;
+                playSfx('error');
                 return;
             }
 
@@ -13063,6 +13399,7 @@
                 err.textContent = e.playfabError === 'InsufficientFunds'
                     ? 'Not enough coins on your account.'
                     : (e.message || 'Purchase failed');
+                playSfx('error');
             } finally {
                 if (btn) { btn.disabled = false; btn.textContent = 'UNLOCK'; }
             }
@@ -13390,7 +13727,7 @@
         // Thin wrapper over the existing notify() so both call styles work and
         // there's a single notification pipeline. showToast expects actions as
         // an OBJECT ({yesLabel,onYes,noLabel,onNo}), not an array, so convert.
-        function toast({ title, body, kind = 'info', actions = null }) {
+        function toast({ title, body, kind = 'info', actions = null, sound = null }) {
             const typeMap = { friend: 'info', invite: 'success', warn: 'error', info: 'info' };
             let acts = null;
             if (Array.isArray(actions) && actions.length) {
@@ -13405,7 +13742,7 @@
             } else if (actions && !Array.isArray(actions)) {
                 acts = actions;   // already the right shape
             }
-            notify({ type: typeMap[kind] || 'info', title, body, actions: acts, store: !!acts });
+            notify({ type: typeMap[kind] || 'info', title, body, actions: acts, store: !!acts, sound });
         }
 
         function updateNotifBadge() {
@@ -14420,6 +14757,7 @@
         }
         function grantXp(amount, reason) {
             if (playerLevel >= MAX_LEVEL) return;
+            if (_assistedRun && gameRunning) return;   // an autopilot run earns nothing
             playerXp += Math.round(amount * eventXpMult());
             let levelled = false;
             while (playerLevel < MAX_LEVEL && playerXp >= xpForLevel(playerLevel)) {
@@ -16284,7 +16622,7 @@
                     fb.title = already ? 'Already friends' : 'Send a friend request';
                     fb.style.color = already ? '#27A9F5' : '#8C8C8C';
                     fb.onclick = async () => {
-                        if (already) { toast({ kind:'info', title:'Already friends', body:mpEsc(p.name) }); return; }
+                        if (already) { toast({ kind:'info', title:'Already friends', sound:'error', body:mpEsc(p.name) }); return; }
                         if (!p.pfId) { toast({ kind:'warn', title:'Cannot add', body:'That player has no PlayFab account yet.' }); return; }
                         if (typeof PlayFabManager === 'undefined' || !PlayFabManager.isReady) {
                             toast({ kind:'warn', title:'Sign in first', body:'You need an account to add friends.' });
@@ -16476,7 +16814,7 @@
         function mpClearLobbyBlocks() {
             if (!mpIsHost) return;
             const n = mpLobbyBlocklist.ids.length + mpLobbyBlocklist.names.length;
-            if (!n) { toast({ kind:'info', title:'No blocks to clear', body:'' }); return; }
+            if (!n) { toast({ kind:'info', title:'No blocks to clear', sound:'error', body:'' }); return; }
             mpLobbyBlocklist = { ids: [], names: [], setBy: null };
             try { photonClient.myRoom().setCustomProperties({ blocked: mpLobbyBlocklist }); } catch(e) {}
             mpLobbyChatAppend(null, `${n} lobby block${n===1?'':'s'} cleared.`, true);
@@ -16665,7 +17003,10 @@
             mpMatchSecondsLeft = RANKED_TIME_LIMIT;
             mpMatchTimer = setInterval(() => {
                 mpMatchSecondsLeft--;
-                if (mpMatchSecondsLeft <= 10 && mpMatchSecondsLeft > 0)
+                // This line had lost its sound, so the check below became
+                // its body — and a check for "under a second" inside one for
+                // "1 to 10 seconds" never ran. Ranked matches never timed out.
+                if (mpMatchSecondsLeft <= 10 && mpMatchSecondsLeft > 0) playSfx('timeLow', .5);
                 if (mpMatchSecondsLeft <= 0) {
                     clearInterval(mpMatchTimer); mpMatchTimer = null;
                     if (mpIsHost) {

@@ -11,12 +11,12 @@
  *     sounds, the font): kept after first use and served from here, refreshed
  *     in the background. The page tells this worker exactly which files it
  *     loaded, so nothing is hard-coded here that can drift out of date.
- *   - Never touched: other sites, anything under /api, api.json, video, and
+ *   - Never touched: other sites, anything under /api, api.json, video (mp4, webm), and
  *     partial (range) requests. Live data must always be live.
  *
  * Bump VERSION to throw every cached file away on the next visit.
  */
-const VERSION = 'crix-offline-v2';   // v2: optimised images, music and sounds replace the old copies
+const VERSION = 'crix-offline-v3';   // v3: the original sound files are back; the trimmed copies are gone
 const SHELL = '/flappycrix';
 const NAV_TIMEOUT_MS = 6000;
 
@@ -74,7 +74,7 @@ function isGame(path) { return /^\/(flappycrix|game)(\.html)?\/?$/.test(path); }
 function skip(url) {
     return url.pathname.startsWith('/api/') || url.pathname === '/api.json' ||
            url.pathname.startsWith('/_vercel/') || url.pathname === '/sw.js' ||
-           url.searchParams.has('ping') || /\.mp4$/i.test(url.pathname);
+           url.searchParams.has('ping') || /\.(mp4|webm)$/i.test(url.pathname);
 }
 function cacheable(r) {
     return r && r.ok && r.type === 'basic' && r.status === 200 && !r.headers.has('content-range');
