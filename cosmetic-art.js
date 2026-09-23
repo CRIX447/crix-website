@@ -447,24 +447,164 @@
         context.restore();
     }
 
-    // A trail: a fading, narrowing streak through the points behind the bird.
-    function drawTrail(context, flat, colours, size) {
-        if (!flat || flat.length < 4 || !colours || !colours.length) return;
-        const n = flat.length / 2;
-        context.save();
-        context.lineCap = 'round';
-        context.lineJoin = 'round';
-        for (let i = 1; i < n; i++) {
-            const t = i / n;                       // 0 oldest -> 1 newest
-            context.globalAlpha = t * t * 0.7;     // fade out fast at the tail
-            context.lineWidth = Math.max(1, size * 0.5 * t);
-            context.strokeStyle = colours[(n - i) % colours.length];
-            context.beginPath();
-            context.moveTo(flat[(i - 1) * 2], flat[(i - 1) * 2 + 1]);
-            context.lineTo(flat[i * 2], flat[i * 2 + 1]);
-            context.stroke();
+    /* ---- TRAILS ----
+       A trail is a ribbon laid along the points behind the bird, oldest
+       first. It used to be drawn as one short see-through round-capped
+       stroke per point, each in the next colour of the list: every joint
+       overlapped the last and doubled up into a bead, and the colours
+       changed every couple of pixels, so a rainbow came out as speckle and
+       every trail looked like a caterpillar.
+
+       Now the ribbon is filled as quads between the points' edges, so
+       neighbouring pieces meet exactly and nothing overlaps, and each trail
+       has a style of its own:
+         bands   the colours side by side across the ribbon (rainbow, pastel)
+         fire    a hot core in a flame, with sparks that rise off it (ember)
+         frost   an icy glow that glints (frost)
+         toxic   a green glow that bubbles (toxic)
+         void    a dark core in a purple halo, with motes that circle (void)
+         ghost   a wisp that thins and drifts (ghost)
+         tinsel  a gold ribbon scattered with glitter (tinsel)
+       A particle belongs to the point it was born with (flat.seq counts the
+       points ever pushed), so sparks ride along with the trail instead of
+       flickering from place to place as the oldest point drops off. */
+    /* Each layer is filled in a handful of pieces, each a step fainter
+       toward the tail. Per point it was ~90 fills a frame for a rainbow,
+       which cost a slow TV about six frames a second; five pieces a layer
+       is ~30 and the steps are too small to see on a ribbon that narrows. */
+    const TRAIL_PIECES = 5;
+    function trailFrame(flat) {
+        const n = flat.length / 2, P = [];
+        for (let i = 0; i < n; i++) {
+            const a = Math.max(0, i - 1), b = Math.min(n - 1, i + 1);
+            let tx = flat[b * 2] - flat[a * 2], ty = flat[b * 2 + 1] - flat[a * 2 + 1];
+            const l = Math.hypot(tx, ty) || 1;
+            tx /= l; ty /= l;
+            P.push({ x: flat[i * 2], y: flat[i * 2 + 1], nx: -ty, ny: tx, t: n > 1 ? i / (n - 1) : 1 });
         }
-        context.restore();
+        return P;
+    }
+    // One strip of the ribbon between two offsets from the centre line.
+    // Neighbouring pieces share their end points, so they meet exactly.
+    function trailStrip(g, P, off0, off1, colour, alpha) {
+        g.fillStyle = colour;
+        const step = Math.max(1, Math.ceil((P.length - 1) / TRAIL_PIECES));
+        for (let s = 0; s < P.length - 1; s += step) {
+            const e = Math.min(s + step, P.length - 1);
+            const a = alpha((P[s].t + P[e].t) / 2);
+            if (a <= 0.01) continue;
+            g.globalAlpha = Math.min(1, a);
+            g.beginPath();
+            for (let i = s; i <= e; i++) { const q = P[i], o = off0(q.t); g.lineTo(q.x + q.nx * o, q.y + q.ny * o); }
+            for (let i = e; i >= s; i--) { const q = P[i], o = off1(q.t); g.lineTo(q.x + q.nx * o, q.y + q.ny * o); }
+            g.closePath();
+            g.fill();
+        }
+    }
+    function trailGlow(g, P, hw, layers) {
+        for (const L of layers) trailStrip(g, P, t => -hw(t) * L.w, t => hw(t) * L.w, L.c, t => L.a * Math.pow(t, L.p || 1));
+    }
+    // A cheap stable pseudo-random number per particle
+    function rnd(k) { const x = Math.sin(k * 127.1 + 311.7) * 43758.5453; return x - Math.floor(x); }
+
+    function drawTrail(context, flat, colours, size, style) {
+        if (!flat || flat.length < 4 || !colours || !colours.length) return;
+        const P = trailFrame(flat), n = P.length;
+        const seq = flat.seq || n, now = (typeof performance !== 'undefined' ? performance.now() : 0);
+        const fx = style || (colours.length >= 4 ? 'bands' : 'fire');
+        const c = i => colours[Math.min(i, colours.length - 1)];
+        const id = i => seq - (n - 1 - i);                    // which point this was, ever
+
+        const g = context;
+        g.save();
+
+        if (fx === 'bands') {
+            // Full width by the bird, narrowing and fading toward the tail
+            const K = colours.length;
+            const W = t => size * (0.34 + 0.44 * Math.sqrt(t));
+            for (let k = 0; k < K; k++) {
+                trailStrip(g, P,
+                    t => -W(t) / 2 + W(t) * k / K - 0.3,
+                    t => -W(t) / 2 + W(t) * (k + 1) / K + 0.3,
+                    colours[k], t => 0.1 + 0.85 * Math.pow(t, 1.4));
+            }
+        } else {
+            const hw = t => size * (0.06 + 0.3 * Math.pow(t, 0.8));   // half-width
+            if (fx === 'fire') {
+                trailGlow(g, P, hw, [{ c: c(2), w: 1.25, a: .32, p: 1.2 }, { c: c(1), w: .8, a: .8, p: 1.3 },
+                                     { c: c(0), w: .38, a: .95, p: 1.6 }]);
+                for (let i = 0; i < n; i++) {
+                    const k = id(i); if (k % 3) continue;
+                    const q = P[i], age = n - 1 - i;
+                    g.globalAlpha = Math.max(0, q.t * 1.1 - .1);
+                    g.fillStyle = rnd(k) > .5 ? c(0) : c(1);
+                    g.beginPath();
+                    g.arc(q.x + (rnd(k + 1) - .5) * size * .45 - age * .15,
+                          q.y - age * .5 - rnd(k + 2) * size * .25, size * (.035 + .04 * rnd(k + 3)), 0, 7);
+                    g.fill();
+                }
+            } else if (fx === 'frost') {
+                trailGlow(g, P, hw, [{ c: c(2), w: 1.3, a: .3 }, { c: c(1), w: .75, a: .7, p: 1.2 },
+                                     { c: c(0), w: .32, a: .95, p: 1.5 }]);
+                g.strokeStyle = '#FFFFFF'; g.lineWidth = Math.max(1, size * .04);
+                for (let i = 0; i < n; i++) {
+                    const k = id(i); if (k % 4) continue;
+                    const q = P[i], tw = .5 + .5 * Math.sin(now * .012 + k);
+                    const r = size * (.07 + .07 * rnd(k)) * (.5 + tw * .5);
+                    const x = q.x + (rnd(k + 1) - .5) * size * .6, y = q.y + (rnd(k + 2) - .5) * size * .6;
+                    g.globalAlpha = q.t * tw;
+                    g.beginPath(); g.moveTo(x - r, y); g.lineTo(x + r, y); g.moveTo(x, y - r); g.lineTo(x, y + r); g.stroke();
+                }
+            } else if (fx === 'toxic') {
+                trailGlow(g, P, hw, [{ c: c(2), w: 1.3, a: .4 }, { c: c(1), w: .8, a: .85, p: 1.2 },
+                                     { c: c(0), w: .35, a: .9, p: 1.6 }]);
+                g.strokeStyle = c(0); g.lineWidth = Math.max(1, size * .035);
+                for (let i = 0; i < n; i++) {
+                    const k = id(i); if (k % 4) continue;
+                    const q = P[i], age = n - 1 - i;
+                    g.globalAlpha = q.t * .9;
+                    g.beginPath();
+                    g.arc(q.x + (rnd(k) - .5) * size * .5, q.y - age * .32 - size * .1,
+                          size * (.04 + .06 * (1 - q.t) + .03 * rnd(k + 1)), 0, 7);
+                    g.stroke();
+                }
+            } else if (fx === 'void') {
+                trailGlow(g, P, hw, [{ c: c(1), w: 1.45, a: .45 }, { c: c(2), w: .95, a: .95, p: .9 },
+                                     { c: c(0), w: .2, a: .55, p: 1.6 }]);
+                for (let i = 0; i < n; i++) {
+                    const k = id(i); if (k % 3) continue;
+                    const q = P[i], ang = now * .004 + k, rr = size * (.28 + .22 * (1 - q.t));
+                    g.globalAlpha = q.t * .9;
+                    g.fillStyle = rnd(k) > .5 ? c(0) : c(1);
+                    g.beginPath(); g.arc(q.x + Math.cos(ang) * rr, q.y + Math.sin(ang) * rr * .6, size * .04, 0, 7); g.fill();
+                }
+            } else if (fx === 'ghost') {
+                // Puffs that grow and drift up as they age, round a thin bright spine
+                for (let i = 0; i < n; i++) {
+                    const k = id(i); if (k % 2) continue;
+                    const q = P[i], age = n - 1 - i;
+                    g.globalAlpha = .16 * q.t + .04;
+                    g.fillStyle = rnd(k) > .6 ? c(1) : c(0);
+                    g.beginPath();
+                    g.arc(q.x - age * .2, q.y - age * .3 + (rnd(k) - .5) * size * .2,
+                          size * (.14 + .3 * (1 - q.t)), 0, 7);
+                    g.fill();
+                }
+                trailGlow(g, P, hw, [{ c: c(2), w: .7, a: .35, p: 1.5 }, { c: c(0), w: .3, a: .85, p: 2 }]);
+            } else if (fx === 'tinsel') {
+                trailGlow(g, P, hw, [{ c: c(1), w: 1.1, a: .8, p: 1.2 }, { c: c(0), w: .45, a: .95, p: 1.4 }]);
+                for (let i = 0; i < n; i++) {
+                    const k = id(i); if (k % 2) continue;
+                    const q = P[i], tw = .45 + .55 * Math.abs(Math.sin(now * .01 + k * 1.7));
+                    g.globalAlpha = q.t * tw;
+                    g.fillStyle = [c(1), c(2), c(3), '#FFFFFF'][k % 4];
+                    const x = q.x + (rnd(k) - .5) * size * .7, y = q.y + (rnd(k + 1) - .5) * size * .7;
+                    const r = size * (.03 + .03 * rnd(k + 2));
+                    g.fillRect(x - r, y - r, r * 2, r * 2);
+                }
+            }
+        }
+        g.restore();
     }
 
     root.CrixArt = {

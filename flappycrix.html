@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.27-1200";
+    <script>window.__BUILD__ = "2026.09.28-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -48,7 +48,7 @@
     <script src="/ui.js?v=2026092412"></script>
     <script src="/android-bridge.js?v=2026092412"></script>
     <script src="/playfab-manager.js?v=2026092412"></script>
-    <script src="/cosmetic-art.js?v=2026092412"></script>
+    <script src="/cosmetic-art.js?v=2026092812"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -5245,16 +5245,16 @@
             // Trails replaced shirts — a sprite stretched over the bird read
             // as a smudge, a trail reads at any size and in motion.
             { id: 'trail_rainbow', name: 'RAINBOW TRAIL', type: 'trail', price: 800,
-              colours: ['#FF0040','#FF8A00','#FFE800','#00E05A','#00B7FF','#9B4DFF'],
+              fx: 'bands', colours: ['#FF0040','#FF8A00','#FFE800','#00E05A','#00B7FF','#9B4DFF'],
               owned: false, equipped: false },
             { id: 'trail_ember',   name: 'EMBER TRAIL',   type: 'trail', price: 500,
-              colours: ['#FFE08A','#FF9A3C','#FF4655'], owned: false, equipped: false },
+              fx: 'fire', colours: ['#FFE08A','#FF9A3C','#FF4655'], owned: false, equipped: false },
             { id: 'trail_frost',   name: 'FROST TRAIL',   type: 'trail', price: 500,
-              colours: ['#FFFFFF','#9BE7FF','#27A9F5'], owned: false, equipped: false },
+              fx: 'frost', colours: ['#FFFFFF','#9BE7FF','#27A9F5'], owned: false, equipped: false },
             { id: 'trail_toxic',   name: 'TOXIC TRAIL',   type: 'trail', price: 600,
-              colours: ['#D4FF3C','#00CC7A','#0B6B3A'], owned: false, equipped: false },
+              fx: 'toxic', colours: ['#D4FF3C','#00CC7A','#0B6B3A'], owned: false, equipped: false },
             { id: 'trail_void',    name: 'VOID TRAIL',    type: 'trail', price: 900,
-              colours: ['#E0C3FF','#9B4DFF','#2A0A4A'], owned: false, equipped: false },
+              fx: 'void', colours: ['#E0C3FF','#9B4DFF','#2A0A4A'], owned: false, equipped: false },
 
             /* ---- SEASONAL ----
                Earned from the season's calendar, never sold, so they keep
@@ -5273,7 +5273,7 @@
               image: '/img/pumpkin-head.png', draw: 'pumpkin',  owned: false, equipped: false },
             { id: 'trail_ghost',  name: 'GHOST TRAIL',   type: 'trail', price: null, exclusive: true,
               season: 'spooky',    desc: 'Trick or treat · door 21',
-              colours: ['#FFFFFF','#D7C9FF','#7A5AA8'], owned: false, equipped: false },
+              fx: 'ghost', colours: ['#FFFFFF','#D7C9FF','#7A5AA8'], owned: false, equipped: false },
 
             { id: 'hat_reindeer', name: 'REINDEER EARS', type: 'hat', price: null, exclusive: true,
               season: 'christmas', desc: 'Advent calendar · door 6',
@@ -5283,14 +5283,14 @@
               image: '/img/santa-hat.png', draw: 'santa',    owned: false, equipped: false },
             { id: 'trail_tinsel', name: 'TINSEL TRAIL',  type: 'trail', price: null, exclusive: true,
               season: 'christmas', desc: 'Advent calendar · door 12',
-              colours: ['#FFF6C9','#FFD700','#2FA85B','#E8323F'], owned: false, equipped: false },
+              fx: 'tinsel', colours: ['#FFF6C9','#FFD700','#2FA85B','#E8323F'], owned: false, equipped: false },
 
             { id: 'hat_bunny',    name: 'BUNNY EARS',    type: 'hat', price: null, exclusive: true,
               season: 'easter',    desc: 'Egg hunt · door 4',
               image: '/img/bunny-ears.png', draw: 'bunny',    owned: false, equipped: false },
             { id: 'trail_pastel', name: 'PASTEL TRAIL',  type: 'trail', price: null, exclusive: true,
               season: 'easter',    desc: 'Egg hunt · door 7',
-              colours: ['#FFD1E8','#FFF3B0','#B8F2C8','#B9D9FF'], owned: false, equipped: false }
+              fx: 'bands', colours: ['#FFD1E8','#FFF3B0','#B8F2C8','#B9D9FF'], owned: false, equipped: false }
         ];
         
         /* The coin emoji (U+1FA99) arrived in Emoji 13, in 2020. Windows 10 and
@@ -6228,13 +6228,16 @@
             previewCtx.save(); 
             previewCtx.translate(40,40); 
             let sz = cheats.bigbird ? 45 : 32; 
-            drawSprite(previewCtx, birdImage, 0, 0, sz); 
             let shirt = equippedTrail();
             if (shirt) {
+                // Tail first, like the real thing: this was built head first,
+                // so the fade ran backwards and the tail end was the bright one.
+                // And it is drawn before the bird, so it sits behind it.
                 const pts = [];
-                for (let i = 0; i < TRAIL_LEN; i++) pts.push(-8 - i * 2.0, Math.sin(i * 0.5) * 3);
-                drawTrail(previewCtx, pts, shirt.colours, sz);
+                for (let i = TRAIL_LEN - 1; i >= 0; i--) pts.push(-4 - i * 1.6, Math.sin(i * 0.3) * 4);
+                drawTrail(previewCtx, pts, shirt.colours, sz, shirt.fx);
             }
+            drawSprite(previewCtx, birdImage, 0, 0, sz);
             let hat = cosmetics.find(c=>c.type==='hat'&&c.equipped&&c.owned); 
             if (hat) drawHatItem(previewCtx, hat, sz); 
             previewCtx.restore(); 
@@ -6687,9 +6690,10 @@
         // ---- TRAILS ----
         // Drawn in world space behind the bird, so they are pushed BEFORE the
         // per-bird translate rather than inside it.
-        // One point is pushed per frame, so the trail is TRAIL_LEN * gameSpeed
-        // pixels long — about 75px behind a 30px bird at normal speed.
-        const TRAIL_LEN = 30;
+        // One point is pushed per game tick, so the trail is TRAIL_LEN *
+        // gameSpeed pixels long — about 110px behind a 30px bird. It was
+        // 75px, barely past the bird's own tail.
+        const TRAIL_LEN = 44;
         let _localTrail = [];
 
         function equippedTrail() {
@@ -6702,6 +6706,7 @@
         }
         function pushTrail(store, x, y) {
             store.push(x, y);
+            store.seq = (store.seq || 0) + 1;     // which point this is, for the sparks
             while (store.length > TRAIL_LEN * 2) store.splice(0, 2);
         }
         // The bird never moves horizontally — the world scrolls past it — so
@@ -6717,7 +6722,7 @@
         // A trail cannot be shown with a sprite, so the shop and the locker
         // draw one through drawTrail — the same code the game runs — along a
         // gentle S so the colour order and the fade are both visible.
-        function paintTrailSwatch(cv, colours, phase) {
+        function paintTrailSwatch(cv, colours, phase, fx) {
             if (!cv || !colours || !colours.length) return;
             const g = cv.getContext('2d');
             if (!g) return;
@@ -6732,7 +6737,7 @@
                 pts.push(tailX + (headX - tailX) * t,
                          h / 2 + Math.sin(phase + t * 4.2) * h * 0.17 * (0.35 + t * 0.65));
             }
-            drawTrail(g, pts, colours, size);
+            drawTrail(g, pts, colours, size, fx);
 
             // A bright head instead of the bird sprite: bird.png carries an
             // opaque box that cut a hard rectangle out of the swatch.
@@ -6769,7 +6774,7 @@
             document.querySelectorAll('canvas.cos-swatch[data-trail]').forEach(cv => {
                 if (!cv.getClientRects().length) return;   // hidden tab or modal
                 const c = trailById(cv.dataset.trail);
-                if (c) paintTrailSwatch(cv, c.colours, _swatchPhase);
+                if (c) paintTrailSwatch(cv, c.colours, _swatchPhase, c.fx);
             });
             document.querySelectorAll('canvas.cos-swatch[data-hat]').forEach(cv => {
                 if (!cv.getClientRects().length) return;
@@ -8762,7 +8767,7 @@
             // Your trail — world space, before the bird's own transform, so it
             // stays put in the level instead of rotating with the sprite.
             const _mt = equippedTrail();
-            if (_mt) drawTrail(ctx, _localTrail, _mt.colours, cheats.bigbird ? 45 : 30);
+            if (_mt) drawTrail(ctx, _localTrail, _mt.colours, cheats.bigbird ? 45 : 30, _mt.fx);
 
             // Draw bird
             const _by = birdRenderY();
@@ -17559,7 +17564,14 @@
             p.simY += p.simVel;
             if (p.simY < 15) { p.simY = 15; if (p.simVel < 0) p.simVel = 0; }
             if (p.simY > canvas.height - 10) { p.simY = canvas.height - 10; p.simVel = 0; }
-            if (p._trail) advanceTrail(p._trail, gameSpeed);
+            // One point per tick, like our own trail: pushed from the draw
+            // it made twice as many points on a 120Hz screen as on a 60Hz
+            // one, so the others' trails came out half as long.
+            if (p.trail) {
+                p._trail = p._trail || [];
+                advanceTrail(p._trail, gameSpeed);
+                pushTrail(p._trail, p.rx ?? mpVirtualX(p), p.ry ?? p.simY);
+            }
         }
         function mpApplyPosition(p, c) {
             const lag = Math.max(0, Math.min(10, Math.round(((mpPing || 60) / 2) / TICK_MS)));
@@ -17617,8 +17629,7 @@
                 const _pt = trailById(p.trail);
                 if (_pt && !p.dead) {
                     p._trail = p._trail || [];
-                    pushTrail(p._trail, p.rx ?? mpVirtualX(p), p.ry ?? p.y ?? 300);
-                    drawTrail(context, p._trail, _pt.colours, 26);
+                    drawTrail(context, p._trail, _pt.colours, 26, _pt.fx);
                 } else if (p._trail) {
                     p._trail.length = 0;
                 }
