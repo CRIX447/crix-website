@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.02-1200";
+    <script>window.__BUILD__ = "2026.10.03-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -9324,8 +9324,20 @@
         const userAvatarEl = document.getElementById('userAvatar');
         let isLogin = true;
 
+        /* The name an account goes by. Firebase reports a brand-new account
+           as signed in the moment it is created — before the display name
+           typed on the form has been saved to it — so everything that ran on
+           that first sign-in (the menu, the PlayFab account, the multiplayer
+           nickname, the offline copy) took the front of the email address
+           instead. While a sign-up is in flight, the name being saved wins. */
+        let _signupName = null;
+        function accountName(user) {
+            return (user && user.displayName) || _signupName ||
+                   (user && user.email ? user.email.split('@')[0] : 'Player');
+        }
+
         function renderUserProfile(user) {
-            const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
+            const name = accountName(user);
             document.getElementById('userName').textContent = name;
             if (user.photoURL) {
                 userAvatarImgEl.src = user.photoURL;
@@ -9795,7 +9807,7 @@
                 return;
             }
             try {
-                const name = user.displayName || (user.email ? user.email.split('@')[0] : 'Player');
+                const name = accountName(user);
                 const res = await PlayFabManager.login(user.uid, name);
                 myRoles = PlayFabManager.roles;
                 // Pick up any role granted through the Firestore fallback
@@ -9932,7 +9944,7 @@
                 try {
                     if (user) {
                         localStorage.setItem(LAST_UID_KEY, user.uid);
-                        localStorage.setItem(LAST_NAME_KEY, user.displayName || (user.email ? user.email.split('@')[0] : ''));
+                        localStorage.setItem(LAST_NAME_KEY, accountName(user));
                     } else {
                         localStorage.removeItem(LAST_UID_KEY);
                         localStorage.removeItem(LAST_NAME_KEY);
@@ -9944,12 +9956,14 @@
                     // whole handler, leaving the modal open and the UI stale.
                     try { renderUserProfile(user); } catch(e) { console.error('[Auth] renderUserProfile:', e.message); }
                     try { initPlayFabForUser(user); } catch(e) { console.error('[Auth] initPlayFabForUser:', e.message); }
-                    try { authModalEl.classList.remove('active'); } catch(e) {}
+                    // A new account keeps the form open a moment longer, to say
+                    // "check your email" — the sign-up handler closes it.
+                    if (!_signupName) { try { authModalEl.classList.remove('active'); } catch(e) {} }
                     document.getElementById('loginBtn').style.display = 'none';
                     document.getElementById('logoutBtn').style.display = 'block';
                     refreshSettingsUI();
                     try { loadFromCloud(); } catch(e) { console.error('[Auth] loadFromCloud:', e.message); }
-                    if (typeof setPhotonNickname === 'function') setPhotonNickname(user.displayName || (user.email ? user.email.split('@')[0] : 'Player'));
+                    if (typeof setPhotonNickname === 'function') setPhotonNickname(accountName(user));
                 } else {
                     document.getElementById('userName').textContent = 'Not Logged In';
                     userAvatarImgEl.style.display = 'none';
@@ -9987,6 +10001,14 @@
         authSubmit.onclick = async () => {
             const email = authEmailEl.value.trim(), pass = authPasswordEl.value.trim(), name = authUsernameEl.value.trim();
             if (!email || !pass) { authErrorSpan.textContent = 'Enter email and password'; return; }
+            // Without the sign-in service (no connection, or a blocker stopped
+            // it loading) this used to print "Cannot read properties of undefined".
+            if (!auth) {
+                authErrorSpan.style.color = '#FF4655';
+                authErrorSpan.textContent = "Can't reach the sign-in service. Check your connection (or an ad blocker) and reload.";
+                playSfx('error');
+                return;
+            }
             if (!isLogin && !name) { authErrorSpan.textContent = 'Enter a display name'; return; }
             if (!isLogin && pass.length < 6) { authErrorSpan.textContent = 'Password must be at least 6 characters'; return; }
             authSubmit.disabled = true;
@@ -9995,8 +10017,15 @@
                 if (isLogin) {
                     await auth.signInWithEmailAndPassword(email, pass);
                 } else {
+                    _signupName = name;
                     const cred = await auth.createUserWithEmailAndPassword(email, pass);
                     await cred.user.updateProfile({ displayName: name });
+                    // Everything that took a name on that first sign-in, again
+                    // now the name is on the account for good
+                    try { renderUserProfile(cred.user); } catch (e) {}
+                    try { localStorage.setItem(LAST_NAME_KEY, name); } catch (e) {}
+                    try { if (typeof PlayFabManager !== 'undefined' && PlayFabManager.isReady) PlayFabManager.setDisplayName(name).catch(() => {}); } catch (e) {}
+                    try { if (typeof setPhotonNickname === 'function') setPhotonNickname(name); } catch (e) {}
                     // Send email verification
                     try {
                         await cred.user.sendEmailVerification({
@@ -10006,7 +10035,7 @@
                         authErrorSpan.textContent = 'Account created! Check your email to verify your address.';
                     } catch(ve) { console.warn('Verification email failed:', ve); }
                 }
-                setTimeout(() => { authModalEl.classList.remove('active'); playSound(selectSound); authErrorSpan.textContent = ''; authErrorSpan.style.color = ''; }, isLogin ? 0 : 1500);
+                setTimeout(() => { authModalEl.classList.remove('active'); playSound(selectSound); authErrorSpan.textContent = ''; authErrorSpan.style.color = ''; _signupName = null; }, isLogin ? 0 : 2500);
             } catch (e) {
                 // Friendly error messages
                 const msgs = {
@@ -10018,6 +10047,7 @@
                     'auth/weak-password': 'Password must be at least 6 characters.',
                     'auth/invalid-credential': 'Incorrect email or password.'
                 };
+                _signupName = null;
                 authErrorSpan.style.color = '#FF4655';
                 authErrorSpan.textContent = msgs[e.code] || e.message;
             } finally {
