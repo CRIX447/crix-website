@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.01-1200";
+    <script>window.__BUILD__ = "2026.10.02-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -4722,10 +4722,6 @@
                 <span id="setRoles" style="font-size:11px;color:#ABABAB;">None</span>
             </div>
             <div class="set-row">
-                <span class="set-label">Build</span>
-                <span style="font-size:10px;color:#8C8C8C;font-family:monospace;">2026.08.25-1900</span>
-            </div>
-            <div class="set-row">
                 <div style="flex:1;min-width:0;">
                     <span class="set-label">Appearance</span>
                     <div class="set-sub" id="themeSub">Dark</div>
@@ -4733,7 +4729,7 @@
                 <button class="set-mini-btn" id="themeBtn">SWITCH</button>
             </div>
             <div class="set-row">
-                <span class="set-label">Sound effects</span>
+                <span class="set-label">Sound effects on</span>
                 <div class="mp-toggle-switch active" id="sfxToggle"></div>
             </div>
             <div class="set-row">
@@ -10207,6 +10203,20 @@
             'ℹ': 'about',   '📄': 'about',   '🐛': 'about'
         };
 
+        const SET_WORDS = [[/ACCOUNT|SIGN|PROFILE/i, 'account'], [/GAME|DISPLAY|CONTROL/i, 'game'],
+                           [/AUDIO|SOUND|MUSIC|VOICE/i, 'audio'], [/CHAT|SOCIAL|FRIEND|PRIVACY/i, 'social'],
+                           [/ABOUT|HELP|LEGAL/i, 'about']];
+        // Text with any emoji picture put back as the emoji it replaced
+        function labelWithEmoji(el) {
+            let t = '';
+            (function walk(n) {
+                if (n.nodeType === 3) t += n.data;
+                else if (n.tagName === 'IMG') t += n.alt || '';
+                else n.childNodes.forEach(walk);
+            })(el);
+            return t.trim();
+        }
+
         function buildSettingsGroups() {
             const body = document.querySelector('.settings-body');
             if (!body || body.dataset.grouped) return;
@@ -10216,14 +10226,41 @@
 
             children.forEach(el => {
                 if (el.classList.contains('mp-section-title')) {
-                    const key = Object.keys(SET_GROUPS).find(k => el.textContent.trim().startsWith(k));
-                    group = SET_GROUPS[key] || 'game';
+                    // The heading's emoji is a picture by now (the emoji swap
+                    // runs first), so textContent no longer starts with it and
+                    // every section fell through to 'game': all of Settings on
+                    // the Game tab and the other four empty. Read the picture's
+                    // alt back in, and fall back on the heading's words.
+                    const label = labelWithEmoji(el);
+                    const key = Object.keys(SET_GROUPS).find(k => label.startsWith(k));
+                    group = SET_GROUPS[key] || SET_WORDS.find(([re]) => re.test(label))?.[1] || 'game';
                     current = document.createElement('div');
                     current.className = 'set-group';
                     current.dataset.group = group;
                     body.insertBefore(current, el);
                 }
                 if (current) current.appendChild(el);
+            });
+
+            /* A run of rows sits under the ACCOUNT heading — and inside the
+               signed-in block, so a guest never saw them at all — that are
+               not about the account: the theme, both sound switches, the
+               connection test, what's new, your status. Each goes to the tab
+               it belongs on, where everyone can reach it. */
+            const groupEl = g => body.querySelector(`.set-group[data-group="${g}"]`);
+            [['themeBtn', 'game', 'first'], ['sfxToggle', 'audio', 'after:setSfxVol'],
+             ['uiSoundToggle', 'audio', 'after:sfxToggle'], ['setPresence', 'social', 'first'],
+             ['openPatchBtn', 'about', 'last'], ['openDiagBtn', 'about', 'last']].forEach(([id, g, where]) => {
+                const row = document.getElementById(id)?.closest('.set-row');
+                const dest = groupEl(g);
+                if (!row || !dest) return;
+                if (where === 'first') {
+                    const title = dest.querySelector('.mp-section-title');
+                    title ? title.after(row) : dest.prepend(row);
+                } else if (where.startsWith('after:')) {
+                    const anchor = document.getElementById(where.slice(6))?.closest('.set-row');
+                    anchor && dest.contains(anchor) ? anchor.after(row) : dest.appendChild(row);
+                } else dest.appendChild(row);
             });
 
             body.dataset.grouped = '1';
