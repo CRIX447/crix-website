@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/playfab-manager.js?v=2026092412"></script>
-<script src="/cosmetic-art.js?v=2026093012"></script>
+<script src="/cosmetic-art.js?v=2026100112"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.woff2') format('woff2'),url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -1923,7 +1923,7 @@ async function cfLoadItems() {
   CF.items = cat.filter(i => i.ItemClass === 'cosmetic_hat').map(i => {
     let cd = {};
     try { cd = JSON.parse(i.CustomData || '{}'); } catch (e) {}
-    return { id: i.ItemId, name: i.DisplayName, image: cd.image || null, draw: cd.draw || null };
+    return { id: i.ItemId, name: i.DisplayName, image: cd.image || null, draw: cd.draw || null, imgFit: cd.imgFit || null };
   });
 }
 

@@ -446,14 +446,21 @@
     // An image hat (artwork dropped into /img) rests its bottom edge on the
     // hood's brim line, as wide as the head plus a little overhang — the same
     // place the drawn shapes use, so swapping the artwork in does not move it.
-    function drawHatImage(context, img, size, swing) {
+    // `imgFit` is the item's own: how wide the picture is across the head
+    // (w, of the bird's size) and how far below the brim line its bottom
+    // edge sits (y), because a flat crown, a cap photographed from the front
+    // and a bucket hat with a wide brim each meet the head differently. The
+    // files are trimmed to their outline, so these numbers are the artwork.
+    function drawHatImage(context, img, size, swing, imgFit) {
         if (!img || !img.complete || !img.naturalWidth) return;
+        const f = imgFit || {};
         const ratio = img.naturalWidth / img.naturalHeight;
-        const w = size * (HEAD_W + 0.16);
+        const w = size * (f.w || HEAD_W + 0.16);
         const h = w / ratio;
-        const base = (brimY(HEAD_CX) + 0.04) * size;
-        swingAbout(context, HEAD_CX * size, base, (swing || 0) * 1.1, () => {
-            context.drawImage(img, HEAD_CX * size - w / 2, base - h, w, h);
+        const cx = (HEAD_CX + (f.x || 0)) * size;
+        const base = (brimY(HEAD_CX) + (f.y != null ? f.y : 0.04)) * size;
+        swingAbout(context, cx, base, (swing || 0) * 1.1, () => {
+            context.drawImage(img, cx - w / 2, base - h, w, h);
         });
     }
 
@@ -508,7 +515,7 @@
         context.save();
         context.translate(f.x * size, f.y * size);
         if (f.rot) context.rotate(f.rot * Math.PI / 180);
-        if (img) drawHatImage(context, img, s, w);
+        if (img) drawHatImage(context, img, s, w, item.imgFit);
         else if (item.draw && HAT_SHAPES[item.draw]) HAT_SHAPES[item.draw](context, s, w);
         context.restore();
     }
