@@ -38,14 +38,17 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.23-1200";</script>
+    <script>window.__BUILD__ = "2026.09.24-1200";
+      // Offline mode hands the service worker the list of files this page
+      // loaded; the default buffer only holds 250, so make room early.
+      try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
     
 
-    <script src="/filter.js?v=2026092122"></script>
-    <script src="/ui.js?v=2026092122"></script>
-    <script src="/android-bridge.js?v=2026092122"></script>
-    <script src="/playfab-manager.js?v=2026092122"></script>
-    <script src="/cosmetic-art.js?v=2026092122"></script>
+    <script src="/filter.js?v=2026092412"></script>
+    <script src="/ui.js?v=2026092412"></script>
+    <script src="/android-bridge.js?v=2026092412"></script>
+    <script src="/playfab-manager.js?v=2026092412"></script>
+    <script src="/cosmetic-art.js?v=2026092412"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -910,6 +913,28 @@
             display:flex; gap:6px; justify-content:center; flex-wrap:wrap;
             margin-top:14px; padding-bottom:env(safe-area-inset-bottom);
         }
+        /* ---- OFFLINE ----
+           The tagline makes way for a tag saying so, and everything that needs
+           a server is dimmed. Tapping one explains rather than failing. */
+        .offline-pill { display:none; }
+        html.offline .game-sub { display:none; }
+        html.offline .offline-pill {
+            display:inline-block; margin-top:6px; padding:3px 10px; border-radius:20px;
+            font-size:10px; letter-spacing:1px; font-weight:700;
+            color:#FFB347; background:rgba(255,179,71,.12); border:1px solid rgba(255,179,71,.45);
+        }
+        html.offline #multiplayerBtn, html.offline #seasonModeBtn, html.offline #partyPill,
+        html.offline #notifBtn, html.offline #loginBtn, html.offline #ownerBtn,
+        html.offline #setSignInBtn, html.offline #discordLinkBtn, html.offline #pairBtn,
+        html.offline #siteBtn, html.offline a.social {
+            opacity:.38; filter:grayscale(.9);
+        }
+
+        /* The coin image sits in text like the emoji it replaces: 1em square,
+           on the baseline, scaling with whatever font size it is in. */
+        .coin-ico { display:inline-block; width:1.05em; height:1.05em; vertical-align:-0.17em;
+                    object-fit:contain; pointer-events:none; user-select:none; }
+
         .foot-btn {
             background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1);
             color:#A0A0A0; font-family:inherit; font-size:10px; text-decoration:none;
@@ -3257,6 +3282,7 @@
         <div class="game-header" id="gameHeader">
             <div class="game-title">FLAPPY CRIX</div>
             <div class="game-sub">tap · collect · drip</div>
+            <div class="offline-pill" id="offlinePill">📴 OFFLINE · SINGLE PLAYER</div>
         </div>
 
         <img class="menu-bird" id="menuBird" src="/img/bird.png" alt="">
@@ -3317,7 +3343,7 @@
 
             <div class="hud-live" id="hudLive">
                 <span class="hud-score" id="hudScore">0</span>
-                <span class="hud-coins" id="hudCoins">🪙 0</span>
+                <span class="hud-coins" id="hudCoins"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> 0</span>
                 <span class="hud-rush" id="hudRush" style="display:none;">⏱ <b id="hudRushTime">5:00</b></span>
             </div>
 
@@ -3342,7 +3368,7 @@
         </div>
         
         <div class="stats-grid">
-            <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount">🪙 0</div></div>
+            <div class="cyber-stat"><div class="stat-label">COINS</div><div class="stat-value" id="coinCount"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> 0</div></div>
             <div class="cyber-stat"><div class="stat-label">BEST</div><div class="stat-value" id="highScore">0</div></div>
             <div class="cyber-stat" id="achievementsBtn"><div class="stat-label">🏆 ACHIEVEMENTS</div><div class="stat-value" id="achievementCount">0/6</div></div>
             <div class="cyber-stat" id="multStat" style="display:none;"><div class="stat-label">MULT</div><div class="stat-value" id="coinMultiplier">1x</div></div>
@@ -3385,7 +3411,7 @@
             <button class="foot-btn" id="creditsBtn">✨ Credits</button>
             <button class="foot-btn" id="legalBtn">📄 Legal</button>
             <button class="foot-btn" id="creatorBtn">🎬 Creator</button>
-            <a class="foot-btn" id="siteBtn" href="https://crixgamingvr.com" target="_blank">🌐 Website</a>
+            <a class="foot-btn" id="siteBtn" href="https://crixgamingvr.com" target="_blank" rel="noopener">🌐 Website</a>
         </div>
     </div>
     
@@ -3414,7 +3440,7 @@
                 <div class="modal-title">🧢 LOCKER</div>
                 <button class="modal-close" id="closeLockerBtn">✕</button>
             </div>
-            <div class="locker-balance" id="lockerBalance" style="text-align:center;color:gold;margin:10px 0;font-size:16px;">🪙 0</div>
+            <div class="locker-balance" id="lockerBalance" style="text-align:center;color:gold;margin:10px 0;font-size:16px;"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> 0</div>
             <div style="display:flex;gap:15px;justify-content:center;margin-bottom:15px;flex-wrap:wrap;">
                 <canvas id="previewCanvas" width="80" height="80" style="border:2px solid gold;border-radius:14px;box-shadow:2px 2px 0 rgba(0,0,0,0.4);"></canvas>
                 <div style="display:flex;flex-direction:column;gap:6px;justify-content:center;">
@@ -3621,7 +3647,7 @@
                     <div class="mp-mode-card selected" data-mode="freemode"><div class="mp-mode-icon">🕊️</div><div class="mp-mode-name">Freemode</div></div>
                     <div class="mp-mode-card" data-mode="race"><div class="mp-mode-icon">🏁</div><div class="mp-mode-name">Race to 100</div></div>
                     <div class="mp-mode-card" data-mode="lastone"><div class="mp-mode-icon">💀</div><div class="mp-mode-name">Last One Standing</div></div>
-                    <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon">🪙</div><div class="mp-mode-name">Coin Rush</div></div>
+                    <div class="mp-mode-card" data-mode="coinrush"><div class="mp-mode-icon"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"></div><div class="mp-mode-name">Coin Rush</div></div>
                 </div>
 
                 <!-- The season's own mode, kept apart from the four that are
@@ -3689,7 +3715,7 @@
                             <option value="freemode">🕊️ Freemode</option>
                             <option value="race">🏁 Race to 100</option>
                             <option value="lastone">💀 Last One Standing</option>
-                            <option value="coinrush">🪙 Coin Rush</option>
+                            <option value="coinrush">💰 Coin Rush</option>
                         </select>
                     </div>
                     <div class="mp-toggle-row" style="margin-top:6px;">
@@ -3816,7 +3842,7 @@
     <div class="mp-modal" id="diagModal" style="z-index:49000;">
         <div class="mp-modal-content" style="max-width:480px;">
             <div class="modal-header">
-                <div class="modal-title">🩺 CONNECTION TEST</div>
+                <div class="modal-title">📶 CONNECTION TEST</div>
                 <button class="modal-close" id="closeDiagBtn">✕</button>
             </div>
             <div style="font-size:11px;color:#A0A0A0;margin-bottom:12px;line-height:1.6;">
@@ -4105,7 +4131,7 @@
                    to flap. Every tap gives you a little lift — gravity does the rest.</p>
             </div>
             <div class="tut-page" data-page="1" style="display:none;">
-                <div class="tut-art">🪙</div>
+                <div class="tut-art"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"></div>
                 <h3>Collect coins</h3>
                 <p>Coins float between the pipes. Spend them in the <b>Store</b> on hats,
                    trails and power-ups. Some cosmetics only unlock at higher levels.</p>
@@ -4281,7 +4307,7 @@
                     coin rain, low gravity and sandbox coins.<br>
                     <span style="color:#A0A0A0;">It stays disabled in multiplayer so matches stay fair.</span>
                 </div>
-                <div id="pmPriceLabel" style="font-size:20px;color:#FFD700;font-weight:bold;margin-bottom:14px;">🪙 —</div>
+                <div id="pmPriceLabel" style="font-size:20px;color:#FFD700;font-weight:bold;margin-bottom:14px;"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> —</div>
                 <button class="mp-btn-primary" id="pmBuyBtn" style="max-width:220px;margin:0 auto;">UNLOCK</button>
                 <div id="pmBuyErr" style="font-size:11px;margin-top:10px;min-height:16px;"></div>
             </div>
@@ -4296,12 +4322,12 @@
                 <button class="owner-btn pm" data-pm="godmode">⚡ Godmode</button>
                 <button class="owner-btn pm" data-pm="bigbird">🐘 Big Bird</button>
                 <button class="owner-btn pm" data-pm="slowmo">🐌 Slow Motion</button>
-                <button class="owner-btn pm" data-pm="coinlord">🪙 Coin Rain</button>
+                <button class="owner-btn pm" data-pm="coinlord"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> Coin Rain</button>
                 <button class="owner-btn pm" data-pm="tinybird">🐤 Tiny Bird</button>
                 <button class="owner-btn pm" data-pm="lowgrav">🎈 Low Gravity</button>
             </div>
 
-            <div class="mp-section-title" style="margin-top:16px;">🪙 SANDBOX COINS</div>
+            <div class="mp-section-title" style="margin-top:16px;"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> SANDBOX COINS</div>
             <div style="font-size:10px;color:#ABABAB;margin-bottom:8px;line-height:1.6;">
                 Sandbox coins are local only — they let you try out cosmetics without grinding,
                 and are not saved to your account or leaderboards.
@@ -4390,7 +4416,7 @@
             <div class="owner-grid" style="margin-top:10px;">
                 <button class="owner-btn warn" data-act="kick">👢 Kick</button>
                 <button class="owner-btn danger" data-act="ban">🔨 Ban</button>
-                <button class="owner-btn" data-act="giveCoins">🪙 Give Coins</button>
+                <button class="owner-btn" data-act="giveCoins"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> Give Coins</button>
                 <button class="owner-btn" data-act="giveItem">🎁 Give Item</button>
                 <button class="owner-btn" data-act="makeMod">🛡️ Make Mod</button>
                 <button class="owner-btn danger" data-act="stripRoles">✂️ Strip Roles</button>
@@ -4403,14 +4429,14 @@
                 <button class="owner-btn good" data-act="reviveAll">❤️ Revive Everyone</button>
                 <button class="owner-btn" data-act="bigAll">🐘 Big Mode</button>
                 <button class="owner-btn" data-act="normalAll">🐦 Normal Size</button>
-                <button class="owner-btn warn" data-act="freezeAll">🧊 Freeze</button>
+                <button class="owner-btn warn" data-act="freezeAll">❄️ Freeze</button>
                 <button class="owner-btn good" data-act="unfreezeAll">▶️ Unfreeze</button>
             </div>
 
             <!-- SELF -->
             <div class="mp-section-title" style="margin-top:16px;">⚡ SELF</div>
             <div class="owner-grid">
-                <button class="owner-btn" data-act="selfCoins">🪙 +10,000 Coins</button>
+                <button class="owner-btn" data-act="selfCoins"><img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false"> +10,000 Coins</button>
                 <button class="owner-btn" data-act="selfGod">⚡ Toggle Godmode</button>
                 <button class="owner-btn" data-act="selfLevel">⭐ Max Level</button>
                 <button class="owner-btn" data-act="unlockAll">🔓 Unlock Cosmetics</button>
@@ -4420,7 +4446,7 @@
             <!-- EFFECTS -->
             <div class="mp-section-title" style="margin-top:16px;">🎬 EFFECTS</div>
             <div class="owner-grid">
-                <button class="owner-btn" data-act="disco">🪩 Disco Mode</button>
+                <button class="owner-btn" data-act="disco">🕺 Disco Mode</button>
                 <button class="owner-btn danger" data-act="nuke">☢️ Nuke All Servers</button>
             </div>
 
@@ -4839,16 +4865,16 @@
     </div>
     
     <!-- AUDIO -->
-    <audio id="jumpSound" preload="auto"><source src="/img/jump.mp3"></audio>
-    <audio id="deathSound" preload="auto"><source src="/img/death.mp3"></audio>
-    <audio id="coinSound" preload="auto"><source src="/img/coin.mp3"></audio>
-    <audio id="selectSound" preload="auto"><source src="/img/select.mp3"></audio>
-    <audio id="failSound" preload="auto"><source src="/img/fail.mp3"></audio>
-    <audio id="powerupSound"><source src="/img/powerup.mp3"></audio>
-    <audio id="victorySound" preload="auto"><source src="/img/victory.mp3"></audio>
-    <audio id="sixtySevenSound" preload="auto"><source src="/img/67.mp3"></audio>
-    <audio id="boomSound" preload="auto"><source src="/img/boom.mp3"></audio>
-    <audio id="achSound" preload="auto"><source src="/img/ach.mp3"></audio>
+    <audio id="jumpSound" preload="none"><source src="/img/jump.mp3"></audio>
+    <audio id="deathSound" preload="none"><source src="/img/death.mp3"></audio>
+    <audio id="coinSound" preload="none"><source src="/img/coin.mp3"></audio>
+    <audio id="selectSound" preload="none"><source src="/img/select.mp3"></audio>
+    <audio id="failSound" preload="none"><source src="/img/fail.mp3"></audio>
+    <audio id="powerupSound" preload="none"><source src="/img/powerup.mp3"></audio>
+    <audio id="victorySound" preload="none"><source src="/img/victory.mp3"></audio>
+    <audio id="sixtySevenSound" preload="none"><source src="/img/67.mp3"></audio>
+    <audio id="boomSound" preload="none"><source src="/img/boom.mp3"></audio>
+    <audio id="achSound" preload="none"><source src="/img/ach.mp3"></audio>
     <audio id="bgMusic" loop preload="auto"><source src="/img/music.mp3"></audio>
     
     <script>
@@ -4901,7 +4927,7 @@
             }
             if (!appConfig.firebase) {
                 console.error('[Config] api.json did not contain firebase config. Auth and cloud saves are disabled.');
-                loadFromLocal();
+                loadOfflineAccount() || loadFromLocal();
             } else {
                 try {
                     firebase.initializeApp(appConfig.firebase);
@@ -4910,7 +4936,7 @@
                     setupAuthAfterConfig();
                 } catch(e) {
                     console.error('[Config] Firebase init failed:', e.message);
-                    loadFromLocal();
+                    loadOfflineAccount() || loadFromLocal();
                 }
             }
             initPhoton();
@@ -5161,15 +5187,23 @@
               colours: ['#FFD1E8','#FFF3B0','#B8F2C8','#B9D9FF'], owned: false, equipped: false }
         ];
         
+        /* The coin emoji (U+1FA99) arrived in Emoji 13, in 2020. Windows 10 and
+           Android 10 and older never got it, so on those it was an empty box
+           everywhere a price or a balance appeared. The coin is the game's
+           own art instead: one still frame of coin.gif, face on. */
+        const COIN_SRC = '/img/coin-still.png';
+        const COIN_IMG = '<img class="coin-ico" src="/img/coin-still.png" alt="coins" draggable="false">';
+        const coinStill = new Image(); coinStill.src = COIN_SRC;     // for the canvas
+
         let achievements = [
             { id: 'first', name: 'FIRST FLIGHT', desc: 'Play your first game', icon: '🐣', unlocked: false, progress: 0, target: 1 },
-            { id: 'collector', name: 'COIN COLLECTOR', desc: 'Collect 100 coins', icon: '🪙', unlocked: false, progress: 0, target: 100 },
+            { id: 'collector', name: 'COIN COLLECTOR', desc: 'Collect 100 coins', icon: COIN_IMG, unlocked: false, progress: 0, target: 100 },
             { id: 'score50', name: 'SCORE 50', desc: 'Reach a score of 50', icon: '50', unlocked: false, progress: 0, target: 50 },
             { id: 'score100', name: 'SCORE 100', desc: 'Reach a score of 100', icon: '💯', unlocked: false, progress: 0, target: 100 },
             { id: 'mystery', name: 'MYSTERY LEVEL', desc: 'Find the secret', icon: '❓', unlocked: false, progress: 0, target: 1 },
             { id: 'legend', name: 'LEGEND', desc: 'Reach a score of 1,000', icon: '👑', unlocked: false, progress: 0, target: 1 },
             { id: 'score25',   name: 'GETTING GOING',  desc: 'Reach a score of 25',            icon: '🎯', unlocked: false, progress: 0, target: 25 },
-            { id: 'score250',  name: 'IRON WINGS',     desc: 'Reach a score of 250',           icon: '🦾', unlocked: false, progress: 0, target: 250 },
+            { id: 'score250',  name: 'IRON WINGS',     desc: 'Reach a score of 250',           icon: '💪', unlocked: false, progress: 0, target: 250 },
             { id: 'coins1k',   name: 'COIN HOARDER',   desc: 'Collect 1,000 coins total',      icon: '💰', unlocked: false, progress: 0, target: 1000 },
             { id: 'coins10k',  name: 'RICH BIRD',      desc: 'Collect 10,000 coins total',     icon: '💎', unlocked: false, progress: 0, target: 10000 },
             { id: 'games25',   name: 'REGULAR',        desc: 'Play 25 games',                  icon: '🕹️', unlocked: false, progress: 0, target: 25 },
@@ -5184,69 +5218,108 @@
         const jumpSound = document.getElementById('jumpSound'), deathSound = document.getElementById('deathSound'), coinSound = document.getElementById('coinSound'), selectSound = document.getElementById('selectSound'), powerupSound = document.getElementById('powerupSound'), victorySound = document.getElementById('victorySound'), sixtySevenSound = document.getElementById('sixtySevenSound'), boomSound = document.getElementById('boomSound'), achSound = document.getElementById('achSound'), bgMusic = document.getElementById('bgMusic'), failSound = document.getElementById('failSound');
 
         // ---- SOUND EFFECTS ----
-        // Generated with the Web Audio API rather than loaded from files, so
-        // there is nothing to download or host and they work immediately.
-        // If an mp3 of the same name exists in /img it is used instead.
-        let _actx = null, _sfxBus = null;
+        /* Every effect is one of the game's own files in /img, decoded once
+           and played through Web Audio.
 
-        // The generated tones were written at oscillator amplitudes of .07-.18,
-        // which measured 20-26 dB below the real mp3s (coin.mp3 sits at
-        // -10 dBFS, the loudest tone at -29). On a phone speaker that is not
-        // "subtle", it is inaudible — which is why none of the newer sounds
-        // could be heard. Everything generated now runs through one bus with
-        // makeup gain, and a limiter catches the overlaps so the boost cannot
-        // clip when several fire at once.
-        const SFX_MAKEUP = 4.0;
-        function audioCtx() {
+           Why not <audio> tags, as before? Phones. A mobile browser only lets
+           an <audio> element start from inside a tap: the Android app's
+           WebView enforces that for every single play by default, and iOS
+           for each element until a tap has started it once. The coin, death,
+           powerup and achievement sounds are all fired from the game loop,
+           never from a tap, so on a phone they were quietly refused. A Web
+           Audio context needs unlocking exactly once; after that a decoded
+           buffer plays from anywhere — and iOS honours its volume, which it
+           ignores on <audio>.
+
+           The old engine also synthesised beeps for any name that had no
+           file of its own. Those placeholders are gone: every name below is
+           one of the files the game already ships, sometimes trimmed (at /
+           max, in seconds) or pitched (rate) so one file can serve two
+           moments. */
+        const SFX = {
+            // the core set — these were <audio> tags
+            jump:      { f: 'jump' },
+            coin:      { f: 'coin' },
+            death:     { f: 'death' },
+            fail:      { f: 'fail' },
+            select:    { f: 'select' },
+            powerup:   { f: 'powerup' },
+            victory:   { f: 'victory' },
+            ach:       { f: 'ach' },
+            '67':      { f: '67' },
+            boom:      { f: 'boom' },
+            // menus and social
+            swoosh:    { f: 'swoosh' },
+            whoosh:    { f: 'woosh',     max: .65 },   // audible for 0.6s; the rest is silent tail
+            pop:       { f: 'pop' },
+            join:      { f: 'join' },
+            leave:     { f: 'leave' },
+            message:   { f: 'message' },
+            notify:    { f: 'notify' },
+            send:      { f: 'send' },
+            error:     { f: 'error' },
+            purchase:  { f: 'purchase' },
+            unlock:    { f: 'unlock',    max: 1.6 },   // a 3s shimmer; reward toasts are shorter
+            levelup:   { f: 'levelup' },
+            rank:      { f: 'rank' },
+            // matches
+            countdown: { f: 'countdown' },
+            start:     { f: 'countdown', at: 3.15, max: 1.05, gain: 2.5 },   // the GO tone that ends the countdown (a quiet file)
+            // the lane
+            pickup:    { f: 'coin' },
+            pickupBig: { f: 'coin',      rate: 1.35 },
+            hatch:     { f: 'pop',       rate: 1.25 },
+            carry:     { f: 'pop',       rate: .85 },
+            sour:      { f: 'error' },
+            deliver:   { f: 'purchase',  max: 1.4 },
+            smash:     { f: 'smash' },
+            milestone: { f: 'ach',       gain: .7 },
+            timeLow:   { f: 'tick',      at: 1.22, max: .2 }      // one tick out of the 11s clock loop
+        };
+
+        let _actx = null, _sfxOut = null;
+        // The context, created on demand but NOT woken: creating and resuming
+        // one before the player has touched anything only earns a console
+        // warning and a context that stays asleep anyway.
+        function rawCtx() {
             if (!_actx) {
-                try { _actx = new (window.AudioContext || window.webkitAudioContext)(); }
-                catch (e) { return null; }
+                try {
+                    _actx = new (window.AudioContext || window.webkitAudioContext)();
+                    // A phone call, Siri or backgrounding can suspend it again
+                    // later; when that happens, listen for the next tap.
+                    // resume() settles asynchronously, so the tap that woke it
+                    // usually still saw 'suspended' — tidy up when it lands.
+                    _actx.addEventListener && _actx.addEventListener('statechange', () => {
+                        if (_actx.state === 'running') disarmAudioUnlock();
+                        else armAudioUnlock();
+                    });
+                } catch (e) { _actx = null; }
             }
-            if (_actx.state === 'suspended') _actx.resume().catch(() => {});
             return _actx;
         }
-        function sfxBus() {
-            const ctx = audioCtx();
+        // For callers that are about to make a noise (voice meter, recorder)
+        function audioCtx() {
+            const c = rawCtx();
+            if (c && c.state !== 'running' && c.state !== 'closed') c.resume().catch(() => {});
+            return c;
+        }
+        // One limiter in front of the speakers, so a stack of pickups landing
+        // on the same tick as a milestone cannot clip.
+        function sfxOut() {
+            const ctx = rawCtx();
             if (!ctx) return null;
-            if (!_sfxBus || _sfxBus.context !== ctx) {
-                const g = ctx.createGain();
-                g.gain.value = SFX_MAKEUP;
-                let tail = g;
-                try {
-                    const comp = ctx.createDynamicsCompressor();
-                    comp.threshold.value = -10;
-                    comp.knee.value = 8;
-                    comp.ratio.value = 20;
-                    comp.attack.value = .002;
-                    comp.release.value = .10;
-                    g.connect(comp);
-                    tail = comp;
-                } catch (e) { /* no compressor: the raw gain still works */ }
-                // The compressor has no lookahead, so six effects landing on
-                // the same tick still punched past 1.0 and hard-clipped at the
-                // output. A tanh curve after it rounds those peaks off instead.
-                try {
-                    const shaper = ctx.createWaveShaper();
-                    const n = 1024, curve = new Float32Array(n);
-                    for (let i = 0; i < n; i++) {
-                        const x = (i / (n - 1)) * 2 - 1;
-                        curve[i] = 0.88 * Math.tanh(x * 1.35) / Math.tanh(1.35);
-                    }
-                    shaper.curve = curve;
-                    shaper.oversample = '2x';
-                    tail.connect(shaper);
-                    tail = shaper;
-                } catch (e) { /* no shaper: the compressor alone still helps */ }
-                tail.connect(ctx.destination);
-                _sfxBus = g;
+            if (!_sfxOut || _sfxOut.context !== ctx) {
+                const lim = ctx.createDynamicsCompressor();
+                lim.threshold.value = -3; lim.knee.value = 2; lim.ratio.value = 20;
+                lim.attack.value = .002; lim.release.value = .12;
+                lim.connect(ctx.destination);
+                _sfxOut = lim;
             }
-            return _sfxBus;
+            return _sfxOut;
         }
 
         // One place decides how loud an effect is. The slider in Settings
-        // writes sfxVol (0-100); playSfx used to read sfxVolume, a second key
-        // nothing ever wrote, so the slider moved nothing but the <audio>
-        // tags. Prefer the key the slider actually sets.
+        // writes sfxVol (0-100); older saves only have sfxVolume (0-1).
         function sfxVolume() {
             if (typeof settings === 'undefined') return 1;
             if (settings.sfxVol != null && isFinite(settings.sfxVol)) {
@@ -5258,175 +5331,183 @@
             return 1;
         }
 
-        // note: [frequency, startTime, duration, type, volume]
-        const SFX_DEFS = {
-            swoosh:    [[300, 0,    .07, 'sine',     .13]],
-            whoosh:    [[220, 0,    .12, 'sine',     .17]],
-            join:      [[440, 0,    .07, 'square',   .14], [660, .07, .09, 'square', .14]],
-            leave:     [[660, 0,    .07, 'square',   .13], [440, .07, .09, 'square', .13]],
-            message:   [[780, 0,    .04, 'sine',     .17]],
-            notify:    [[880, 0,    .07, 'sine',     .16], [1170,.09, .10, 'sine',  .14]],
-            send:      [[620, 0,    .04, 'sine',     .14]],
-            error:     [[200, 0,    .16, 'sawtooth', .17], [150, .09, .16, 'sawtooth', .15]],
-            purchase:  [[660, 0,    .06, 'square',   .15], [880, .06, .06, 'square', .15],
-                        [1320,.13,  .14, 'square',   .13]],
-            unlock:    [[880, 0,    .06, 'sine',     .18], [1100,.06, .06, 'sine',  .18],
-                        [1320,.12,  .06, 'sine',     .15], [1760,.18, .18, 'sine',  .13]],
-            levelup:   [[523, 0,    .09, 'square',   .16], [659, .09, .09, 'square', .16],
-                        [784, .18,  .09, 'square',   .16], [1047,.27, .24, 'square', .15]],
-            rank:      [[392, 0,    .10, 'square',   .16], [523, .10, .10, 'square', .16],
-                        [659, .20,  .10, 'square',   .16], [880, .30, .28, 'square', .15]],
-            start:     [[440, 0,    .08, 'square',   .16], [554, .08, .08, 'square', .16],
-                        [659, .16,  .20, 'square',   .16]],
-            countdown: [[600, 0,    .10, 'square',   .16]],
+        /* ---- decoding ----
+           Decoded on an OfflineAudioContext, so the files can be ready before
+           the first tap without waking (or warning about) the real one. An
+           AudioBuffer is not tied to the context that decoded it. */
+        const _sfxBuf = {};                  // file -> AudioBuffer | Promise (loading)
+        const _sfxFailAt = {};               // file -> when it last failed, so offline does not hammer
+        let _decodeCtx = null;
+        function decodeCtx() {
+            if (_decodeCtx) return _decodeCtx;
+            const O = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+            try { _decodeCtx = O ? new O(2, 1, 48000) : rawCtx(); } catch (e) { _decodeCtx = rawCtx(); }
+            return _decodeCtx;
+        }
+        function decodeInto(ctx, ab) {
+            // Older Safari only has the callback form, and never returns a promise
+            return new Promise((res, rej) => {
+                const p = ctx.decodeAudioData(ab, res, rej);
+                if (p && p.then) p.then(res, rej);
+            });
+        }
+        function loadSfxFile(f) {
+            const have = _sfxBuf[f];
+            if (have) return have instanceof Promise ? have : Promise.resolve(have);
+            if (_sfxFailAt[f] && Date.now() - _sfxFailAt[f] < 30000) return Promise.resolve(null);
+            const ctx = decodeCtx();
+            if (!ctx) return Promise.resolve(null);
+            const p = fetch('/img/' + f + '.mp3')
+                .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.arrayBuffer(); })
+                .then(ab => decodeInto(ctx, ab))
+                .then(buf => (_sfxBuf[f] = buf))
+                .catch(() => { delete _sfxBuf[f]; _sfxFailAt[f] = Date.now(); return null; });
+            _sfxBuf[f] = p;
+            return p;
+        }
+        function sfxReady(f) { const b = _sfxBuf[f]; return !!(b && !(b instanceof Promise)); }
 
-            /* ---- THE LANE ----
-             * Everything that happens to you in a run now makes a noise.
-             * These are generated, so they work today; drop a file of the
-             * same name into sfxFiles and it takes over with nothing else
-             * to change. */
-            pickup:    [[880, 0,    .05, 'sine',     .19], [1320,.05, .06, 'sine',  .16]],
-            pickupBig: [[784, 0,    .05, 'square',   .14], [1047,.05, .05, 'square',.14],
-                        [1568,.10,  .12, 'square',   .12]],
-            sour:      [[300, 0,    .10, 'sawtooth', .17], [190, .08, .14, 'sawtooth', .15]],
-            deliver:   [[523, 0,    .06, 'sine',     .19], [784, .06, .06, 'sine',  .19],
-                        [1047,.12,  .16, 'sine',     .13]],
-            smash:     [[180, 0,    .09, 'sawtooth', .18], [90,  .04, .16, 'square', .14],
-                        [260, .02,  .07, 'sawtooth', .10]],
-            carry:     [[520, 0,    .06, 'square',   .22]],
-            near:      [[1200,0,    .03, 'sine',     .10]],   // a gap threaded close
-            milestone: [[659, 0,    .08, 'square',   .16], [880, .08, .08, 'square', .16],
-                        [1047,.16,  .08, 'square',   .16], [1319,.24, .20, 'square', .14]],
-            timeLow:   [[880, 0,    .07, 'square',   .14], [880, .14, .07, 'square', .12]],
-            hatch:     [[1320,0,    .05, 'sine',     .18], [1760,.05, .10, 'sine',  .15]],
+        // Every file, a few at a time, once the menu has settled — so the
+        // first coin of the first run is not the one that waits on a download.
+        function preloadSfx() {
+            const files = [...new Set(Object.values(SFX).map(d => d.f))];
+            let i = 0;
+            const next = () => { if (i < files.length) loadSfxFile(files[i++]).then(next); };
+            for (let k = 0; k < 3; k++) next();
+        }
+        setTimeout(() => (window.requestIdleCallback || (fn => fn()))(preloadSfx), 1200);
 
-            /* These two were being ASKED for in four places and had no
-               definition and no file, so every one of those calls has been a
-               silent no-op — the tap on a settings tab, the party panel
-               opening, a friend row. They make a noise now. */
-            pop:       [[660, 0,    .035,'sine',     .16]],
-            select:    [[520, 0,    .03, 'square',   .14], [780, .03, .04, 'square', .12]]
-        };
-
-        // Real files take priority over the generated tones. Rather than
-        // waiting on canplaythrough — which fires unreliably and left files
-        // that WERE present sitting unused — each name is probed once and
-        // remembered.
-        const sfxFiles = {};
-        const sfxChecked = {};
-
-        function tryLoadSfx(name) {
-            if (sfxChecked[name]) return;
-            sfxChecked[name] = true;
-            const a = new Audio('/img/' + name + '.mp3');
-            a.preload = 'auto';
-            a.addEventListener('canplaythrough', () => { sfxFiles[name] = a; }, { once: true });
-            a.addEventListener('loadeddata',     () => { sfxFiles[name] = a; }, { once: true });
-            a.addEventListener('error', () => { sfxFiles[name] = null; }, { once: true });
-            a.load();
+        /* ---- playing ---- */
+        function playBuffer(buf, def, vol) {
+            const ctx = rawCtx(), out = sfxOut();
+            if (!ctx || !out || ctx.state !== 'running') return false;
+            const src = ctx.createBufferSource();
+            src.buffer = buf;
+            if (def.rate) src.playbackRate.value = def.rate;
+            const g = ctx.createGain();
+            g.gain.value = vol;
+            src.connect(g); g.connect(out);
+            const now = ctx.currentTime, at = def.at || 0;
+            if (def.max) {
+                // cut long files short, with a quick fade so they do not click
+                g.gain.setValueAtTime(vol, now + Math.max(0, def.max - .08));
+                g.gain.linearRampToValueAtTime(0.0001, now + def.max);
+                src.start(now, at, def.max + .02);
+            } else {
+                src.start(now, at);
+            }
+            return true;
         }
 
-        // Probing all 26 names up front meant 26 Audio objects and 26 parallel
-        // mp3 requests before the menu had even drawn, on top of the 11 <audio>
-        // tags - 37 media elements, most of them for files that are not there.
-        // Mobile Safari caps how many it will keep alive, and the ones that
-        // matter were competing with the ones that do not exist. Each name is
-        // probed the first time it is asked for instead; the generated tone
-        // covers that first play.
-        function sfxFileFor(name) {
-            if (!sfxChecked[name]) { tryLoadSfx(name); return null; }
-            return sfxFiles[name] || null;
+        // Only for a file that has not finished decoding yet, or a browser
+        // with no Web Audio at all. One element per file, cloned per play.
+        const _sfxEl = {};
+        function playFallback(def, vol) {
+            try {
+                let base = _sfxEl[def.f];
+                if (!base) { base = _sfxEl[def.f] = new Audio('/img/' + def.f + '.mp3'); base.preload = 'auto'; }
+                const a = base.cloneNode();
+                a.volume = Math.max(0, Math.min(1, vol));
+                if (def.rate) a.playbackRate = def.rate;
+                if (def.at) { try { a.currentTime = def.at; } catch (e) {} }
+                const p = a.play();
+                if (p && p.catch) p.catch(() => {});
+                if (def.max) setTimeout(() => { try { a.pause(); } catch (e) {} }, def.max * 1000);
+            } catch (e) { /* nothing more to try */ }
         }
-
 
         function playSfx(name, volume) {
             if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            const vol = (volume ?? 1) * sfxVolume();
+            const def = SFX[name];
+            if (!def) return;
+            const vol = (volume ?? 1) * sfxVolume() * (def.gain || 1);
             if (vol <= 0) return;
-
-            const file = sfxFileFor(name);
-            if (file) {
-                try {
-                    const clone = file.cloneNode();
-                    clone.volume = Math.min(1, vol);
-                    clone.play().catch(() => playTone(name, vol));
-                    return;
-                } catch (e) { /* fall through to the generated tone */ }
+            if (sfxReady(def.f)) {
+                if (playBuffer(_sfxBuf[def.f], def, vol)) return;
+                audioCtx();                     // not unlocked yet: nudge it
+            } else {
+                loadSfxFile(def.f);             // first time asked: start fetching
             }
-            playTone(name, vol);
+            playFallback(def, vol);
         }
 
-        function playTone(name, vol) {
-            const def = SFX_DEFS[name];
-            const ctx = audioCtx();
-            const bus = sfxBus();
-            if (!def || !ctx || !bus) return;
-            def.forEach(([freq, at, dur, type, amp]) => {
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.type = type || 'square';
-                osc.frequency.setValueAtTime(freq, ctx.currentTime + at);
-                const peak = amp * vol;
-                gain.gain.setValueAtTime(0.0001, ctx.currentTime + at);
-                gain.gain.exponentialRampToValueAtTime(Math.max(peak, .0002), ctx.currentTime + at + .008);
-                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + at + dur);
-                osc.connect(gain); gain.connect(bus);
-                osc.start(ctx.currentTime + at);
-                osc.stop(ctx.currentTime + at + dur + .02);
-            });
+        // A file by path — the seasonal fly-bys. `alt` is tried if the first
+        // one turns out not to exist (the witch has been spelled two ways).
+        function playSfxFile(path, volume, alt) {
+            const f = String(path || '').replace(/^.*\/img\//, '').replace(/\.mp3$/i, '');
+            if (!f) return;
+            if (!SFX['file:' + f]) SFX['file:' + f] = { f };
+            if (alt && _sfxFailAt[f] && !sfxReady(f)) { playSfxFile(alt, volume); return; }
+            playSfx('file:' + f, volume);
         }
 
-        // Browsers block audio until the first interaction — unlock on any tap.
-        //
-        // Two things had to change here. iPhones mute Web Audio and <audio>
-        // outright when the hardware ring/silent switch is set to silent, so
-        // the game is dead quiet on a phone no matter how loud the samples
-        // are; Safari 16.4 added navigator.audioSession, and asking for the
-        // 'playback' category opts out of that. And the listeners used to be
-        // {once:true}, so if the very first gesture failed to resume the
-        // context there was no second attempt for the rest of the session —
-        // now they stay until a resume actually succeeds.
+        /* ---- unlocking ----
+           A context only wakes inside a real user activation, and on a touch
+           screen touchstart and pointerdown do not count — only touchend,
+           pointerup and click do. Listening for the down events alone meant
+           the first tap never woke it. All of them are listened for, and the
+           listeners stay until the context is actually running. */
         function claimAudioSession() {
-            try {
-                if (navigator.audioSession) navigator.audioSession.type = 'playback';
-            } catch (e) { /* not supported: nothing to claim */ }
+            // iPhones mute the page outright with the ring/silent switch on;
+            // Safari 16.4+ lets a page ask for the media category instead.
+            try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch (e) {}
         }
+        const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+        let _unlockArmed = false, _silentPlayed = false;
         function unlockAudio() {
             claimAudioSession();
             const ctx = audioCtx();
-            if (ctx && ctx.state === 'running') {
-                ['pointerdown','keydown','touchstart'].forEach(ev =>
-                    window.removeEventListener(ev, unlockAudio));
+            if (!ctx) return;
+            // iOS only really opens the output once something has played from
+            // inside a gesture; one silent sample is enough.
+            if (!_silentPlayed) {
+                try {
+                    const b = ctx.createBuffer(1, 1, 22050), s = ctx.createBufferSource();
+                    s.buffer = b; s.connect(ctx.destination); s.start(0);
+                    _silentPlayed = true;
+                } catch (e) {}
             }
+            if (ctx.state === 'running') disarmAudioUnlock();
         }
-        ['pointerdown','keydown','touchstart'].forEach(ev =>
-            window.addEventListener(ev, unlockAudio, { passive: true }));
+        function armAudioUnlock() {
+            if (_unlockArmed) return;
+            _unlockArmed = true;
+            UNLOCK_EVENTS.forEach(ev => window.addEventListener(ev, unlockAudio, { passive: true, capture: true }));
+        }
+        function disarmAudioUnlock() {
+            if (!_unlockArmed) return;
+            _unlockArmed = false;
+            UNLOCK_EVENTS.forEach(ev => window.removeEventListener(ev, unlockAudio, true));
+        }
+        armAudioUnlock();
         claimAudioSession();
 
         // A phone has no console, so the only way to find out why a device is
-        // silent is to ask the device. Returns everything that can mute this
-        // game, in one object.
+        // silent is to ask the device. Settings > Test sound prints this.
         window.soundReport = function () {
-            const ctx = _actx;
+            const files = [...new Set(Object.values(SFX).map(d => d.f))];
             return {
-                ctx:        ctx ? ctx.state : 'never created',
-                sampleRate: ctx ? ctx.sampleRate : null,
+                engine:     'files',
+                ctx:        _actx ? _actx.state : 'not yet',
+                decoded:    files.filter(sfxReady).length + '/' + files.length,
                 audioSession: (() => { try { return navigator.audioSession
                                       ? navigator.audioSession.type : 'unsupported'; }
                                 catch (e) { return 'error'; } })(),
                 sfxEnabled: typeof settings !== 'undefined' ? settings.sfxEnabled : '?',
                 sfxVol:     typeof settings !== 'undefined' ? settings.sfxVol : '?',
+                resolved:   sfxVolume(),
                 musicVol:   typeof settings !== 'undefined' ? settings.musicVol : '?',
-                resolved:   (typeof sfxVolume === 'function') ? sfxVolume() : '?',
-                makeup:     typeof SFX_MAKEUP !== 'undefined' ? SFX_MAKEUP : 'OLD BUILD',
-                busUp:      !!_sfxBus,
-                filesReady: Object.keys(sfxFiles).filter(k => sfxFiles[k]).length,
-                jumpVol:    jumpSound ? jumpSound.volume : null,
-                jumpMuted:  jumpSound ? jumpSound.muted : null
+                online:     navigator.onLine
             };
         };
-        // Fix slow sound — ensure playbackRate is 1.0 on all audio elements
-        [jumpSound, deathSound, coinSound, selectSound, powerupSound, victorySound, sixtySevenSound, boomSound, achSound, failSound].forEach(s => { if (s) { s.playbackRate = 1.0; s.defaultPlaybackRate = 1.0; } });
+
+        // The old <audio> tags are kept only as names: playSound() looks the
+        // element up here and plays the decoded file instead.
+        const SFX_BY_EL = new Map([
+            [jumpSound, 'jump'], [deathSound, 'death'], [coinSound, 'coin'], [selectSound, 'select'],
+            [powerupSound, 'powerup'], [victorySound, 'victory'], [sixtySevenSound, '67'],
+            [boomSound, 'boom'], [achSound, 'ach'], [failSound, 'fail']
+        ]);
         function playSound(snd) {
             if (!snd) return;
             // Controller navigation clicks buttons programmatically, and each
@@ -5436,9 +5517,9 @@
                 if (window.__padNavigating) return;
                 if (typeof settings !== 'undefined' && settings.uiSounds === false) return;
             }
-            snd.currentTime = 0;
-            snd.playbackRate = 1.0;
-            snd.play().catch(() => {});
+            const name = SFX_BY_EL.get(snd);
+            if (name) { playSfx(name); return; }
+            try { snd.currentTime = 0; const p = snd.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
         }
         
         // ========== SAVING SYSTEM ==========
@@ -5456,8 +5537,18 @@
             if (!_saveQueued) return;
             _saveQueued = false;
             _lastSaveAt = Date.now();
-            if (currentUser && db) saveToCloud();
-            else saveToLocal();
+            // Only ever save to an account whose progress is actually what is
+            // on screen. If the cloud load failed and guest progress was shown
+            // instead, writing it to the account would overwrite the real save.
+            if (currentUser && db && accountLoadedFor === currentUser.uid) {
+                const at = Date.now();
+                saveAccountLocal(currentUser.uid, at);
+                saveToCloud(at);
+            } else if (offlineAccountUid && accountLoadedFor === offlineAccountUid) {
+                saveAccountLocal(offlineAccountUid, Date.now());
+            } else {
+                saveToLocal();
+            }
         }
 
         function autoSave(immediate) {
@@ -5503,7 +5594,7 @@
             }, { merge: true }).catch(e => console.warn('[Stats] mirror failed:', e.message));
         }
 
-        async function saveToCloud() {
+        async function saveToCloud(at) {
             mirrorStatsToFirestore();
 
             if(!currentUser || !db) return; 
@@ -5514,39 +5605,56 @@
                     highScore, coinCount, gamesPlayed,
                     owned: cosmetics.filter(c=>c.owned).map(c=>c.id), 
                     equipped: { hat: equippedId('hat'), trail: equippedId('trail') }, 
-                    achievements: achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress}))
+                    achievements: achievements.map(a=>({id:a.id, unlocked:a.unlocked, progress:a.progress})),
+                    // when this was saved, so a newer copy on a device that
+                    // played offline can be told apart from this one
+                    savedAt: at || Date.now()
                 }, { merge: true });
                 document.getElementById('saveStatusText').textContent = '☁️ Cloud';
             } catch(e){ console.warn(e); document.getElementById('saveStatusText').textContent = '⚠️ Offline'; }
         }
         
-        async function loadFromCloud() { 
-            if(!currentUser||!db) return; 
+        async function loadFromCloud() {
+            if (!currentUser || !db) return;
+            const uid = currentUser.uid;
+            const local = readAccountLocal(uid);
+            // This account's copy on the device goes up straight away; the
+            // cloud answer replaces it only if the cloud is newer.
+            if (local) { applySave(local); accountLoadedFor = uid; }
             try {
-                let doc = await db.collection('users').doc(currentUser.uid).get(); 
-                if(doc.exists){ 
-                    let d = doc.data(); 
-                    highScore = d.highScore || 0; 
-                    coinCount = d.coinCount || 0;
-                    gamesPlayed = d.gamesPlayed || 0;
+                const doc = await db.collection('users').doc(uid).get();
+                const d = doc.exists ? doc.data() : null;
+                if (d && !(local && (local.savedAt || 0) > (d.savedAt || 0))) {
+                    applySave(d);
+                    accountLoadedFor = uid;
+                    saveAccountLocal(uid, d.savedAt || 0);
                     renderUserProfile(currentUser);
-                    cosmetics.forEach(c=>c.owned = (d.owned||[]).includes(c.id)); 
-                    applyEquipped(d.equipped);
-                    
-                    if(d.achievements) d.achievements.forEach(a=>{ 
-                        let ach=achievements.find(x=>x.id===a.id); 
-                        if(ach){ ach.unlocked=a.unlocked; ach.progress=a.progress||0; } 
-                    });
-                    document.getElementById('highScore').textContent = highScore; 
-                    updateCoinDisplay(); 
-                    updateAchievementCount(); 
-                    updateLockerDisplay(); 
-                    updatePreview(); 
-                    document.getElementById('saveStatusText').textContent = '☁️ Cloud'; 
-                } else await saveToCloud();
-            } catch(e){ console.warn(e); loadFromLocal(); }
+                    document.getElementById('saveStatusText').textContent = '☁️ Cloud';
+                } else {
+                    // Either there is no cloud save yet (a new account takes
+                    // what is on screen), or this device played more recently
+                    // than the cloud has heard about — offline. Either way the
+                    // screen is the newest, so it goes up.
+                    const offlineWon = !!(local && d);
+                    accountLoadedFor = uid;
+                    const at = (local && local.savedAt) || Date.now();
+                    saveAccountLocal(uid, at);
+                    await saveToCloud(at);
+                    renderUserProfile(currentUser);
+                    if (offlineWon) toast({ kind: 'info', title: '☁️ Offline progress saved',
+                                             body: 'What you earned while offline is on your account now.' });
+                }
+            } catch (e) {
+                console.warn('[Save] cloud load failed:', e.message);
+                // Offline, but Firebase restored the sign-in from its own
+                // cache. Keep playing on this account's device copy if there
+                // is one; without one, fall back to guest progress — and the
+                // accountLoadedFor guard keeps that off the account.
+                if (!local) loadFromLocal();
+                document.getElementById('saveStatusText').textContent = '📴 On this device';
+            }
         }
-        
+
         function saveToLocal() { 
             localStorage.setItem('flappyCrixHighScore', highScore); 
             localStorage.setItem('flappyCrixCoins', coinCount);
@@ -5573,6 +5681,66 @@
             updatePreview(); 
         }
         
+        /* ---- THIS ACCOUNT, ON THIS DEVICE ----
+           A signed-in player used to save to the cloud and nowhere else. With
+           no internet there was nothing of theirs on the device, so the game
+           showed whatever guest progress happened to be there — and on
+           reconnecting, loadFromCloud took the cloud copy unconditionally and
+           wiped everything earned offline. Each account now keeps its own
+           copy on the device, stamped with when it was saved; the cloud copy
+           carries the same stamp, and the newer one wins. Guest progress keeps
+           its own keys and is untouched. */
+        const LAST_UID_KEY = 'crix_last_uid', LAST_NAME_KEY = 'crix_last_name';
+        const acctKey = uid => 'crix_acct_' + uid;
+        let offlineAccountUid = null;      // playing offline as the last account here
+        let accountLoadedFor = null;       // whose progress is on screen right now
+        function saveSnapshot() {
+            return {
+                highScore, coinCount, gamesPlayed,
+                owned: cosmetics.filter(c => c.owned).map(c => c.id),
+                equipped: { hat: equippedId('hat'), trail: equippedId('trail') },
+                achievements: achievements.map(a => ({ id: a.id, unlocked: a.unlocked, progress: a.progress }))
+            };
+        }
+        function applySave(d) {
+            highScore = d.highScore || 0;
+            coinCount = d.coinCount || 0;
+            gamesPlayed = d.gamesPlayed || 0;
+            cosmetics.forEach(c => c.owned = (d.owned || []).includes(c.id));
+            applyEquipped(d.equipped);
+            if (d.achievements) d.achievements.forEach(a => {
+                const ach = achievements.find(x => x.id === a.id);
+                if (ach) { ach.unlocked = a.unlocked; ach.progress = a.progress || 0; }
+            });
+            document.getElementById('highScore').textContent = highScore;
+            updateCoinDisplay();
+            updateAchievementCount();
+            updateLockerDisplay();
+            updatePreview();
+        }
+        function saveAccountLocal(uid, at) {
+            try { localStorage.setItem(acctKey(uid), JSON.stringify({ ...saveSnapshot(), savedAt: at })); } catch (e) {}
+        }
+        function readAccountLocal(uid) {
+            try { return JSON.parse(localStorage.getItem(acctKey(uid)) || 'null'); } catch (e) { return null; }
+        }
+        // No account system reachable at all (an offline start): carry on as
+        // the last account that played on this device, if it left a copy.
+        function loadOfflineAccount() {
+            let uid = null, name = '';
+            try { uid = localStorage.getItem(LAST_UID_KEY); name = localStorage.getItem(LAST_NAME_KEY) || ''; } catch (e) {}
+            const snap = uid && readAccountLocal(uid);
+            if (!snap) return false;
+            offlineAccountUid = uid;
+            accountLoadedFor = uid;
+            applySave(snap);
+            const un = document.getElementById('userName');
+            if (un) un.textContent = (name || 'Your account') + ' · offline';
+            const st = document.getElementById('saveStatusText');
+            if (st) st.textContent = '📴 On this device';
+            return true;
+        }
+
         // UI Functions
         // Equipped state has to be re-derived from what you actually own.
         // Loading a save only ever set equipped=true and never cleared it, so
@@ -5599,7 +5767,7 @@
             if (n >= 1e3) return (n/1e3).toFixed(2) + 'K';
             return String(n);
         }
-        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `🪙 ${formatCoins(coinCount)}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`; document.getElementById('coinMultiplier').textContent = coinMultiplier + 'x';
+        function updateCoinDisplay() { document.getElementById('coinCount').innerHTML = `${COIN_IMG} ${formatCoins(coinCount)}`; if(document.getElementById('lockerBalance')) document.getElementById('lockerBalance').innerHTML = `${COIN_IMG} ${formatCoins(coinCount)}`; document.getElementById('coinMultiplier').textContent = coinMultiplier + 'x';
             // Only show the multiplier tile when it's actually doing something
             const ms = document.getElementById('multStat');
             if (ms) ms.style.display = coinMultiplier > 1 ? '' : 'none';
@@ -5616,7 +5784,7 @@
         // An item bought from the shop never shows a bare number now that a
         // sale can be running — the old price is struck through beside it.
         function priceTag(p) {
-            return `🪙 ${salePrice(p)}${shopSale > 0 ? ` <s style="opacity:.55;font-size:10px;">${p}</s>` : ''}`;
+            return `${COIN_IMG} ${salePrice(p)}${shopSale > 0 ? ` <s style="opacity:.55;font-size:10px;">${p}</s>` : ''}`;
         }
 
         function isExclusive(c) { return !!c.exclusive || c.price == null; }
@@ -5711,7 +5879,7 @@
                         coin rain, low gravity and sandbox coins.<br>
                         Locked during multiplayer so matches stay fair.
                     </div>
-                    <div class="store-card-price" style="font-size:19px;">🪙 ${formatCoins(PLAYER_MENU_PRICE)}</div>
+                    <div class="store-card-price" style="font-size:19px;">${COIN_IMG} ${formatCoins(PLAYER_MENU_PRICE)}</div>
                     ${owned
                         ? '<div style="color:var(--green);font-weight:bold;font-size:13px;">OWNED — open it from the main screen</div>'
                         : `<button class="product-buy" id="shopBuyPlayerMenu" style="padding:10px 26px;font-size:13px;">UNLOCK</button>
@@ -5731,7 +5899,7 @@
             const shirts = cosmetics.filter(c => c.type === 'trail' && c.owned).map(card).join('');
             document.getElementById('lockerHats').innerHTML = hats || '<div class="locker-empty">No hats owned yet</div>';
             document.getElementById('lockerShirts').innerHTML = shirts || '<div class="locker-empty">No trails owned yet</div>';
-            document.getElementById('lockerBalance').innerHTML = `🪙 ${formatCoins(coinCount)}`;
+            document.getElementById('lockerBalance').innerHTML = `${COIN_IMG} ${formatCoins(coinCount)}`;
             // The preview used to keep whatever it was drawn with at load, so
             // a cloud save that arrived afterwards left it showing the wrong
             // drip until something was equipped by hand.
@@ -6046,13 +6214,13 @@
                     if (score % 10 === 0) playSfx('milestone', .45);
                     grantXp(1, 'score');
                     if (typeof mpReportScore === 'function') mpReportScore(score);
-                    if(score===67 && !hasTriggered67){ hasTriggered67=true; sixtySevenSound.play(); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); }
+                    if(score===67 && !hasTriggered67){ hasTriggered67=true; playSound(sixtySevenSound); let ov=document.getElementById('eventOverlay'); ov.style.display='block'; ov.innerHTML='<img src="/img/67.gif" style="max-width:150px;">'; setTimeout(()=>{ov.style.display='none'; ov.innerHTML='';},3000); }
                     if(score===MILESTONE_SCORE && !hasTriggered1000){
                         // Celebrate on the bird and keep flying — the run only
                         // ends at MAX_SCORE now.
                         hasTriggered1000=true;
                         showBoomAt(bird.x, bird.y);
-                        boomSound.play(); victorySound.play();
+                        playSound(boomSound); playSound(victorySound);
                         setTimeout(hideBoom, 1600);
                     }
                     if(score===MAX_SCORE) finishAtMaxScore();
@@ -6163,7 +6331,7 @@
             if (co) {
                 co.style.display = isRush ? 'none' : '';
                 if (coinCount !== _lastHud.coins) {
-                    co.textContent = '🪙 ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
+                    co.innerHTML = COIN_IMG + ' ' + (typeof formatCoins === 'function' ? formatCoins(coinCount) : coinCount);
                     _lastHud.coins = coinCount;
                 }
             }
@@ -7234,26 +7402,13 @@
             }
             return rec;
         }
-        const _flyerSfx = {};
+        // A fly-by is a sound effect, so it follows the effects switch rather
+        // than the music one. Played through the same decoded-file engine as
+        // everything else, so it is heard on phones too. The witch's file has
+        // been spelled both witch1 and witchl; `alt` covers the other one.
         function playFlyerSfx(src, alt) {
-            // A fly-by is a sound effect, so it follows the effects switch
-            // rather than the music one.
             if (!src) return;
-            // The witch's sound has been spelled both witch1 and witchl, and
-            // only ever one of them is the file that was actually uploaded.
-            // Take whichever is there rather than making the spelling matter.
-            if (alt && _flyerSfx[src] === false) { playFlyerSfx(alt); return; }
-            if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            let a = _flyerSfx[src];
-            if (a === false) return;                 // already known to be missing
-            if (!a) {
-                a = _flyerSfx[src] = new Audio(src);
-                a.addEventListener('error', () => { _flyerSfx[src] = false; }, { once: true });
-            }
-            const vol = (typeof settings !== 'undefined' && settings.sfxVol != null) ? settings.sfxVol : 100;
-            a.volume = Math.min(1, vol / 100 * 0.7);
-            a.currentTime = 0;
-            a.play().catch(() => {});
+            playSfxFile(src, .7, alt);
         }
 
         /* ═══════════ HALLOWEEN PROPS ═══════════
@@ -7275,26 +7430,13 @@
         const PUMPKIN_ODDS = 0.42;
         let _pumpkins = [];
 
-        let _smashSfx = undefined;           // undefined = not tried, false = missing
 
         function halloweenOn() {
             const s = seasonFor('colour');
             return !!(s && s.motif === 'bat');
         }
 
-        function playSmash() {
-            if (typeof settings !== 'undefined' && settings.sfxEnabled === false) return;
-            if (_smashSfx === false) { playSfx('smash', .7); return; }
-            if (_smashSfx === undefined) {
-                _smashSfx = new Audio('/img/smash.mp3');
-                // No file yet? Note it once and never ask again.
-                _smashSfx.addEventListener('error', () => { _smashSfx = false; }, { once: true });
-            }
-            const vol = (typeof settings !== 'undefined' && settings.sfxVol != null) ? settings.sfxVol : 100;
-            _smashSfx.volume = Math.min(1, vol / 100 * 0.8);
-            _smashSfx.currentTime = 0;
-            _smashSfx.play().catch(() => {});
-        }
+        function playSmash() { playSfx('smash', .8); }
 
         function resetPumpkins() { _pumpkins = []; }
 
@@ -7376,12 +7518,12 @@
                              * (coinMultiplier || 1);
                 coinCount += paid;
                 try { updateCoinDisplay(); autoSave(); } catch (e) {}
-                return { text: '+' + paid + ' 🪙', colour: '#FFD700', sfx: 'coin' };
+                return { text: '+' + paid, coin: true, colour: '#FFD700', sfx: 'coin' };
             }
             // A powerup, but not in Coin Rush — that mode turns them all off
             if (mpMatchActive && mpMatchMode === 'coinrush') {
                 coinCount += 40; try { updateCoinDisplay(); } catch (e) {}
-                return { text: '+40 🪙', colour: '#FFD700', sfx: 'coin' };
+                return { text: '+40', coin: true, colour: '#FFD700', sfx: 'coin' };
             }
             const pool = ['shield', 'magnet', 'x2coins'];
             const pick = pool[Math.floor((roll - 0.55) / 0.45 * pool.length) % pool.length];
@@ -7411,6 +7553,7 @@
             if (typeof shakeScreen === 'function') shakeScreen(5, 140);
             const prize = pumpkinPrize(p);
             p.prizeText = prize.text;
+            p.prizeCoin = !!prize.coin;
             p.prizeColour = prize.colour;
             if (prize.sfx === 'coin') playSound(coinSound);
             else playSfx('unlock', .55);
@@ -7500,8 +7643,15 @@
                         g.strokeStyle = 'rgba(0,0,0,.7)';
                         g.fillStyle = p.prizeColour || '#fff';
                         const ty = p.y - 30 - (46 - p.smashed) * 0.6;
-                        g.strokeText(p.prizeText, p.x, ty);
-                        g.fillText(p.prizeText, p.x, ty);
+                        // A coin prize draws the coin art after the number:
+                        // the emoji is not in every device's font.
+                        const tw = p.prizeCoin ? g.measureText(p.prizeText).width : 0;
+                        const tx = p.prizeCoin ? p.x - 9 : p.x;
+                        g.strokeText(p.prizeText, tx, ty);
+                        g.fillText(p.prizeText, tx, ty);
+                        if (p.prizeCoin && coinStill.complete && coinStill.naturalWidth) {
+                            g.drawImage(coinStill, tx + tw / 2 + 2, ty - 14, 17, 17);
+                        }
                         g.restore();
                     }
                     g.save();
@@ -8384,7 +8534,7 @@
             gameRunning = false;
             if (animationId) { cancelAnimationFrame(animationId); animationId = null; }
             showBoomAt(bird.x, bird.y);
-            boomSound.play();
+            playSound(boomSound);
             setTimeout(() => {
                 hideBoom();
                 const vo = document.getElementById('victoryOverlay');
@@ -8393,7 +8543,7 @@
                     Object.values(cheats).some(v => v)
                         ? 'You maxed out a 32-bit integer. With cheats on.'
                         : 'MAX SCORE — 2,147,483,647. There is nothing left to count.';
-                victorySound.play();
+                playSound(victorySound);
             }, 2000);
         }
 
@@ -8427,7 +8577,7 @@
             bump('lvlmax',   (typeof playerLevel !== 'undefined') && playerLevel >= 50,  typeof playerLevel !== 'undefined' ? playerLevel : 0);
             bump('dripped',  cosmetics.some(x=>x.type==='hat'&&x.equipped) && cosmetics.some(x=>x.type==='trail'&&x.equipped));
 
-            if(unlocked){ achSound.play(); updateAchievementCount(); autoSave(); } }
+            if(unlocked){ playSound(achSound); updateAchievementCount(); autoSave(); } }
         function jump(){ if(!gameRunning||gameOver) return; bird.velocity=bird.jump; playSound(jumpSound); if (typeof mpSendJump === 'function') mpSendJump(); }
         
         // Event listeners
@@ -8947,9 +9097,9 @@
             // Hearing it is the test; the read-out underneath says why not.
             document.getElementById('setSfxVol')?.addEventListener('change', () => playSfx('pickup'));
             document.getElementById('setSfxTest')?.addEventListener('click', () => {
-                claimAudioSession();
-                playSfx('milestone');
-                if (jumpSound) { try { jumpSound.currentTime = 0; jumpSound.play().catch(()=>{}); } catch(e){} }
+                unlockAudio();                  // this click IS a gesture — use it
+                playSfx('coin');
+                setTimeout(() => playSound(jumpSound), 250);
                 const box = document.getElementById('setSfxDiag');
                 if (!box) return;
                 const r = window.soundReport();
@@ -9280,7 +9430,7 @@
         function setupAuthAfterConfig() {
             if (!auth) {
                 console.warn('[Auth] Firebase auth unavailable — check api.json has valid firebase config');
-                loadFromLocal();
+                loadOfflineAccount() || loadFromLocal();
                 return;
             }
             // Deliberately NOT called here — currentUser is still null until
@@ -9315,6 +9465,19 @@
                     try { hideVerifyBanner(); } catch(e) {}
                 }
                 console.log('[Auth] state changed:', user ? (user.email || user.uid) : 'signed out');
+                // Remembered so an offline start can carry on as this account.
+                // Signing out forgets it, so a guest on a shared device does
+                // not inherit it; the account's own copy stays, keyed to it.
+                try {
+                    if (user) {
+                        localStorage.setItem(LAST_UID_KEY, user.uid);
+                        localStorage.setItem(LAST_NAME_KEY, user.displayName || (user.email ? user.email.split('@')[0] : ''));
+                    } else {
+                        localStorage.removeItem(LAST_UID_KEY);
+                        localStorage.removeItem(LAST_NAME_KEY);
+                        accountLoadedFor = null;
+                    }
+                } catch (e) {}
                 if (user) {
                     // Guarded individually — one failure here used to abort the
                     // whole handler, leaving the modal open and the UI stale.
@@ -10586,7 +10749,7 @@
             // sequence still runs, it just detonates without a picture.
             wrap.innerHTML = '<img class="nuke-bomb" src="/img/nuke.png" alt="" onerror="this.style.visibility=\'hidden\'">';
             document.body.appendChild(wrap);
-            try { boomSound.currentTime = 0; boomSound.play(); } catch (e) {}
+            playSound(boomSound);
             setTimeout(() => {
                 wrap.innerHTML = '<img class="nuke-blast" src="/img/nexp.gif" alt="" onerror="this.style.visibility=\'hidden\'">';
                 document.body.classList.add('nuke-flash');
@@ -10619,10 +10782,10 @@
         // You can see exactly what each day gives before you claim it.
         const DAILY_KEY = 'crix_daily_v1';
         const DAILY_SCHEDULE = [
-            { day: 1, coins: 100,  icon: '🪙' },
-            { day: 2, coins: 160,  icon: '🪙' },
-            { day: 3, coins: 220,  icon: '🪙' },
-            { day: 4, coins: 280,  icon: '🪙' },
+            { day: 1, coins: 100,  icon: COIN_IMG },
+            { day: 2, coins: 160,  icon: COIN_IMG },
+            { day: 3, coins: 220,  icon: COIN_IMG },
+            { day: 4, coins: 280,  icon: COIN_IMG },
             { day: 5, coins: 340,  icon: '💰' },
             { day: 6, coins: 400,  icon: '💰' },
             { day: 7, coins: 600,  icon: '💎', bonus: 'Week complete' }
@@ -11052,7 +11215,7 @@
            players have never shown a badge at all. It now reports the
            device, and whether it is the installed app is detectShell()'s
            job. Other clients only ever look the value up in PLATFORM_ICONS,
-           so an older client receiving 'windows' just starts showing 🪟. */
+           so an older client receiving 'windows' just starts showing a badge. */
         function detectPlatform() {
             const ua = navigator.userAgent;
             const p = navigator.platform || '';
@@ -11079,7 +11242,7 @@
         }
 
         const PLATFORM_ICONS = {
-            windows:     { icon: '🪟', label: 'Windows' },
+            windows:     { icon: '🖥️', label: 'Windows' },
             android:     { icon: '🤖', label: 'Android' },
             // These were empty strings — probably the Apple logo (U+F8FF),
             // which only exists in Apple's fonts and got stripped — so
@@ -11094,6 +11257,57 @@
             unknown:     { icon: '', label: '' }
         };
 
+        /* ---- LEAVING THE GAME ----
+           The website, the merch shop, CrixChat, Discord and YouTube are
+           opened in the player's real browser, never inside the game.
+
+           A normal browser tab already does that with target="_blank". Two
+           places do not:
+             - launched from a home-screen icon there is no browser around the
+               game, and Android turns a new window into an overlay on top of
+               it. An intent: link hands the page to Android instead, which
+               opens the default browser (or the Discord / YouTube app).
+             - the Windows app, where a new window is another app window.
+           The Android app is handled in android-bridge.js, which gets the
+           click first. */
+        function isStandaloneLaunch() {
+            try {
+                return matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches ||
+                       navigator.standalone === true;
+            } catch (e) { return false; }
+        }
+        function openExternal(href) {
+            let u;
+            try { u = new URL(href, location.href); } catch (e) { return false; }
+            if (window.CRIX_DESKTOP && typeof window.CRIX_DESKTOP.openExternal === 'function') {
+                window.CRIX_DESKTOP.openExternal(u.href); return true;
+            }
+            if (window.__IS_ANDROID_APP__ && typeof window.__openInBrowser === 'function') {
+                window.__openInBrowser(u.href); return true;
+            }
+            if (isStandaloneLaunch() && /Android/i.test(navigator.userAgent) && /^https?:$/.test(u.protocol)) {
+                location.href = 'intent://' + u.host + u.pathname + u.search +
+                    '#Intent;scheme=' + u.protocol.slice(0, -1) + ';action=android.intent.action.VIEW;' +
+                    'S.browser_fallback_url=' + encodeURIComponent(u.href) + ';end';
+                return true;
+            }
+            return false;       // an ordinary tab: let target="_blank" do its job
+        }
+        window.openExternal = openExternal;
+        document.addEventListener('click', e => {
+            if (e.defaultPrevented) return;                 // the Android bridge took it
+            const a = e.target.closest && e.target.closest('a[href]');
+            if (!a) return;
+            const href = a.getAttribute('href') || '';
+            if (!/^https?:\/\//i.test(href)) return;
+            let u; try { u = new URL(href, location.href); } catch (err) { return; }
+            if (u.origin === location.origin && /^\/(flappycrix|game\.html)/.test(u.pathname)) return;
+            // Whatever happens, never swap the game out for another page
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            if (openExternal(u.href)) e.preventDefault();
+        });
+
         const myPlatform = detectPlatform();
 
         /* Mark the card for the device in the player's hand. A device with
@@ -11106,6 +11320,17 @@
             const shell = detectShell();
             const cards = {};
             wrap.querySelectorAll('.po[data-plat]').forEach(c => { cards[c.dataset.plat] = c; });
+            // On a phone or tablet the Windows card is information, not a
+            // link: the download page is for PCs and is not offered there.
+            if ((myPlatform === 'android' || myPlatform === 'ios') && cards.windows && cards.windows.tagName === 'A') {
+                const w = document.createElement('div');
+                w.className = cards.windows.className;
+                w.dataset.plat = 'windows';
+                w.innerHTML = cards.windows.innerHTML;
+                w.querySelector('.po-state').textContent = 'PC only';
+                cards.windows.replaceWith(w);
+                cards.windows = w;
+            }
             const here = cards[myPlatform] || cards.browser;
             if (!here) return;
             here.classList.remove('soon');
@@ -12611,7 +12836,7 @@
         function refreshPlayerMenu() {
             const owned = ownsPlayerMenu();
             const priceEl = document.getElementById('pmPriceLabel');
-            if (priceEl) priceEl.textContent = '🪙 ' + formatCoins(PLAYER_MENU_PRICE);
+            if (priceEl) priceEl.innerHTML = COIN_IMG + ' ' + formatCoins(PLAYER_MENU_PRICE);
             document.getElementById('pmBuyPanel').style.display = owned ? 'none' : 'block';
             document.getElementById('pmContent').style.display  = owned ? 'block' : 'none';
             if (!owned) return;
@@ -13016,7 +13241,7 @@
                     break;
                 case 'discoOn':
                     setDisco(true, true);
-                    mpLobbyChatAppend(null, '🪩 Disco mode', true);
+                    mpLobbyChatAppend(null, '🕺 Disco mode', true);
                     break;
                 case 'discoOff':
                     setDisco(false, true);
@@ -13027,7 +13252,7 @@
                     break;
                 case 'freezeAll':
                     window.__crixFrozen = true;
-                    mpLobbyChatAppend(null, '🧊 Everyone frozen', true);
+                    mpLobbyChatAppend(null, '❄️ Everyone frozen', true);
                     break;
                 case 'unfreezeAll':
                     window.__crixFrozen = false;
@@ -13693,8 +13918,11 @@
         }
 
         window.addEventListener('beforeunload', () => {
+            // Without Firebase (offline, or it never loaded) there is no
+            // presence to clear, and asking threw on every page unload.
+            if (typeof firebase === 'undefined') return;
             if (typeof PlayFabManager !== 'undefined' && PlayFabManager.fs) {
-                PlayFabManager.fs.clearPresence();
+                Promise.resolve().then(() => PlayFabManager.fs.clearPresence()).catch(() => {});
             }
         });
 
@@ -15584,7 +15812,7 @@
                 return `<div class="ip-row">${av}
                     <div class="ip-who">
                         <div class="ip-name">${mpEsc(f.displayName || 'Player')}</div>
-                        <div class="ip-state">${already ? 'already in your party' : (online ? '🟢 online' : 'offline — they will see it next time')}</div>
+                        <div class="ip-state">${already ? 'already in your party' : (online ? '<span style="color:#2ECC71">●</span> online' : 'offline — they will see it next time')}</div>
                     </div>
                     <button class="ip-btn" data-ip="${mpEsc(f.playFabId)}"
                             data-name="${mpEsc(f.displayName || 'Player')}"${already ? ' disabled' : ''}>
@@ -15816,7 +16044,7 @@
         // player.
         function mpModeLabel(id) {
             const fixed = { freemode: '🕊️ Freemode', race: '🏁 Race to 100',
-                            lastone: '💀 Last One Standing', coinrush: '🪙 Coin Rush' };
+                            lastone: '💀 Last One Standing', coinrush: COIN_IMG + ' Coin Rush' };
             if (fixed[id]) return fixed[id];
             const sm = typeof seasonModeById === 'function' ? seasonModeById(id) : null;
             if (sm) return sm.mode.emoji + ' ' + sm.mode.name;
@@ -16562,7 +16790,7 @@
                  </div>` +
                 results.map((r,i) =>
                 `<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
-                    <span>${i+1}. ${mpEsc(r.name)}</span><span style="color:gold">${(endMode||mpMatchMode)==='coinrush' ? '🪙 '+r.score : r.score}</span>
+                    <span>${i+1}. ${mpEsc(r.name)}</span><span style="color:gold">${(endMode||mpMatchMode)==='coinrush' ? COIN_IMG + ' ' + r.score : r.score}</span>
                 </div>`).join('');
             overlay.style.display = 'flex';
         }
@@ -16648,13 +16876,13 @@
 
             const hud = document.getElementById('mpHud');
             if (!mpCurrentRoom) return;
-            const icons = {freemode:'🕊️', race:'🏁', lastone:'💀', coinrush:'🪙'};
+            const icons = {freemode:'🕊️', race:'🏁', lastone:'💀', coinrush:COIN_IMG};
             const coinrushTimerStr = mpMatchMode === 'coinrush' ? ` ⏱️ ${Math.floor(mpCoinRushSecondsLeft/60)}:${String(mpCoinRushSecondsLeft%60).padStart(2,'0')}` : '';
             let rows = `<div class="mp-hud-row"><strong>${icons[mpMatchMode]||''} ${mpMatchMode}${coinrushTimerStr}</strong></div>`;
             Object.values(mpPlayers).sort((a,b) => b.score-a.score).slice(0,5).forEach(p => {
                 // In Coin Rush the score IS coins collected, so label it clearly
                 const isRush = mpMatchMode === 'coinrush';
-                const val = isRush ? `🪙 ${p.coins ?? p.score ?? 0}` : (p.score||0);
+                const val = isRush ? `${COIN_IMG} ${p.coins ?? p.score ?? 0}` : (p.score||0);
                 rows += `<div class="mp-hud-row">${p.dead?'💀':'🐦'} ${platformBadge(p.platform)}${roleTagHtml(p)}<span class="mp-hud-name">${mpEsc(p.name)}</span>: ${val}</div>`;
             });
             hud.innerHTML = rows;
@@ -17574,7 +17802,7 @@
             { id: 'mp_survivor', name: 'SURVIVOR', desc: 'Win a Last One Standing match', icon: '💀', unlocked: false },
             { id: 'mp_chat', name: 'CHATTERBOX', desc: 'Send 10 messages in multiplayer', icon: '💬', unlocked: false, progress: 0, target: 10 },
             { id: 'mp_score50', name: 'MP HALFCENTURY', desc: 'Score 50 in a multiplayer match', icon: '5️⃣0️⃣', unlocked: false },
-            { id: 'mp_coinrush', name: 'COIN MANIAC', desc: 'Collect 50 coins in a single Coin Rush match', icon: '🪙', unlocked: false },
+            { id: 'mp_coinrush', name: 'COIN MANIAC', desc: 'Collect 50 coins in a single Coin Rush match', icon: COIN_IMG, unlocked: false },
             { id: 'mp_wins5',   name: 'ON A ROLL',    desc: 'Win 5 multiplayer matches',        icon: '🔥', unlocked: false, progress: 0, target: 5 },
             { id: 'mp_wins25',  name: 'DOMINANT',     desc: 'Win 25 multiplayer matches',       icon: '👑', unlocked: false, progress: 0, target: 25 },
             { id: 'mp_social',  name: 'SOCIAL BIRD',  desc: 'Add your first friend',            icon: '🤝', unlocked: false },
@@ -17596,7 +17824,7 @@
                 if (ach.progress < ach.target) return;
             }
             ach.unlocked = true;
-            achSound.play();
+            playSound(achSound);
             const notif = document.createElement('div');
             notif.style.cssText = 'position:fixed;bottom:80px;right:16px;background:#0F0F17;border:2px solid gold;border-radius:14px;padding:10px 14px;z-index:50000;font-size:12px;color:white;animation:fadeIn 0.3s ease;';
             notif.innerHTML = `<div style="color:gold;font-weight:bold;">🏅 ${ach.name}</div><div style="color:#aaa;font-size:10px;">${ach.desc}</div>`;
@@ -18118,6 +18346,121 @@
         // Report modal
         document.getElementById('closeReportBtn')?.addEventListener('click', () => document.getElementById('mpReportModal').classList.remove('active'));
         document.getElementById('mpSubmitReportBtn')?.addEventListener('click', mpSubmitReport);
+
+        /* ═══════════ OFFLINE MODE ═══════════
+           With no connection the game still opens (sw.js keeps the files) and
+           single player carries on: runs, coins, the store, the locker, daily
+           rewards, the sandbox and achievements are all on the device.
+           Anything that needs a server — multiplayer, the limited modes, the
+           party, friends and alerts, signing in, the staff panel, links out —
+           is dimmed and explains itself when tapped. Coming back online saves
+           and offers to reconnect the online side. */
+        let netOffline = false;
+        const ONLINE_ONLY = [
+            ['#multiplayerBtn', 'Multiplayer'], ['#seasonModeBtn', 'The limited-time mode'],
+            ['#partyPill', 'Party chat'], ['#partyTag', 'Party chat'],
+            ['#notifBtn', 'Friends and alerts'], ['#loginBtn', 'Signing in'],
+            ['#setSignInBtn', 'Signing in'], ['#discordLinkBtn', 'Linking Discord'],
+            ['#pairBtn', 'Pairing a device'], ['#ownerBtn', 'The staff panel'],
+            ['#ingameStaffBtn', 'The staff panel'], ['#siteBtn', 'The website'], ['a.social', 'That link']
+        ];
+        function applyOfflineUi() { document.documentElement.classList.toggle('offline', netOffline); }
+        function setOffline(v) {
+            v = !!v;
+            if (v === netOffline) { applyOfflineUi(); return; }
+            netOffline = v;
+            applyOfflineUi();
+            if (v) {
+                toast({ kind: 'warn', title: '📴 You are offline',
+                        body: 'Single player, the store, the locker, daily rewards and the sandbox all keep working. ' +
+                              'Multiplayer, your party, friends and signing in come back when you reconnect.' });
+                return;
+            }
+            try { _saveQueued = true; flushSave(); } catch (e) {}
+            // Started offline, so the account side never came up: a reload
+            // brings it up and syncs what was earned in the meantime.
+            if (!db) {
+                toast({ kind: 'info', title: '📶 Back online',
+                        body: 'Reconnect to save your offline progress to your account and turn multiplayer back on.',
+                        actions: [{ label: 'RECONNECT', style: 'yes', onClick: () => {
+                                      try { _saveQueued = true; flushSave(); } catch (e) {}
+                                      location.reload(); } },
+                                  { label: 'Later' }] });
+            } else {
+                toast({ kind: 'info', title: '📶 Back online', body: 'Multiplayer and your friends are available again.' });
+            }
+        }
+        // navigator.onLine only knows whether there is a network at all, so
+        // it is confirmed with a real request (one the service worker never
+        // answers from its cache).
+        let _probing = false;
+        async function probeNet() {
+            if (_probing) return;
+            _probing = true;
+            try {
+                const ctl = typeof AbortController === 'function' ? new AbortController() : null;
+                const t = ctl && setTimeout(() => ctl.abort(), 5000);
+                const r = await fetch('/robots.txt?ping=' + Date.now(), { cache: 'no-store', signal: ctl && ctl.signal });
+                if (t) clearTimeout(t);
+                setOffline(!r.ok);
+            } catch (e) {
+                setOffline(true);
+            } finally { _probing = false; }
+        }
+        window.isOffline = () => netOffline;
+        addEventListener('offline', () => setOffline(true));
+        addEventListener('online', probeNet);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) probeNet(); });
+        // Registered on window, capturing, so it is ahead of every other click
+        // handler — including the Android bridge's link interceptor.
+        addEventListener('click', e => {
+            if (!netOffline) return;
+            const t = e.target;
+            if (!t || !t.closest) return;
+            for (const [sel, what] of ONLINE_ONLY) {
+                if (!t.closest(sel)) continue;
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                toast({ kind: 'warn', title: '📴 Offline', body: what + ' needs the internet. Single player still works.' });
+                return;
+            }
+        }, true);
+        setTimeout(() => { if (navigator.onLine === false) setOffline(true); probeNet(); }, 1200);
+
+        /* ---- keeping the files ----
+           sw.js makes the game open with no connection. Once it is running,
+           the page hands it the list of every file this session loaded, so
+           the next launch can be offline. ?nosw=1 removes it and its cache. */
+        function offlineUrls() {
+            const out = new Set();
+            try {
+                for (const e of performance.getEntriesByType('resource')) {
+                    const u = new URL(e.name, location.href);
+                    if (u.origin === location.origin) out.add(u.pathname + u.search);
+                }
+            } catch (e) {}
+            Object.values(SFX).forEach(d => out.add('/img/' + d.f + '.mp3'));   // decoded lazily
+            document.querySelectorAll('audio source[src]').forEach(el => {
+                try { out.add(new URL(el.src, location.href).pathname); } catch (e) {}
+            });
+            out.add(COIN_SRC);
+            return [...out];
+        }
+        if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+            if (/[?&]nosw=1/.test(location.search)) {
+                navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(() => {});
+                if (window.caches) caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(() => {});
+            } else {
+                const registerSw = () => navigator.serviceWorker.register('/sw.js', { scope: '/flappycrix' })
+                    .then(() => navigator.serviceWorker.ready)
+                    .then(reg => setTimeout(() => {
+                        if (reg.active) reg.active.postMessage({ type: 'cache-urls', urls: offlineUrls() });
+                    }, 5000))
+                    .catch(e => console.warn('[Offline] service worker not registered:', e.message));
+                if (document.readyState === 'complete') registerSw();
+                else addEventListener('load', registerSw);
+            }
+        }
 
         loadFriends();
         loadNotifs();

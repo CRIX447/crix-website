@@ -3,6 +3,17 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<script>
+  /* A Windows installer is no use on a phone or tablet, so this page is not
+     shown there at all: they go straight to the game, which runs in the
+     browser they are already in. replace() keeps Back from bouncing here. */
+  (function () {
+    var ua = navigator.userAgent || '';
+    var phone = /Android|iPhone|iPad|iPod|Mobile/i.test(ua) ||
+                (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);   // iPadOS reports as a Mac
+    if (phone) location.replace('/flappycrix');
+  })();
+</script>
 <title>Download Flappy Crix — CRIX STUDIOS</title>
 <meta name="description" content="Download Flappy Crix for Windows. Free multiplayer Flappy Bird, no ads.">
 <link rel="icon" href="/img/newfavicon.png">
@@ -109,7 +120,7 @@ footer a:hover{color:#fff}
 
   <div class="platforms">
     <div class="plat ready">
-      <div class="plat-ico">🪟</div>
+      <div class="plat-ico">🖥️</div>
       <div class="plat-name">Windows</div>
       <div class="plat-state">Available now</div>
     </div>
