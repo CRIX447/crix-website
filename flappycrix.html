@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.30-1200";
+    <script>window.__BUILD__ = "2026.10.01-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -48,7 +48,7 @@
     <script src="/ui.js?v=2026092412"></script>
     <script src="/android-bridge.js?v=2026092412"></script>
     <script src="/playfab-manager.js?v=2026092412"></script>
-    <script src="/cosmetic-art.js?v=2026093012"></script>
+    <script src="/cosmetic-art.js?v=2026100112"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -5250,11 +5250,17 @@
         let cosmetics = [
             { id: 'crown', name: "CHAMPION'S CROWN", type: 'hat', price: null, exclusive: true,
               desc: 'Won in an event. Cannot be bought.',
+              image: '/img/hat-crown.png', imgFit: { w: 0.62, y: 0.06 },
               draw: 'crown', owned: false, equipped: false },
-            // These three were product photos pasted on the sprite. They are
-            // drawn now, in the same hand as the rest, to sit on the hood.
-            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600, draw: 'bucket', owned: false, equipped: false },
-            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500, draw: 'cap', owned: false, equipped: false },
+            // The merch photos, trimmed to their outline and seated on the
+            // hood (imgFit). The drawn version stands in while one loads, or
+            // if it ever fails to.
+            { id: 'bucket', name: 'BUCKET HAT', type: 'hat', price: 600,
+              image: '/img/hat-bucket.png', imgFit: { w: 0.9, y: 0.15 },
+              draw: 'bucket', owned: false, equipped: false },
+            { id: 'cap', name: 'BASEBALL CAP', type: 'hat', price: 500,
+              image: '/img/hat-cap.png', imgFit: { w: 0.7, y: 0.16 },
+              draw: 'cap', owned: false, equipped: false },
             // Trails replaced shirts — a sprite stretched over the bird read
             // as a smudge, a trail reads at any size and in motion.
             { id: 'trail_rainbow', name: 'RAINBOW TRAIL', type: 'trail', price: 800,
@@ -6131,12 +6137,10 @@
             // An item with a drawn shape carries both: the canvas stands in
             // until the PNG exists, and the image hides the canvas once it
             // loads. An item with no shape is just the image, as before.
-            if (c.draw)
-                return `<span class="cos-pair">
-                    <canvas class="cos-swatch hat" data-hat="${c.id}" width="${h * 3}" height="${h * 3}"></canvas>
-                    ${c.image ? `<img src="${c.image}" onload="this.previousElementSibling.style.display='none'"
-                                      onerror="this.remove()">` : ''}
-                </span>`;
+            // A hat card is always the bird wearing it — picture or drawing,
+            // whichever the hat has — never the loose artwork on its own.
+            if (c.type === 'hat')
+                return `<canvas class="cos-swatch hat" data-hat="${c.id}" width="${h * 3}" height="${h * 3}"></canvas>`;
             return `<img src="${c.image}" onerror="this.style.display='none'">`;
         }
 
