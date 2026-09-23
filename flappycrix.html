@@ -38,7 +38,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.09.26-1200";
+    <script>window.__BUILD__ = "2026.09.27-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -938,6 +938,19 @@
                     object-fit:contain; pointer-events:none; user-select:none; }
         /* An emoji picture sits in text the way the font glyph did: the PNG's
            frame is the font's em box, so 1.15em matches the glyph's size. */
+        .emo-pick-btn { flex: none; background: none; border: 0; padding: 0 6px; cursor: pointer;
+                        display: inline-flex; align-items: center; opacity: .85; }
+        .emo-pick-btn:hover { opacity: 1; }
+        .emo-pick-btn img { width: 20px; height: 20px; display: block; }
+        .emo-pop { position: absolute; right: 0; bottom: calc(100% + 6px); z-index: 60;
+                   width: min(296px, 86vw); max-height: 210px; overflow-y: auto;
+                   display: grid; grid-template-columns: repeat(8, 1fr); gap: 2px; padding: 8px;
+                   background: var(--panel, #101018); border: 1px solid var(--line, rgba(255,255,255,.1));
+                   border-radius: 12px; box-shadow: 0 10px 28px rgba(0,0,0,.45); }
+        .emo-pop[hidden] { display: none; }
+        .emo-pop button { background: none; border: 0; padding: 3px; border-radius: 7px; cursor: pointer; }
+        .emo-pop button:hover, .emo-pop button:focus-visible { background: rgba(255,255,255,.1); }
+        .emo-pop img { width: 26px; height: 26px; display: block; margin: auto; }
         img.emo { display:inline-block; width:1.15em; height:1.15em; vertical-align:-0.22em;
                   object-fit:contain; pointer-events:none; user-select:none; }
 
@@ -3077,6 +3090,31 @@
             /* Bottom sheets get the whole height on a short screen */
             .mp-modal-content, .modal-content { max-height: 96dvh; }
         }
+
+        /* ═══════════ TV, CONSOLE AND IN-RUN PERFORMANCE ═══════════
+           A smart TV's browser has a phone-class GPU driving a 1080p or 4K
+           panel, and ui.js marks it plat-console — but the flat-panel rules
+           below only matched phone-sized screens, so a TV paid for every
+           blur on the page at full resolution. It gets no blur anywhere now.
+           And during a run on any screen, the panels over the playfield
+           stop blurring it: behind them is a canvas that changes every
+           frame, so the blur was being recomputed 60 times a second for an
+           effect nobody sees while flying. Measured at 1080p on a slow CPU:
+           39fps -> 48fps from the blur alone. */
+        html.plat-console *,
+        body.playing .game-container, body.playing .ig-btn, body.playing .hud-coins,
+        body.playing .hud-rush, body.playing .mp-hud, body.playing .mp-hud-btn,
+        body.playing .mp-chat-panel, body.playing .cheat-badge, body.playing .powerup-badge,
+        body.playing #spectateBar, body.dead .game-container {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+        }
+        html.plat-console .ig-btn, html.plat-console .mp-hud-btn,
+        html.plat-console .hud-coins, html.plat-console .hud-rush { background: #0C0C14; }
+        html.plat-console .mp-hud { background: #08080E; }
+        /* Big soft shadows are a blur too; on a TV the playfield's frame and
+           the HUD keep a hard edge instead. */
+        html.plat-console body.playing * { box-shadow: none !important; text-shadow: none !important; }
 
         /* ═══════════ MOBILE PERFORMANCE ═══════════
            backdrop-filter is the most expensive thing on this page — every
@@ -5272,12 +5310,18 @@
            swapped for the picture: once at start-up, and for anything added
            later (toasts, lists, chat, the HUD) as it arrives. Text the player
            is typing, form fields and dropdown options stay as text; so does
-           any emoji not in this list, such as one typed into chat. */
-        const EMOJI_SET = ["🔇", "🔊", "🔑", "👤", "💾", "🚪", "📴", "🏆", "🎮", "🎬", "🎙️", "🛡️", "🏁", "⚡", "💬", "🌐", "🎁", "🛒", "🧢", "🔔", "⚙️", "❓", "✨", "📄", "🎨", "🔓", "🖼️", "📤", "➕", "🌍", "👥", "🔄", "🎧", "🕊️", "💀", "🎃", "⚠️", "🔒", "📋", "👑", "💰", "🚨", "🗳️", "📶", "🔐", "📲", "📱", "🎯", "🐦", "🖥️", "🍎", "🔗", "📺", "🎵", "🙏", "🛠️", "💛", "🐘", "🐌", "🐤", "🎈", "🔧", "✂️", "👢", "🔨", "❤️", "❄️", "▶️", "⭐", "🕺", "☢️", "🗓️", "🎄", "🐣", "🚫", "🧹", "🏷️", "🚀", "ℹ️", "🎉", "💯", "💪", "💎", "🕹️", "🏅", "🕶️", "🌟", "☁️", "⏱️", "🦅", "✅", "🍬", "🥚", "🧲", "📢", "📧", "🐛", "⏳", "🤖", "🐧", "💻", "❌", "🥇", "🥈", "🥉", "⌨️", "5️⃣", "0️⃣", "🔥", "🤝", "🏟️"];
+           any emoji not in this list. */
+        const EMOJI_UI = ["🔇", "🔊", "🔑", "👤", "💾", "🚪", "📴", "🏆", "🎮", "🎬", "🎙️", "🛡️", "🏁", "⚡", "💬", "🌐", "🎁", "🛒", "🧢", "🔔", "⚙️", "❓", "✨", "📄", "🎨", "🔓", "🖼️", "📤", "➕", "🌍", "👥", "🔄", "🎧", "🕊️", "💀", "🎃", "⚠️", "🔒", "📋", "👑", "💰", "🚨", "🗳️", "📶", "🔐", "📲", "📱", "🎯", "🐦", "🖥️", "🍎", "🔗", "📺", "🎵", "🙏", "🛠️", "💛", "🐘", "🐌", "🐤", "🎈", "🔧", "✂️", "👢", "🔨", "❤️", "❄️", "▶️", "⭐", "🕺", "☢️", "🗓️", "🎄", "🐣", "🚫", "🧹", "🏷️", "🚀", "ℹ️", "🎉", "💯", "💪", "💎", "🕹️", "🏅", "🕶️", "🌟", "☁️", "⏱️", "🦅", "✅", "🍬", "🥚", "🧲", "📢", "📧", "🐛", "⏳", "🤖", "🐧", "💻", "❌", "🥇", "🥈", "🥉", "⌨️", "5️⃣", "0️⃣", "🔥", "🤝", "🏟️"];
+        // The ones people type: faces, hands, hearts, animals, food, sport.
+        // A phone that cannot type or draw a newer one still sees the
+        // picture when somebody else sends it, and the chat's emoji button
+        // puts every one of them a tap away.
+        const CHAT_EMOJI = ["😀", "😃", "😄", "😁", "😆", "😅", "🤣", "😂", "🙂", "🙃", "🫠", "😉", "😊", "😇", "🥰", "😍", "🤩", "😘", "😋", "😛", "😜", "🤪", "😝", "🤑", "🤗", "🤭", "🫢", "🤫", "🤔", "🫡", "🤐", "🤨", "😐", "😑", "😶", "😏", "😒", "🙄", "😬", "😌", "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢", "🤮", "🥵", "🥶", "🥴", "😵", "🤯", "🤠", "🥳", "🥸", "😎", "🤓", "🧐", "😕", "😟", "🙁", "😮", "😯", "😲", "😳", "🥺", "🥹", "😦", "😧", "😨", "😰", "😥", "😢", "😭", "😱", "😖", "😣", "😞", "😓", "😩", "😫", "🥱", "😤", "😡", "😠", "🤬", "😈", "👿", "💀", "☠️", "💩", "🤡", "👹", "👺", "👻", "👽", "👾", "🤖", "😺", "😸", "😹", "😻", "😼", "😽", "🙀", "😿", "😾", "🙈", "🙉", "🙊", "👋", "🤚", "✋", "🖖", "👌", "🤌", "🤏", "✌️", "🤞", "🫰", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛", "🤜", "👏", "🙌", "🫶", "👐", "🤲", "🤝", "🙏", "💪", "🧠", "👀", "👑", "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💯", "💢", "💥", "💫", "💦", "💨", "💤", "🔥", "🎉", "🎊", "🎯", "🚀", "⭐", "🌟", "💎", "💰", "💸", "✅", "❌", "⚠️", "❗", "‼️", "⁉️", "🆗", "🆒", "🆕", "🗿", "🏆", "🎮", "🐦", "🐤", "🐧", "🦅", "🦆", "🦉", "🐸", "🐶", "🐱", "🐭", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐵", "🐔", "🐍", "🐢", "🦖", "🦈", "🐬", "🐙", "🦋", "🐝", "🍕", "🍔", "🍟", "🌮", "🌭", "🍩", "🍪", "🎂", "🍰", "🍫", "🍬", "🍭", "🍿", "🥤", "☕", "🧃", "🍎", "🍌", "🍉", "🍓", "🥑", "🌶️", "⚽", "🏀", "🏈", "🎾", "🎲", "🕹️", "🎸", "🎤", "🎵", "🎶", "📸", "💻", "📱", "🌈", "☀️", "🌙", "❄️", "⛄", "🌊", "🌸", "🍀", "🎃", "🎄", "🐣", "🥚", "🦇", "🕷️", "🍂"];
+        const EMOJI_SET = [...new Set(EMOJI_UI.concat(CHAT_EMOJI))];
         const EMOJI_RE = new RegExp(EMOJI_SET.slice().sort((a, b) => b.length - a.length)
             .map(e => e.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
         // Cheap first look: does this text contain anything emoji-shaped at all?
-        const EMOJI_QUICK = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2300-\u23FF\u2460-\u27BF\u2B00-\u2BFF\u20E3\u2122\u2139]/u;
+        const EMOJI_QUICK = /[\u{1F000}-\u{1FAFF}\u2190-\u21FF\u2300-\u23FF\u2460-\u27BF\u2B00-\u2BFF\u20E3\u2122\u2139\u203C\u2049]/u;
         const EMO_SKIP = new Set(['SCRIPT','STYLE','NOSCRIPT','TEXTAREA','INPUT','OPTION','SELECT','TITLE','CANVAS','CODE','PRE']);
         const emojiFile = e => [...e].map(c => c.codePointAt(0)).filter(cp => cp !== 0xFE0F)
                                       .map(cp => cp.toString(16)).join('-');
@@ -5370,6 +5414,55 @@
         emojify(document.body);
         _emoObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
         document.addEventListener('DOMContentLoaded', () => emojify(document.body));
+        /* ---- the emoji button in each chat ----
+           A picture grid over the input. Tapping one types the emoji into the
+           message, where it goes out as ordinary text and turns back into the
+           same picture on every screen that receives it. Built the first time
+           it opens, so nobody who never chats downloads the pictures. */
+        function attachEmojiPicker(inputId) {
+            const input = document.getElementById(inputId);
+            const row = input && input.parentElement;
+            if (!row || row.querySelector('.emo-pick-btn')) return;
+            if (getComputedStyle(row).position === 'static') row.style.position = 'relative';
+            const btn = document.createElement('button');
+            btn.type = 'button'; btn.className = 'emo-pick-btn'; btn.title = 'Emoji';
+            btn.setAttribute('aria-label', 'Emoji');
+            btn.innerHTML = '<img src="/img/emoji/72/1f600.png" alt="" draggable="false">';
+            input.insertAdjacentElement('afterend', btn);
+            let pop = null;
+            const close = () => { if (pop) pop.hidden = true; };
+            const insert = e => {
+                const max = input.maxLength > 0 ? input.maxLength : 500;
+                if (input.value.length + e.length > max) { playSfx('error'); return; }
+                const a = input.selectionStart ?? input.value.length, z = input.selectionEnd ?? a;
+                input.value = input.value.slice(0, a) + e + input.value.slice(z);
+                const at = a + e.length;
+                try { input.setSelectionRange(at, at); } catch (err) {}
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.focus({ preventScroll: true });
+            };
+            btn.addEventListener('click', ev => {
+                ev.stopPropagation();
+                if (!pop) {
+                    pop = document.createElement('div');
+                    pop.className = 'emo-pop'; pop.setAttribute('data-no-emoji', '');
+                    pop.innerHTML = CHAT_EMOJI.map(e =>
+                        `<button type="button" data-e="${e}" title="${e}"><img src="/img/emoji/72/${emojiFile(e)}.png" alt="${e}" loading="lazy" draggable="false"></button>`).join('');
+                    pop.addEventListener('click', ev2 => {
+                        ev2.stopPropagation();
+                        const b = ev2.target.closest('button[data-e]');
+                        if (b) insert(b.dataset.e);
+                    });
+                    row.appendChild(pop);
+                    pop.hidden = true;
+                }
+                pop.hidden = !pop.hidden;
+            });
+            document.addEventListener('click', e => { if (pop && !pop.hidden && !row.contains(e.target)) close(); });
+            input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); if (e.key === 'Enter') close(); });
+        }
+        ['mpLobbyChatInput', 'mpChatInput', 'partyChatInput'].forEach(attachEmojiPicker);
+
         // The one emoji drawn on the canvas: a dead player's skull
         const skullImg = new Image(); skullImg.src = '/img/emoji/72/1f480.png';
 
@@ -6093,7 +6186,24 @@
             if (b) b.addEventListener('click', () => buyPlayerMenu('shopBuyErr'));
         }
 
+        /* What you wear goes to the room when it changes. It was only sent
+           when you joined, so a hat put on in the lobby — or taken off —
+           never reached anyone already there; they kept seeing the old one.
+           updateLockerDisplay runs after every equip and unequip, and this
+           only sends when the hat or trail actually differs. */
+        let _lookSent = '';
+        function announceLook() {
+            const hat = equippedId('hat'), trail = equippedId('trail');
+            const key = hat + '|' + trail;
+            if (key === _lookSent) return;
+            if (typeof mpCurrentRoom === 'undefined' || !mpCurrentRoom) { _lookSent = ''; return; }
+            _lookSent = key;
+            if (mpPlayers[mpLocalActor]) { mpPlayers[mpLocalActor].hat = hat; mpPlayers[mpLocalActor].trail = trail; }
+            mpRaiseEvent(MP_EV.NAME_UPDATE, mpIdentityPayload());
+        }
+
         function updateLockerDisplay() {
+            try { announceLook(); } catch (e) {}
             const card = item => `<div class="locker-card${item.equipped?' equipped':''}" onclick="equipItem('${item.id}')">
                 ${cosmeticArt(item, 40)}
                 <div class="locker-card-name">${item.name}</div>
@@ -12337,7 +12447,6 @@
         let mpTypingTimeout = null;
         let mpSpectating = false;
         let mpMatchOverShown = false;
-        let mpPositionSendCounter = 0;
         let mpVoteKicks = {};   // {targetActor: {votes: Set, timestamp}}
         let mpPermissions = {}; // {actorNr: {canKick, canSettings}}
         let mpSpectateCtx = null;
@@ -17353,7 +17462,14 @@
         }
 
         // ----- POSITION SYNC (correct receiver group) -----
-        function mpSyncPosition() {
+        const MP_POS_EVERY_MS = 50;
+        let mpLastPosSentAt = 0;
+        // A flap changes where the bird is going, so the others hear about it
+        // straight away instead of on the next tick of the clock.
+        function mpSendJump() {
+            if (mpCurrentRoom && mpMatchActive && !mpSpectating) mpSyncPosition(true);
+        }
+        function mpSyncPosition(force) {
             if (!mpCurrentRoom || !mpMatchActive || mpSpectating) return;
             // Photon hands out the actor number asynchronously. Syncing before
             // it arrives wrote our own bird into mpPlayers[null] — and since
@@ -17361,8 +17477,14 @@
             // yourself" test, so you were drawn a second time as a motionless
             // stranger wearing your own cosmetics.
             if (!Number.isFinite(mpLocalActor)) return;
-            mpPositionSendCounter++;
-            if (mpPositionSendCounter % 2 !== 0) return;
+            // On a clock, not every other painted frame: that was 15 updates a
+            // second from a TV running at 30fps and 72 from a 144Hz monitor,
+            // which is more than Photon's per-room message budget likes. A
+            // flap is sent the moment it happens (mpSendJump), so 20 a second
+            // in between is plenty for the rest of the arc.
+            const _now = performance.now();
+            if (!force && _now - mpLastPosSentAt < MP_POS_EVERY_MS) return;
+            mpLastPosSentAt = _now;
             // Update local player's own entry
             if (mpPlayers[mpLocalActor]) {
                 mpPlayers[mpLocalActor].x = bird.x;
@@ -17418,28 +17540,83 @@
                                   stepWobble('p' + key, p.vel || 0, 1));
         }
 
+        /* ---- where the others are between packets ----
+           A packet says where a bird WAS, a ping's half ago. Everything in
+           between used to be guessed per painted frame: distance grew by a
+           frame's worth of scroll every frame, so on a 30fps TV the others
+           slid backwards until the next packet yanked them forward, and on a
+           120Hz screen they ran ahead. Height was not guessed at all — it sat
+           still and then jumped. Now each remote bird runs the same physics
+           ours does, on the game's own 60-a-second clock whatever the screen
+           does, and every packet re-anchors it: same gravity, same terminal
+           speed, same scroll. What you see is where they actually are. */
+        const MP_STALE_MS = 3000;
+        function mpRemoteStep(p) {
+            if (p.dead || typeof p.simY !== 'number') return;
+            p.travelled = (typeof p.travelled === 'number' ? p.travelled : 0) + gameSpeed;
+            p.simVel += p.simVel < 0 ? PHYS.gravity : PHYS.fallGrav;
+            if (p.simVel > PHYS.maxFall) p.simVel = PHYS.maxFall;
+            p.simY += p.simVel;
+            if (p.simY < 15) { p.simY = 15; if (p.simVel < 0) p.simVel = 0; }
+            if (p.simY > canvas.height - 10) { p.simY = canvas.height - 10; p.simVel = 0; }
+            if (p._trail) advanceTrail(p._trail, gameSpeed);
+        }
+        function mpApplyPosition(p, c) {
+            const lag = Math.max(0, Math.min(10, Math.round(((mpPing || 60) / 2) / TICK_MS)));
+            p.score = c.s;
+            p.dead = !!c.d;
+            p.posAt = performance.now();
+            p.simY = c.y; p.simVel = c.v || 0;
+            p.vel = p.simVel;
+            if (typeof c.t === 'number') {
+                // Where they are now, not where the packet left them
+                const target = c.t + (p.dead ? 0 : gameSpeed * lag);
+                p.travelled = (typeof p.travelled !== 'number' || Math.abs(target - p.travelled) > 60)
+                    ? target : p.travelled + (target - p.travelled) * 0.35;
+            }
+            if (!p.dead) {
+                const keepT = p.travelled;
+                for (let i = 0; i < lag; i++) mpRemoteStep(p);
+                p.travelled = keepT;               // the distance was already carried
+            }
+            p.y = p.simY;
+            if (p.rx === undefined) { p.rx = mpVirtualX(p); p.ry = p.simY; }
+        }
+        let _remoteAcc = 0, _remoteLast = 0;
+        function mpStepRemotes() {
+            const now = performance.now();
+            const dt = _remoteLast ? Math.min(250, now - _remoteLast) : 0;
+            _remoteLast = now;
+            if (!mpMatchActive) { _remoteAcc = 0; return; }
+            _remoteAcc += dt;
+            let n = 0;
+            while (_remoteAcc >= TICK_MS && n < 15) {
+                for (const nr in mpPlayers) if (mpIsRemote(nr)) mpRemoteStep(mpPlayers[nr]);
+                _remoteAcc -= TICK_MS; n++;
+            }
+            if (n >= 15) _remoteAcc = 0;
+        }
+        // Someone in the room who is not flying this match — still in the
+        // lobby, or never sent a position — has no place on the playfield.
+        // They used to be drawn anyway, parked at the spawn point, which put
+        // every idle player in exactly the same spot.
+        function mpIsFlying(p) {
+            return !!p.posAt && (performance.now() - p.posAt < MP_STALE_MS || p.dead);
+        }
+
         function mpDrawOtherPlayers(context) {
             if (!mpCurrentRoom) return;
-            // Draw other players whether match is active or not (lobby preview)
+            mpStepRemotes();
             const LERP = 0.5; // 50% per frame = snappy but smooth
             Object.entries(mpPlayers).forEach(([nr, p]) => {
                 const actorNr = parseInt(nr);
                 if (!mpIsRemote(nr)) return;
-
-                // Dead reckoning. Our own distance grows every frame but theirs
-                // only arrives ~30 times a second, so comparing the two made
-                // remote players stutter backwards between packets. Everyone
-                // scrolls at the same gameSpeed, so carry them forward locally
-                // and let the next packet correct it.
-                if (typeof p.travelled === 'number' && !p.dead && mpMatchActive) {
-                    p.travelled += gameSpeed;
-                }
+                if (!mpIsFlying(p)) return;
 
                 // Their trail, in world space before the per-bird transform
                 const _pt = trailById(p.trail);
                 if (_pt && !p.dead) {
                     p._trail = p._trail || [];
-                    if (mpMatchActive) advanceTrail(p._trail, gameSpeed);
                     pushTrail(p._trail, p.rx ?? mpVirtualX(p), p.ry ?? p.y ?? 300);
                     drawTrail(context, p._trail, _pt.colours, 26);
                 } else if (p._trail) {
@@ -17449,7 +17626,7 @@
                 // Horizontal position comes from score difference, not from the
                 // synced x (which is always 100 for everyone).
                 const tx = mpVirtualX(p);
-                const ty = p.y ?? 300;
+                const ty = typeof p.simY === 'number' ? p.simY : (p.y ?? 300);
                 if (p.rx === undefined) { p.rx = tx; p.ry = ty; }
                 const dx = tx - p.rx, dy = ty - p.ry;
                 p.rx = Math.abs(dx) < 0.5 ? tx : p.rx + dx * LERP;
@@ -17547,6 +17724,19 @@
         }
         let mpRespawning = false;
 
+        /* Everyone starts a match together and scrolls at one speed, so
+           everyone really is at the same distance — and every bird was drawn
+           on exactly the same spot, on top of yours and of each other. Each
+           other player gets a small fixed offset instead, alternating behind
+           and ahead of you by seat, so a room of birds reads as a flock. It
+           is a few pixels of a 300px pipe spacing: nobody's lead is changed. */
+        const MP_STAGGER = [-16, 16, -32, 32, -48, 48, -64, 64, -80, 80, -96];
+        function mpStagger(p) {
+            const seats = Object.keys(mpPlayers).filter(mpIsRemote).map(Number).sort((a, b) => a - b);
+            const nr = Object.keys(mpPlayers).find(k => mpPlayers[k] === p);
+            const i = seats.indexOf(Number(nr));
+            return i < 0 ? 0 : MP_STAGGER[i % MP_STAGGER.length];
+        }
         function mpVirtualX(p) {
             // In Coin Rush the score is coins collected, not distance travelled,
             // so spreading players by it flung everyone off screen — including
@@ -17560,7 +17750,10 @@
             // instead of teleporting a whole pipe-width each time someone
             // scores, and two people on the same pipe are no longer identical.
             if (typeof p.travelled === 'number') {
-                return 100 + (p.travelled - travelled);
+                // Our own distance as painted this frame (the lane is drawn
+                // between ticks), so the others do not shiver against the pipes.
+                const mine = (gameRunning && !gameOver) ? travelled - gameSpeed * (1 - _alpha) : travelled;
+                return 100 + (p.travelled - mine) + mpStagger(p);
             }
 
             // Fallback for a client that hasn't sent distance yet.
@@ -17763,18 +17956,7 @@
             switch(code) {
                 case MP_EV.POSITION:
                     if (p) {
-                        p.y = content.y;
-                        p.vel = content.v;
-                        p.score = content.s;
-                        if (content.t !== undefined) {
-                            // Blend toward the authoritative value instead of
-                            // jumping to it, so a late packet doesn't jolt.
-                            p.travelled = (typeof p.travelled === 'number')
-                                ? p.travelled + (content.t - p.travelled) * 0.5
-                                : content.t;
-                        }
-                        p.dead = !!content.d;
-                        if (p.rx === undefined) { p.rx = content.x; p.ry = content.y; }
+                        mpApplyPosition(p, content);
                     } else {
                         // Actor not in mpPlayers yet — create entry on the fly
                         mpPlayers[actorNr] = {
@@ -17787,6 +17969,7 @@
                             vel: content.v || 0,
                             isHost: false
                         };
+                        mpApplyPosition(mpPlayers[actorNr], content);
                     }
                     break;
                 case MP_EV.DEATH:
@@ -18904,9 +19087,10 @@
                 }
             } catch (e) {}
             Object.values(SFX).forEach(d => out.add('/img/' + d.f + '.mp3'));   // decoded lazily
-            // every emoji picture at text size (about 210 KB), so a menu first
-            // opened offline still has its icons
-            EMOJI_SET.forEach(e => out.add('/img/emoji/72/' + emojiFile(e) + '.png'));
+            // every interface emoji at text size (about 210 KB), so a menu
+            // first opened offline still has its icons. The chat set is kept
+            // as each one is first seen, not fetched all at once.
+            EMOJI_UI.forEach(e => out.add('/img/emoji/72/' + emojiFile(e) + '.png'));
             ['/img/coin-still@2x.png', '/img/font.woff2', '/img/favicon-32.png', '/img/favicon-192.png'].forEach(u => out.add(u));
             document.querySelectorAll('audio source[src]').forEach(el => {
                 try { out.add(new URL(el.src, location.href).pathname); } catch (e) {}
