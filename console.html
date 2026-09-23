@@ -1022,7 +1022,7 @@ $('giveItem').onclick = () => {
   if (!item) { $('itemOut').textContent = 'Pick an item first.'; return; }
   const target = $('itemId').value.trim() || PlayFabManager.playFabId;
   run('itemOut',
-      () => adminCall('grantItem', { targetPlayFabId: target, itemId: item }),
+      () => adminCall('giveItem', { targetPlayFabId: target, itemId: item }),
       () => `Granted ${item} to ${target}.`);
 };
 
@@ -1610,18 +1610,23 @@ document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => {
 
 /* ---- IMAGE CHECK ---- */
 const GAME_IMAGES = [
+  // What the site actually loads. This listed the old hat photos, a tank
+  // top and a t-shirt from before trails, so it reported files as missing
+  // that nothing uses any more.
   ['bird.png',          'Bird sprite'],
-  ['crown.png',         "Champion's Crown"],
-  ['bucket-hat.avif',   'Bucket hat'],
-  ['cap.png',           'Baseball cap'],
-  ['tank-top.avif',     'Tank top'],
-  ['new-t-shirt.png',   'T-shirt'],
-  ['newfavicon.png',    'Favicon'],
+  ['bird-bare.png',     'Bird with its hat off (under hats)'],
+  ['coin-still.png',    'Coin'],
+  ['coin-still@2x.png', 'Coin (sharp screens)'],
+  ['favicon-192.png',   'App icon'],
+  ['newfavicon.png',    'Share image'],
+  ['witch.png',         'Halloween fly-by'],
+  ['santasley.png',     'Christmas fly-by'],
   ['imcrix123.png',     'Bio avatar'],
   ['fp.png',            'Bio: Flappy Crix'],
   ['aac.png',           'Bio: CRIX Chat'],
   ['is.png',            'Bio: store'],
-  ['font.otf',          'Game font']
+  ['emoji/72/1f3c6.png','Emoji pictures'],
+  ['font.woff2',        'Game font']
 ];
 
 bind('imgCheck', async () => {
@@ -1633,7 +1638,7 @@ bind('imgCheck', async () => {
     const url = '/img/' + file + '?cb=' + Date.now();
 
     // A font cannot be loaded as an image, so fetch it instead
-    if (file.endsWith('.otf')) {
+    if (file.endsWith('.otf') || file.endsWith('.woff2')) {
       try {
         const r = await fetch(url, { method: 'HEAD' });
         rows.push([label, file, r.ok ? 'ok' : 'missing', r.ok ? 'found' : 'HTTP ' + r.status]);
@@ -2031,7 +2036,7 @@ bind('crownGive', () => {
   if (!id) { $('crownOut').textContent = 'Enter a PlayFab ID.'; return; }
   if (!confirm(`Award the Champion's Crown to ${id}?`)) return;
   run('crownOut',
-      () => PlayFabManager.adminAction('grantItem', { targetPlayFabId: id, itemId: 'hat_crown' }),
+      () => PlayFabManager.adminAction('giveItem', { targetPlayFabId: id, itemId: 'crown' }),
       () => `Crown awarded to ${id}.`);
 });
 
