@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>FLAPPY CRIX • THE ORIGINAL</title>
+    <meta name="description" content="The very first Flappy Crix, from 18 March 2026.">
+    <meta name="theme-color" content="#0A0A0F">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="/img/favicon-192.png">
+    <link rel="apple-touch-icon" href="/img/favicon-192.png">
+    <!--
+        FLAPPY CRIX — THE ORIGINAL
+        ==========================
+        The game as it first went up: game.html was uploaded on 18 March 2026
+        at 5:36pm (AEDT), and the main page got its PLAY FLAPPY CRIX button 24
+        minutes later. This is that game, lifted out of OG.html (the old main
+        page, where it ran in a pop-up) — same look, same pipes, same physics,
+        same sounds.
+
+        Every 18 March from 2027 /flappycrix sends everyone here for the day,
+        and back again once the day is over (Sydney time, like the seasons).
+        The rest of the year it is still here at /flappycrix-og, as a museum.
+
+        Fixed, without changing how it plays:
+          - Tapping or clicking never made it jump. Only the keyboard was ever
+            wired up (the click branch of handleJump was never attached), so
+            on a phone it could not be played at all.
+          - It moved once per painted frame, so a 144Hz monitor ran it 2.4x
+            as fast as a 60Hz one. It runs at the 60 steps a second it was
+            tuned on, whatever the screen.
+          - Hitting a pipe and the floor on the same frame, or two pipes,
+            played the death sound twice.
+          - The bird, the font and the sounds came from raw.githubusercontent;
+            they come from this site, so it works offline too.
+    -->
+    <style>
+        @font-face {
+            font-family: 'CRIX Pixel';
+            src: url('/img/font.woff2') format('woff2'), url('/img/font.otf') format('opentype');
+            font-weight: normal; font-style: normal; font-display: swap;
+        }
+        /* ORIGINAL CYBER STYLE - NO SHADOWS, NO CARTOON */
+        :root {
+            --neon-red: #FF4655;
+            --neon-orange: #FF6B35;
+            --matrix-green: #00FF9D;
+            --dark-bg: #0A0A0F;
+            --grid-color: rgba(255, 70, 85, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html { background: var(--dark-bg); }
+        body {
+            font-family: 'CRIX Pixel', 'Courier New', monospace;
+            background: var(--dark-bg);
+            color: white;
+            background-image:
+                linear-gradient(var(--grid-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+            background-size: 50px 50px;
+            min-height: 100vh;
+            padding: 16px 16px max(24px, env(safe-area-inset-bottom));
+        }
+
+        /* the birthday line along the top */
+        .og-banner {
+            max-width: 500px; margin: 0 auto 14px; padding: 12px 14px;
+            border: 2px solid var(--neon-orange); background: rgba(10,10,15,.9);
+            text-align: center; line-height: 1.5; font-size: 13px; color: #ddd;
+        }
+        .og-banner b { color: var(--matrix-green); font-weight: normal; font-size: 16px; display: block; letter-spacing: 1px; }
+        .og-banner a { color: var(--neon-orange); }
+        .og-banner .og-time { color: var(--neon-orange); }
+
+        /* The pop-up from the old main page, standing on its own */
+        .game-modal-content {
+            max-width: 500px;
+            margin: 0 auto;
+            position: relative;
+            background: var(--dark-bg);
+            border: 3px solid var(--neon-red);
+            padding: 20px;
+        }
+        .game-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--matrix-green);
+            padding-bottom: 10px;
+        }
+        .game-modal-title {
+            font-size: 28px;
+            color: var(--matrix-green);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .og-music {
+            background: transparent;
+            border: 2px solid var(--neon-red);
+            color: var(--neon-red);
+            font-size: 22px;
+            width: 50px; height: 50px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .og-music:hover { background: var(--neon-red); color: white; }
+
+        /* FLAPPY BIRD CANVAS */
+        #gameCanvas {
+            display: block;
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            margin: 0 auto;
+            border: 2px solid var(--neon-orange);
+            background: linear-gradient(180deg, #1a1a2e 0%, #0a0a1a 100%);
+            touch-action: manipulation;
+            -webkit-user-select: none; user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            cursor: pointer;
+        }
+        .game-score {
+            text-align: center;
+            font-size: 24px;
+            color: var(--neon-orange);
+            margin: 15px 0;
+        }
+        .game-controls { text-align: center; margin: 15px 0; }
+        .game-start-btn {
+            background: linear-gradient(45deg, var(--matrix-green), #00F0FF);
+            color: white;
+            border: 2px solid var(--neon-red);
+            padding: 10px 30px;
+            font-size: 20px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        .game-start-btn:hover { transform: scale(1.05); border-color: var(--matrix-green); }
+        .og-hint { color: #aaa; text-align: center; margin-top: 10px; font-size: 14px; }
+        .og-foot { text-align: center; margin-top: 14px; font-size: 11px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="og-banner" id="ogBanner">
+        <b>🎮 THE ORIGINAL FLAPPY CRIX</b>
+        The very first version, from 18 March 2026.
+        <a href="/flappycrix?modern=1" id="ogBack">Play the current game →</a>
+    </div>
+
+    <div class="game-modal-content">
+        <div class="game-modal-header">
+            <div class="game-modal-title">🎮 FLAPPY CRIX</div>
+            <button class="og-music" id="musicToggleBtn" title="Music">🔇</button>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+        <div class="game-score" id="gameScore">Score: 0</div>
+
+        <div class="game-controls">
+            <button class="game-start-btn" id="startGameBtn">START GAME</button>
+        </div>
+
+        <div class="og-hint">Press SPACE, CLICK or TAP to jump</div>
+    </div>
+    <div class="og-foot">first uploaded 18 March 2026 · CRIXGAMING VR</div>
+
+    <audio id="bgMusic" loop preload="none"><source src="/img/music.mp3" type="audio/mpeg"></audio>
+    <audio id="hoverSound" preload="auto"><source src="/img/hover.mp3" type="audio/mpeg"></audio>
+    <audio id="clickSound" preload="auto"><source src="/img/click.mp3" type="audio/mpeg"></audio>
+    <audio id="jumpSound" preload="auto"><source src="/img/jump.mp3" type="audio/mpeg"></audio>
+    <audio id="deathSound" preload="auto"><source src="/img/death.mp3" type="audio/mpeg"></audio>
+    <audio id="selectSound" preload="auto"><source src="/img/select.mp3" type="audio/mpeg"></audio>
+
+    <script>
+    (function () {
+        'use strict';
+
+        /* ---- the anniversary ----
+           Flappy Crix went up on 18 March 2026. On every 18 March after that
+           (Sydney time, as the seasons are) the game is this one for the day.
+           ?anniversary=1 previews the day; ?modern=1 on /flappycrix skips it. */
+        const BORN = 2026;
+        function sydneyDate() {
+            try {
+                const p = {};
+                new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', year: 'numeric', month: 'numeric', day: 'numeric' })
+                    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
+                return { y: +p.year, m: +p.month, d: +p.day };
+            } catch (e) {
+                const n = new Date();
+                return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() };
+            }
+        }
+        function anniversaryYears() {
+            const t = sydneyDate();
+            return (t.m === 3 && t.d === 18 && t.y > BORN) ? t.y - BORN : 0;
+        }
+        function ordinal(n) {
+            const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+        // Time left until midnight in Sydney, for the banner
+        function untilMidnight() {
+            try {
+                const p = {};
+                new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
+                    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
+                const left = 24 * 60 - (+p.hour * 60 + +p.minute);
+                const h = Math.floor(left / 60), m = left % 60;
+                return h ? `${h}h ${m}m` : `${m}m`;
+            } catch (e) { return ''; }
+        }
+
+        const forced = /[?&]anniversary=1/.test(location.search);
+        const banner = document.getElementById('ogBanner');
+        function renderBanner() {
+            const years = anniversaryYears() || (forced ? Math.max(1, sydneyDate().y - BORN) : 0);
+            if (!years) return false;
+            banner.innerHTML =
+                `<b>🎂 HAPPY ${ordinal(years).toUpperCase()} BIRTHDAY, FLAPPY CRIX!</b>` +
+                `Flappy Crix first went up on 18 March 2026. For today only, ` +
+                `everyone plays the original — no shop, no multiplayer, no cosmetics, ` +
+                `just the bird and the pipes. ` +
+                `<span class="og-time">The modern game is back in <span id="ogLeft">${untilMidnight()}</span>.</span>`;
+            return true;
+        }
+        const isAnniversary = renderBanner();
+        if (isAnniversary && !forced) {
+            // When the day is over, back to the game as it is now
+            setInterval(() => {
+                if (!anniversaryYears()) { location.replace('/flappycrix'); return; }
+                const el = document.getElementById('ogLeft');
+                if (el) el.textContent = untilMidnight();
+            }, 30000);
+        }
+
+        // ========== SOUNDS (as the original played them) ==========
+        const $ = id => document.getElementById(id);
+        const bgMusic = $('bgMusic'), hoverSound = $('hoverSound'), clickSound = $('clickSound'),
+              jumpSound = $('jumpSound'), deathSound = $('deathSound'), selectSound = $('selectSound');
+        function play(el, vol) {
+            try { el.currentTime = 0; el.volume = vol; const p = el.play(); if (p && p.catch) p.catch(() => {}); } catch (e) {}
+        }
+        const playHoverSound  = () => play(hoverSound, 0.3);
+        const playClickSound  = () => play(clickSound, 0.4);
+        const playJumpSound   = () => play(jumpSound, 0.3);
+        const playDeathSound  = () => play(deathSound, 0.4);
+        const playSelectSound = () => play(selectSound, 0.3);
+
+        // ========== MUSIC CONTROL ==========
+        // Browsers refuse music before a tap, so it starts muted and the
+        // button turns it on — which is what the original fell back to anyway.
+        let musicMuted = true;
+        const musicToggle = $('musicToggleBtn');
+        bgMusic.volume = 0.3;
+        musicToggle.addEventListener('click', () => {
+            if (musicMuted) {
+                const p = bgMusic.play(); if (p && p.catch) p.catch(() => {});
+                musicToggle.textContent = '🔊';
+                musicMuted = false;
+            } else {
+                bgMusic.pause();
+                musicToggle.textContent = '🔇';
+                musicMuted = true;
+            }
+            playClickSound();
+        });
+        musicToggle.addEventListener('mouseenter', playHoverSound);
+
+        // ========== FLAPPY BIRD GAME ==========
+        const gameCanvas = $('gameCanvas');
+        const gameScore = $('gameScore');
+        let gameRunning = false;
+        let gameAnimationFrame;
+
+        // Loaded once; the original made a new one on every restart
+        const birdImage = new Image();
+        birdImage.src = '/img/bird.png';
+
+        class FlappyBird {
+            constructor() {
+                this.canvas = gameCanvas;
+                this.ctx = this.canvas.getContext('2d');
+                this.reset();
+            }
+
+            reset() {
+                this.bird = {
+                    x: 100,
+                    y: 300,
+                    width: 30,
+                    height: 30,
+                    velocity: 0,
+                    gravity: 0.3,
+                    jump: -7
+                };
+
+                this.pipes = [];
+                this.pipeWidth = 50;
+                this.pipeGap = 150;
+                this.pipeSpacing = 300;
+                this.frameCount = 0;
+                this.score = 0;
+                this.gameOver = false;
+                this.birdImage = birdImage;
+            }
+
+            draw() {
+                // Clear canvas
+                this.ctx.fillStyle = '#0A0A0F';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw grid
+                this.ctx.strokeStyle = 'rgba(255, 70, 85, 0.2)';
+                this.ctx.lineWidth = 1;
+                for (let i = 0; i < this.canvas.width; i += 50) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(i, 0);
+                    this.ctx.lineTo(i, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                for (let i = 0; i < this.canvas.height; i += 50) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, i);
+                    this.ctx.lineTo(this.canvas.width, i);
+                    this.ctx.stroke();
+                }
+
+                // Draw pipes
+                this.ctx.fillStyle = '#00FF9D';
+                this.ctx.shadowColor = '#00FF9D';
+                this.ctx.shadowBlur = 10;
+                this.pipes.forEach(pipe => {
+                    this.ctx.fillRect(pipe.x, 0, this.pipeWidth, pipe.top);
+                    this.ctx.fillRect(pipe.x, pipe.bottom, this.pipeWidth, this.canvas.height - pipe.bottom);
+                });
+                this.ctx.shadowBlur = 0;
+
+                // Draw bird
+                if (this.birdImage.complete && this.birdImage.naturalWidth) {
+                    this.ctx.drawImage(this.birdImage, this.bird.x - 15, this.bird.y - 15, 30, 30);
+                } else {
+                    this.ctx.fillStyle = '#FF6B35';
+                    this.ctx.shadowColor = '#FF6B35';
+                    this.ctx.shadowBlur = 15;
+                    this.ctx.fillRect(this.bird.x - 15, this.bird.y - 15, 30, 30);
+                    this.ctx.shadowBlur = 0;
+                }
+
+                // Draw score
+                this.ctx.fillStyle = '#FF6B35';
+                this.ctx.font = '20px "CRIX Pixel", monospace';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(`Score: ${this.score}`, this.canvas.width / 2, 50);
+
+                if (this.gameOver) {
+                    this.ctx.fillStyle = '#FF4655';
+                    this.ctx.font = '30px "CRIX Pixel", monospace';
+                    this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+                    this.ctx.font = '16px "CRIX Pixel", monospace';
+                    this.ctx.fillText('Press START to play again', this.canvas.width / 2, this.canvas.height / 2 + 40);
+                }
+            }
+
+            die() {
+                // Once: the floor and a pipe on the same frame used to play
+                // the death sound twice.
+                if (this.gameOver) return;
+                this.gameOver = true;
+                playDeathSound();
+            }
+
+            update() {
+                if (this.gameOver) return;
+
+                // Bird physics
+                this.bird.velocity += this.bird.gravity;
+                this.bird.y += this.bird.velocity;
+
+                // Check boundaries
+                if (this.bird.y < 0 || this.bird.y > this.canvas.height) {
+                    this.die();
+                    return;
+                }
+
+                // Generate pipes
+                if (this.frameCount % 120 === 0) {
+                    const topHeight = Math.random() * (this.canvas.height - this.pipeGap - 100) + 50;
+                    this.pipes.push({
+                        x: this.canvas.width,
+                        top: topHeight,
+                        bottom: topHeight + this.pipeGap
+                    });
+                }
+
+                // Update pipes
+                for (let i = this.pipes.length - 1; i >= 0; i--) {
+                    this.pipes[i].x -= 3;
+
+                    // Check collision
+                    if (this.bird.x + 15 > this.pipes[i].x &&
+                        this.bird.x - 15 < this.pipes[i].x + this.pipeWidth) {
+                        if (this.bird.y - 15 < this.pipes[i].top ||
+                            this.bird.y + 15 > this.pipes[i].bottom) {
+                            this.die();
+                            return;
+                        }
+                    }
+
+                    // Score
+                    if (this.pipes[i].x + this.pipeWidth < this.bird.x && !this.pipes[i].scored) {
+                        this.score++;
+                        this.pipes[i].scored = true;
+                        gameScore.textContent = `Score: ${this.score}`;
+                    }
+
+                    // Remove off-screen pipes
+                    if (this.pipes[i].x + this.pipeWidth < 0) {
+                        this.pipes.splice(i, 1);
+                    }
+                }
+
+                this.frameCount++;
+            }
+
+            jump() {
+                if (this.gameOver) return;
+                this.bird.velocity = this.bird.jump;
+                playJumpSound();
+            }
+        }
+
+        const game = new FlappyBird();
+        game.draw();
+        window.flappyOG = game;      // for poking at in the console
+
+        /* The original stepped once per painted frame. It was tuned on a
+           60Hz screen, so it steps 60 times a second whatever the screen
+           does, and paints whenever the screen is ready. */
+        const STEP = 1000 / 60;
+        let last = 0, acc = 0;
+        function gameLoop(now) {
+            if (!gameRunning) return;
+            if (!last) last = now;
+            acc += Math.min(250, now - last);
+            last = now;
+            let n = 0;
+            while (acc >= STEP && n < 5) { game.update(); acc -= STEP; n++; }
+            if (n >= 5) acc = 0;
+            game.draw();
+            gameAnimationFrame = requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            playSelectSound();
+            game.reset();
+            gameRunning = true;
+            gameScore.textContent = 'Score: 0';
+            if (gameAnimationFrame) cancelAnimationFrame(gameAnimationFrame);
+            last = 0; acc = 0;
+            gameAnimationFrame = requestAnimationFrame(gameLoop);
+        }
+
+        function tryJump() {
+            if (gameRunning && !game.gameOver) game.jump();
+        }
+
+        $('startGameBtn').addEventListener('mouseenter', playHoverSound);
+        $('startGameBtn').addEventListener('click', startGame);
+
+        // The original only ever listened for the keyboard
+        document.addEventListener('keydown', e => {
+            if (e.key === ' ' || e.key === 'Spacebar' || e.code === 'Space' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (!e.repeat) tryJump();
+            }
+        });
+        // One event per tap: pointerdown covers mouse, touch and pen, and
+        // fires straight away rather than after the tap is lifted.
+        gameCanvas.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            tryJump();
+        });
+
+        // A hidden tab pauses the clock, so coming back does not leap ahead
+        document.addEventListener('visibilitychange', () => { last = 0; acc = 0; });
+
+        console.log('🚀 FLAPPY CRIX — THE ORIGINAL (18 March 2026)');
+    })();
+    </script>
+</body>
+</html>

@@ -16,15 +16,18 @@
  *
  * Bump VERSION to throw every cached file away on the next visit.
  */
-const VERSION = 'crix-offline-v3';   // v3: the original sound files are back; the trimmed copies are gone
+const VERSION = 'crix-offline-v4';   // v4: the original Flappy Crix, for its birthday, kept too
 const SHELL = '/flappycrix';
+const OG = '/flappycrix-og';          // the original game, played every 18 March
 const NAV_TIMEOUT_MS = 6000;
 
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(VERSION)
-            .then(c => fetch(new Request(SHELL, { cache: 'reload' }))
-                .then(async r => (r.ok ? c.put(SHELL, await plain(r)) : null)))
+            .then(c => Promise.all([SHELL, OG].map(page =>
+                fetch(new Request(page, { cache: 'reload' }))
+                    .then(async r => (r.ok ? c.put(page, await plain(r)) : null))
+                    .catch(() => null))))
             .catch(() => { /* first visit offline: nothing to do yet */ })
     );
     self.skipWaiting();
@@ -63,7 +66,8 @@ self.addEventListener('fetch', event => {
     if (url.origin !== self.location.origin) return;       // other sites: untouched
     if (skip(url)) return;
     if (req.mode === 'navigate') {
-        if (isGame(url.pathname)) event.respondWith(gamePage(req));
+        if (isGame(url.pathname)) event.respondWith(gamePage(req, SHELL));
+        else if (isOg(url.pathname)) event.respondWith(gamePage(req, OG));
         return;
     }
     if (req.headers.has('range')) return;                  // audio/video seeking
@@ -71,6 +75,7 @@ self.addEventListener('fetch', event => {
 });
 
 function isGame(path) { return /^\/(flappycrix|game)(\.html)?\/?$/.test(path); }
+function isOg(path)   { return /^\/flappycrix-og(\.html)?\/?$/.test(path); }
 function skip(url) {
     return url.pathname.startsWith('/api/') || url.pathname === '/api.json' ||
            url.pathname.startsWith('/_vercel/') || url.pathname === '/sw.js' ||
@@ -86,17 +91,17 @@ function plain(r) {
     return r.blob().then(b => new Response(b, { status: r.status, statusText: r.statusText, headers: r.headers }));
 }
 
-async function gamePage(req) {
+async function gamePage(req, key) {
     const c = await caches.open(VERSION);
     try {
         const r = await Promise.race([
             fetch(req),
             new Promise((_, rej) => setTimeout(() => rej(new Error('slow')), NAV_TIMEOUT_MS))
         ]);
-        if (r && r.ok && r.type === 'basic') c.put(SHELL, await plain(r.clone()));
+        if (r && r.ok && r.type === 'basic') c.put(key, await plain(r.clone()));
         return r;
     } catch (e) {
-        const cached = await c.match(SHELL);
+        const cached = await c.match(key);
         if (cached) return cached;
         return fetch(req);               // nothing cached: let the browser say it is offline
     }
