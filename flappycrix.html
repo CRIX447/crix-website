@@ -90,7 +90,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.04-1600";
+    <script>window.__BUILD__ = "2026.10.04-1700";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -3264,15 +3264,52 @@
         msg.textContent = '\n' + seen.join('\n\n');
         bar.style.display = 'block';
     }
+    /* Only errors from the game's own code, or the libraries it loads, get
+       the banner. Browser extensions, in-app browsers (Instagram, TikTok,
+       Discord...) and some TVs inject scripts of their own into every page,
+       and their errors land here too — "Cannot read properties of undefined
+       (reading 'M_ID')" was one: nothing in this site has an M_ID. Those
+       go to the console instead of telling a player the game broke. */
+    var OURS = [location.host, 'gstatic.com/firebasejs'];
+    function ours(url) {
+        if (!url) return false;
+        for (var i = 0; i < OURS.length; i++) if (OURS[i] && url.indexOf(OURS[i]) !== -1) return true;
+        return false;
+    }
+    // The first frame of a stack that points at a file, as "file:line"
+    function where(stack) {
+        var m = /([a-z][\w+.-]*:\/\/[^\s)]+?):(\d+):\d+/.exec(String(stack || ''));
+        return m ? { url: m[1], at: m[1].split('/').pop().split('?')[0] + ':' + m[2] } : null;
+    }
     window.addEventListener('error', function (e) {
         // A failed image or sound is not worth a banner; a broken script is.
         if (e && e.target && e.target !== window && e.target.tagName) return;
+        var file = (e && e.filename) || (where(e && e.error && e.error.stack) || {}).url || '';
+        // "Script error." with no file is the browser hiding the details of
+        // an error in another site's script, so it cannot be ours either.
+        if ((file && !ours(file)) || (!file && /^Script error\.?$/.test(e && e.message))) {
+            console.warn('[not ours] ' + (e.message || 'error') + ' @ ' + file);
+            return;
+        }
         show((e && e.message ? e.message : 'Unknown error') +
              (e && e.filename ? '\n' + String(e.filename).split('/').pop() + ':' + e.lineno : ''));
     }, true);
     window.addEventListener('unhandledrejection', function (e) {
         var r = e && e.reason;
-        show('Unhandled: ' + ((r && r.message) || r || 'promise rejected'));
+        var msg = (r && r.message) || r || 'promise rejected';
+        var stack = r && r.stack;
+        if (stack) {
+            // A stack with no frame in our files was thrown by someone else's
+            // script (or an injected one, whose frames have no URL at all).
+            var frames = String(stack).match(/[a-z][\w+.-]*:\/\/[^\s)]+/g) || [];
+            var mine = frames.some(ours);
+            if (!mine) { console.warn('[not ours] Unhandled: ' + msg, stack); return; }
+            var w = null;
+            for (var i = 0; i < frames.length && !w; i++) if (ours(frames[i])) w = where(frames[i] + ')');
+            show('Unhandled: ' + msg + (w ? '\n' + w.at : ''));
+            return;
+        }
+        show('Unhandled: ' + msg);
     });
     document.addEventListener('click', function (e) {
         if (e.target && e.target.id === 'fatalHide') document.getElementById('fatalBar').style.display = 'none';
