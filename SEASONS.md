@@ -8,31 +8,39 @@ by date and off again afterwards. Nothing needs deploying when a season starts.
 | 🎃 Halloween | the whole of October | TRICK OR TREAT — 31 doors |
 | 🎄 Christmas | 1–26 December | ADVENT CALENDAR — 24 doors |
 | 🐣 Easter | Palm Sunday to Easter Monday | EGG HUNT — 7 doors |
-| 🎂 Birthday | 18 March, from 2027 | none — see below |
+| 🎂 Birthday | all of March, from 2027 | none — a free hat on the 18th, see below |
 
 Easter is computed each year rather than listed, so it never needs updating.
-If Palm Sunday falls on or before 18 March, the Birthday wins that one day.
+When Easter week falls in March, Easter keeps its week (so the egg hunt is
+never lost) and the Birthday has the rest of the month — but 18 March is
+always the Birthday.
 
 ## The Birthday season
 
-Flappy Crix first went up on 18 March 2026. On every 18 March after that the
-Birthday season is on, and it works differently from the others: instead of
-decorating the modern game it **replaces** it. `/flappycrix` sends everyone to
-`/flappycrix-og` — the very first version, with no shop, no multiplayer and no
-cosmetics — and that page sends them back when the season ends. Nobody is
-moved in the middle of a run or a room; it waits for the menu.
+Flappy Crix first went up on 18 March 2026, so every March from 2027 is its
+birthday month. The rules live in `birthday.js`, which both pages load first.
 
-It can be forced like any other season. Forcing it for everyone sends every
-player (you included) to the original until it is set back, so both the
-console and the staff menu ask first. To get back to the modern game while it
-is on, open **`/flappycrix?modern=1`**, or use the console.
-`/flappycrix?anniversary=1` previews it without changing anything.
+* `/flappycrix` starts everyone on `/flappycrix-og`, the very first version.
+* The original's banner has a **Switch to the new Flappy Crix** button, and
+  the new game has a **🕹️ Original** button in the icon row. The choice is
+  remembered for the rest of that March, so nobody is bounced back and forth.
+* Players who choose the new game get the birthday colours and confetti.
+* **18 March:** anyone who plays the new game that day — signed in or not —
+  gets the **Golden Party Hat** (`hat_party`), a gold cone with a 1 on it. The
+  original's banner tells them so. It goes by the real date only; forcing the
+  season does not hand it out. To give it to someone by hand, use the
+  console's give-item with `hat_party`.
+* When the month ends, the original sends everyone back to the new game.
+  Nobody is moved in the middle of a run or a room; it waits for the menu.
 
-The decision is made before the modern page draws anything, from local copies
-of the two settings above that the game keeps, so nobody sees the modern menu
-flash on the way. The original page has no Firebase; while someone is on it
-for the birthday it re-reads the for-everyone setting from Firestore once a
-minute, so switching the season off reaches them within a minute.
+It can be forced like any other season, and both the console and the staff
+menu ask first before forcing it on for everyone.
+`/flappycrix?anniversary=1` previews the original's birthday banner;
+`/flappycrix?modern=1` skips the switch entirely.
+
+The original page has no Firebase; while someone is on it for the birthday
+it re-reads the for-everyone setting from Firestore once a minute, so
+switching the season off reaches them within a minute.
 
 ## Forcing a season
 
