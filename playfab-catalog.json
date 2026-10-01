@@ -210,6 +210,18 @@
       "IsLimitedEdition": false,
       "CustomData": "{\"slot\":\"trail\",\"exclusive\":true,\"season\":\"easter\",\"calendar\":\"EGG HUNT\",\"door\":7,\"colours\":[\"#FFD1E8\",\"#FFF3B0\",\"#B8F2C8\",\"#B9D9FF\"]}"
     },
+    {
+      "ItemId": "hat_party",
+      "ItemClass": "cosmetic_hat",
+      "CatalogVersion": "Main",
+      "DisplayName": "Golden Party Hat",
+      "Description": "Free for playing Flappy Crix on 18 March. Cannot be bought.",
+      "Tags": ["cosmetic", "hat", "exclusive", "seasonal", "birthday"],
+      "IsStackable": false,
+      "IsTradable": false,
+      "IsLimitedEdition": false,
+      "CustomData": "{\"slot\":\"hat\",\"exclusive\":true,\"season\":\"birthday\",\"draw\":\"party\"}"
+    },
 
     {
       "ItemId": "x2coins",

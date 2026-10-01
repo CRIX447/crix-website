@@ -419,6 +419,53 @@
             g.fillRect((cx + 0.04) * s, 0.12 * s, 0.05 * s, 0.035 * s);
         },
 
+        // A gold party cone with a big 1 on the front and a pompom on top,
+        // tipped a little to one side. The whole cone sways from its base.
+        party(g, s, w) {
+            const xL = -0.21, xR = 0.24, base = 0.03;
+            const yL = brimY(xL) + base, yR = brimY(xR) + base;
+            const tipX = HEAD_CX + 0.08, tipY = -0.97;
+            const cone = () => {
+                g.moveTo(xL * s, yL * s);
+                g.lineTo(tipX * s, tipY * s);
+                g.lineTo(xR * s, yR * s);
+                through(g, s, xR, yR, HEAD_CX, brimY(HEAD_CX) + base + 0.02, xL, yL);
+                g.closePath();
+            };
+            swingAbout(g, HEAD_CX * s, (brimY(HEAD_CX) + base) * s, w * 0.8, () => {
+                hatBlob(g, s, shade(g, s, 'party', xL, -0.6, xR, -0.6,
+                        [[0, '#8A5A00'], [0.22, '#D99A00'], [0.5, '#FFE27A'], [0.78, '#F2B705'], [1, '#9C6A00']]), cone);
+                // darker gold stripes wrapped round the cone
+                g.save();
+                g.beginPath(); cone(); g.clip();
+                g.strokeStyle = 'rgba(140,85,0,.55)';
+                g.lineWidth = Math.max(1, s * 0.05);
+                for (let i = 0; i < 4; i++) {
+                    const y = -0.86 + i * 0.17;
+                    g.beginPath();
+                    g.moveTo(-0.4 * s, (y + 0.1) * s);
+                    g.lineTo(0.4 * s, (y - 0.06) * s);
+                    g.stroke();
+                }
+                g.restore();
+                g.beginPath(); cone(); hatStroke(g, s, INK, 0.026);
+                // the 1, on a white badge so it reads at 30px
+                const bx = HEAD_CX + 0.035, by = -0.46, br = 0.12;
+                hatBlob(g, s, '#FFFDF3', () => g.arc(bx * s, by * s, br * s, 0, Math.PI * 2), INK, 0.02);
+                g.fillStyle = '#B07400';
+                g.font = `900 ${Math.max(1, s * 0.2)}px Arial, Helvetica, sans-serif`;
+                g.textAlign = 'center';
+                g.textBaseline = 'middle';
+                g.fillText('1', bx * s, (by + 0.012) * s);
+                // pompom: gold tinsel, lit from above
+                const pr = 0.085;
+                hatBlob(g, s, shade(g, s, 'partypom', tipX, tipY - pr, tipX, tipY + pr,
+                        [[0, '#FFF6C9'], [1, '#E8A400']]), () =>
+                    g.arc(tipX * s, tipY * s, pr * s, 0, Math.PI * 2), INK, 0.02);
+                dot(g, s, tipX - 0.03, tipY - 0.03, 0.028, 'rgba(255,255,255,.9)');
+            });
+        },
+
         // Two tall ears on a band, splayed a little. They swing.
         bunny(g, s, w) {
             const ear = (x, tilt) => swingAbout(g, x * s, domeY(x) * s, w * 1.2 + tilt, () => {

@@ -10,7 +10,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="/playfab-manager.js?v=2026092412"></script>
-<script src="/cosmetic-art.js?v=2026100112"></script>
+<script src="/cosmetic-art.js?v=2026100201"></script>
 <style>
 @font-face{font-family:'CRIX Pixel';src:url('/img/font.woff2') format('woff2'),url('/img/font.otf') format('opentype');font-display:swap}
 :root{--red:#FF4655;--orange:#FF6B35;--green:#00CC7A;--bg:#0A0A0F;--panel:#12121A;--line:rgba(255,255,255,.08)}
@@ -300,12 +300,12 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
       <div class="panel">
         <h2>Seasonal theme</h2>
         <p class="dt" style="margin-bottom:12px">
-          Halloween, Christmas, Easter and Flappy Crix's Birthday (18 March) turn
-          themselves on by date. Force one here to preview it or run it early —
-          it reaches every player at once, not only this browser. Each season
-          brings its own colours, music, fly-bys and calendar; the Birthday
-          instead swaps the whole game for the original — no shop, no
-          multiplayer, no cosmetics — until it ends.
+          Halloween, Christmas, Easter and Flappy Crix's Birthday (all of March)
+          turn themselves on by date. Force one here to preview it or run it
+          early — it reaches every player at once, not only this browser. Each
+          season brings its own colours, music, fly-bys and calendar; the
+          Birthday starts everyone on the original game, with a button to switch
+          to the new one and back.
         </p>
         <div class="row">
           <label>Theme</label>
@@ -1830,8 +1830,8 @@ bind('seaSave', async () => {
   const out = $('seaOut');
   const val = $('seaForce').value;
   if (val === 'birthday' && !confirm('Switch on the Birthday season for everyone?\n\n' +
-      'Every player goes to the original Flappy Crix as soon as they are back on the menu, ' +
-      'until you set this back.')) return;
+      'Every player starts on the original Flappy Crix until you set this back. ' +
+      'They can switch to the new game from the original\'s page.')) return;
   out.className = 'out'; out.textContent = 'Saving\u2026';
   try {
     await firebase.firestore().collection('config').doc('season').set({

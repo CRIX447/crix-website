@@ -2,52 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script src="/birthday.js?v=2026100201"></script>
     <script>
-    /* FLAPPY CRIX'S BIRTHDAY SEASON. The first Flappy Crix went up on 18
-       March 2026, so every 18 March from 2027 (Sydney time, like every
-       season) is its birthday, and for that day the game is the original —
-       /flappycrix-og — with the shop, multiplayer and cosmetics all off.
-       It is a season like Halloween or Christmas (SEASONS.birthday below):
-       staff can switch it on for everyone or just for themselves, and "No
-       theme" turns it off. This runs before anything else on the page so
-       nobody sees the modern menu flash first; it reads the local copies of
-       the staff settings that the season code keeps, and the season code
+    /* THE BIRTHDAY MONTH (birthday.js has the rules). All of March from 2027
+       the game starts on the original — /flappycrix-og — and players can
+       switch to this one and back whenever they like; their choice is
+       remembered for the month. This runs before anything else on the page
+       so nobody sees the modern menu flash on the way. The season code
        catches anything that changes after the page has loaded.
-       ?modern=1 skips it (staff checking something); ?anniversary=1 forces it. */
+       ?modern=1 skips it; ?anniversary=1 forces it. */
     (function () {
-        // A guard against two pages that disagree sending a browser back and
-        // forth forever: four hops inside half a minute and it stays put.
-        window.__crixHop = function () {
-            try {
-                var now = Date.now(), k = 'crix_bday_hops',
-                    hops = JSON.parse(sessionStorage.getItem(k) || '[]').filter(function (t) { return now - t < 30000; });
-                if (hops.length >= 4) return false;
-                hops.push(now);
-                sessionStorage.setItem(k, JSON.stringify(hops));
-            } catch (e) {}
-            return true;
-        };
-        // The same decision activeSeasonId() makes, cut down to the one
-        // season that matters here. /flappycrix-og keeps a copy of it.
-        function birthdayOn() {
-            function force(k) {
-                try { return JSON.parse(localStorage.getItem(k) || '{}').force || ''; } catch (e) { return ''; }
-            }
-            // just-for-me beats everyone, which beats the calendar
-            var pick = force('crix_season_preview_v1') || force('crix_season_force_v1');
-            if (pick === 'birthday') return true;
-            if (pick && pick !== 'auto') return false;   // 'off', or another season forced on
-            var p = {};
-            new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', year: 'numeric', month: 'numeric', day: 'numeric' })
-                .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
-            return +p.month === 3 && +p.day === 18 && +p.year > 2026;
-        }
         try {
-            var q = location.search;
+            var B = window.CrixBirthday, q = location.search;
             if (/[?&]modern=1/.test(q)) { window.__crixModern = true; return; }
+            if (!B) return;                                  // file missing: the modern game
             var url = /[?&]anniversary=1/.test(q);
-            if (url || birthdayOn()) {
-                if (!window.__crixHop()) return;
+            if (url || B.goOld()) {
+                if (!B.hop()) return;
                 location.replace('/flappycrix-og' + (url ? '?anniversary=1' : ''));
                 document.documentElement.style.display = 'none';   // no flash of the modern menu
             }
@@ -90,7 +61,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.04-1800";
+    <script>window.__BUILD__ = "2026.10.05-1000";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -100,7 +71,7 @@
     <script src="/ui.js?v=2026092412"></script>
     <script src="/android-bridge.js?v=2026092412"></script>
     <script src="/playfab-manager.js?v=2026092412"></script>
-    <script src="/cosmetic-art.js?v=2026100112"></script>
+    <script src="/cosmetic-art.js?v=2026100201"></script>
     <script src="/photon-realtime-browser.js" onerror="console.error('[Photon] photon-realtime-browser.js failed to load — check that this file was uploaded alongside game.html in the same folder.'); window.__photonSdkLoadFailed = true;"></script>
     <script>
         window.__photonSdkStatus = { loaded: typeof Photon !== 'undefined' };
@@ -3584,6 +3555,7 @@
         <div class="icon-bar">
             <button class="icon-btn" id="dailyBtn"       title="Daily rewards"><span>🎁</span><label>Daily</label><span class="icon-dot" id="dailyDot" style="display:none;"></span></button>
             <button class="icon-btn" id="seasonCalBtn"   title="Seasonal event" style="display:none;"><span id="seasonCalIcon">🎁</span><label id="seasonCalLabel">Event</label><span class="icon-dot" id="seasonCalDot" style="display:none;"></span></button>
+            <button class="icon-btn" id="ogSwitchBtn"    title="Play the original Flappy Crix" style="display:none;"><span>🕹️</span><label>Original</label></button>
             <button class="icon-btn" id="storeBtn"       title="Store"><span>🛒</span><label>Store</label></button>
             <button class="icon-btn" id="lockerBtn"      title="Locker"><span>🧢</span><label>Locker</label></button>
             <button class="icon-btn" id="notifBtn"       title="Notifications"><span>🔔</span><label>Alerts</label><i id="notifBadge" class="notif-badge" style="display:none;">0</i></button>
@@ -4663,11 +4635,10 @@
             <div class="mp-section-title" style="margin-top:16px;">🗓️ SEASONAL THEME</div>
             <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
                 They switch on by date on their own — October, December, the week
-                around Easter, and 18 March for Flappy Crix's birthday. Forcing one here
-                overrides that for <b>everyone</b> until you set it back to Automatic.
-                🎂 Birthday swaps the whole game for the original — no shop, no
-                multiplayer, no cosmetics — so it sends you there too; come back with
-                <b>/flappycrix?modern=1</b> or the console to turn it off.
+                around Easter, and all of March for Flappy Crix's birthday. Forcing one
+                here overrides that for <b>everyone</b> until you set it back to Automatic.
+                🎂 Birthday starts everyone on the original game; the 🕹️ / switch
+                buttons move between the original and the new one.
             </div>
             <div class="owner-grid">
                 <button class="owner-btn" data-season="">🗓️ Automatic</button>
@@ -5420,7 +5391,12 @@
               image: '/img/bunny-ears.png', draw: 'bunny',    owned: false, equipped: false },
             { id: 'trail_pastel', name: 'PASTEL TRAIL',  type: 'trail', price: null, exclusive: true,
               season: 'easter',    desc: 'Egg hunt · door 7',
-              fx: 'bands', colours: ['#FFD1E8','#FFF3B0','#B8F2C8','#B9D9FF'], owned: false, equipped: false }
+              fx: 'bands', colours: ['#FFD1E8','#FFF3B0','#B8F2C8','#B9D9FF'], owned: false, equipped: false },
+
+            // Given to everyone who plays the new game on 18 March
+            { id: 'hat_party',    name: 'GOLDEN PARTY HAT', type: 'hat', price: null, exclusive: true,
+              season: 'birthday',  desc: 'Played on 18 March · cannot be bought',
+              draw: 'party', owned: false, equipped: false }
         ];
         
         /* The coin emoji (U+1FA99) arrived in Emoji 13, in 2020. Windows 10 and
@@ -6112,6 +6088,36 @@
             }
         }
 
+        /* ---- THE GOLDEN PARTY HAT ----
+           Anyone who plays the new game on 18 March (Sydney, from 2027) gets
+           it — signed in or not. It is given only once a save is actually on
+           screen: a load replaces everything owned, so a hat granted before
+           it would vanish, and a guest's save written before theirs had
+           loaded would overwrite their real progress. */
+        let _saveOnScreen = false, _partyHatToasted = false;
+        function maybeGrantPartyHat() {
+            const B = window.CrixBirthday;
+            if (!B || !B.isHatDay() || !_saveOnScreen) return;
+            if (currentUser && accountLoadedFor !== currentUser.uid) return;
+            const hat = cosmetics.find(c => c.id === 'hat_party');
+            if (!hat || hat.owned) return;
+            hat.owned = true;
+            try { updateStoreDisplay(); updateLockerDisplay(); updatePreview(); } catch (e) {}
+            try { autoSave(); } catch (e) {}
+            if (typeof mirrorStatsToFirestore === 'function') mirrorStatsToFirestore(true);
+            // A cloud save landing after the device's copy can take it away
+            // and this gives it back; say so only the once.
+            if (_partyHatToasted) return;
+            _partyHatToasted = true;
+            playSfx('unlock');
+            toast({ kind: 'success', title: '🥳 GOLDEN PARTY HAT',
+                    body: `A free hat for playing today — it is Flappy Crix's ${B.ordinal(B.number())} birthday! Equip it in the locker.` });
+        }
+        function savePutOnScreen() {
+            _saveOnScreen = true;
+            setTimeout(maybeGrantPartyHat, 0);   // after the load has finished
+        }
+
         function loadFromLocal() { 
             highScore = parseInt(localStorage.getItem('flappyCrixHighScore')) || 0; 
             coinCount = parseInt(localStorage.getItem('flappyCrixCoins')) || 0;
@@ -6128,6 +6134,7 @@
             updateAchievementCount(); 
             updateLockerDisplay(); 
             updatePreview(); 
+            savePutOnScreen();
         }
         
         /* ---- THIS ACCOUNT, ON THIS DEVICE ----
@@ -6158,6 +6165,7 @@
             cosmetics.forEach(c => c.owned = (d.owned || []).includes(c.id));
             mergePlayFabOwned();
             applyEquipped(d.equipped);
+            savePutOnScreen();
             if (d.achievements) d.achievements.forEach(a => {
                 const ach = achievements.find(x => x.id === a.id);
                 if (ach) { ach.unlocked = a.unlocked; ach.progress = a.progress || 0; }
@@ -7105,14 +7113,14 @@
                 pipe: ['#3F6B2A', '#7FC24A', '#C4EE86', '#7FC24A', '#33571F'],
                 motif: 'egg', motifFill: null       // eggs pick their own colours
             },
-            /* Flappy Crix went up on 18 March 2026, so every 18 March from 2027
-               is its birthday. This season is different from the others: it
-               does not decorate the modern game, it REPLACES it — while it is
-               on, /flappycrix sends everyone to the original (/flappycrix-og)
-               with the shop, multiplayer and cosmetics all gone, and the
-               original sends them back when it ends. `original: true` is what
-               says so. The colours below are only ever seen by staff who open
-               /flappycrix?modern=1 during it. */
+            /* Flappy Crix went up on 18 March 2026, so every March from 2027
+               is its birthday month. Unlike the others this season starts
+               players on the original (/flappycrix-og, `original: true`), and
+               they can switch to the new game and back whenever they like
+               (the 🕹️ Original button here, the switch on the original's
+               page). Anyone who chooses the new game during it gets these
+               colours and the confetti. Playing the new game on 18 March gets
+               the Golden Party Hat. */
             birthday: {
                 name: 'Birthday', emoji: '🎂', accent: '#FFC83D', accent2: '#FF5FA2',
                 panel: '#1E1430', panel2: '#2A1B40', line: 'rgba(255,200,61,.16)',
@@ -7216,10 +7224,13 @@
             const d = now || new Date();
             const syd = seasonNow(d);
             const month = syd.month;                    // 0 = January, in Sydney
-            // Flappy Crix's birthday, from its first one in 2027. Checked
-            // before Easter: Palm Sunday can fall as early as 15 March, and a
-            // one-day event should not lose its only day to an eight-day one.
-            if (month === 2 && syd.day === 18 && syd.year > 2026) return 'birthday';
+            // Flappy Crix's birthday month, from 2027: all of March, except
+            // Easter week when it falls in March — but the 18th is always the
+            // birthday. birthday.js has the rule, shared with the top of this
+            // page and with the original's page.
+            if (window.CrixBirthday
+                    ? window.CrixBirthday.inSeason({ y: syd.year, m: month + 1, d: syd.day })
+                    : (month === 2 && syd.day === 18 && syd.year > 2026)) return 'birthday';
             if (month === 9) return 'spooky';           // all of October
             if (month === 11 && syd.day <= 26) return 'christmas';
             // Palm Sunday through Easter Monday
@@ -7836,6 +7847,7 @@
            minute is all any of them need. */
         let _calSeasonSeen = null;
         setInterval(function checkSeasonRollover() {
+            try { maybeGrantPartyHat(); } catch (e) {}
             const now = autoSeason();
             if (_calSeasonSeen === null) { _calSeasonSeen = now; return; }
             if (now === _calSeasonSeen) return;
@@ -7890,7 +7902,9 @@
         let _originalTimer = null;
         function maybeGoToOriginal() {
             const s = season();
-            if (!s || !s.original || window.__crixModern) {
+            const B = window.CrixBirthday;
+            // A player who chose the new game this month stays in it
+            if (!s || !s.original || window.__crixModern || !B || B.getPick() === 'new') {
                 clearTimeout(_originalTimer); _originalTimer = null;
                 return;
             }
@@ -7903,7 +7917,7 @@
                 _originalTimer = setTimeout(maybeGoToOriginal, 3000);
                 return;
             }
-            if (window.__crixHop && window.__crixHop()) location.replace('/flappycrix-og');
+            if (B.hop()) location.replace('/flappycrix-og');
         }
 
         async function setSeasonOverride(value) {
@@ -8623,13 +8637,32 @@
             }
         });
 
+        /* The birthday month's way back to the original. It takes the
+           calendar's slot in the icon row (the birthday has no calendar),
+           so the row keeps its shape. */
+        function updateOriginalSwitch() {
+            const btn = document.getElementById('ogSwitchBtn');
+            if (!btn) return false;
+            const s = season();
+            const on = !!(s && s.original && window.CrixBirthday);
+            btn.style.display = on ? '' : 'none';
+            return on;
+        }
+        document.getElementById('ogSwitchBtn')?.addEventListener('click', () => {
+            playSfx('select', .5);
+            try { window.CrixBirthday.setPick('old'); } catch (e) {}
+            flushSave();
+            location.href = '/flappycrix-og';
+        });
+
         function updateSeasonCalendarDot() {
             const btn = document.getElementById('seasonCalBtn');
             if (!btn) return;
             const s = seasonFor('cal'), id = activeSeasonId();
+            const og = updateOriginalSwitch();
             if (!s || !s.cal) {
                 btn.style.display = 'none';
-                document.querySelector('.icon-bar')?.classList.remove('has-season');
+                document.querySelector('.icon-bar')?.classList.toggle('has-season', og);
                 document.getElementById('seasonCalModal')?.classList.remove('active');
                 return;
             }
@@ -11961,9 +11994,9 @@
                 }
                 if (SEASONS[want]?.original && !confirm(
                         'Switch on the Birthday season for everyone?\n\n' +
-                        'Every player — you included — goes to the original Flappy Crix ' +
-                        'as soon as they are back on the menu, until it is switched off. ' +
-                        'Turn it off from the console, or open /flappycrix?modern=1.')) return;
+                        'Every player — you included — starts on the original Flappy Crix ' +
+                        'until it is switched off. Anyone can switch back to the new game ' +
+                        'from the original\'s page.')) return;
                 if (st) st.textContent = 'Saving…';
                 try {
                     await setSeasonOverride(want);
@@ -13270,12 +13303,11 @@
         const GAME_VERSION = '1.1.0';
         const CHANGELOG = [
             {
-                v: '1.1.0', date: '2026-10-01', title: 'Birthday & Connection',
+                v: '1.1.0', date: '2026-10-01', title: 'Connection & Polish',
                 changes: [
                     'Windows app: signing in, linking Discord and connecting to the servers all work properly now',
                     'Windows app: Sign in with Google opens your browser, and the game signs itself in',
                     'Windows app: a clear "can\'t reach the servers" screen that reconnects by itself',
-                    '🎂 Flappy Crix\'s Birthday is a season — every 18 March, everyone plays the original game',
                     'The very first Flappy Crix is playable any time at crixgamingvr.com/flappycrix-og',
                     'Hats and trails redrawn so they actually fit the bird',
                     'Multiplayer: other players move smoothly and show the right cosmetics',

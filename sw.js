@@ -16,15 +16,16 @@
  *
  * Bump VERSION to throw every cached file away on the next visit.
  */
-const VERSION = 'crix-offline-v4';   // v4: the original Flappy Crix, for its birthday, kept too
+const VERSION = 'crix-offline-v5';   // v5: birthday.js, which both pages need before they draw
 const SHELL = '/flappycrix';
-const OG = '/flappycrix-og';          // the original game, played every 18 March
+const OG = '/flappycrix-og';          // the original game, played every March
+const BIRTHDAY_JS = '/birthday.js?v=2026100201';   // the same URL both pages load
 const NAV_TIMEOUT_MS = 6000;
 
 self.addEventListener('install', event => {
     event.waitUntil(
         caches.open(VERSION)
-            .then(c => Promise.all([SHELL, OG].map(page =>
+            .then(c => Promise.all([SHELL, OG, BIRTHDAY_JS].map(page =>
                 fetch(new Request(page, { cache: 'reload' }))
                     .then(async r => (r.ok ? c.put(page, await plain(r)) : null))
                     .catch(() => null))))

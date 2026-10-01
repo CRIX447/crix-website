@@ -6,6 +6,7 @@
     <title>FLAPPY CRIX • THE ORIGINAL</title>
     <meta name="description" content="The very first Flappy Crix, from 18 March 2026.">
     <meta name="theme-color" content="#0A0A0F">
+    <script src="/birthday.js?v=2026100201"></script>
     <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
     <link rel="icon" type="image/png" sizes="192x192" href="/img/favicon-192.png">
     <link rel="apple-touch-icon" href="/img/favicon-192.png">
@@ -18,11 +19,12 @@
         page, where it ran in a pop-up) — same look, same pipes, same physics,
         same sounds.
 
-        This is the Birthday season. Every 18 March from 2027 /flappycrix sends
-        everyone here for the day, and back again once the day is over (Sydney
-        time, like the other seasons); staff can also switch it on early from
-        the seasons settings. The rest of the year it is still here at
-        /flappycrix-og, as a museum.
+        This is the Birthday season. All of March from 2027 /flappycrix starts
+        everyone here (Sydney time, like the other seasons), with a button to
+        switch to the new game and back, and sends them back to the new game
+        when March is over; staff can also switch it on early from the seasons
+        settings. The rest of the year it is still here at /flappycrix-og, as
+        a museum.
 
         Fixed, without changing how it plays:
           - Tapping or clicking never made it jump. Only the keyboard was ever
@@ -73,6 +75,14 @@
         .og-banner b { color: var(--matrix-green); font-weight: normal; font-size: 16px; display: block; letter-spacing: 1px; }
         .og-banner a { color: var(--neon-orange); }
         .og-banner .og-time { color: var(--neon-orange); }
+        .og-banner .og-gift { display: block; margin-top: 8px; color: #FFD84D; }
+        .og-switch {
+            display: inline-block; margin-top: 10px; padding: 9px 16px;
+            border: 2px solid var(--matrix-green); background: transparent; color: var(--matrix-green);
+            font: inherit; font-size: 14px; letter-spacing: 1px; cursor: pointer; text-decoration: none;
+        }
+        .og-switch:hover { background: rgba(0,255,157,.12); }
+        .og-switch.gift { border-color: #FFD84D; color: #FFD84D; }
 
         /* The pop-up from the old main page, standing on its own */
         .game-modal-content {
@@ -185,110 +195,55 @@
         'use strict';
 
         /* ---- the Birthday season ----
-           Flappy Crix went up on 18 March 2026, so every 18 March from 2027
-           (Sydney time) is its birthday: a season in the modern game's
-           seasons list, like Halloween or Christmas, except that instead of
-           decorating the game it swaps it for this one. Staff can switch it
-           on early — for everyone, or just for themselves — and switch it off.
+           All of March from 2027 (Sydney time) is Flappy Crix's birthday
+           month. /flappycrix starts everyone here, and the button in the
+           banner switches to the new game — remembered for the month, so
+           they are not sent back. On 18 March the new game also hands out a
+           free Golden Party Hat, so that day the banner says so.
 
-           This page has no Firebase, so it decides the same way the top of
-           /flappycrix does: the copies of the staff settings that the modern
-           game keeps in local storage, then the date. While someone is here
-           for the birthday it also re-reads the for-everyone setting straight
-           from Firestore once a minute, so switching it off sends them back.
+           birthday.js has the rules, shared with /flappycrix, including the
+           staff settings (on early for everyone, or just for themselves).
+           This page has no Firebase, so while someone is here for the
+           birthday it re-reads the for-everyone setting from Firestore once
+           a minute, and switching the season off sends them back.
            ?anniversary=1 previews it; ?modern=1 on /flappycrix skips it. */
-        const BORN = 2026;
-        const PREVIEW_KEY = 'crix_season_preview_v1';   // just for me
-        const FORCED_KEY = 'crix_season_force_v1';      // for everyone
-        function sydneyDate() {
-            try {
-                const p = {};
-                new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', year: 'numeric', month: 'numeric', day: 'numeric' })
-                    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
-                return { y: +p.year, m: +p.month, d: +p.day };
-            } catch (e) {
-                const n = new Date();
-                return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() };
-            }
-        }
-        function onTheDay() {
-            const t = sydneyDate();
-            return t.m === 3 && t.d === 18 && t.y > BORN;
-        }
-        function readForce(key) {
-            try { return JSON.parse(localStorage.getItem(key) || '{}').force || ''; } catch (e) { return ''; }
-        }
-        // '' (not on), 'day' (it is 18 March), 'everyone' (staff switched it
-        // on for all), 'me' (staff switched it on just for themselves)
-        function birthdayState() {
-            const mine = readForce(PREVIEW_KEY), all = readForce(FORCED_KEY);
-            const pick = mine || all;                     // just-for-me wins
-            if (pick === 'birthday') return mine === 'birthday' ? 'me' : 'everyone';
-            if (pick && pick !== 'auto') return '';       // 'off', or another season
-            return onTheDay() ? 'day' : '';
-        }
-        // Which birthday this is (or the next one, when it is on early)
-        function birthdayNumber() {
-            const t = sydneyDate();
-            const n = t.y - BORN + ((t.m > 3 || (t.m === 3 && t.d > 18)) ? 1 : 0);
-            return Math.max(1, n);
-        }
-        function ordinal(n) {
-            const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
-            return n + (s[(v - 20) % 10] || s[v] || s[0]);
-        }
-        // Time left until midnight in Sydney, for the banner
-        function untilMidnight() {
-            try {
-                const p = {};
-                new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', hour: 'numeric', minute: 'numeric', hourCycle: 'h23' })
-                    .formatToParts(new Date()).forEach(x => { p[x.type] = x.value; });
-                const left = 24 * 60 - (+p.hour * 60 + +p.minute);
-                const h = Math.floor(left / 60), m = left % 60;
-                return h ? `${h}h ${m}m` : `${m}m`;
-            } catch (e) { return ''; }
-        }
-        // Shared with /flappycrix: two pages that disagree must not bounce a
-        // browser between them forever.
-        function hop() {
-            try {
-                const now = Date.now(), k = 'crix_bday_hops';
-                const hops = JSON.parse(sessionStorage.getItem(k) || '[]').filter(t => now - t < 30000);
-                if (hops.length >= 4) return false;
-                hops.push(now);
-                sessionStorage.setItem(k, JSON.stringify(hops));
-            } catch (e) {}
-            return true;
-        }
+        const B = window.CrixBirthday || null;          // missing: a museum, nothing more
 
         const urlPreview = /[?&]anniversary=1/.test(location.search);
-        let state = urlPreview ? 'preview' : birthdayState();
-        // Only someone sent here for the birthday is sent back when it ends;
+        let state = urlPreview ? 'preview' : (B ? B.state() : '');
+        // Only someone here for the birthday is sent back when it ends;
         // a visitor to the museum stays as long as they like.
         const cameForBirthday = !!state && !urlPreview;
         const banner = document.getElementById('ogBanner');
         const museumBanner = banner.innerHTML;
+
+        function switchToNew() {
+            if (B) B.setPick('new');
+            location.href = '/flappycrix';
+        }
         function renderBanner() {
-            if (!state) { banner.innerHTML = museumBanner; return; }
-            const head = `<b>🎂 HAPPY ${ordinal(birthdayNumber()).toUpperCase()} BIRTHDAY, FLAPPY CRIX!</b>`;
-            const what = 'everyone plays the original — no shop, no multiplayer, no cosmetics, just the bird and the pipes.';
-            if (state === 'day') {
-                banner.innerHTML = head +
-                    `Flappy Crix first went up on 18 March 2026. For today only, ${what} ` +
-                    `<span class="og-time">The modern game is back in <span id="ogLeft">${untilMidnight()}</span>.</span>`;
+            if (!state || !B) { banner.innerHTML = museumBanner; return; }
+            const hatDay = B.isHatDay();
+            const head = `<b>🎂 HAPPY ${B.ordinal(B.number()).toUpperCase()} BIRTHDAY, FLAPPY CRIX!</b>`;
+            let body;
+            if (state === 'me') {
+                body = 'You switched the birthday month on just for yourself — nobody else sees this.';
+            } else if (state === 'preview') {
+                body = 'A preview of the birthday month.';
             } else if (state === 'everyone') {
-                banner.innerHTML = head +
-                    `The birthday season is on early. Until it ends, ${what} ` +
-                    `<span class="og-time">The modern game is back the moment it does.</span>`;
-            } else if (state === 'me') {
-                banner.innerHTML = head +
-                    `You switched the birthday season on just for yourself — nobody else sees this. ` +
-                    `<a href="/flappycrix?modern=1">Open the modern game to switch it off →</a>`;
+                body = 'The birthday celebration is on early: Flappy Crix is back the way it started on ' +
+                       '18 March 2026. Want the new one? Switch whenever you like.';
             } else {
-                banner.innerHTML = head +
-                    `A preview of the birthday season. ` +
-                    `<a href="/flappycrix?modern=1">Back to the current game →</a>`;
+                body = 'All through March, Flappy Crix is back the way it started on 18 March 2026. ' +
+                       'Want the new one? Switch whenever you like.';
             }
+            const gift = hatDay
+                ? '<span class="og-gift">🥳 Today only: play the new Flappy Crix and get a free Golden Party Hat.</span>'
+                : '';
+            banner.innerHTML = head + body + gift +
+                `<br><button type="button" class="og-switch${hatDay ? ' gift' : ''}" id="ogSwitch">` +
+                `${hatDay ? '🥳 GET MY HAT — ' : ''}SWITCH TO THE NEW FLAPPY CRIX →</button>`;
+            document.getElementById('ogSwitch').onclick = switchToNew;
         }
         renderBanner();
 
@@ -311,21 +266,22 @@
                 } else if (r.status !== 404) {
                     return;                               // unsure: keep what we had
                 }
-                localStorage.setItem(FORCED_KEY, JSON.stringify({ force, at }));
+                localStorage.setItem(B.FORCED_KEY, JSON.stringify({ force, at }));
             } catch (e) { /* offline: the local copy stands */ }
         }
 
+        let _wasHatDay = B ? B.isHatDay() : false;
         function check() {
-            if (urlPreview) return;
-            const now = birthdayState();
+            if (urlPreview || !B) return;
+            const now = B.state();
             if (cameForBirthday && !now) {
                 // The season is over: back to the game as it is now
-                if (hop()) location.replace('/flappycrix');
+                if (B.hop()) location.replace('/flappycrix');
                 return;
             }
-            if (now !== state) { state = now; renderBanner(); }
-            const el = document.getElementById('ogLeft');
-            if (el) el.textContent = untilMidnight();
+            // re-draw when it starts, stops or the hat day comes and goes
+            const hat = B.isHatDay();
+            if (now !== state || hat !== _wasHatDay) { state = now; _wasHatDay = hat; renderBanner(); }
         }
         if (cameForBirthday) {
             refreshEveryone().then(check);
@@ -335,12 +291,12 @@
                 if (++ticks % 2 === 0) refreshEveryone().then(check); else check();
             }, 30000);
         } else if (!urlPreview) {
-            // a museum visitor still sees the banner change if the day starts
+            // a museum visitor still sees the banner change if the month starts
             setInterval(check, 30000);
         }
         // Another tab (the modern game, the console) changed a setting
         addEventListener('storage', e => {
-            if (e.key === PREVIEW_KEY || e.key === FORCED_KEY) check();
+            if (B && (e.key === B.PREVIEW_KEY || e.key === B.FORCED_KEY)) check();
         });
 
         // ========== SOUNDS (as the original played them) ==========
@@ -445,9 +401,21 @@
                 });
                 this.ctx.shadowBlur = 0;
 
-                // Draw bird
+                // Draw bird. The whole of /img/bird.png — the same picture the
+                // new game uses, black hat included — tilted with the climb and
+                // the fall the way the new game tilts it. The hat is near-black
+                // and so is this background, so a soft light rim keeps the
+                // whole bird visible instead of only its face.
                 if (this.birdImage.complete && this.birdImage.naturalWidth) {
-                    this.ctx.drawImage(this.birdImage, this.bird.x - 15, this.bird.y - 15, 30, 30);
+                    const c = this.ctx;
+                    const tilt = Math.min(Math.max(this.bird.velocity * 0.035, -0.30), 0.40);
+                    c.save();
+                    c.translate(this.bird.x, this.bird.y);
+                    c.rotate(tilt);
+                    c.shadowColor = 'rgba(255,255,255,.7)';
+                    c.shadowBlur = 5;
+                    c.drawImage(this.birdImage, -15, -15, 30, 30);
+                    c.restore();
                 } else {
                     this.ctx.fillStyle = '#FF6B35';
                     this.ctx.shadowColor = '#FF6B35';
@@ -541,6 +509,13 @@
 
         const game = new FlappyBird();
         game.draw();
+        // The first frame is usually drawn before bird.png has arrived, and
+        // the start screen is never drawn again — so it sat there showing
+        // the orange stand-in square instead of the bird. Redraw once the
+        // picture is in.
+        if (!(birdImage.complete && birdImage.naturalWidth)) {
+            birdImage.addEventListener('load', () => { if (!gameRunning) game.draw(); }, { once: true });
+        }
         window.flappyOG = game;      // for poking at in the console
 
         /* The original stepped once per painted frame. It was tuned on a
