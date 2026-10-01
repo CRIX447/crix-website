@@ -58,7 +58,7 @@ a{color:#00CC7A}
 const EXPECTED_BUILD = '2026.08.15-1640';
 
 const FILES = [
-  { path:'/game.html',                    need:true,  label:'Game page' },
+  { path:'/flappycrix',                   need:true,  label:'Game page' },
   { path:'/photon-realtime-browser.js',   need:true,  label:'Photon SDK',      contains:'Photon' },
   { path:'/playfab-manager.js',           need:true,  label:'PlayFab manager', contains:'PLAYFAB_MANAGER_VERSION' },
   { path:'/filter.js',                    need:true,  label:'Chat filter',     contains:'ChatFilter' },
@@ -94,14 +94,14 @@ async function check() {
 
   add('Domain', 'info', esc(location.origin));
 
-  // Is the deployed game.html the build we expect?
+  // Is the deployed game page (/flappycrix) the build we expect?
   try {
-    const r = await fetch('/game.html?cb=' + Date.now());
+    const r = await fetch('/flappycrix?cb=' + Date.now());
     const txt = await r.text();
     const m = txt.match(/__BUILD__\s*=\s*"([^"]+)"/);
     if (!m) {
       stale = true;
-      add('Live build', 'fail', 'No build stamp found in the deployed game.html.',
+      add('Live build', 'fail', 'No build stamp found in the deployed game page.',
           'The deployed file predates this check — your push has not gone live.');
     } else if (m[1] !== EXPECTED_BUILD) {
       stale = true;
@@ -112,7 +112,7 @@ async function check() {
       add('Live build', 'pass', `<code>${esc(m[1])}</code> — up to date.`);
     }
   } catch(e) {
-    add('Live build', 'fail', esc(e.message), 'Could not fetch game.html at all.');
+    add('Live build', 'fail', esc(e.message), 'Could not fetch the game page (/flappycrix) at all.');
     stale = true;
   }
 
