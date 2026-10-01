@@ -90,7 +90,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.04-1700";
+    <script>window.__BUILD__ = "2026.10.04-1800";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -4142,7 +4142,7 @@
                 <button class="modal-close" id="closeDeviceBtn">✕</button>
             </div>
             <div style="text-align:center;padding:6px 0 4px;">
-                <p style="font-size:12px;color:#C9C9C9;line-height:1.8;margin-bottom:16px;">
+                <p id="dlHelp" style="font-size:12px;color:#C9C9C9;line-height:1.8;margin-bottom:16px;">
                     On your phone or computer, open<br>
                     <b style="color:#00CC7A;font-size:14px;">crixgamingvr.com/link</b><br>
                     sign in, then enter this code:
@@ -4150,7 +4150,10 @@
                 <div class="dl-code" id="dlCode">— — —</div>
                 <div class="dl-status" id="dlStatus">Waiting for you to enter it…</div>
                 <div class="dl-timer" id="dlTimer"></div>
-                <button class="mp-btn-secondary" id="dlNewCode" style="width:100%;margin-top:14px;">
+                <button class="mp-btn-primary" id="dlOpenAgain" style="width:100%;margin-top:14px;display:none;">
+                    OPEN MY BROWSER AGAIN
+                </button>
+                <button class="mp-btn-secondary" id="dlNewCode" style="width:100%;margin-top:10px;">
                     GET A NEW CODE
                 </button>
             </div>
@@ -4368,7 +4371,7 @@
             <div class="cred-hero">
                 <div class="cred-logo">FLAPPY CRIX</div>
                 <div class="cred-by">made by <strong>CRIXGAMING VR</strong></div>
-                <div class="cred-ver" id="credVersion">v1.5.0</div>
+                <div class="cred-ver" id="credVersion">v1.1.0</div>
             </div>
 
             <div class="mp-section-title">🎮 PLAY IT ON</div>
@@ -12248,8 +12251,31 @@
         }
 
         let dlCode = null, dlToken = null, dlPoll = null, dlExpiry = 0;
+        // In the Windows app the same code flow runs through the player's own
+        // browser instead of their phone: the app opens crixgamingvr.com/link
+        // with the code already filled in, they sign in there the normal
+        // way, and the app signs itself in. Google refuses sign-in inside
+        // embedded apps often enough that this is the one route that always
+        // works.
+        let dlViaBrowser = false;
+        function dlLinkUrl(code) { return location.origin + '/link?code=' + encodeURIComponent(code); }
+        function dlSetMode() {
+            const title = document.querySelector('#deviceLinkModal .modal-title');
+            const help = document.getElementById('dlHelp');
+            const again = document.getElementById('dlOpenAgain');
+            if (title) title.textContent = dlViaBrowser ? '🌐 SIGN IN WITH YOUR BROWSER' : '📱 SIGN IN FROM YOUR PHONE';
+            if (help) help.innerHTML = dlViaBrowser
+                ? 'Your browser has opened <b style="color:#00CC7A;">crixgamingvr.com/link</b>.<br>' +
+                  'Sign in there and this window signs in by itself.<br>The code, in case you need it:'
+                : 'On your phone or computer, open<br>' +
+                  '<b style="color:#00CC7A;font-size:14px;">crixgamingvr.com/link</b><br>' +
+                  'sign in, then enter this code:';
+            if (again) again.style.display = dlViaBrowser ? '' : 'none';
+        }
 
-        async function startDeviceLink() {
+        async function startDeviceLink(opts) {
+            if (opts && typeof opts.browser === 'boolean') dlViaBrowser = opts.browser;
+            dlSetMode();
             const codeEl = document.getElementById('dlCode');
             const statusEl = document.getElementById('dlStatus');
             codeEl.textContent = '· · ·';
@@ -12269,7 +12295,9 @@
                 dlCode = d.code; dlToken = d.token;
                 dlExpiry = Date.now() + (d.expiresIn * 1000);
                 codeEl.textContent = d.code;
-                statusEl.textContent = 'Waiting for you to enter it…';
+                statusEl.textContent = dlViaBrowser ? 'Waiting for you to sign in in your browser…'
+                                                    : 'Waiting for you to enter it…';
+                if (dlViaBrowser) openExternal(dlLinkUrl(d.code));
                 startDevicePoll();
             } catch (e) {
                 statusEl.className = 'dl-status bad';
@@ -12320,7 +12348,10 @@
             clearInterval(dlPoll);
             document.getElementById('deviceLinkModal').classList.remove('active');
         });
-        document.getElementById('dlNewCode')?.addEventListener('click', startDeviceLink);
+        document.getElementById('dlNewCode')?.addEventListener('click', () => startDeviceLink());
+        document.getElementById('dlOpenAgain')?.addEventListener('click', () => {
+            if (dlCode) openExternal(dlLinkUrl(dlCode));
+        });
 
         // ═══════════ EMAIL VERIFICATION ═══════════
         // Unverified accounts are removed after this long. Deletion is
@@ -12718,12 +12749,27 @@
         // rather than letting people hit a wall they cannot get past.
         if (isConsoleBrowser() && googleSignInBtnEl) {
             googleSignInBtnEl.innerHTML = '📱 SIGN IN FROM YOUR PHONE';
-            googleSignInBtnEl.onclick = startDeviceLink;
+            googleSignInBtnEl.onclick = () => startDeviceLink({ browser: false });
             const note = document.createElement('div');
             note.style.cssText = 'font-size:10px;color:#8C8C8C;text-align:center;' +
                                  'margin:6px 0 2px;line-height:1.6;';
             note.textContent = 'Google blocks sign-in on consoles. Use your phone, ' +
                                'or an email and password below.';
+            googleSignInBtnEl.parentNode.insertBefore(note, googleSignInBtnEl.nextSibling);
+        }
+
+        // The Windows app (1.1.0 and later — it is the one that can open the
+        // browser). Google sign-in goes through the player's own browser.
+        if (window.CRIX_DESKTOP?.isDesktop && typeof window.CRIX_DESKTOP.openExternal === 'function'
+                && googleSignInBtnEl && !isConsoleBrowser()) {
+            googleSignInBtnEl.onclick = () => {
+                authModalEl.classList.remove('active');
+                startDeviceLink({ browser: true });
+            };
+            const note = document.createElement('div');
+            note.style.cssText = 'font-size:10px;color:#8C8C8C;text-align:center;' +
+                                 'margin:6px 0 2px;line-height:1.6;';
+            note.textContent = 'Opens your browser to sign in — this window follows by itself.';
             googleSignInBtnEl.parentNode.insertBefore(note, googleSignInBtnEl.nextSibling);
         }
 
@@ -13221,8 +13267,27 @@
         // ================= PATCH NOTES (in code) =================
         // Kept here rather than in patchnotes.json so shipping an update means
         // editing one place. Bump GAME_VERSION and add an entry at the top.
-        const GAME_VERSION = '1.0.0';
+        const GAME_VERSION = '1.1.0';
         const CHANGELOG = [
+            {
+                v: '1.1.0', date: '2026-10-01', title: 'Birthday & Connection',
+                changes: [
+                    'Windows app: signing in, linking Discord and connecting to the servers all work properly now',
+                    'Windows app: Sign in with Google opens your browser, and the game signs itself in',
+                    'Windows app: a clear "can\'t reach the servers" screen that reconnects by itself',
+                    '🎂 Flappy Crix\'s Birthday is a season — every 18 March, everyone plays the original game',
+                    'The very first Flappy Crix is playable any time at crixgamingvr.com/flappycrix-og',
+                    'Hats and trails redrawn so they actually fit the bird',
+                    'Multiplayer: other players move smoothly and show the right cosmetics',
+                    'Loads more emojis, and an emoji picker in chat',
+                    'The bird falls slower, so it is easier to control',
+                    'Settings split into tabs again',
+                    'Halloween cobwebs sit on the pipes instead of floating in the gap',
+                    'The original sounds are back, and nothing double-plays or cuts off',
+                    'Creator menu open to everyone',
+                    'Fixed sign-up not saving your name'
+                ]
+            },
             {
                 v: '1.0.0', date: '2026-09-10', title: 'Full Release',
                 changes: [
