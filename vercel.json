@@ -159,7 +159,7 @@
   "rewrites": [
     {
       "source": "/flappycrix",
-      "destination": "/game.html"
+      "destination": "/flappycrix.html"
     }
   ],
   "redirects": [

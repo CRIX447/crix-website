@@ -137,8 +137,6 @@ body {
     .nav-discord { padding: 7px 11px; font-size: 11px; margin-left: 5px; }
     .nav-play { padding: 7px 12px; font-size: 11px; }
 }
-@media (max-width: 520px) { }
-
 /* ── LAYOUT WRAPPER ──────────────────────────────────────── */
 .site-wrap { max-width: 1160px; margin: 0 auto; padding: 0 28px; }
 
@@ -441,7 +439,9 @@ body {
 .fanmail-track {
     display: flex; gap: 14px;
     animation: scroll-fanmail 30s linear infinite;
-    width: max-content; padding: 0 14px;
+    /* 7px each side = one 14px gap in total, so the track is exactly two
+       copies wide and translateX(-50%) loops without a jump. */
+    width: max-content; padding: 0 7px;
 }
 .fanmail-track:hover { animation-play-state: paused; }
 @keyframes scroll-fanmail {
@@ -469,6 +469,10 @@ body {
     letter-spacing: 0.5px; text-transform: uppercase;
 }
 .fanmail-item:hover .fanmail-item-label { opacity: 1; transform: translateY(0); }
+/* Touch screens have no hover, so the credit was never visible there */
+@media (hover: none) {
+    .fanmail-item-label { opacity: 1; transform: none; }
+}
 
 /* ── CHANNEL FILTER ─────────────────────────────────────────── */
 .channel-filter-row {
@@ -507,11 +511,17 @@ body {
     /* The brand plus both buttons did not fit a phone, so the bar pushed the
        whole page sideways. Let the brand give way instead. */
     .site-nav { gap: 6px; }
+    /* The base rule pins the brand with flex-shrink:0 and 48px of padding,
+       border and margin, so min-width:0 alone never let it give way and the
+       Discord button was still pushed off the right edge on phones. */
+    .site-nav { padding: 0 14px; }
     .nav-brand {
-        font-size: 12px; min-width: 0;
+        font-size: 12px; min-width: 0; flex-shrink: 1;
+        padding-right: 0; margin-right: 0; border-right: none;
         overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .nav-right { gap: 6px; flex-shrink: 0; }
+    .nav-discord { margin-left: 0; }
     .nav-play, .nav-discord { padding: 7px 10px; font-size: 10px; }
     .footer-links { gap: 12px; row-gap: 8px; }
     .site-wrap { padding:0 18px; }
@@ -565,7 +575,7 @@ body {
         <div>
             <div class="hero-eyebrow">who do you think i am 😂😂😂😂</div>
             <h1 class="hero-title">CRIX<span class="red">GAMING</span><br>VR</h1>
-            <p class="hero-desc">VR gaming content, Minecraft, and more. Over 1K subscribers and growing. Come hang out.</p>
+            <p class="hero-desc">VR gaming content, Minecraft, and more. Over 2K subscribers and growing. Come hang out.</p>
             <div class="hero-actions">
                 <a href="https://discord.com/invite/MbQvJGDAst" target="_blank" rel="noopener" class="game-button discord">
                     💬 Join the Discord
@@ -1027,8 +1037,11 @@ async function fetchVideosForChannel(ch) {
                 return;
             }
             ch.id = resolved;
-            if (isMain) CHANNEL_ID = resolved; // used by checkLiveStream()
         }
+        // checkLiveStream() needs the main channel's ID. It used to be set only
+        // after a handle lookup, so a main channel with an explicit "id" in
+        // api.json (as it has now) never got the live check at all.
+        if (isMain) CHANNEL_ID = ch.id;
         const chanData = await ytFetch({ action: 'stats', channelId: ch.id });
         if (!chanData.items?.[0]) return;
         if (isMain) {
@@ -1070,9 +1083,11 @@ async function fetchVideosForChannel(ch) {
             const sn = item.snippet, t = sn.title;
             const isShort = t.toLowerCase().includes('#shorts') || sn.description?.toLowerCase().includes('#shorts');
             const isLive = t.toLowerCase().includes('live') || t.toLowerCase().includes('stream') || t.includes('🔴');
+            const published = new Date(sn.publishedAt);
             const v = { id: sn.resourceId.videoId, title: t, channel: ch.name,
-                thumbnail: sn.thumbnails.medium?.url || sn.thumbnails.default?.url,
-                date: new Date(sn.publishedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) };
+                thumbnail: sn.thumbnails?.medium?.url || sn.thumbnails?.default?.url,
+                ts: published.getTime() || 0,
+                date: published.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}) };
             if (isShort) shorts.push(v);
             else if (isLive) live.push(v);
             else long.push(v);
@@ -1087,8 +1102,10 @@ async function fetchYouTubeData() {
     if (!CHANNEL_DEFS.length) { useFallbackVideos(); return; }
     try {
         await Promise.all(CHANNEL_DEFS.map(ch => fetchVideosForChannel(ch)));
-        const resolved = CHANNEL_DEFS.filter(ch => ch.id);
-        buildChannelFilterUI(resolved);
+        // Only channels that actually returned videos get a filter button —
+        // a resolved-but-empty channel just led to "No videos found".
+        const loaded = CHANNEL_DEFS.filter(ch => ch.id && allChannelVideos[ch.id]);
+        buildChannelFilterUI(loaded);
         renderCurrentTab();
     } catch(e) {
         document.getElementById('subCount').textContent = '2K+';
@@ -1100,10 +1117,16 @@ async function fetchYouTubeData() {
 
 function buildChannelFilterUI(channels) {
     const row = document.getElementById('channelFilterRow');
-    row.innerHTML = '<button class="channel-filter active" data-channel="all">All Channels</button>';
+    // This runs again on every refresh. Keep the visitor's chosen filter
+    // highlighted instead of snapping the highlight back to "All Channels"
+    // while the grid stays filtered.
+    if (activeChannelFilter !== 'all' && !channels.some(ch => ch.id === activeChannelFilter)) {
+        activeChannelFilter = 'all';
+    }
+    row.innerHTML = `<button class="channel-filter${activeChannelFilter === 'all' ? ' active' : ''}" data-channel="all">All Channels</button>`;
     channels.forEach(ch => {
         const btn = document.createElement('button');
-        btn.className = 'channel-filter';
+        btn.className = 'channel-filter' + (ch.id === activeChannelFilter ? ' active' : '');
         btn.dataset.channel = ch.id;
         btn.textContent = ch.name;
         btn.addEventListener('click', () => {
@@ -1126,7 +1149,9 @@ function getFilteredVideos(type) {
     if (activeChannelFilter === 'all') {
         const all = [];
         Object.values(allChannelVideos).forEach(ch => all.push(...(ch[type] || [])));
-        return all.sort((a,b) => new Date(b.date) - new Date(a.date));
+        // Sort on the real timestamp; parsing the display string back into a
+        // Date is locale-dependent and gives NaN for entries like "Recent".
+        return all.sort((a,b) => (b.ts || 0) - (a.ts || 0));
     }
     return (allChannelVideos[activeChannelFilter]?.[type] || []);
 }
@@ -1152,10 +1177,18 @@ function renderCurrentTab() {
         const card = document.createElement('div');
         card.className = 'video-card';
         card.onclick = () => window.open(`https://youtube.com/watch?v=${video.id}`, '_blank');
-        const chTag = video.channel ? `<span style="font-size:10px;color:var(--neon-orange);margin-bottom:4px;display:block;">${video.channel}</span>` : '';
-        card.innerHTML = `<div class="video-thumbnail-container"><img class="video-thumbnail" src="${video.thumbnail}" alt="${video.title}" loading="lazy" onerror="this.src='https://img.youtube.com/vi/${video.id}/mqdefault.jpg'"></div><div class="video-info">${chTag}<div class="video-date">${video.date}</div><div class="video-title" style="margin-top:4px;">${video.title}</div></div>`;
+        // Titles come straight from YouTube; a title containing <, > or a quote
+        // broke the card markup (and the alt attribute), so escape them.
+        const chTag = video.channel ? `<span style="font-size:10px;color:var(--neon-orange);margin-bottom:4px;display:block;">${escHtml(video.channel)}</span>` : '';
+        const fallbackThumb = `https://img.youtube.com/vi/${encodeURIComponent(video.id)}/mqdefault.jpg`;
+        card.innerHTML = `<div class="video-thumbnail-container"><img class="video-thumbnail" src="${escHtml(video.thumbnail || fallbackThumb)}" alt="${escHtml(video.title)}" loading="lazy"></div><div class="video-info">${chTag}<div class="video-date">${escHtml(video.date)}</div><div class="video-title" style="margin-top:4px;">${escHtml(video.title)}</div></div>`;
+        const img = card.querySelector('.video-thumbnail');
+        img.addEventListener('error', () => { if (img.src !== fallbackThumb) img.src = fallbackThumb; }, { once: true });
         videoGrid.appendChild(card);
     });
+}
+function escHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
 }
 function formatNumber(num) {
     if (num >= 1000000) return (num/1000000).toFixed(2) + 'M';
@@ -1324,7 +1357,7 @@ async function loadFanmail() {
 
     let items = [];
     try {
-        const res = await fetch('fanmail.json');
+        const res = await fetch('/fanmail.json');
         const data = await res.json();
         items = (data.fanmail || []).filter(i => i && i.file && i.author);
     } catch(e) {}
@@ -1336,18 +1369,25 @@ async function loadFanmail() {
     }
     if (section) section.style.display = '';
 
-    // Duplicate items for seamless infinite scroll
-    const allItems = [...items, ...items];
+    // The loop scrolls by half the track, so each half must be at least as
+    // wide as the strip or an empty gap scrolls into view (3 pieces of art
+    // are only ~520px, far narrower than the desktop strip). Repeat the set
+    // until one half covers the strip, then double it for a seamless loop.
+    const ITEM_W = 160 + 14;   // card width + gap
+    const stripW = track.parentElement?.clientWidth || window.innerWidth;
+    const reps = Math.max(1, Math.ceil(stripW / (items.length * ITEM_W)));
+    const half = Array.from({ length: reps }, () => items).flat();
+    const allItems = [...half, ...half];
     track.innerHTML = allItems.map(item => `
         <div class="fanmail-item">
-            <img src="img/fanmail/${item.file}" alt="Fan art by ${item.author}"
+            <img src="/img/fanmail/${encodeURIComponent(item.file)}" alt="Fan art by ${escHtml(item.author)}"
                  onerror="this.closest('.fanmail-item').remove()">
-            <div class="fanmail-item-label">by ${item.author}</div>
+            <div class="fanmail-item-label">by ${escHtml(item.author)}</div>
         </div>
     `).join('');
 
     // Adjust animation duration based on item count
-    const duration = Math.max(20, items.length * 4);
+    const duration = Math.max(20, half.length * 4);
     track.style.animationDuration = duration + 's';
 }
 

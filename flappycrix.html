@@ -3023,6 +3023,15 @@
             body:has(.mp-modal.active, .store-modal.active, .locker-modal.active, .achievements-modal.active) #toasts {
                 bottom: calc(10px + env(safe-area-inset-bottom));
             }
+            /* ...but a full-width sheet has no free edge at all: the stacked
+               toasts sat right over its buttons (the first-run "How to play"
+               sheet lost its Next button under two announcements). News
+               toasts wait behind the sheet — they are already in the
+               notification centre — and only errors, which answer something
+               the player just did inside the sheet, stay on top. */
+            body:has(.mp-modal.active, .store-modal.active, .locker-modal.active, .achievements-modal.active, .auth-modal.active) #toasts .toast:not(.error) {
+                display: none;
+            }
 
             /* ---- BOTTOM SHEETS ---- */
             .mp-modal, .store-modal, .locker-modal, .achievements-modal {
@@ -3076,6 +3085,11 @@
 
             body:not(.playing):not(.dead) #toasts {
                 bottom: calc(192px + env(safe-area-inset-bottom));
+            }
+            /* Same specificity as the rule above, so it has to come after it
+               or a sheet's toasts float up into the middle of the sheet. */
+            body:has(.mp-modal.active, .store-modal.active, .locker-modal.active, .achievements-modal.active, .auth-modal.active) #toasts {
+                bottom: calc(10px + env(safe-area-inset-bottom));
             }
 
             /* No room for it between a 27px title and the deck */

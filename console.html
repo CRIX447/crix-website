@@ -1311,7 +1311,7 @@ async function runHealth() {
 /* ---------- DEPLOY TAB ---------- */
 const EXPECTED_BUILD = '2026.08.16-1310';
 const DEP_FILES = [
-  ['/game.html','Game page',null],
+  ['/flappycrix','Game page',null],
   ['/photon-realtime-browser.js','Photon SDK','Photon'],
   ['/playfab-manager.js','PlayFab manager','PLAYFAB_MANAGER_VERSION'],
   ['/filter.js','Chat filter','ChatFilter'],
@@ -1329,7 +1329,7 @@ async function runDeployCheck() {
   let stale = false;
 
   try {
-    const txt = await (await fetch('/game.html?cb=' + Date.now())).text();
+    const txt = await (await fetch('/flappycrix?cb=' + Date.now())).text();
     const m = txt.match(/__BUILD__\s*=\s*"([^"]+)"/);
     if (!m) { stale = true; add('Live build','fail','No build stamp — your push has not gone live.'); }
     else if (m[1] !== EXPECTED_BUILD) {
