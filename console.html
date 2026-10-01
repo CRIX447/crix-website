@@ -300,10 +300,12 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
       <div class="panel">
         <h2>Seasonal theme</h2>
         <p class="dt" style="margin-bottom:12px">
-          Halloween, Christmas and Easter turn themselves on by date. Force one
-          here to preview it or run it early — it reaches every player at once,
-          not only this browser. Each season brings its own colours, music,
-          fly-bys and calendar.
+          Halloween, Christmas, Easter and Flappy Crix's Birthday (18 March) turn
+          themselves on by date. Force one here to preview it or run it early —
+          it reaches every player at once, not only this browser. Each season
+          brings its own colours, music, fly-bys and calendar; the Birthday
+          instead swaps the whole game for the original — no shop, no
+          multiplayer, no cosmetics — until it ends.
         </p>
         <div class="row">
           <label>Theme</label>
@@ -312,6 +314,7 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
             <option value="spooky">🎃 Halloween</option>
             <option value="christmas">🎄 Christmas</option>
             <option value="easter">🐣 Easter</option>
+            <option value="birthday">🎂 Birthday — the original game</option>
             <option value="off">Off — no season at all</option>
           </select>
           <button class="btn sm" id="seaSave">Apply</button>
@@ -334,6 +337,7 @@ label.chk input{flex:0 0 auto;min-width:0;width:15px;height:15px;padding:0;accen
             <option value="spooky">🎃 Halloween</option>
             <option value="christmas">🎄 Christmas</option>
             <option value="easter">🐣 Easter</option>
+            <option value="birthday">🎂 Birthday — the original game</option>
             <option value="off">No theme, for me</option>
           </select>
         </div>
@@ -1805,7 +1809,7 @@ bind('evtSave', async () => {
    The same config/season doc the game watches, so a change here lands on
    everyone's screen without a reload. '' follows the calendar, 'off' means no
    season at all. */
-const SEASON_NAMES = { spooky: 'Halloween', christmas: 'Christmas', easter: 'Easter' };
+const SEASON_NAMES = { spooky: 'Halloween', christmas: 'Christmas', easter: 'Easter', birthday: 'Birthday' };
 
 async function seaLoad() {
   try {
@@ -1825,6 +1829,9 @@ async function seaLoad() {
 bind('seaSave', async () => {
   const out = $('seaOut');
   const val = $('seaForce').value;
+  if (val === 'birthday' && !confirm('Switch on the Birthday season for everyone?\n\n' +
+      'Every player goes to the original Flappy Crix as soon as they are back on the menu, ' +
+      'until you set this back.')) return;
   out.className = 'out'; out.textContent = 'Saving\u2026';
   try {
     await firebase.firestore().collection('config').doc('season').set({

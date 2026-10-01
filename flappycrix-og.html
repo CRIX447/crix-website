@@ -18,9 +18,11 @@
         page, where it ran in a pop-up) — same look, same pipes, same physics,
         same sounds.
 
-        Every 18 March from 2027 /flappycrix sends everyone here for the day,
-        and back again once the day is over (Sydney time, like the seasons).
-        The rest of the year it is still here at /flappycrix-og, as a museum.
+        This is the Birthday season. Every 18 March from 2027 /flappycrix sends
+        everyone here for the day, and back again once the day is over (Sydney
+        time, like the other seasons); staff can also switch it on early from
+        the seasons settings. The rest of the year it is still here at
+        /flappycrix-og, as a museum.
 
         Fixed, without changing how it plays:
           - Tapping or clicking never made it jump. Only the keyboard was ever
@@ -182,11 +184,22 @@
     (function () {
         'use strict';
 
-        /* ---- the anniversary ----
-           Flappy Crix went up on 18 March 2026. On every 18 March after that
-           (Sydney time, as the seasons are) the game is this one for the day.
-           ?anniversary=1 previews the day; ?modern=1 on /flappycrix skips it. */
+        /* ---- the Birthday season ----
+           Flappy Crix went up on 18 March 2026, so every 18 March from 2027
+           (Sydney time) is its birthday: a season in the modern game's
+           seasons list, like Halloween or Christmas, except that instead of
+           decorating the game it swaps it for this one. Staff can switch it
+           on early — for everyone, or just for themselves — and switch it off.
+
+           This page has no Firebase, so it decides the same way the top of
+           /flappycrix does: the copies of the staff settings that the modern
+           game keeps in local storage, then the date. While someone is here
+           for the birthday it also re-reads the for-everyone setting straight
+           from Firestore once a minute, so switching it off sends them back.
+           ?anniversary=1 previews it; ?modern=1 on /flappycrix skips it. */
         const BORN = 2026;
+        const PREVIEW_KEY = 'crix_season_preview_v1';   // just for me
+        const FORCED_KEY = 'crix_season_force_v1';      // for everyone
         function sydneyDate() {
             try {
                 const p = {};
@@ -198,9 +211,27 @@
                 return { y: n.getFullYear(), m: n.getMonth() + 1, d: n.getDate() };
             }
         }
-        function anniversaryYears() {
+        function onTheDay() {
             const t = sydneyDate();
-            return (t.m === 3 && t.d === 18 && t.y > BORN) ? t.y - BORN : 0;
+            return t.m === 3 && t.d === 18 && t.y > BORN;
+        }
+        function readForce(key) {
+            try { return JSON.parse(localStorage.getItem(key) || '{}').force || ''; } catch (e) { return ''; }
+        }
+        // '' (not on), 'day' (it is 18 March), 'everyone' (staff switched it
+        // on for all), 'me' (staff switched it on just for themselves)
+        function birthdayState() {
+            const mine = readForce(PREVIEW_KEY), all = readForce(FORCED_KEY);
+            const pick = mine || all;                     // just-for-me wins
+            if (pick === 'birthday') return mine === 'birthday' ? 'me' : 'everyone';
+            if (pick && pick !== 'auto') return '';       // 'off', or another season
+            return onTheDay() ? 'day' : '';
+        }
+        // Which birthday this is (or the next one, when it is on early)
+        function birthdayNumber() {
+            const t = sydneyDate();
+            const n = t.y - BORN + ((t.m > 3 || (t.m === 3 && t.d > 18)) ? 1 : 0);
+            return Math.max(1, n);
         }
         function ordinal(n) {
             const s = ['th', 'st', 'nd', 'rd'], v = n % 100;
@@ -217,29 +248,100 @@
                 return h ? `${h}h ${m}m` : `${m}m`;
             } catch (e) { return ''; }
         }
-
-        const forced = /[?&]anniversary=1/.test(location.search);
-        const banner = document.getElementById('ogBanner');
-        function renderBanner() {
-            const years = anniversaryYears() || (forced ? Math.max(1, sydneyDate().y - BORN) : 0);
-            if (!years) return false;
-            banner.innerHTML =
-                `<b>🎂 HAPPY ${ordinal(years).toUpperCase()} BIRTHDAY, FLAPPY CRIX!</b>` +
-                `Flappy Crix first went up on 18 March 2026. For today only, ` +
-                `everyone plays the original — no shop, no multiplayer, no cosmetics, ` +
-                `just the bird and the pipes. ` +
-                `<span class="og-time">The modern game is back in <span id="ogLeft">${untilMidnight()}</span>.</span>`;
+        // Shared with /flappycrix: two pages that disagree must not bounce a
+        // browser between them forever.
+        function hop() {
+            try {
+                const now = Date.now(), k = 'crix_bday_hops';
+                const hops = JSON.parse(sessionStorage.getItem(k) || '[]').filter(t => now - t < 30000);
+                if (hops.length >= 4) return false;
+                hops.push(now);
+                sessionStorage.setItem(k, JSON.stringify(hops));
+            } catch (e) {}
             return true;
         }
-        const isAnniversary = renderBanner();
-        if (isAnniversary && !forced) {
-            // When the day is over, back to the game as it is now
-            setInterval(() => {
-                if (!anniversaryYears()) { location.replace('/flappycrix'); return; }
-                const el = document.getElementById('ogLeft');
-                if (el) el.textContent = untilMidnight();
-            }, 30000);
+
+        const urlPreview = /[?&]anniversary=1/.test(location.search);
+        let state = urlPreview ? 'preview' : birthdayState();
+        // Only someone sent here for the birthday is sent back when it ends;
+        // a visitor to the museum stays as long as they like.
+        const cameForBirthday = !!state && !urlPreview;
+        const banner = document.getElementById('ogBanner');
+        const museumBanner = banner.innerHTML;
+        function renderBanner() {
+            if (!state) { banner.innerHTML = museumBanner; return; }
+            const head = `<b>🎂 HAPPY ${ordinal(birthdayNumber()).toUpperCase()} BIRTHDAY, FLAPPY CRIX!</b>`;
+            const what = 'everyone plays the original — no shop, no multiplayer, no cosmetics, just the bird and the pipes.';
+            if (state === 'day') {
+                banner.innerHTML = head +
+                    `Flappy Crix first went up on 18 March 2026. For today only, ${what} ` +
+                    `<span class="og-time">The modern game is back in <span id="ogLeft">${untilMidnight()}</span>.</span>`;
+            } else if (state === 'everyone') {
+                banner.innerHTML = head +
+                    `The birthday season is on early. Until it ends, ${what} ` +
+                    `<span class="og-time">The modern game is back the moment it does.</span>`;
+            } else if (state === 'me') {
+                banner.innerHTML = head +
+                    `You switched the birthday season on just for yourself — nobody else sees this. ` +
+                    `<a href="/flappycrix?modern=1">Open the modern game to switch it off →</a>`;
+            } else {
+                banner.innerHTML = head +
+                    `A preview of the birthday season. ` +
+                    `<a href="/flappycrix?modern=1">Back to the current game →</a>`;
+            }
         }
+        renderBanner();
+
+        // The for-everyone setting, read straight from Firestore (the
+        // document is public, and REST needs no SDK) and kept in the same
+        // local copy the modern game writes.
+        async function refreshEveryone() {
+            try {
+                const cfg = await (await fetch('/api.json', { cache: 'no-store' })).json();
+                const fb = cfg && cfg.firebase;
+                if (!fb || !fb.projectId) return;
+                const r = await fetch('https://firestore.googleapis.com/v1/projects/' +
+                    encodeURIComponent(fb.projectId) + '/databases/(default)/documents/config/season' +
+                    (fb.apiKey ? '?key=' + encodeURIComponent(fb.apiKey) : ''), { cache: 'no-store' });
+                let force = '', at = 0;
+                if (r.ok) {
+                    const f = (await r.json()).fields || {};
+                    force = (f.force && f.force.stringValue) || '';
+                    at = +((f.at && (f.at.integerValue || f.at.doubleValue)) || 0);
+                } else if (r.status !== 404) {
+                    return;                               // unsure: keep what we had
+                }
+                localStorage.setItem(FORCED_KEY, JSON.stringify({ force, at }));
+            } catch (e) { /* offline: the local copy stands */ }
+        }
+
+        function check() {
+            if (urlPreview) return;
+            const now = birthdayState();
+            if (cameForBirthday && !now) {
+                // The season is over: back to the game as it is now
+                if (hop()) location.replace('/flappycrix');
+                return;
+            }
+            if (now !== state) { state = now; renderBanner(); }
+            const el = document.getElementById('ogLeft');
+            if (el) el.textContent = untilMidnight();
+        }
+        if (cameForBirthday) {
+            refreshEveryone().then(check);
+            let ticks = 0;
+            setInterval(() => {
+                // the clock every 30 seconds, Firestore every minute
+                if (++ticks % 2 === 0) refreshEveryone().then(check); else check();
+            }, 30000);
+        } else if (!urlPreview) {
+            // a museum visitor still sees the banner change if the day starts
+            setInterval(check, 30000);
+        }
+        // Another tab (the modern game, the console) changed a setting
+        addEventListener('storage', e => {
+            if (e.key === PREVIEW_KEY || e.key === FORCED_KEY) check();
+        });
 
         // ========== SOUNDS (as the original played them) ==========
         const $ = id => document.getElementById(id);
