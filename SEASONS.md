@@ -1,15 +1,38 @@
 # Seasonal themes
 
-Halloween, Christmas and Easter switch themselves on by date and off again
-afterwards. Nothing needs deploying when a season starts.
+Halloween, Christmas, Easter and Flappy Crix's Birthday switch themselves on
+by date and off again afterwards. Nothing needs deploying when a season starts.
 
 | Season | Runs | Calendar |
 |---|---|---|
 | 🎃 Halloween | the whole of October | TRICK OR TREAT — 31 doors |
 | 🎄 Christmas | 1–26 December | ADVENT CALENDAR — 24 doors |
 | 🐣 Easter | Palm Sunday to Easter Monday | EGG HUNT — 7 doors |
+| 🎂 Birthday | 18 March, from 2027 | none — see below |
 
 Easter is computed each year rather than listed, so it never needs updating.
+If Palm Sunday falls on or before 18 March, the Birthday wins that one day.
+
+## The Birthday season
+
+Flappy Crix first went up on 18 March 2026. On every 18 March after that the
+Birthday season is on, and it works differently from the others: instead of
+decorating the modern game it **replaces** it. `/flappycrix` sends everyone to
+`/flappycrix-og` — the very first version, with no shop, no multiplayer and no
+cosmetics — and that page sends them back when the season ends. Nobody is
+moved in the middle of a run or a room; it waits for the menu.
+
+It can be forced like any other season. Forcing it for everyone sends every
+player (you included) to the original until it is set back, so both the
+console and the staff menu ask first. To get back to the modern game while it
+is on, open **`/flappycrix?modern=1`**, or use the console.
+`/flappycrix?anniversary=1` previews it without changing anything.
+
+The decision is made before the modern page draws anything, from local copies
+of the two settings above that the game keeps, so nobody sees the modern menu
+flash on the way. The original page has no Firebase; while someone is on it
+for the birthday it re-reads the for-everyone setting from Firestore once a
+minute, so switching the season off reaches them within a minute.
 
 ## Forcing a season
 

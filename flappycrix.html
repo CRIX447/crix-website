@@ -3,23 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <script>
-    /* FLAPPY CRIX'S BIRTHDAY. The first Flappy Crix went up on 18 March
-       2026. Every 18 March after that (Sydney time, as the seasons are) the
-       game is the original for the whole day — /flappycrix-og — with
-       everything modern off: no shop, no multiplayer, no cosmetics. It runs
-       before anything else on this page loads, and the original page sends
-       everyone back here when the day is over. ?modern=1 skips it (staff
-       checking something); ?anniversary=1 previews the day. */
+    /* FLAPPY CRIX'S BIRTHDAY SEASON. The first Flappy Crix went up on 18
+       March 2026, so every 18 March from 2027 (Sydney time, like every
+       season) is its birthday, and for that day the game is the original —
+       /flappycrix-og — with the shop, multiplayer and cosmetics all off.
+       It is a season like Halloween or Christmas (SEASONS.birthday below):
+       staff can switch it on for everyone or just for themselves, and "No
+       theme" turns it off. This runs before anything else on the page so
+       nobody sees the modern menu flash first; it reads the local copies of
+       the staff settings that the season code keeps, and the season code
+       catches anything that changes after the page has loaded.
+       ?modern=1 skips it (staff checking something); ?anniversary=1 forces it. */
     (function () {
-        try {
-            var q = location.search;
-            if (/[?&]modern=1/.test(q)) return;
-            var force = /[?&]anniversary=1/.test(q);
+        // A guard against two pages that disagree sending a browser back and
+        // forth forever: four hops inside half a minute and it stays put.
+        window.__crixHop = function () {
+            try {
+                var now = Date.now(), k = 'crix_bday_hops',
+                    hops = JSON.parse(sessionStorage.getItem(k) || '[]').filter(function (t) { return now - t < 30000; });
+                if (hops.length >= 4) return false;
+                hops.push(now);
+                sessionStorage.setItem(k, JSON.stringify(hops));
+            } catch (e) {}
+            return true;
+        };
+        // The same decision activeSeasonId() makes, cut down to the one
+        // season that matters here. /flappycrix-og keeps a copy of it.
+        function birthdayOn() {
+            function force(k) {
+                try { return JSON.parse(localStorage.getItem(k) || '{}').force || ''; } catch (e) { return ''; }
+            }
+            // just-for-me beats everyone, which beats the calendar
+            var pick = force('crix_season_preview_v1') || force('crix_season_force_v1');
+            if (pick === 'birthday') return true;
+            if (pick && pick !== 'auto') return false;   // 'off', or another season forced on
             var p = {};
             new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', year: 'numeric', month: 'numeric', day: 'numeric' })
                 .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
-            if (force || (+p.month === 3 && +p.day === 18 && +p.year > 2026)) {
-                location.replace('/flappycrix-og' + (force ? '?anniversary=1' : ''));
+            return +p.month === 3 && +p.day === 18 && +p.year > 2026;
+        }
+        try {
+            var q = location.search;
+            if (/[?&]modern=1/.test(q)) { window.__crixModern = true; return; }
+            var url = /[?&]anniversary=1/.test(q);
+            if (url || birthdayOn()) {
+                if (!window.__crixHop()) return;
+                location.replace('/flappycrix-og' + (url ? '?anniversary=1' : ''));
                 document.documentElement.style.display = 'none';   // no flash of the modern menu
             }
         } catch (e) { /* an old browser just gets the modern game */ }
@@ -61,7 +90,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.04-1200";
+    <script>window.__BUILD__ = "2026.10.04-1500";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -4593,15 +4622,19 @@
             <!-- SEASONS -->
             <div class="mp-section-title" style="margin-top:16px;">🗓️ SEASONAL THEME</div>
             <div class="set-sub" style="margin-bottom:8px;line-height:1.6;">
-                They switch on by date on their own — October, December and the week
-                around Easter. Forcing one here overrides that for <b>everyone</b> until
-                you set it back to Automatic.
+                They switch on by date on their own — October, December, the week
+                around Easter, and 18 March for Flappy Crix's birthday. Forcing one here
+                overrides that for <b>everyone</b> until you set it back to Automatic.
+                🎂 Birthday swaps the whole game for the original — no shop, no
+                multiplayer, no cosmetics — so it sends you there too; come back with
+                <b>/flappycrix?modern=1</b> or the console to turn it off.
             </div>
             <div class="owner-grid">
                 <button class="owner-btn" data-season="">🗓️ Automatic</button>
                 <button class="owner-btn" data-season="spooky">🎃 Halloween</button>
                 <button class="owner-btn" data-season="christmas">🎄 Christmas</button>
                 <button class="owner-btn" data-season="easter">🐣 Easter</button>
+                <button class="owner-btn" data-season="birthday">🎂 Birthday</button>
                 <button class="owner-btn warn" data-season="off">🚫 No theme</button>
             </div>
             <div class="set-sub" id="seasonStatus" style="margin-top:6px;min-height:14px;"></div>
@@ -4618,6 +4651,7 @@
                 <button class="owner-btn" data-myseason="spooky">🎃 Halloween</button>
                 <button class="owner-btn" data-myseason="christmas">🎄 Christmas</button>
                 <button class="owner-btn" data-myseason="easter">🐣 Easter</button>
+                <button class="owner-btn" data-myseason="birthday">🎂 Birthday</button>
                 <button class="owner-btn warn" data-myseason="off">🚫 No theme</button>
             </div>
             <div class="set-sub" style="margin:8px 0 6px;">Which parts I see</div>
@@ -7030,8 +7064,30 @@
                 ground: '#C9B98A', groundTop: '#B3A375', stripe: 'rgba(255,255,255,.16)',
                 pipe: ['#3F6B2A', '#7FC24A', '#C4EE86', '#7FC24A', '#33571F'],
                 motif: 'egg', motifFill: null       // eggs pick their own colours
+            },
+            /* Flappy Crix went up on 18 March 2026, so every 18 March from 2027
+               is its birthday. This season is different from the others: it
+               does not decorate the modern game, it REPLACES it — while it is
+               on, /flappycrix sends everyone to the original (/flappycrix-og)
+               with the shop, multiplayer and cosmetics all gone, and the
+               original sends them back when it ends. `original: true` is what
+               says so. The colours below are only ever seen by staff who open
+               /flappycrix?modern=1 during it. */
+            birthday: {
+                name: 'Birthday', emoji: '🎂', accent: '#FFC83D', accent2: '#FF5FA2',
+                panel: '#1E1430', panel2: '#2A1B40', line: 'rgba(255,200,61,.16)',
+                music: null,
+                flyer: null,
+                cal: null,
+                original: true,
+                skyTop: '#1C1A4A', skyLow: '#5A3C8C',
+                city: 'rgba(90,60,140,.62)', bush: '#2F5A3A',
+                ground: '#DED895', groundTop: '#C9C177', stripe: 'rgba(255,255,255,.18)',
+                pipe: ['#2C7A1E', '#5BC236', '#A8F07A', '#5BC236', '#1F5A14'],
+                motif: 'confetti', motifFill: null  // confetti picks its own colours
             }
         };
+        const CONFETTI_COLOURS = ['#FFC83D', '#FF5FA2', '#5BD2FF', '#7CF07A', '#C08BFF'];
         const EGG_COLOURS = ['#FF9EC4', '#9BE7FF', '#FFE58A', '#B8F2C8', '#D7B3FF'];
 
         /* Easter moves every year, so it is computed rather than listed. This
@@ -7120,6 +7176,10 @@
             const d = now || new Date();
             const syd = seasonNow(d);
             const month = syd.month;                    // 0 = January, in Sydney
+            // Flappy Crix's birthday, from its first one in 2027. Checked
+            // before Easter: Palm Sunday can fall as early as 15 March, and a
+            // one-day event should not lose its only day to an eight-day one.
+            if (month === 2 && syd.day === 18 && syd.year > 2026) return 'birthday';
             if (month === 9) return 'spooky';           // all of October
             if (month === 11 && syd.day <= 26) return 'christmas';
             // Palm Sunday through Easter Monday
@@ -7133,6 +7193,14 @@
 
         // '' = follow the calendar, 'off' = plain, otherwise a season id
         let seasonForced = '', seasonForcedAt_ = 0;
+        // Start from the last setting this browser saw (watchSeason keeps the
+        // copy), not from "follow the calendar" — otherwise, until Firestore
+        // answers, a season switched off for everyone is briefly on again,
+        // and for the Birthday season "briefly on" means being sent away.
+        try {
+            const v = JSON.parse(localStorage.getItem('crix_season_force_v1') || '{}');
+            seasonForced = v.force || ''; seasonForcedAt_ = v.at || 0;
+        } catch (e) {}
         function activeSeasonId() {
             // My own preview wins over the one set for everyone, which in turn
             // wins over the calendar. 'auto' is how a preview says "calendar",
@@ -7676,6 +7744,7 @@
         }
 
         function applySeasonClass() {
+            maybeGoToOriginal();
             const id = activeSeasonId();
             const root = document.documentElement;
             const s = seasonFor('colour');
@@ -7755,8 +7824,46 @@
             db.collection('config').doc('season').onSnapshot(d => {
                 seasonForced = (d.exists && d.data().force) || '';
                 seasonForcedAt_ = (d.exists && d.data().at) || 0;
+                writeSeasonForcedMirror();
                 applySeasonClass();
             }, e => { console.warn('[Season]', e.message); applySeasonClass(); });
+        }
+
+        /* A copy of the everyone-override in local storage. The birthday
+           season has to be decided before this page draws anything (see the
+           script at the top of <head>), and on /flappycrix-og, which has no
+           Firebase at all — both read this. */
+        const SEASON_FORCED_KEY = 'crix_season_force_v1';   // also read where seasonForced is declared
+        function writeSeasonForcedMirror() {
+            try {
+                localStorage.setItem(SEASON_FORCED_KEY,
+                    JSON.stringify({ force: seasonForced, at: seasonForcedAt_ }));
+            } catch (e) {}
+        }
+
+        /* ---- THE BIRTHDAY SEASON ----
+           A season with `original: true` swaps the whole game for the
+           original. The script at the top of <head> catches it before
+           anything draws; this catches it changing while the page is open —
+           the clock reaching 18 March, or staff switching it on for
+           everyone. Never mid-run or mid-room: it waits for the menu. */
+        let _originalTimer = null;
+        function maybeGoToOriginal() {
+            const s = season();
+            if (!s || !s.original || window.__crixModern) {
+                clearTimeout(_originalTimer); _originalTimer = null;
+                return;
+            }
+            // try: this first runs during load, before the multiplayer
+            // section has declared its variables.
+            let busy = false;
+            try { busy = !!(gameRunning || mpCurrentRoom); } catch (e) {}
+            if (busy) {
+                clearTimeout(_originalTimer);
+                _originalTimer = setTimeout(maybeGoToOriginal, 3000);
+                return;
+            }
+            if (window.__crixHop && window.__crixHop()) location.replace('/flappycrix-og');
         }
 
         async function setSeasonOverride(value) {
@@ -8681,6 +8788,17 @@
                     const sy = bgWrap(i * 53 + bgOff * (0.5 + (i % 3) * 0.25), skyH + 20) - 10;
                     const r = 1.2 + (i % 3) * 0.8;
                     ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI * 2); ctx.fill();
+                }
+            } else if (sp.motif === 'confetti') {
+                for (let i = 0; i < 26; i++) {
+                    const x = bgWrap(i * 83 + Math.sin(i) * 30 - bgOff * 0.2, W + 30) - 15;
+                    const y = bgWrap(i * 47 + bgOff * (0.35 + (i % 4) * 0.12), skyH + 20) - 10;
+                    ctx.save();
+                    ctx.translate(x, y);
+                    ctx.rotate(bgOff * 0.03 * (i % 2 ? 1 : -1) + i);
+                    ctx.fillStyle = CONFETTI_COLOURS[i % CONFETTI_COLOURS.length];
+                    ctx.fillRect(-3, -1.5, 6, 3);
+                    ctx.restore();
                 }
             } else if (sp.motif === 'egg') {
                 for (let i = 0; i < 6; i++) {
@@ -11801,6 +11919,11 @@
                     if (st) st.textContent = 'Owners and developers only.';
                     return;
                 }
+                if (SEASONS[want]?.original && !confirm(
+                        'Switch on the Birthday season for everyone?\n\n' +
+                        'Every player — you included — goes to the original Flappy Crix ' +
+                        'as soon as they are back on the menu, until it is switched off. ' +
+                        'Turn it off from the console, or open /flappycrix?modern=1.')) return;
                 if (st) st.textContent = 'Saving…';
                 try {
                     await setSeasonOverride(want);
@@ -11808,6 +11931,7 @@
                     // The snapshot listener repaints for everyone including us,
                     // but a local apply makes the button feel instant.
                     seasonForced = want;
+                    writeSeasonForcedMirror();
                     applySeasonClass();
                     renderSeasonButtons();
                     if (st) st.textContent = want
