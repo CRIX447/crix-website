@@ -90,7 +90,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.04-1500";
+    <script>window.__BUILD__ = "2026.10.04-1600";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -8201,40 +8201,45 @@
         }
 
         /* ---- COBWEBS ----
-         * Pinned to the corners of the screen rather than scrolling with the
-         * lane: they are on the window you are looking through, not in the
-         * world. Drawn once into an offscreen canvas per size, because the
-         * radials and arcs are the same every frame and there is no sense
-         * paying for them sixty times a second.
+         * A half web against the side of a pipe, resting on its rim: the
+         * straight edge runs along the pipe wall, so every thread is tied to
+         * something. The old quarter-web hung from the underside of the rim
+         * with its other edge tied to nothing — floating in the gap, a few
+         * pixels in from the end of the rim — and it sat right in the bird's
+         * path. These are on the outside of the pipe, between pipes, where
+         * the bird never has to go. Drawn once into an offscreen canvas per
+         * size, because the threads are the same every frame.
          */
         let _webCv = null, _webKey = '';
-        function webCanvas(size) {
-            const key = size + 'x' + canvas.width;
+        function webCanvas(R) {
+            const key = String(R);
             if (_webCv && _webKey === key) return _webCv;
+            const pad = 2;
             const c = document.createElement('canvas');
-            c.width = c.height = size;
+            c.width = R + pad * 2; c.height = R * 2 + pad * 2;
             const g = c.getContext('2d');
-            g.strokeStyle = 'rgba(226,230,245,.34)';
+            g.translate(pad, pad + R);                    // the hub, on the wall
+            g.strokeStyle = 'rgba(232,236,250,.5)';
             g.lineWidth = 1.1;
-            g.lineCap = 'round';
-            const RINGS = 5, SPOKES = 7;
-            for (let i = 0; i <= SPOKES; i++) {           // spokes, from the corner
-                const a = (i / SPOKES) * (Math.PI / 2);
+            g.lineCap = 'round'; g.lineJoin = 'round';
+            const SPOKES = 8, RINGS = 5;
+            const ang = i => -Math.PI / 2 + (i / SPOKES) * Math.PI;   // straight up to straight down
+            for (let i = 0; i <= SPOKES; i++) {
                 g.beginPath();
                 g.moveTo(0, 0);
-                g.lineTo(Math.cos(a) * size, Math.sin(a) * size);
+                g.lineTo(Math.cos(ang(i)) * R, Math.sin(ang(i)) * R);
                 g.stroke();
             }
-            for (let r = 1; r <= RINGS; r++) {            // the sagging threads between
-                const rad = (r / RINGS) * size * 0.95;
+            for (let r = 1; r <= RINGS; r++) {
+                const rad = (r / RINGS) * R * 0.96;
+                g.globalAlpha = r === RINGS ? 1 : 0.85;
                 g.beginPath();
                 for (let i = 0; i <= SPOKES; i++) {
-                    const a = (i / SPOKES) * (Math.PI / 2);
-                    const x = Math.cos(a) * rad, y = Math.sin(a) * rad;
+                    const x = Math.cos(ang(i)) * rad, y = Math.sin(ang(i)) * rad;
                     if (i === 0) { g.moveTo(x, y); continue; }
-                    const pa = ((i - 1) / SPOKES) * (Math.PI / 2);
-                    const mid = (a + pa) / 2, sag = rad * 0.86;   // pulled inward
-                    g.quadraticCurveTo(Math.cos(mid) * sag, Math.sin(mid) * sag, x, y);
+                    // each thread is pulled in toward the hub and droops a little
+                    const mid = (ang(i) + ang(i - 1)) / 2, sag = rad * 0.84;
+                    g.quadraticCurveTo(Math.cos(mid) * sag, Math.sin(mid) * sag + rad * 0.06, x, y);
                 }
                 g.stroke();
             }
@@ -8242,41 +8247,35 @@
             return c;
         }
 
-        /* The webs used to be painted into the four corners of the viewport,
-           on the glass rather than in the world, so they sat over the bird
-           and never moved. They belong on the scenery: strung into the inner
-           corners of a pipe gap, scrolling past with the pipe they are on.
-           Which pipes get one is decided once at spawn, from the decoration
-           RNG, so it is steady from frame to frame and identical for every
-           client in a room. */
+        /* Strung on the pipes, scrolling with them. Which pipes get one is
+           decided once at spawn, from the decoration RNG, so it is steady
+           from frame to frame and identical for every client in a room. The
+           four bits are the four places a web can go: either side of the top
+           pipe, just above its rim, and either side of the bottom pipe, just
+           below its rim. */
         const WEB_ODDS = 0.45;
         function pipeWebSize() { return Math.round(Math.min(canvas.width, canvas.height) * 0.11); }
         function drawPipeWebs(g, p) {
             if (!halloweenOn() || !p.web) return;
-            const size = pipeWebSize();
-            const web = webCanvas(size);
-            const right = p.x + pipeWidth;
+            const R = Math.max(12, Math.round(pipeWebSize() * 0.62));
+            const web = webCanvas(R), pad = 2;
+            const rim = pipeRim(pipeWidth);
+            const left = p.x, right = p.x + pipeWidth;
+            // hub height: one radius off the rim, so the web sits on it
+            const topY = p.top - rim.h - R, botY = p.bottom + rim.h + R;
+            const put = (wallX, hubY, flip) => {
+                g.save();
+                g.translate(wallX, hubY);
+                if (flip) g.scale(-1, 1);                 // face away from the pipe
+                g.drawImage(web, -pad, -R - pad);
+                g.restore();
+            };
             g.save();
-            g.globalAlpha = 0.7;
-            // Top pipe: the corner is where its underside meets a side.
-            // The quarter-web fans from its origin into +x/+y, so each corner
-            // is flipped to point it inward, across the gap.
-            if (p.web & 1) {                              // top pipe, left edge
-                g.save(); g.translate(p.x, p.top);
-                g.drawImage(web, 0, 0); g.restore();
-            }
-            if (p.web & 2) {                              // top pipe, right edge
-                g.save(); g.translate(right, p.top); g.scale(-1, 1);
-                g.drawImage(web, 0, 0); g.restore();
-            }
-            if (p.web & 4) {                              // bottom pipe, left edge
-                g.save(); g.translate(p.x, p.bottom); g.scale(1, -1);
-                g.drawImage(web, 0, 0); g.restore();
-            }
-            if (p.web & 8) {                              // bottom pipe, right edge
-                g.save(); g.translate(right, p.bottom); g.scale(-1, -1);
-                g.drawImage(web, 0, 0); g.restore();
-            }
+            g.globalAlpha = 0.8;
+            if (p.web & 1 && topY > R * 0.5) put(left, topY, true);
+            if (p.web & 2 && topY > R * 0.5) put(right, topY, false);
+            if (p.web & 4) put(left, botY, true);
+            if (p.web & 8) put(right, botY, false);
             g.restore();
         }
 
@@ -8876,6 +8875,8 @@
         }
 
 
+        // The rim's size, shared with the cobwebs that rest on it
+        function pipeRim(w) { return { h: Math.min(16, w * 0.34), overhang: w * 0.09 }; }
         function drawPipe(x, y, w, h, isTop) {
             if (h <= 0) return;
             ctx.save();
@@ -8885,9 +8886,8 @@
             ctx.fillRect(0, y, w, h);
 
             // The rim at the opening, which is what sells the depth
-            const rimH = Math.min(16, w * 0.34);
+            const { h: rimH, overhang } = pipeRim(w);
             const rimY = isTop ? y + h - rimH : y;
-            const overhang = w * 0.09;
 
             ctx.fillStyle = pipeGradient(w + overhang * 2);
             ctx.fillRect(-overhang, rimY, w + overhang * 2, rimH);
