@@ -2,6 +2,29 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>
+    /* FLAPPY CRIX'S BIRTHDAY. The first Flappy Crix went up on 18 March
+       2026. Every 18 March after that (Sydney time, as the seasons are) the
+       game is the original for the whole day — /flappycrix-og — with
+       everything modern off: no shop, no multiplayer, no cosmetics. It runs
+       before anything else on this page loads, and the original page sends
+       everyone back here when the day is over. ?modern=1 skips it (staff
+       checking something); ?anniversary=1 previews the day. */
+    (function () {
+        try {
+            var q = location.search;
+            if (/[?&]modern=1/.test(q)) return;
+            var force = /[?&]anniversary=1/.test(q);
+            var p = {};
+            new Intl.DateTimeFormat('en-AU', { timeZone: 'Australia/Sydney', year: 'numeric', month: 'numeric', day: 'numeric' })
+                .formatToParts(new Date()).forEach(function (x) { p[x.type] = x.value; });
+            if (force || (+p.month === 3 && +p.day === 18 && +p.year > 2026)) {
+                location.replace('/flappycrix-og' + (force ? '?anniversary=1' : ''));
+                document.documentElement.style.display = 'none';   // no flash of the modern menu
+            }
+        } catch (e) { /* an old browser just gets the modern game */ }
+    })();
+    </script>
     <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -38,7 +61,7 @@
          local copy has that Node-only tail (and an unused Node WebSocket polyfill) stripped out;
          everything else is untouched, and the browser's native WebSocket is used automatically,
          exactly as the SDK already supports out of the box. -->
-    <script>window.__BUILD__ = "2026.10.03-1200";
+    <script>window.__BUILD__ = "2026.10.04-1200";
       // Offline mode hands the service worker the list of files this page
       // loaded; the default buffer only holds 250, so make room early.
       try { performance.setResourceTimingBufferSize(1500); } catch (e) {}</script>
@@ -19251,7 +19274,8 @@
             // first opened offline still has its icons. The chat set is kept
             // as each one is first seen, not fetched all at once.
             EMOJI_UI.forEach(e => out.add('/img/emoji/72/' + emojiFile(e) + '.png'));
-            ['/img/coin-still@2x.png', '/img/font.woff2', '/img/favicon-32.png', '/img/favicon-192.png', '/img/bird-bare.png'].forEach(u => out.add(u));
+            ['/img/coin-still@2x.png', '/img/font.woff2', '/img/favicon-32.png', '/img/favicon-192.png', '/img/bird-bare.png',
+             '/img/hover.mp3', '/img/click.mp3'].forEach(u => out.add(u));
             document.querySelectorAll('audio source[src]').forEach(el => {
                 try { out.add(new URL(el.src, location.href).pathname); } catch (e) {}
             });
